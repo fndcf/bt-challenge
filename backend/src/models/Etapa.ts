@@ -18,6 +18,7 @@ export enum StatusEtapa {
   CHAVES_GERADAS = "chaves_geradas",
   EM_ANDAMENTO = "em_andamento",
   FINALIZADA = "finalizada",
+  FASE_ELIMINATORIA = "FASE_ELIMINATORIA",
 }
 
 export enum FaseEtapa {

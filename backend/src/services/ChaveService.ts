@@ -12,6 +12,7 @@ import {
   StatusConfrontoEliminatorio,
   ConfrontoEliminatorio,
 } from "../models/Eliminatoria";
+import estatisticasJogadorService from "./EstatisticasJogadorService";
 
 /**
  * Service para geração de chaves (duplas e grupos)
@@ -91,6 +92,36 @@ export class ChaveService {
         inscricoes,
         etapa.jogadoresPorGrupo
       );
+
+      console.log("📊 Criando estatísticas individuais dos jogadores...");
+      for (const dupla of duplas) {
+        // Estatísticas do jogador 1
+        await estatisticasJogadorService.criar({
+          etapaId,
+          arenaId,
+          jogadorId: dupla.jogador1Id,
+          jogadorNome: dupla.jogador1Nome,
+          jogadorNivel: dupla.jogador1Nivel
+            ? Number(dupla.jogador1Nivel)
+            : undefined,
+          grupoId: dupla.grupoId,
+          grupoNome: dupla.grupoNome,
+        });
+
+        // Estatísticas do jogador 2
+        await estatisticasJogadorService.criar({
+          etapaId,
+          arenaId,
+          jogadorId: dupla.jogador2Id,
+          jogadorNome: dupla.jogador2Nome,
+          jogadorNivel: dupla.jogador2Nivel
+            ? Number(dupla.jogador2Nivel)
+            : undefined,
+          grupoId: dupla.grupoId,
+          grupoNome: dupla.grupoNome,
+        });
+      }
+      console.log("✅ Estatísticas individuais criadas!");
 
       // 2. Criar grupos
       console.log("📊 Criando grupos...");
@@ -884,109 +915,174 @@ export class ChaveService {
   async registrarResultadoPartida(
     partidaId: string,
     arenaId: string,
-    placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
+    placar: Array<{
+      numero: number;
+      gamesDupla1: number;
+      gamesDupla2: number;
+    }>
   ): Promise<void> {
     try {
-      console.log(
-        `⚔️ Registrando/editando resultado da partida ${partidaId}...`
-      );
+      console.log(`⚔️ Registrando resultado da partida ${partidaId}...`);
 
       // Buscar partida
-      const partidaDoc = await db
-        .collection(this.collectionPartidas)
-        .doc(partidaId)
-        .get();
+      const partidaDoc = await db.collection("partidas").doc(partidaId).get();
 
       if (!partidaDoc.exists) {
         throw new Error("Partida não encontrada");
       }
 
-      const partida = { id: partidaDoc.id, ...partidaDoc.data() } as Partida;
+      const partida = {
+        id: partidaDoc.id,
+        ...partidaDoc.data(),
+      } as Partida;
 
       if (partida.arenaId !== arenaId) {
         throw new Error("Partida não pertence a esta arena");
       }
 
-      if (partida.fase === FaseEtapa.GRUPOS) {
-        console.log("🔍 Verificando se existe fase eliminatória...");
+      // Buscar duplas
+      const dupla1Doc = await db
+        .collection("duplas")
+        .doc(partida.dupla1Id)
+        .get();
+      const dupla2Doc = await db
+        .collection("duplas")
+        .doc(partida.dupla2Id)
+        .get();
 
-        const confrontosSnapshot = await db
-          .collection("confrontos_eliminatorios")
-          .where("etapaId", "==", partida.etapaId)
-          .where("arenaId", "==", arenaId)
-          .limit(1)
-          .get();
-
-        if (!confrontosSnapshot.empty) {
-          throw new Error(
-            "Não é possível editar resultados da fase de grupos após a fase eliminatória ter sido gerada. " +
-              "Cancele a fase eliminatória primeiro se precisar fazer ajustes."
-          );
-        }
+      if (!dupla1Doc.exists || !dupla2Doc.exists) {
+        throw new Error("Duplas não encontradas");
       }
 
-      // Se partida já finalizada, reverter estatísticas antigas primeiro
+      const dupla1 = { id: dupla1Doc.id, ...dupla1Doc.data() } as Dupla;
+      const dupla2 = { id: dupla2Doc.id, ...dupla2Doc.data() } as Dupla;
+
+      // ✅ NOVO: Se partida já finalizada, reverter estatísticas antigas primeiro
       const isEdicao = partida.status === StatusPartida.FINALIZADA;
+
       if (isEdicao && partida.placar && partida.placar.length > 0) {
-        console.log("   🔄 Revertendo estatísticas antigas...");
-        await this.reverterEstatisticasDuplas(
-          partida.dupla1Id,
-          partida.dupla2Id,
-          partida.vencedoraId!,
-          partida.setsDupla1,
-          partida.setsDupla2,
-          partida.placar[0].gamesDupla1,
-          partida.placar[0].gamesDupla2,
-          partida.placar[0].gamesDupla2,
-          partida.placar[0].gamesDupla1
+        console.log("🔄 Revertendo estatísticas antigas...");
+
+        // Recalcular estatísticas antigas
+        const placarAntigo = partida.placar;
+        let setsAntigo1 = 0;
+        let setsAntigo2 = 0;
+        let gamesAntigo1 = 0;
+        let gamesPerdidosAntigo1 = 0;
+        let gamesAntigo2 = 0;
+        let gamesPerdidosAntigo2 = 0;
+
+        placarAntigo.forEach((set: any) => {
+          if (set.gamesDupla1 > set.gamesDupla2) setsAntigo1++;
+          else setsAntigo2++;
+          gamesAntigo1 += set.gamesDupla1;
+          gamesPerdidosAntigo1 += set.gamesDupla2;
+          gamesAntigo2 += set.gamesDupla2;
+          gamesPerdidosAntigo2 += set.gamesDupla1;
+        });
+
+        const dupla1VenceuAntigo = setsAntigo1 > setsAntigo2;
+
+        // Reverter estatísticas dos 4 jogadores
+        await estatisticasJogadorService.reverterAposPartida(
+          dupla1.jogador1Id,
+          partida.etapaId,
+          {
+            venceu: dupla1VenceuAntigo,
+            setsVencidos: setsAntigo1,
+            setsPerdidos: setsAntigo2,
+            gamesVencidos: gamesAntigo1,
+            gamesPerdidos: gamesPerdidosAntigo1,
+          }
         );
+
+        await estatisticasJogadorService.reverterAposPartida(
+          dupla1.jogador2Id,
+          partida.etapaId,
+          {
+            venceu: dupla1VenceuAntigo,
+            setsVencidos: setsAntigo1,
+            setsPerdidos: setsAntigo2,
+            gamesVencidos: gamesAntigo1,
+            gamesPerdidos: gamesPerdidosAntigo1,
+          }
+        );
+
+        await estatisticasJogadorService.reverterAposPartida(
+          dupla2.jogador1Id,
+          partida.etapaId,
+          {
+            venceu: !dupla1VenceuAntigo,
+            setsVencidos: setsAntigo2,
+            setsPerdidos: setsAntigo1,
+            gamesVencidos: gamesAntigo2,
+            gamesPerdidos: gamesPerdidosAntigo2,
+          }
+        );
+
+        await estatisticasJogadorService.reverterAposPartida(
+          dupla2.jogador2Id,
+          partida.etapaId,
+          {
+            venceu: !dupla1VenceuAntigo,
+            setsVencidos: setsAntigo2,
+            setsPerdidos: setsAntigo1,
+            gamesVencidos: gamesAntigo2,
+            gamesPerdidos: gamesPerdidosAntigo2,
+          }
+        );
+
+        console.log("↩️ Estatísticas antigas revertidas!");
       }
 
-      // Validar placar (1 SET APENAS)
-      if (placar.length !== 1) {
-        throw new Error("Placar inválido: deve ter apenas 1 set");
+      // Validar placar (melhor de 3 sets)
+      if (placar.length < 2 || placar.length > 3) {
+        throw new Error("Placar inválido. Deve ter 2 ou 3 sets (melhor de 3)");
       }
 
-      // Calcular resultado (1 set)
-      const set = placar[0];
+      // Calcular resultado
       let setsDupla1 = 0;
       let setsDupla2 = 0;
-      const gamesVencidosDupla1 = set.gamesDupla1;
-      const gamesPerdidosDupla1 = set.gamesDupla2;
-      const gamesVencidosDupla2 = set.gamesDupla2;
-      const gamesPerdidosDupla2 = set.gamesDupla1;
+      let gamesVencidosDupla1 = 0;
+      let gamesPerdidosDupla1 = 0;
+      let gamesVencidosDupla2 = 0;
+      let gamesPerdidosDupla2 = 0;
 
-      if (set.gamesDupla1 > set.gamesDupla2) {
-        setsDupla1 = 1;
-        setsDupla2 = 0;
-      } else {
-        setsDupla1 = 0;
-        setsDupla2 = 1;
-      }
+      const placarComVencedor = placar.map((set) => {
+        if (set.gamesDupla1 > set.gamesDupla2) {
+          setsDupla1++;
+        } else {
+          setsDupla2++;
+        }
 
-      const placarComVencedor = [
-        {
+        gamesVencidosDupla1 += set.gamesDupla1;
+        gamesPerdidosDupla1 += set.gamesDupla2;
+        gamesVencidosDupla2 += set.gamesDupla2;
+        gamesPerdidosDupla2 += set.gamesDupla1;
+
+        return {
           ...set,
           vencedorId:
             set.gamesDupla1 > set.gamesDupla2
               ? partida.dupla1Id
               : partida.dupla2Id,
-        },
-      ];
+        };
+      });
 
-      // Determinar vencedor
-      const vencedoraId =
-        setsDupla1 > setsDupla2 ? partida.dupla1Id : partida.dupla2Id;
-      const vencedoraNome =
-        setsDupla1 > setsDupla2 ? partida.dupla1Nome : partida.dupla2Nome;
+      // Determinar vencedora
+      const dupla1Venceu = setsDupla1 > setsDupla2;
+      const vencedoraId = dupla1Venceu ? partida.dupla1Id : partida.dupla2Id;
+      const vencedoraNome = dupla1Venceu
+        ? `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`
+        : `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`;
 
       console.log(
-        `   🏆 Vencedor: ${vencedoraNome} (${set.gamesDupla1}x${set.gamesDupla2})`
+        `   🏆 Vencedora: ${vencedoraNome} (${setsDupla1} x ${setsDupla2})`
       );
 
       // Atualizar partida
       await db
-        .collection(this.collectionPartidas)
+        .collection("partidas")
         .doc(partidaId)
         .update({
           status: StatusPartida.FINALIZADA,
@@ -999,19 +1095,103 @@ export class ChaveService {
           atualizadoEm: Timestamp.now(),
         });
 
-      // Atualizar estatísticas das duplas com novos valores
-      console.log("   📊 Aplicando novas estatísticas...");
-      await this.atualizarEstatisticasDuplas(
-        partida.dupla1Id,
-        partida.dupla2Id,
-        vencedoraId,
-        setsDupla1,
-        setsDupla2,
-        gamesVencidosDupla1,
-        gamesPerdidosDupla1,
-        gamesVencidosDupla2,
-        gamesPerdidosDupla2
+      // Atualizar estatísticas das DUPLAS (código existente)
+      console.log("📊 Atualizando estatísticas das duplas...");
+
+      // Dupla 1
+      await db
+        .collection("duplas")
+        .doc(partida.dupla1Id)
+        .update({
+          jogos: dupla1.jogos + 1,
+          vitorias: dupla1.vitorias + (dupla1Venceu ? 1 : 0),
+          derrotas: dupla1.derrotas + (dupla1Venceu ? 0 : 1),
+          pontos: dupla1.pontos + (dupla1Venceu ? 3 : 0),
+          setsVencidos: dupla1.setsVencidos + setsDupla1,
+          setsPerdidos: dupla1.setsPerdidos + setsDupla2,
+          gamesVencidos: dupla1.gamesVencidos + gamesVencidosDupla1,
+          gamesPerdidos: dupla1.gamesPerdidos + gamesPerdidosDupla1,
+          saldoSets: dupla1.saldoSets + (setsDupla1 - setsDupla2),
+          saldoGames:
+            dupla1.saldoGames + (gamesVencidosDupla1 - gamesPerdidosDupla1),
+          atualizadoEm: Timestamp.now(),
+        });
+
+      // Dupla 2
+      await db
+        .collection("duplas")
+        .doc(partida.dupla2Id)
+        .update({
+          jogos: dupla2.jogos + 1,
+          vitorias: dupla2.vitorias + (dupla1Venceu ? 0 : 1),
+          derrotas: dupla2.derrotas + (dupla1Venceu ? 1 : 0),
+          pontos: dupla2.pontos + (dupla1Venceu ? 0 : 3),
+          setsVencidos: dupla2.setsVencidos + setsDupla2,
+          setsPerdidos: dupla2.setsPerdidos + setsDupla1,
+          gamesVencidos: dupla2.gamesVencidos + gamesVencidosDupla2,
+          gamesPerdidos: dupla2.gamesPerdidos + gamesPerdidosDupla2,
+          saldoSets: dupla2.saldoSets + (setsDupla2 - setsDupla1),
+          saldoGames:
+            dupla2.saldoGames + (gamesVencidosDupla2 - gamesPerdidosDupla2),
+          atualizadoEm: Timestamp.now(),
+        });
+
+      // ✅ NOVO: Atualizar estatísticas INDIVIDUAIS dos 4 jogadores
+      console.log("📊 Atualizando estatísticas individuais...");
+
+      // Jogador 1A (dupla 1)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla1.jogador1Id,
+        partida.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesVencidosDupla1,
+          gamesPerdidos: gamesPerdidosDupla1,
+        }
       );
+
+      // Jogador 1B (dupla 1)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla1.jogador2Id,
+        partida.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesVencidosDupla1,
+          gamesPerdidos: gamesPerdidosDupla1,
+        }
+      );
+
+      // Jogador 2A (dupla 2)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla2.jogador1Id,
+        partida.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesVencidosDupla2,
+          gamesPerdidos: gamesPerdidosDupla2,
+        }
+      );
+
+      // Jogador 2B (dupla 2)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla2.jogador2Id,
+        partida.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesVencidosDupla2,
+          gamesPerdidos: gamesPerdidosDupla2,
+        }
+      );
+
+      console.log("✅ Estatísticas individuais atualizadas!");
 
       // Recalcular classificação do grupo
       if (partida.grupoId) {
@@ -1024,7 +1204,7 @@ export class ChaveService {
           : "✅ Resultado registrado com sucesso!"
       );
     } catch (error: any) {
-      console.error("Erro ao registrar/editar resultado:", error);
+      console.error("Erro ao registrar resultado:", error);
       throw error;
     }
   }
@@ -1197,7 +1377,7 @@ export class ChaveService {
 
       // Buscar duplas do grupo
       const duplasSnapshot = await db
-        .collection(this.collectionDuplas)
+        .collection("duplas")
         .where("grupoId", "==", grupoId)
         .get();
 
@@ -1206,9 +1386,9 @@ export class ChaveService {
         ...doc.data(),
       })) as Dupla[];
 
-      // Buscar todas as partidas do grupo para confronto direto
+      // Buscar todas as partidas finalizadas do grupo
       const partidasSnapshot = await db
-        .collection(this.collectionPartidas)
+        .collection("partidas")
         .where("grupoId", "==", grupoId)
         .where("status", "==", StatusPartida.FINALIZADA)
         .get();
@@ -1218,11 +1398,11 @@ export class ChaveService {
         ...doc.data(),
       })) as Partida[];
 
-      // Ordenar por critérios
+      // Ordenar duplas por critérios de desempate
       const duplasOrdenadas = [...duplas].sort((a, b) => {
-        // 1. Vitórias
-        if (a.vitorias !== b.vitorias) {
-          return b.vitorias - a.vitorias;
+        // 1. Pontos (vitórias * 3)
+        if (a.pontos !== b.pontos) {
+          return b.pontos - a.pontos;
         }
 
         // 2. Saldo de games
@@ -1232,52 +1412,78 @@ export class ChaveService {
 
         // 3. Confronto direto (apenas se 2 duplas empatadas)
         const duplasEmpatadas = duplas.filter(
-          (d) => d.vitorias === a.vitorias && d.saldoGames === a.saldoGames
+          (d) => d.pontos === a.pontos && d.saldoGames === a.saldoGames
         );
 
         if (duplasEmpatadas.length === 2) {
-          const confronto = partidas.find(
-            (p) =>
-              (p.dupla1Id === a.id && p.dupla2Id === b.id) ||
-              (p.dupla1Id === b.id && p.dupla2Id === a.id)
+          const confrontoDireto = this.verificarConfrontoDireto(
+            partidas,
+            a.id,
+            b.id
           );
-
-          if (confronto) {
-            if (confronto.vencedoraId === a.id) return -1;
-            if (confronto.vencedoraId === b.id) return 1;
-          }
+          if (confrontoDireto.vencedora === a.id) return -1;
+          if (confrontoDireto.vencedora === b.id) return 1;
         }
 
-        if (duplasEmpatadas.length >= 3) {
-          // Inclui A e B no empate? Sorteia!
-          const aEstaEmpatada = duplasEmpatadas.some((d) => d.id === a.id);
-          const bEstaEmpatada = duplasEmpatadas.some((d) => d.id === b.id);
+        // 4. Saldo de sets
+        if (a.saldoSets !== b.saldoSets) {
+          return b.saldoSets - a.saldoSets;
+        }
 
-          if (aEstaEmpatada && bEstaEmpatada) {
-            return Math.random() - 0.5;
-          }
+        // 5. Games vencidos
+        if (a.gamesVencidos !== b.gamesVencidos) {
+          return b.gamesVencidos - a.gamesVencidos;
+        }
+
+        // 6. Sorteio (se 3+ empatadas)
+        if (duplasEmpatadas.length >= 3) {
+          return Math.random() - 0.5;
         }
 
         return 0;
       });
 
-      // Atualizar posições
+      // Atualizar posições das DUPLAS (código existente)
       for (let i = 0; i < duplasOrdenadas.length; i++) {
+        const dupla = duplasOrdenadas[i];
         await db
-          .collection(this.collectionDuplas)
-          .doc(duplasOrdenadas[i].id)
+          .collection("duplas")
+          .doc(dupla.id)
           .update({
             posicaoGrupo: i + 1,
             atualizadoEm: Timestamp.now(),
           });
       }
 
-      // Atualizar grupo (contar partidas finalizadas)
+      // ✅ NOVO: Atualizar posições INDIVIDUAIS dos jogadores
+      console.log("📊 Atualizando posições individuais dos jogadores...");
+
+      for (let i = 0; i < duplasOrdenadas.length; i++) {
+        const dupla = duplasOrdenadas[i];
+        const posicao = i + 1;
+
+        // Atualizar posição dos 2 jogadores da dupla
+        await estatisticasJogadorService.atualizarPosicaoGrupo(
+          dupla.jogador1Id,
+          dupla.etapaId,
+          posicao
+        );
+
+        await estatisticasJogadorService.atualizarPosicaoGrupo(
+          dupla.jogador2Id,
+          dupla.etapaId,
+          posicao
+        );
+      }
+
+      console.log("✅ Posições individuais atualizadas!");
+
+      // Atualizar grupo
       const partidasFinalizadas = partidas.length;
-      const totalPartidas = partidasSnapshot.docs.length;
+      const totalPartidas = this.calcularTotalPartidas(duplas.length);
       const completo = partidasFinalizadas === totalPartidas;
 
-      await db.collection(this.collectionGrupos).doc(grupoId).update({
+      await db.collection("grupos").doc(grupoId).update({
         partidasFinalizadas,
         completo,
         atualizadoEm: Timestamp.now(),
@@ -1293,13 +1499,43 @@ export class ChaveService {
   }
 
   /**
+   * Verificar confronto direto entre duas duplas
+   */
+  private verificarConfrontoDireto(
+    partidas: Partida[],
+    dupla1Id: string,
+    dupla2Id: string
+  ): { vencedora: string | null } {
+    const confronto = partidas.find(
+      (p) =>
+        (p.dupla1Id === dupla1Id && p.dupla2Id === dupla2Id) ||
+        (p.dupla1Id === dupla2Id && p.dupla2Id === dupla1Id)
+    );
+
+    if (!confronto || !confronto.vencedoraId) {
+      return { vencedora: null };
+    }
+
+    return { vencedora: confronto.vencedoraId };
+  }
+
+  /**
+   * Calcular total de partidas de um grupo
+   * Fórmula: n * (n-1) / 2
+   * onde n = número de duplas
+   */
+  private calcularTotalPartidas(numeroDuplas: number): number {
+    return (numeroDuplas * (numeroDuplas - 1)) / 2;
+  }
+
+  /**
    * Gerar fase eliminatória a partir dos classificados dos grupos
    */
   async gerarFaseEliminatoria(
     etapaId: string,
     arenaId: string,
     classificadosPorGrupo: number = 2
-  ): Promise<void> {
+  ): Promise<{ confrontos: ConfrontoEliminatorio[] }> {
     try {
       console.log(
         `🏆 Gerando fase eliminatória (${classificadosPorGrupo} por grupo)...`
@@ -1310,6 +1546,7 @@ export class ChaveService {
         .collection(this.collectionGrupos)
         .where("etapaId", "==", etapaId)
         .where("arenaId", "==", arenaId)
+        .orderBy("ordem", "asc")
         .get();
 
       if (gruposSnapshot.empty) {
@@ -1423,6 +1660,27 @@ export class ChaveService {
       }
 
       console.log("✅ Fase eliminatória gerada com sucesso!");
+
+      // 8. Marcar JOGADORES individuais como classificados
+      console.log("📊 Marcando jogadores individuais como classificados...");
+
+      for (const dupla of classificados) {
+        await estatisticasJogadorService.marcarComoClassificado(
+          dupla.jogador1Id,
+          etapaId,
+          true
+        );
+
+        await estatisticasJogadorService.marcarComoClassificado(
+          dupla.jogador2Id,
+          etapaId,
+          true
+        );
+      }
+
+      console.log("✅ Jogadores individuais marcados como classificados!");
+
+      return { confrontos };
     } catch (error: any) {
       console.error("Erro ao gerar fase eliminatória:", error);
       throw error;
