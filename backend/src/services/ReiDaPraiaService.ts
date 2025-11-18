@@ -24,6 +24,7 @@ import {
   StatusConfrontoEliminatorio,
   ConfrontoEliminatorio,
 } from "../models/Eliminatoria";
+import cabecaDeChaveService from "./CabecaDeChaveService";
 
 export class ReiDaPraiaService {
   private collectionGrupos = "grupos";
@@ -107,21 +108,80 @@ export class ReiDaPraiaService {
     inscricoes: Inscricao[]
   ): Promise<EstatisticasJogador[]> {
     try {
-      const jogadoresEmbaralhados = this.embaralhar([...inscricoes]);
       const jogadores: EstatisticasJogador[] = [];
       const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      const numGrupos = jogadoresEmbaralhados.length / 4;
+      const numGrupos = inscricoes.length / 4;
 
       console.log(`   📦 Criando ${numGrupos} grupos de 4 jogadores cada`);
 
+      // 1. Identificar cabeças de chave
+      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(arenaId);
+      const inscricoesCabecas: Inscricao[] = [];
+      const inscricoesNormais: Inscricao[] = [];
+
+      for (const inscricao of inscricoes) {
+        if (cabecasIds.includes(inscricao.jogadorId)) {
+          inscricoesCabecas.push(inscricao);
+        } else {
+          inscricoesNormais.push(inscricao);
+        }
+      }
+
+      console.log(
+        `   🏆 ${inscricoesCabecas.length} cabeças de chave identificadas`
+      );
+      console.log(`   👥 ${inscricoesNormais.length} jogadores normais`);
+
+      // 2. Validar número de cabeças
+      if (inscricoesCabecas.length > numGrupos) {
+        throw new Error(
+          `Número de cabeças de chave (${inscricoesCabecas.length}) não pode ser maior que número de grupos (${numGrupos})`
+        );
+      }
+
+      // 3. Embaralhar
+      const cabecasEmbaralhadas = this.embaralhar([...inscricoesCabecas]);
+      const normaisEmbaralhados = this.embaralhar([...inscricoesNormais]);
+
+      // 4. Distribuir cabeças de chave (1 por grupo)
+      const gruposComCabecas: Inscricao[][] = [];
+
+      for (let i = 0; i < numGrupos; i++) {
+        const grupo: Inscricao[] = [];
+
+        // Adicionar cabeça se disponível
+        if (i < cabecasEmbaralhadas.length) {
+          grupo.push(cabecasEmbaralhadas[i]);
+          console.log(
+            `      🏆 Grupo ${letras[i]}: ${cabecasEmbaralhadas[i].jogadorNome} (cabeça)`
+          );
+        }
+
+        gruposComCabecas.push(grupo);
+      }
+
+      // 5. Distribuir jogadores normais
+      let indexNormal = 0;
+
+      for (let posicao = 1; posicao < 4; posicao++) {
+        for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
+          if (indexNormal < normaisEmbaralhados.length) {
+            gruposComCabecas[grupoIndex].push(normaisEmbaralhados[indexNormal]);
+            indexNormal++;
+          }
+        }
+      }
+
+      // 6. Criar estatísticas
       for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
         const nomeGrupo = `Grupo ${letras[grupoIndex]}`;
+        const jogadoresGrupo = gruposComCabecas[grupoIndex];
 
-        for (let j = 0; j < 4; j++) {
-          const inscricaoIndex = grupoIndex * 4 + j;
-          const inscricao = jogadoresEmbaralhados[inscricaoIndex];
+        console.log(`   📦 ${nomeGrupo}: ${jogadoresGrupo.length} jogadores`);
 
-          // ✅ USAR EstatisticasJogadorService
+        for (const inscricao of jogadoresGrupo) {
+          const ehCabeca = cabecasIds.includes(inscricao.jogadorId);
+
           const estatisticas = await estatisticasJogadorService.criar({
             etapaId,
             arenaId,
@@ -134,6 +194,12 @@ export class ReiDaPraiaService {
           });
 
           jogadores.push(estatisticas);
+
+          if (ehCabeca) {
+            console.log(
+              `         🏆 ${inscricao.jogadorNome} (cabeça de chave)`
+            );
+          }
         }
       }
 
@@ -141,6 +207,40 @@ export class ReiDaPraiaService {
     } catch (error) {
       console.error("Erro ao distribuir jogadores:", error);
       throw new Error("Falha ao distribuir jogadores");
+    }
+  }
+
+  /**
+   * Validar distribuição de cabeças de chave
+   */
+  private async validarDistribuicaoCabecas(
+    arenaId: string,
+    grupos: Grupo[]
+  ): Promise<void> {
+    try {
+      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(arenaId);
+
+      for (const grupo of grupos) {
+        const jogadoresGrupo = await estatisticasJogadorService.buscarPorGrupo(
+          grupo.id
+        );
+
+        const cabecasNoGrupo = jogadoresGrupo.filter((j) =>
+          cabecasIds.includes(j.jogadorId)
+        );
+
+        if (cabecasNoGrupo.length > 1) {
+          const nomes = cabecasNoGrupo.map((j) => j.jogadorNome).join(", ");
+          throw new Error(
+            `Grupo ${grupo.nome} tem mais de uma cabeça de chave: ${nomes}`
+          );
+        }
+      }
+
+      console.log("   ✅ Distribuição de cabeças validada com sucesso");
+    } catch (error) {
+      console.error("Erro na validação:", error);
+      throw error;
     }
   }
 

@@ -13,6 +13,9 @@ import {
   ConfrontoEliminatorio,
 } from "../models/Eliminatoria";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
+import cabecaDeChaveService from "./CabecaDeChaveService";
+import historicoDuplaService from "./HistoricoDuplaService";
+import { EstatisticasCombinacoes } from "../models/HistoricoDupla";
 
 /**
  * Service para geração de chaves (duplas e grupos)
@@ -34,6 +37,325 @@ export class ChaveService {
       [TipoFase.FINAL]: FaseEtapa.FINAL,
     };
     return mapping[tipoFase];
+  }
+
+  /**
+   * Formar duplas respeitando cabeças de chave
+   *
+   * ADICIONAR MÉTODO ao ChaveService.ts
+   */
+  async formarDuplasComCabecasDeChave(
+    etapaId: string,
+    etapaNome: string,
+    arenaId: string,
+    inscricoes: Inscricao[]
+  ): Promise<Dupla[]> {
+    try {
+      console.log("👥 Formando duplas com cabeças de chave...");
+
+      // 1. Identificar cabeças de chave
+      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(arenaId);
+      const cabecas: Inscricao[] = [];
+      const normais: Inscricao[] = [];
+
+      for (const inscricao of inscricoes) {
+        if (cabecasIds.includes(inscricao.jogadorId)) {
+          cabecas.push(inscricao);
+        } else {
+          normais.push(inscricao);
+        }
+      }
+
+      console.log(`   🏆 ${cabecas.length} cabeças de chave`);
+      console.log(`   👥 ${normais.length} jogadores normais`);
+
+      // 2. Calcular estatísticas de combinações
+      const stats = await historicoDuplaService.calcularEstatisticas(arenaId);
+
+      console.log(`   📊 Estatísticas:`);
+      console.log(
+        `      - Combinações possíveis: ${stats.combinacoesPossiveis}`
+      );
+      console.log(
+        `      - Combinações realizadas: ${stats.combinacoesRealizadas}`
+      );
+      console.log(
+        `      - Combinações restantes: ${stats.combinacoesRestantes}`
+      );
+      console.log(
+        `      - Todas feitas? ${stats.todasCombinacoesFeitas ? "SIM" : "NÃO"}`
+      );
+
+      // 3. Formar duplas baseado nas regras
+      let duplas: Dupla[];
+
+      if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
+        console.log(
+          "   ✅ Todas combinações foram feitas, cabeças podem se juntar"
+        );
+        duplas = await this.formarDuplasLivre(
+          etapaId,
+          etapaNome,
+          arenaId,
+          inscricoes
+        );
+      } else {
+        console.log("   🚫 Cabeças não podem se juntar ainda");
+        duplas = await this.formarDuplasProtegendoCabecas(
+          etapaId,
+          etapaNome,
+          arenaId,
+          cabecas,
+          normais,
+          stats
+        );
+      }
+
+      // 4. Registrar duplas no histórico
+      for (const dupla of duplas) {
+        const ambosForamCabecas =
+          cabecasIds.includes(dupla.jogador1Id) &&
+          cabecasIds.includes(dupla.jogador2Id);
+
+        await historicoDuplaService.registrar({
+          arenaId,
+          etapaId,
+          etapaNome,
+          jogador1Id: dupla.jogador1Id,
+          jogador1Nome: dupla.jogador1Nome,
+          jogador2Id: dupla.jogador2Id,
+          jogador2Nome: dupla.jogador2Nome,
+          ambosForamCabecas,
+        });
+      }
+
+      console.log("✅ Duplas formadas e registradas no histórico");
+
+      return duplas;
+    } catch (error) {
+      console.error("Erro ao formar duplas com cabeças:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Formar duplas protegendo cabeças de chave
+   * Cabeças NÃO podem formar dupla entre si
+   */
+  private async formarDuplasProtegendoCabecas(
+    etapaId: string,
+    etapaNome: string,
+    arenaId: string,
+    cabecas: Inscricao[],
+    normais: Inscricao[],
+    stats: EstatisticasCombinacoes
+  ): Promise<Dupla[]> {
+    try {
+      const duplas: Dupla[] = [];
+
+      // Validar que temos jogadores suficientes
+      const totalJogadores = cabecas.length + normais.length;
+
+      if (totalJogadores % 2 !== 0) {
+        throw new Error("Número ímpar de jogadores");
+      }
+
+      if (cabecas.length > normais.length) {
+        throw new Error(
+          `Impossível formar duplas: ${cabecas.length} cabeças mas apenas ${normais.length} jogadores normais. ` +
+            `Precisa de pelo menos ${cabecas.length} jogadores normais.`
+        );
+      }
+
+      // Embaralhar
+      const cabecasEmbaralhadas = this.embaralhar([...cabecas]);
+      const normaisEmbaralhados = this.embaralhar([...normais]);
+
+      // 1. Parear cada cabeça com um jogador normal
+      for (let i = 0; i < cabecasEmbaralhadas.length; i++) {
+        const cabeca = cabecasEmbaralhadas[i];
+        const normal = normaisEmbaralhados[i];
+
+        const dupla = await this.criarDupla(
+          etapaId,
+          arenaId,
+          cabeca,
+          normal,
+          i + 1
+        );
+
+        duplas.push(dupla);
+
+        console.log(
+          `      Dupla ${duplas.length}: 🏆 ${cabeca.jogadorNome} + ${normal.jogadorNome}`
+        );
+      }
+
+      // 2. Parear jogadores normais restantes entre si
+      const normaisRestantes = normaisEmbaralhados.slice(
+        cabecasEmbaralhadas.length
+      );
+
+      for (let i = 0; i < normaisRestantes.length; i += 2) {
+        if (i + 1 < normaisRestantes.length) {
+          const jogador1 = normaisRestantes[i];
+          const jogador2 = normaisRestantes[i + 1];
+
+          const dupla = await this.criarDupla(
+            etapaId,
+            arenaId,
+            jogador1,
+            jogador2,
+            duplas.length + 1
+          );
+
+          duplas.push(dupla);
+
+          console.log(
+            `      Dupla ${duplas.length}: ${jogador1.jogadorNome} + ${jogador2.jogadorNome}`
+          );
+        }
+      }
+
+      return duplas;
+    } catch (error) {
+      console.error("Erro ao formar duplas protegendo cabeças:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Formar duplas livre (quando todas combinações já foram feitas)
+   */
+  private async formarDuplasLivre(
+    etapaId: string,
+    etapaNome: string,
+    arenaId: string,
+    inscricoes: Inscricao[]
+  ): Promise<Dupla[]> {
+    try {
+      const duplas: Dupla[] = [];
+
+      if (inscricoes.length % 2 !== 0) {
+        throw new Error("Número ímpar de jogadores");
+      }
+
+      // Embaralhar todos
+      const embaralhado = this.embaralhar([...inscricoes]);
+
+      // Formar duplas sequencialmente
+      for (let i = 0; i < embaralhado.length; i += 2) {
+        const jogador1 = embaralhado[i];
+        const jogador2 = embaralhado[i + 1];
+
+        const dupla = await this.criarDupla(
+          etapaId,
+          arenaId,
+          jogador1,
+          jogador2,
+          duplas.length + 1
+        );
+
+        duplas.push(dupla);
+
+        console.log(
+          `      Dupla ${duplas.length}: ${jogador1.jogadorNome} + ${jogador2.jogadorNome}`
+        );
+      }
+
+      return duplas;
+    } catch (error) {
+      console.error("Erro ao formar duplas livre:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validar que cabeças não estão juntas
+   */
+  private async validarDuplasComCabecas(
+    arenaId: string,
+    duplas: Dupla[]
+  ): Promise<void> {
+    try {
+      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(arenaId);
+
+      // Verificar se todas combinações foram feitas
+      const stats = await historicoDuplaService.calcularEstatisticas(arenaId);
+
+      // Se todas foram feitas, não precisa validar
+      if (stats.todasCombinacoesFeitas) {
+        console.log("   ✅ Todas combinações feitas, validação não necessária");
+        return;
+      }
+
+      // Validar que cabeças não estão juntas
+      for (const dupla of duplas) {
+        const jogador1EhCabeca = cabecasIds.includes(dupla.jogador1Id);
+        const jogador2EhCabeca = cabecasIds.includes(dupla.jogador2Id);
+
+        if (jogador1EhCabeca && jogador2EhCabeca) {
+          throw new Error(
+            `Dupla inválida: ${dupla.jogador1Nome} e ${dupla.jogador2Nome} são ambos cabeças de chave`
+          );
+        }
+      }
+
+      console.log("   ✅ Validação de cabeças OK");
+    } catch (error) {
+      console.error("Erro na validação:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Criar dupla (auxiliar para cabeças de chave)
+   */
+  private async criarDupla(
+    etapaId: string,
+    arenaId: string,
+    jogador1: Inscricao,
+    jogador2: Inscricao,
+    ordem: number
+  ): Promise<Dupla> {
+    try {
+      const dupla: Dupla = {
+        id: "",
+        etapaId,
+        arenaId,
+        jogador1Id: jogador1.jogadorId,
+        jogador1Nome: jogador1.jogadorNome,
+        jogador1Nivel: jogador1.jogadorNivel,
+        jogador2Id: jogador2.jogadorId,
+        jogador2Nome: jogador2.jogadorNome,
+        jogador2Nivel: jogador2.jogadorNivel,
+        grupoId: "",
+        grupoNome: "",
+        jogos: 0,
+        vitorias: 0,
+        derrotas: 0,
+        pontos: 0,
+        setsVencidos: 0,
+        setsPerdidos: 0,
+        gamesVencidos: 0,
+        gamesPerdidos: 0,
+        saldoSets: 0,
+        saldoGames: 0,
+        posicaoGrupo: undefined,
+        classificada: false,
+        criadoEm: Timestamp.now(),
+        atualizadoEm: Timestamp.now(),
+      };
+
+      // Salvar no Firestore
+      const { id, ...duplaSemId } = dupla;
+      const docRef = await db.collection(this.collectionDuplas).add(duplaSemId);
+
+      return { ...duplaSemId, id: docRef.id };
+    } catch (error) {
+      console.error("Erro ao criar dupla:", error);
+      throw error;
+    }
   }
 
   /**
