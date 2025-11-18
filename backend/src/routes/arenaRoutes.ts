@@ -18,9 +18,8 @@ const createArenaValidation = [
     .withMessage("Nome deve ter entre 3 e 100 caracteres"),
 
   body("slug")
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage("Slug é obrigatório")
     .isLength({ min: 3, max: 50 })
     .withMessage("Slug deve ter entre 3 e 50 caracteres")
     .custom(isValidSlug),

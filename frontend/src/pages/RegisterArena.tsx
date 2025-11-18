@@ -1,3 +1,6 @@
+// frontend/src/pages/RegisterArena.tsx
+// ✅ VERSÃO SIMPLIFICADA (sem passar email para login)
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { arenaService } from "../services/arenaService";
@@ -32,26 +35,7 @@ const RegisterArena: React.FC = () => {
       confirmPassword: "",
     });
 
-  // Debounce do slug para verificação
   const debouncedSlug = useDebounce(values.slug, 500);
-
-  /**
-   * Auto-gerar slug a partir do nome
-   */
-  useEffect(() => {
-    if (values.nome && !values.slug) {
-      const generatedSlug = values.nome
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-        .replace(/[^\w\s-]/g, "") // Remove caracteres especiais
-        .replace(/\s+/g, "-") // Substitui espaços por hífens
-        .replace(/--+/g, "-") // Remove hífens duplos
-        .replace(/^-+|-+$/g, ""); // Remove hífens do início/fim
-
-      handleChange("slug", generatedSlug);
-    }
-  }, [values.nome]);
 
   /**
    * Verificar disponibilidade do slug
@@ -71,7 +55,7 @@ const RegisterArena: React.FC = () => {
           setCheckingSlug(false);
         }
       } else {
-        setSlugAvailable(null);
+        setSlugAvailable(debouncedSlug === "" ? true : null);
       }
     };
 
@@ -84,28 +68,27 @@ const RegisterArena: React.FC = () => {
   const validateForm = (): boolean => {
     let isValid = true;
 
-    // Nome
     if (!values.nome || values.nome.trim().length < 3) {
       setFieldError("nome", "Nome deve ter no mínimo 3 caracteres");
       isValid = false;
     }
 
-    // Slug
-    if (!values.slug || values.slug.length < 3) {
-      setFieldError("slug", "Slug deve ter no mínimo 3 caracteres");
-      isValid = false;
-    } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(values.slug)) {
-      setFieldError(
-        "slug",
-        "Slug deve conter apenas letras minúsculas, números e hífens"
-      );
-      isValid = false;
-    } else if (!slugAvailable) {
-      setFieldError("slug", "Este slug já está em uso");
-      isValid = false;
+    if (values.slug) {
+      if (values.slug.length < 3) {
+        setFieldError("slug", "Slug deve ter no mínimo 3 caracteres");
+        isValid = false;
+      } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(values.slug)) {
+        setFieldError(
+          "slug",
+          "Slug deve conter apenas letras minúsculas, números e hífens"
+        );
+        isValid = false;
+      } else if (slugAvailable === false) {
+        setFieldError("slug", "Este slug já está em uso");
+        isValid = false;
+      }
     }
 
-    // Email
     if (!values.adminEmail) {
       setFieldError("adminEmail", "Email é obrigatório");
       isValid = false;
@@ -114,7 +97,6 @@ const RegisterArena: React.FC = () => {
       isValid = false;
     }
 
-    // Senha
     if (!values.adminPassword) {
       setFieldError("adminPassword", "Senha é obrigatória");
       isValid = false;
@@ -123,7 +105,6 @@ const RegisterArena: React.FC = () => {
       isValid = false;
     }
 
-    // Confirmar senha
     if (values.adminPassword !== values.confirmPassword) {
       setFieldError("confirmPassword", "As senhas não coincidem");
       isValid = false;
@@ -147,29 +128,28 @@ const RegisterArena: React.FC = () => {
     try {
       setLoading(true);
 
-      const result = await arenaService.create({
+      const payload: any = {
         nome: values.nome,
-        slug: values.slug,
         adminEmail: values.adminEmail,
         adminPassword: values.adminPassword,
-      });
+      };
+
+      if (values.slug && values.slug.trim()) {
+        payload.slug = values.slug;
+      }
+
+      const result = await arenaService.create(payload);
 
       setSuccessMessage(
-        `Arena "${result.arena.nome}" criada com sucesso! Você receberá um email de verificação.`
+        `Arena "${result.arena.nome}" criada com sucesso! Slug: ${result.arena.slug}. Redirecionando para login...`
       );
 
-      // Limpar formulário
       reset();
       setSlugAvailable(null);
 
-      // Redirecionar para login após 3 segundos
+      // ✅ SIMPLIFICADO: Apenas navegar para login (sem state)
       setTimeout(() => {
-        navigate("/login", {
-          state: {
-            email: values.adminEmail,
-            message: "Arena criada! Faça login para continuar.",
-          },
-        });
+        navigate("/login");
       }, 3000);
     } catch (error: any) {
       setErrorMessage(error.message || "Erro ao criar arena. Tente novamente.");
@@ -215,7 +195,8 @@ const RegisterArena: React.FC = () => {
           {/* Slug */}
           <div className="form-group">
             <label htmlFor="slug">
-              Slug (URL da Arena) <span className="required">*</span>
+              Slug (URL da Arena)
+              <span className="optional-badge">opcional</span>
             </label>
             <div className="slug-input-wrapper">
               <span className="slug-prefix">challengebt.com.br/arena/</span>
@@ -228,7 +209,7 @@ const RegisterArena: React.FC = () => {
                 }
                 className={errors.slug ? "input-error" : ""}
                 disabled={loading}
-                placeholder="arenaazul"
+                placeholder="deixe em branco para gerar automaticamente"
               />
             </div>
 
@@ -251,9 +232,11 @@ const RegisterArena: React.FC = () => {
             )}
 
             {errors.slug && <span className="error-text">{errors.slug}</span>}
+
             <small className="helper-text">
-              Apenas letras minúsculas, números e hífens. Este será o endereço
-              da sua arena.
+              {values.slug
+                ? "Apenas letras minúsculas, números e hífens."
+                : "Será gerado automaticamente a partir do nome da arena."}
             </small>
           </div>
 
@@ -315,11 +298,7 @@ const RegisterArena: React.FC = () => {
             )}
           </div>
 
-          <button
-            type="submit"
-            className="btn-submit"
-            disabled={loading || !slugAvailable}
-          >
+          <button type="submit" className="btn-submit" disabled={loading}>
             {loading ? <LoadingSpinner size="small" /> : "Criar Arena"}
           </button>
 

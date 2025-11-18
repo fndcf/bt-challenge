@@ -1,3 +1,5 @@
+// backend/src/services/ArenaService.ts
+
 import {
   arenaRepository,
   IArenaRepository,
@@ -6,13 +8,14 @@ import { Arena, ArenaType } from "../domain/Arena";
 import { auth, db } from "../config/firebase";
 import { COLLECTIONS } from "../config/firestore";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
+import { generateUniqueSlug } from "../utils/slugify"; // ✅ IMPORTAR
 
 /**
  * Dados para criar uma arena
  */
 export interface CreateArenaDTO {
   nome: string;
-  slug: string;
+  slug?: string; // ✅ AGORA É OPCIONAL
   adminEmail: string;
   adminPassword: string;
 }
@@ -32,16 +35,30 @@ export class ArenaService {
     adminUid: string;
     message: string;
   }> {
-    // Validar dados
-    this.validateArenaData(data);
-
-    // Verificar se slug já existe
-    const slugExists = await this.arenaRepository.exists(data.slug);
-    if (slugExists) {
-      throw new ConflictError(`O slug "${data.slug}" já está em uso`);
-    }
-
     try {
+      // ✅ GERAR SLUG AUTOMATICAMENTE SE NÃO FOR FORNECIDO
+      let slug = data.slug;
+
+      if (!slug) {
+        console.log(`🔄 Gerando slug automaticamente para: "${data.nome}"`);
+        slug = await generateUniqueSlug(data.nome, (s) =>
+          this.arenaRepository.exists(s)
+        );
+        console.log(`✅ Slug gerado: "${slug}"`);
+      } else {
+        // Se slug foi fornecido manualmente, validar
+        console.log(`🔍 Validando slug fornecido: "${slug}"`);
+        this.validateSlug(slug);
+
+        const slugExists = await this.arenaRepository.exists(slug);
+        if (slugExists) {
+          throw new ConflictError(`O slug "${slug}" já está em uso`);
+        }
+      }
+
+      // Validar outros dados (agora slug é garantido)
+      this.validateArenaData({ ...data, slug });
+
       // 1. Criar usuário no Firebase Authentication
       const userRecord = await auth.createUser({
         email: data.adminEmail,
@@ -54,7 +71,7 @@ export class ArenaService {
         const arenaData: ArenaType = {
           id: "", // Será preenchido pelo repositório
           nome: data.nome,
-          slug: data.slug,
+          slug: slug, // ✅ Usar slug gerado ou fornecido
           adminEmail: data.adminEmail,
           adminUid: userRecord.uid,
           ativa: true,
@@ -217,7 +234,10 @@ export class ArenaService {
       );
     }
 
-    this.validateSlug(data.slug);
+    // ✅ Slug agora é opcional, só valida se fornecido
+    if (data.slug) {
+      this.validateSlug(data.slug);
+    }
 
     if (!data.adminEmail || !this.isValidEmail(data.adminEmail)) {
       throw new BadRequestError("Email do administrador inválido");
@@ -255,6 +275,7 @@ export class ArenaService {
       "contact",
       "privacy",
       "terms",
+      "public", // ✅ ADICIONAR esse também
     ];
 
     if (reservedSlugs.includes(slug)) {

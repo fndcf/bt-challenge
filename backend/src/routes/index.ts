@@ -3,6 +3,7 @@ import arenaRoutes from "./arenaRoutes";
 import jogadorRoutes from "./jogadores";
 import etapaRoutes from "./etapas";
 import partidaRoutes from "./partidas";
+import publicRoutes from "./publicRoutes";
 
 const router = Router();
 
@@ -46,6 +47,7 @@ router.use("/arenas", arenaRoutes);
 router.use("/jogadores", jogadorRoutes);
 router.use("/etapas", etapaRoutes);
 router.use("/partidas", partidaRoutes);
+router.use("/public", publicRoutes);
 
 /**
  * @route   * (404)

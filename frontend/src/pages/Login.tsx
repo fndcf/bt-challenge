@@ -1,3 +1,6 @@
+// frontend/src/pages/Login.tsx
+// ✅ VERSÃO SIMPLIFICADA (sem receber email do registro)
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -19,15 +22,10 @@ const Login: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const from = (location.state as any)?.from?.pathname || "/admin";
-  const locationState = location.state as {
-    email?: string;
-    message?: string;
-  } | null;
 
   const { values, errors, handleChange, setFieldError, setFieldValue } =
     useForm<LoginForm>({
@@ -36,10 +34,9 @@ const Login: React.FC = () => {
     });
 
   /**
-   * Carregar email salvo e mensagens
+   * ✅ SIMPLIFICADO: Apenas carregar email salvo do "Lembrar de mim"
    */
   useEffect(() => {
-    // Carregar email salvo se "Lembrar de mim" estava ativado
     const rememberedEmail = localStorage.getItem("userEmail");
     const shouldRemember = localStorage.getItem("rememberMe") === "true";
 
@@ -47,15 +44,8 @@ const Login: React.FC = () => {
       setFieldValue("email", rememberedEmail);
       setRememberMe(true);
     }
-
-    // Mensagem de sucesso vinda do registro
-    if (locationState?.message) {
-      setSuccessMessage(locationState.message);
-      if (locationState.email) {
-        setFieldValue("email", locationState.email);
-      }
-    }
-  }, [locationState, setFieldValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← Array vazio: roda apenas 1 vez
 
   /**
    * Redirecionar se já estiver autenticado
@@ -91,7 +81,6 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
-    setSuccessMessage("");
 
     if (!validateForm()) {
       return;
@@ -126,15 +115,6 @@ const Login: React.FC = () => {
               type="error"
               message={errorMessage}
               onClose={() => setErrorMessage("")}
-            />
-          )}
-
-          {successMessage && (
-            <Alert
-              type="success"
-              message={successMessage}
-              onClose={() => setSuccessMessage("")}
-              autoClose={5000}
             />
           )}
 
