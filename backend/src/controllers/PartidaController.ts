@@ -12,7 +12,12 @@ class PartidaController {
    */
   async registrarResultado(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
       const { placar } = req.body;
 

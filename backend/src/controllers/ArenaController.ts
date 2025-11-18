@@ -33,7 +33,7 @@ export class ArenaController {
         result.message
       );
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -48,7 +48,7 @@ export class ArenaController {
 
       return ResponseHelper.success(res, arena.toObject());
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -63,7 +63,7 @@ export class ArenaController {
 
       return ResponseHelper.success(res, arena.toObject());
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -81,7 +81,7 @@ export class ArenaController {
 
       return ResponseHelper.success(res, arena.toObject());
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -89,7 +89,8 @@ export class ArenaController {
    * Listar todas as arenas
    * GET /api/arenas
    */
-  async list(req: Request, res: Response, next: NextFunction) {
+  async list(_req: Request, res: Response, next: NextFunction) {
+    // ✅ RENOMEADO para _req
     try {
       const arenas = await arenaService.listArenas();
 
@@ -98,7 +99,7 @@ export class ArenaController {
         total: arenas.length,
       });
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -127,7 +128,7 @@ export class ArenaController {
         "Arena atualizada com sucesso"
       );
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -147,7 +148,7 @@ export class ArenaController {
 
       return ResponseHelper.success(res, null, "Arena desativada com sucesso");
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 
@@ -166,7 +167,7 @@ export class ArenaController {
         message: available ? "Slug disponível" : "Slug já está em uso",
       });
     } catch (error) {
-      next(error);
+      return next(error); // ✅ ADICIONADO return
     }
   }
 }

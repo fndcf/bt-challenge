@@ -18,7 +18,14 @@ class JogadorController {
    */
   async criar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId, uid } = req.user!;
+      const { uid } = req.user!;
+
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
 
       // Validar dados
       const dadosValidados = CriarJogadorSchema.parse(req.body);
@@ -37,7 +44,7 @@ class JogadorController {
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }
@@ -64,7 +71,12 @@ class JogadorController {
    */
   async buscarPorId(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const jogador = await jogadorService.buscarPorId(id, arenaId);
@@ -97,7 +109,12 @@ class JogadorController {
    */
   async listar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
 
       const filtros: FiltrosJogador = {
         arenaId,
@@ -132,7 +149,12 @@ class JogadorController {
    */
   async atualizar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       // Validar dados
@@ -156,7 +178,7 @@ class JogadorController {
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }
@@ -190,7 +212,12 @@ class JogadorController {
    */
   async deletar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       await jogadorService.deletar(id, arenaId);
@@ -232,7 +259,12 @@ class JogadorController {
    */
   async contarTotal(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
 
       const total = await jogadorService.contar(arenaId);
 
@@ -257,7 +289,12 @@ class JogadorController {
    */
   async contarPorNivel(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
 
       const contagem = await jogadorService.contarPorNivel(arenaId);
 

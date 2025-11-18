@@ -1,7 +1,6 @@
 import { db } from "../config/firebase";
 import { COLLECTIONS } from "../config/firestore";
-import { Arena } from "../domain/Arena";
-import { Arena as ArenaType } from "../../../shared/types";
+import { Arena, ArenaType } from "../domain/Arena";
 import { NotFoundError, ConflictError } from "../utils/errors";
 
 /**
@@ -45,11 +44,6 @@ export class ArenaRepository implements IArenaRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-
-    // Validar
-    if (!arena.isValid()) {
-      throw new Error("Dados da arena inválidos");
-    }
 
     // Salvar no Firestore
     await docRef.set(arena.toObject());

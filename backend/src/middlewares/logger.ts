@@ -97,12 +97,7 @@ export const requestLogger = (
 /**
  * Middleware de logging de erros detalhado
  */
-export const errorLogger = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const errorLogger = (err: Error, req: Request, next: NextFunction) => {
   // Log detalhado do erro
   console.error("\n" + "=".repeat(80));
   console.error(

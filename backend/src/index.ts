@@ -1,82 +1,71 @@
-import express, { Application } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import helmet from "helmet";
-import "./config/firebase";
-import { initializeDatabase } from "./config/initDatabase";
+import routes from "./routes";
+import { errorHandler } from "./middlewares/errorHandler";
 
-// Middlewares
-import { errorHandler, notFoundHandler } from "./middlewares/errorHandler";
-import { sanitizeRequest } from "./middlewares/validation";
-// import { generalLimiter } from "./middlewares/rateLimiter"; // ← COMENTADO
-import {
-  requestLogger,
-  errorLogger,
-  slowRequestLogger,
-} from "./middlewares/logger";
+const app = express();
 
-// Routes
-import apiRoutes from "./routes/index";
-import etapasRoutes from "./routes/etapas";
-
-dotenv.config();
-
-const app: Application = express();
-const PORT = process.env.PORT || 5000;
-
+/**
+ * Configurações de segurança
+ */
 app.use(helmet());
-
-// CORS SIMPLIFICADO (teste)
 app.use(
   cors({
-    origin: true, // ← TESTE: aceita qualquer origem
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
   })
 );
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+/**
+ * Parsing de requisições
+ */
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === "development") {
-  app.use(requestLogger);
-  app.use(slowRequestLogger);
-}
+/**
+ * Health check
+ */
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  });
+});
 
-app.use(sanitizeRequest);
+/**
+ * Rotas da API
+ */
+app.use("/api", routes);
 
-// COMENTADO (teste)
-// app.use("/api", generalLimiter);
+/**
+ * Middleware de erro 404
+ */
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: "Rota não encontrada",
+  });
+});
 
-// ORDEM CORRETA: específicas primeiro
-app.use("/api/etapas", etapasRoutes); // ← PRIMEIRO
-app.use("/api", apiRoutes); // ← DEPOIS
+/**
+ * Middleware de tratamento de erros
+ * ✅ CORRIGIDO: Assinatura completa com 4 parâmetros
+ */
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  // ✅ 4 parâmetros
+  errorHandler(err, _req, res, _next);
+});
 
-app.use(notFoundHandler);
+/**
+ * Iniciar servidor
+ */
+const PORT = process.env.PORT || 5000;
 
-if (process.env.NODE_ENV === "development") {
-  app.use(errorLogger);
-}
-
-app.use(errorHandler);
-
-const startServer = async () => {
-  try {
-    await initializeDatabase();
-
-    app.listen(PORT, () => {
-      console.log("🚀 ================================");
-      console.log(`🎾 Challenge BT API`);
-      console.log(`📡 Servidor rodando na porta ${PORT}`);
-      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || "development"}`);
-      console.log(`🔗 http://localhost:${PORT}`);
-      console.log("🚀 ================================");
-    });
-  } catch (error) {
-    console.error("❌ Erro ao iniciar servidor:", error);
-    process.exit(1);
-  }
-};
-
-startServer();
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🔥 Firebase projeto: ${process.env.FIREBASE_PROJECT_ID}`);
+});
 
 export default app;

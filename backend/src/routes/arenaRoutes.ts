@@ -1,21 +1,19 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
 import { arenaController } from "../controllers/ArenaController";
-import { asyncHandler } from "../middlewares/errorHandler";
-import { authenticate, optionalAuth } from "../middlewares/auth";
-import { validate } from "../middlewares/validation";
-import { createLimiter } from "../middlewares/rateLimiter";
+import { requireAuth } from "../middlewares/auth"; // ✅ REMOVIDO: optionalAuth (não usado)
+import { body } from "express-validator";
+import { runValidations, isValidSlug } from "../middlewares/validation";
 
 const router = Router();
 
 /**
- * Validações
+ * Validações para criação de arena
  */
 const createArenaValidation = [
   body("nome")
     .trim()
     .notEmpty()
-    .withMessage("Nome da arena é obrigatório")
+    .withMessage("Nome é obrigatório")
     .isLength({ min: 3, max: 100 })
     .withMessage("Nome deve ter entre 3 e 100 caracteres"),
 
@@ -25,15 +23,13 @@ const createArenaValidation = [
     .withMessage("Slug é obrigatório")
     .isLength({ min: 3, max: 50 })
     .withMessage("Slug deve ter entre 3 e 50 caracteres")
-    .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-    .withMessage("Slug deve conter apenas letras minúsculas, números e hífens"),
+    .custom(isValidSlug),
 
   body("adminEmail")
     .trim()
     .notEmpty()
     .withMessage("Email do administrador é obrigatório")
     .isEmail()
-    .normalizeEmail()
     .withMessage("Email inválido"),
 
   body("adminPassword")
@@ -43,6 +39,9 @@ const createArenaValidation = [
     .withMessage("Senha deve ter no mínimo 6 caracteres"),
 ];
 
+/**
+ * Validações para atualização de arena
+ */
 const updateArenaValidation = [
   body("nome")
     .optional()
@@ -55,8 +54,7 @@ const updateArenaValidation = [
     .trim()
     .isLength({ min: 3, max: 50 })
     .withMessage("Slug deve ter entre 3 e 50 caracteres")
-    .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-    .withMessage("Slug deve conter apenas letras minúsculas, números e hífens"),
+    .custom(isValidSlug),
 ];
 
 /**
@@ -66,10 +64,8 @@ const updateArenaValidation = [
  */
 router.post(
   "/",
-  createLimiter, // Rate limiting
-  createArenaValidation,
-  validate,
-  asyncHandler(arenaController.create.bind(arenaController))
+  runValidations(createArenaValidation),
+  arenaController.create.bind(arenaController)
 );
 
 /**
@@ -77,17 +73,17 @@ router.post(
  * @desc    Listar todas as arenas
  * @access  Public
  */
-router.get("/", asyncHandler(arenaController.list.bind(arenaController)));
+router.get("/", arenaController.list.bind(arenaController));
 
 /**
  * @route   GET /api/arenas/me
  * @desc    Obter arena do admin autenticado
- * @access  Private (Admin)
+ * @access  Private
  */
 router.get(
   "/me",
-  authenticate,
-  asyncHandler(arenaController.getMyArena.bind(arenaController))
+  requireAuth, // ✅ CORRETO: Middleware com assinatura completa
+  arenaController.getMyArena.bind(arenaController)
 );
 
 /**
@@ -97,24 +93,7 @@ router.get(
  */
 router.get(
   "/check-slug/:slug",
-  param("slug")
-    .trim()
-    .notEmpty()
-    .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  validate,
-  asyncHandler(arenaController.checkSlug.bind(arenaController))
-);
-
-/**
- * @route   GET /api/arenas/slug/:slug
- * @desc    Buscar arena por slug
- * @access  Public
- */
-router.get(
-  "/slug/:slug",
-  param("slug").trim().notEmpty(),
-  validate,
-  asyncHandler(arenaController.getBySlug.bind(arenaController))
+  arenaController.checkSlug.bind(arenaController)
 );
 
 /**
@@ -122,38 +101,36 @@ router.get(
  * @desc    Buscar arena por ID
  * @access  Public
  */
-router.get(
-  "/:id",
-  param("id").trim().notEmpty(),
-  validate,
-  asyncHandler(arenaController.getById.bind(arenaController))
-);
+router.get("/:id", arenaController.getById.bind(arenaController));
+
+/**
+ * @route   GET /api/arenas/slug/:slug
+ * @desc    Buscar arena por slug
+ * @access  Public
+ */
+router.get("/slug/:slug", arenaController.getBySlug.bind(arenaController));
 
 /**
  * @route   PUT /api/arenas/:id
  * @desc    Atualizar arena
- * @access  Private (Admin da arena)
+ * @access  Private
  */
 router.put(
   "/:id",
-  authenticate,
-  param("id").trim().notEmpty(),
-  updateArenaValidation,
-  validate,
-  asyncHandler(arenaController.update.bind(arenaController))
+  requireAuth, // ✅ CORRETO: Middleware com assinatura completa
+  runValidations(updateArenaValidation),
+  arenaController.update.bind(arenaController)
 );
 
 /**
  * @route   DELETE /api/arenas/:id
  * @desc    Desativar arena
- * @access  Private (Admin da arena)
+ * @access  Private
  */
 router.delete(
   "/:id",
-  authenticate,
-  param("id").trim().notEmpty(),
-  validate,
-  asyncHandler(arenaController.deactivate.bind(arenaController))
+  requireAuth, // ✅ CORRETO: Middleware com assinatura completa
+  arenaController.deactivate.bind(arenaController)
 );
 
 export default router;

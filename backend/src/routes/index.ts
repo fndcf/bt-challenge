@@ -1,67 +1,62 @@
-import { Router } from "express";
-import { ResponseHelper } from "../utils/responseHelper";
-
-// Importar routers específicos
+import { Router, Request, Response } from "express";
 import arenaRoutes from "./arenaRoutes";
-import jogadoresRoutes from "./jogadores";
-import etapasRoutes from "./etapas";
-import partidasRoutes from "./partidas";
-// import authRoutes from './authRoutes';
+import jogadorRoutes from "./jogadores";
+import etapaRoutes from "./etapas";
+import partidaRoutes from "./partidas";
 
 const router = Router();
 
 /**
- * Rota raiz da API
+ * @route   GET /
+ * @desc    Rota raiz da API
+ * @access  Public
  */
-router.get("/", (req, res) => {
-  ResponseHelper.success(res, {
-    message: "Challenge BT API v1.0",
+router.get("/", (_req: Request, res: Response) => {
+  // ✅ CORRIGIDO: _req
+  res.json({
+    message: "Challenge BT API",
     version: "1.0.0",
+    status: "online",
     endpoints: {
       arenas: "/api/arenas",
       jogadores: "/api/jogadores",
       etapas: "/api/etapas",
-      auth: "/api/auth",
-      public: "/api/public",
+      partidas: "/api/partidas",
     },
-    documentation: "https://docs.challengebt.com.br",
   });
 });
 
 /**
- * Health check detalhado
+ * @route   GET /health
+ * @desc    Health check
+ * @access  Public
  */
-router.get("/health", (req, res) => {
-  ResponseHelper.success(res, {
+router.get("/health", (_req: Request, res: Response) => {
+  // ✅ CORRIGIDO: _req
+  res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development",
-    version: "1.0.0",
   });
 });
 
 /**
- * Registrar rotas específicas
+ * Rotas da aplicação
  */
 router.use("/arenas", arenaRoutes);
-router.use("/jogadores", jogadoresRoutes);
-router.use("/etapas", etapasRoutes);
-router.use("/partidas", partidasRoutes);
-// router.use('/auth', authRoutes);
+router.use("/jogadores", jogadorRoutes);
+router.use("/etapas", etapaRoutes);
+router.use("/partidas", partidaRoutes);
 
 /**
- * Rota de teste (apenas desenvolvimento)
+ * @route   * (404)
+ * @desc    Rota não encontrada
+ * @access  Public
  */
-if (process.env.NODE_ENV === "development") {
-  router.get("/test", (req, res) => {
-    ResponseHelper.success(res, {
-      message: "Rota de teste funcionando!",
-      headers: req.headers,
-      query: req.query,
-      params: req.params,
-    });
+router.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: "Rota não encontrada",
   });
-}
+});
 
 export default router;

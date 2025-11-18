@@ -44,7 +44,12 @@ export interface Partida {
   setsDupla2: number;
 
   // Placar detalhado por set
-  placar: string[]; // Ex: ["6-4", "7-5", "6-3"]
+  placar?: Array<{
+    numero: number;
+    gamesDupla1: number;
+    gamesDupla2: number;
+    vencedorId?: string;
+  }>;
 
   // Resultado
   vencedoraId?: string;

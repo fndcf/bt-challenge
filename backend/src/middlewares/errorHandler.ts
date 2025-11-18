@@ -10,7 +10,7 @@ export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   // Log do erro (em produção, usar um serviço de logging como Winston ou Sentry)
   console.error("❌ Erro capturado:", {

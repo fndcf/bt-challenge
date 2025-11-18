@@ -1,9 +1,19 @@
-import { Arena as ArenaType } from "../../../shared/types/index";
-
 /**
  * Entidade de domínio Arena
  * Representa uma arena (local/clube) no sistema
  */
+
+export interface ArenaType {
+  id: string;
+  nome: string;
+  slug: string;
+  adminEmail: string;
+  adminUid: string;
+  ativa: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class Arena implements ArenaType {
   id: string;
   nome: string;
@@ -23,27 +33,6 @@ export class Arena implements ArenaType {
     this.ativa = data.ativa;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
-  }
-
-  /**
-   * Validar se a arena é válida
-   */
-  isValid(): boolean {
-    return (
-      !!this.nome &&
-      !!this.slug &&
-      !!this.adminEmail &&
-      !!this.adminUid &&
-      this.validateSlug()
-    );
-  }
-
-  /**
-   * Validar formato do slug
-   */
-  private validateSlug(): boolean {
-    const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-    return slugRegex.test(this.slug);
   }
 
   /**

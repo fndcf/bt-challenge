@@ -23,7 +23,15 @@ class EtapaController {
    */
   async criar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId, uid } = req.user!;
+      if (!req.user?.arenaId || !req.user?.uid) {
+        res.status(401).json({
+          success: false,
+          error: "Usuário não autenticado",
+        });
+        return;
+      }
+
+      const { arenaId, uid } = req.user;
 
       const dadosValidados = CriarEtapaSchema.parse(req.body);
 
@@ -41,7 +49,7 @@ class EtapaController {
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }
@@ -67,7 +75,12 @@ class EtapaController {
    */
   async buscarPorId(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const etapa = await etapaService.buscarPorId(id, arenaId);
@@ -99,7 +112,12 @@ class EtapaController {
    */
   async listar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
 
       const filtros: FiltrosEtapa = {
         arenaId,
@@ -131,7 +149,12 @@ class EtapaController {
    */
   async atualizar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const dadosValidados = AtualizarEtapaSchema.parse(req.body);
@@ -174,7 +197,7 @@ class EtapaController {
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }
@@ -200,7 +223,12 @@ class EtapaController {
    */
   async deletar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       await etapaService.deletar(id, arenaId);
@@ -245,7 +273,12 @@ class EtapaController {
    */
   async inscreverJogador(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const dadosValidados = InscreverJogadorSchema.parse(req.body);
@@ -268,7 +301,7 @@ class EtapaController {
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
-          details: error.errors,
+          details: error.issues,
         });
         return;
       }
@@ -298,7 +331,12 @@ class EtapaController {
    */
   async cancelarInscricao(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { etapaId, inscricaoId } = req.params;
 
       await etapaService.cancelarInscricao(inscricaoId, etapaId, arenaId);
@@ -331,7 +369,12 @@ class EtapaController {
    */
   async listarInscricoes(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const inscricoes = await etapaService.listarInscricoes(id, arenaId);
@@ -355,7 +398,12 @@ class EtapaController {
    */
   async encerrarInscricoes(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const etapa = await etapaService.encerrarInscricoes(id, arenaId);
@@ -389,7 +437,12 @@ class EtapaController {
    */
   async reabrirInscricoes(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const etapa = await etapaService.reabrirInscricoes(id, arenaId);
@@ -423,7 +476,12 @@ class EtapaController {
    */
   async gerarChaves(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const resultado = await chaveService.gerarChaves(id, arenaId);
@@ -462,7 +520,12 @@ class EtapaController {
    */
   async obterEstatisticas(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
 
       const estatisticas = await etapaService.obterEstatisticas(arenaId);
 
@@ -478,58 +541,18 @@ class EtapaController {
       });
     }
   }
-
-  /**
-   * Deletar etapa
-   */
-  async deletar(req: AuthRequest, res: Response): Promise<void> {
-    try {
-      const { arenaId } = req.user!;
-      const { id } = req.params;
-
-      await etapaService.deletar(id, arenaId);
-
-      res.json({
-        success: true,
-        message: "Etapa deletada com sucesso",
-      });
-    } catch (error: any) {
-      console.error("Erro ao deletar etapa:", error);
-
-      if (error.message.includes("não encontrada")) {
-        res.status(404).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      if (
-        error.message.includes("possui") ||
-        error.message.includes("inscritos") ||
-        error.message.includes("chaves")
-      ) {
-        res.status(400).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: "Erro ao deletar etapa",
-      });
-    }
-  }
-
   /**
    * Buscar duplas de uma etapa
    * GET /api/etapas/:id/duplas
    */
   async buscarDuplas(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const duplas = await chaveService.buscarDuplas(id, arenaId);
@@ -553,7 +576,12 @@ class EtapaController {
    */
   async buscarGrupos(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const grupos = await chaveService.buscarGrupos(id, arenaId);
@@ -577,7 +605,12 @@ class EtapaController {
    */
   async buscarPartidas(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       const partidas = await chaveService.buscarPartidas(id, arenaId);
@@ -601,7 +634,12 @@ class EtapaController {
    */
   async excluirChaves(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { arenaId } = req.user!;
+      if (!req.user?.arenaId) {
+        res.status(401).json({ error: "Usuário não autenticado" });
+        return;
+      }
+
+      const arenaId = req.user.arenaId;
       const { id } = req.params;
 
       await chaveService.excluirChaves(id, arenaId);
@@ -631,7 +669,7 @@ class EtapaController {
   /**
    * Gerar fase eliminatória
    */
-  async gerarFaseEliminatoria(req: Request, res: Response): Promise<void> {
+  async gerarFaseEliminatoria(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const arenaId = req.user?.arenaId;
@@ -661,7 +699,7 @@ class EtapaController {
    * Buscar confrontos eliminatórios
    */
   async buscarConfrontosEliminatorios(
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> {
     try {
@@ -698,7 +736,10 @@ class EtapaController {
   /**
    * Cancelar/Excluir fase eliminatória
    */
-  async cancelarFaseEliminatoria(req: Request, res: Response): Promise<void> {
+  async cancelarFaseEliminatoria(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
     try {
       const { id } = req.params;
       const arenaId = req.user?.arenaId;
@@ -722,7 +763,7 @@ class EtapaController {
   /**
    * Encerrar etapa
    */
-  async encerrarEtapa(req: Request, res: Response): Promise<void> {
+  async encerrarEtapa(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const arenaId = req.user?.arenaId;

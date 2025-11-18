@@ -1,68 +1,61 @@
 import { Router } from "express";
 import jogadorController from "../controllers/JogadorController";
-import { authenticate } from "../middlewares/auth";
+import { requireAuth } from "../middlewares/auth";
 
-/**
- * Rotas de Jogadores
- * Todas as rotas requerem autenticação
- */
 const router = Router();
 
-// Middleware de autenticação
-router.use(authenticate);
+/**
+ * Todas as rotas de jogadores requerem autenticação
+ */
+router.use(requireAuth); // ✅ CORRETO: Middleware com assinatura completa
 
 /**
  * @route   POST /api/jogadores
  * @desc    Criar novo jogador
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.post("/", (req, res) => jogadorController.criar(req, res));
+router.post("/", jogadorController.criar);
 
 /**
  * @route   GET /api/jogadores
  * @desc    Listar jogadores com filtros
- * @access  Private (Admin da arena)
- * @query   nivel, status, genero, busca, ordenarPor, ordem, limite, offset
+ * @access  Private
  */
-router.get("/", (req, res) => jogadorController.listar(req, res));
+router.get("/", jogadorController.listar);
 
 /**
  * @route   GET /api/jogadores/stats/total
  * @desc    Contar total de jogadores
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.get("/stats/total", (req, res) =>
-  jogadorController.contarTotal(req, res)
-);
+router.get("/stats/total", jogadorController.contarTotal);
 
 /**
  * @route   GET /api/jogadores/stats/por-nivel
  * @desc    Contar jogadores por nível
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.get("/stats/por-nivel", (req, res) =>
-  jogadorController.contarPorNivel(req, res)
-);
+router.get("/stats/por-nivel", jogadorController.contarPorNivel);
 
 /**
  * @route   GET /api/jogadores/:id
  * @desc    Buscar jogador por ID
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.get("/:id", (req, res) => jogadorController.buscarPorId(req, res));
+router.get("/:id", jogadorController.buscarPorId);
 
 /**
  * @route   PUT /api/jogadores/:id
  * @desc    Atualizar jogador
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.put("/:id", (req, res) => jogadorController.atualizar(req, res));
+router.put("/:id", jogadorController.atualizar);
 
 /**
  * @route   DELETE /api/jogadores/:id
  * @desc    Deletar jogador
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.delete("/:id", (req, res) => jogadorController.deletar(req, res));
+router.delete("/:id", jogadorController.deletar);
 
 export default router;

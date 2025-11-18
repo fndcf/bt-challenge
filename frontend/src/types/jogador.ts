@@ -26,7 +26,6 @@ export interface Jogador {
   nivel: NivelJogador;
   status: StatusJogador;
   observacoes?: string;
-  fotoUrl?: string;
   vitorias?: number;
   derrotas?: number;
   pontos?: number;

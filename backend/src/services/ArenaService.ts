@@ -2,8 +2,7 @@ import {
   arenaRepository,
   IArenaRepository,
 } from "../repositories/ArenaRepository";
-import { Arena } from "../domain/Arena";
-import { Arena as ArenaType } from "../../../shared/types";
+import { Arena, ArenaType } from "../domain/Arena";
 import { auth, db } from "../config/firebase";
 import { COLLECTIONS } from "../config/firestore";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";

@@ -34,7 +34,6 @@ export interface Jogador {
   nivel: NivelJogador;
   status: StatusJogador;
   observacoes?: string;
-  fotoUrl?: string;
 
   // Estatísticas (serão implementadas depois)
   vitorias?: number;
@@ -69,12 +68,14 @@ export const CriarJogadorSchema = z.object({
   genero: z.enum(["masculino", "feminino", "outro"]).optional(),
 
   nivel: z.nativeEnum(NivelJogador, {
-    errorMap: () => ({ message: "Nível inválido" }),
+    // ✅ CORRIGIDO: Usar apenas message, não errorMap
+    message: "Nível inválido",
   }),
 
   status: z
     .nativeEnum(StatusJogador, {
-      errorMap: () => ({ message: "Status inválido" }),
+      // ✅ CORRIGIDO: Usar apenas message, não errorMap
+      message: "Status inválido",
     })
     .default(StatusJogador.ATIVO),
 

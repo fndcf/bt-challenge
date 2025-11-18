@@ -1,19 +1,19 @@
-import express from "express";
-import { authenticate as auth } from "../middlewares/auth";
+import { Router } from "express";
 import partidaController from "../controllers/PartidaController";
+import { requireAuth } from "../middlewares/auth";
 
-const router = express.Router();
+const router = Router();
 
-// Todas as rotas requerem autenticação
-router.use(auth);
+/**
+ * Todas as rotas de partidas requerem autenticação
+ */
+router.use(requireAuth); // ✅ CORRETO: Middleware com assinatura completa
 
 /**
  * @route   PUT /api/partidas/:id/resultado
  * @desc    Registrar resultado de uma partida
- * @access  Private (Admin da arena)
+ * @access  Private
  */
-router.put("/:id/resultado", (req, res) =>
-  partidaController.registrarResultado(req, res)
-);
+router.put("/:id/resultado", partidaController.registrarResultado);
 
 export default router;

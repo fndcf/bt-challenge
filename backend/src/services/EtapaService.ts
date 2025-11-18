@@ -67,12 +67,12 @@ export class EtapaService {
       const etapaData = {
         arenaId,
         nome: dadosValidados.nome.trim(),
-        descricao: dadosValidados.descricao?.trim() || null,
+        descricao: dadosValidados.descricao?.trim() || undefined,
         nivel: dadosValidados.nivel, // ← ADICIONADO
         dataInicio: Timestamp.fromDate(dataInicio),
         dataFim: Timestamp.fromDate(dataFim),
         dataRealizacao: Timestamp.fromDate(dataRealizacao),
-        local: dadosValidados.local?.trim() || null,
+        local: dadosValidados.local?.trim() || undefined,
         maxJogadores: dadosValidados.maxJogadores,
         jogadoresPorGrupo: dadosValidados.jogadoresPorGrupo,
         qtdGrupos,
@@ -81,11 +81,11 @@ export class EtapaService {
         totalInscritos: 0,
         jogadoresInscritos: [],
         chavesGeradas: false,
-        dataGeracaoChaves: null,
+        dataGeracaoChaves: undefined,
         criadoEm: agora,
         atualizadoEm: agora,
         criadoPor: adminUid,
-        finalizadoEm: null,
+        finalizadoEm: undefined,
       };
 
       const docRef = await db.collection(this.collectionEtapas).add(etapaData);
@@ -186,14 +186,14 @@ export class EtapaService {
         jogadorNome: jogador.nome,
         jogadorNivel: jogador.nivel,
         status: StatusInscricao.CONFIRMADA,
-        duplaId: null,
-        parceiroId: null,
-        parceiroNome: null,
-        grupoId: null,
-        grupoNome: null,
+        duplaId: undefined,
+        parceiroId: undefined,
+        parceiroNome: undefined,
+        grupoId: undefined,
+        grupoNome: undefined,
         criadoEm: agora,
         atualizadoEm: agora,
-        canceladoEm: null,
+        canceladoEm: undefined,
       };
 
       const inscricaoRef = await db

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import etapaController from "../controllers/EtapaController";
-import { authenticate } from "../middlewares/auth";
+import { AuthRequest, requireAuth } from "../middlewares/auth";
 
 /**
  * Rotas de Etapas
@@ -9,7 +9,7 @@ import { authenticate } from "../middlewares/auth";
 const router = Router();
 
 // Middleware de autenticação
-router.use(authenticate);
+router.use(requireAuth);
 
 /**
  * @route   POST /api/etapas
@@ -111,7 +111,7 @@ router.delete("/:id/chaves", (req, res) =>
  * @desc    Buscar confrontos eliminatórios da etapa
  * @access  Private (Admin da arena)
  */
-router.get("/:id/confrontos-eliminatorios", async (req, res) => {
+router.get("/:id/confrontos-eliminatorios", async (req: AuthRequest, res) => {
   try {
     const { id: etapaId } = req.params;
     const { arenaId } = req.user!;
@@ -152,7 +152,7 @@ router.get("/:id/confrontos-eliminatorios", async (req, res) => {
  * @desc    Gerar fase eliminatória (mata-mata)
  * @access  Private (Admin da arena)
  */
-router.post("/:id/gerar-eliminatoria", async (req, res) => {
+router.post("/:id/gerar-eliminatoria", async (req: AuthRequest, res) => {
   try {
     const { id: etapaId } = req.params;
     const { arenaId } = req.user!;
@@ -194,7 +194,7 @@ router.post("/:id/gerar-eliminatoria", async (req, res) => {
  */
 router.post(
   "/confrontos-eliminatorios/:confrontoId/resultado",
-  async (req, res) => {
+  async (req: AuthRequest, res) => {
     try {
       const { confrontoId } = req.params;
       const { arenaId } = req.user!;
@@ -235,7 +235,7 @@ router.post(
  * @desc    Cancelar fase eliminatória
  * @access  Private (Admin da arena)
  */
-router.delete("/:id/cancelar-eliminatoria", async (req, res) => {
+router.delete("/:id/cancelar-eliminatoria", async (req: AuthRequest, res) => {
   try {
     const { id: etapaId } = req.params;
     const { arenaId } = req.user!;
@@ -264,7 +264,7 @@ router.delete("/:id/cancelar-eliminatoria", async (req, res) => {
  * @desc    Encerrar etapa (após final)
  * @access  Private (Admin da arena)
  */
-router.post("/:id/encerrar", async (req, res) => {
+router.post("/:id/encerrar", async (req: AuthRequest, res) => {
   try {
     const { id: etapaId } = req.params;
     const { arenaId } = req.user!;
@@ -388,7 +388,7 @@ router.get("/:id/partidas", (req, res) =>
  */
 router.post(
   "/confrontos-eliminatorios/:confrontoId/resultado",
-  async (req, res) => {
+  async (req: AuthRequest, res) => {
     try {
       const { confrontoId } = req.params;
       const { arenaId } = req.user!; // Pega do token de autenticação
