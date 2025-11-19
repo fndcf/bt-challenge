@@ -1,13 +1,324 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import { Etapa, StatusEtapa, FiltrosEtapa } from "../../types/etapa";
 import etapaService from "../../services/etapaService";
 import { EtapaCard } from "../../components/etapas/EtapaCard";
-import LoadingSpinner from "../../components/LoadingSpinner";
 
-/**
- * Página de listagem de etapas
- */
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  @media (min-width: 640px) {
+    padding: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 2rem;
+  }
+`;
+
+const Header = styled.div`
+  margin-bottom: 2rem;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+`;
+
+const HeaderContent = styled.div`
+  margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    margin-bottom: 0;
+  }
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 2.25rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const CreateButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #2563eb;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+
+  @media (min-width: 768px) {
+    width: auto;
+    font-size: 1rem;
+  }
+
+  span {
+    font-size: 1.25rem;
+  }
+`;
+
+// ============== ESTATÍSTICAS ==============
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const StatCard = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const StatIcon = styled.div<{ $variant: "blue" | "green" | "purple" | "gray" }>`
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 1.875rem;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "blue":
+        return `background: #dbeafe;`;
+      case "green":
+        return `background: #dcfce7;`;
+      case "purple":
+        return `background: #f3e8ff;`;
+      case "gray":
+        return `background: #f3f4f6;`;
+      default:
+        return `background: #f3f4f6;`;
+    }
+  }}
+`;
+
+const StatContent = styled.div`
+  flex: 1;
+`;
+
+const StatLabel = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+`;
+
+const StatValue = styled.p`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+// ============== FILTROS ==============
+
+const FiltersCard = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const FiltersContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+  }
+`;
+
+const FilterLabel = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+`;
+
+const Select = styled.select`
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  @media (min-width: 768px) {
+    min-width: 200px;
+  }
+`;
+
+const ClearButton = styled.button`
+  font-size: 0.875rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #111827;
+  }
+`;
+
+// ============== CONTEÚDO ==============
+
+const ErrorBox = styled.div`
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 3rem 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+`;
+
+const EmptyIcon = styled.span`
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+`;
+
+const EmptyTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const EmptyText = styled.p`
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const EtapasGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+`;
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const ListagemEtapas: React.FC = () => {
   const navigate = useNavigate();
 
@@ -64,100 +375,72 @@ export const ListagemEtapas: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <LoadingContainer>
+        <Spinner />
+      </LoadingContainer>
+    );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <Container>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Etapas</h1>
-            <p className="text-gray-600 mt-1">Gerencie as etapas do torneio</p>
-          </div>
-          <button
-            onClick={() => navigate("/admin/etapas/criar")}
-            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            <span className="text-xl">➕</span>
-            Criar Etapa
-          </button>
-        </div>
-      </div>
+      <Header>
+        <HeaderContent>
+          <Title>Etapas</Title>
+          <Subtitle>Gerencie as etapas do torneio</Subtitle>
+        </HeaderContent>
+        <CreateButton onClick={() => navigate("/admin/etapas/criar")}>
+          <span>➕</span>
+          Criar Etapa
+        </CreateButton>
+      </Header>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 rounded-lg p-3">
-              <span className="text-3xl">📊</span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total de Etapas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalEtapas}
-              </p>
-            </div>
-          </div>
-        </div>
+      <StatsGrid>
+        <StatCard>
+          <StatIcon $variant="blue">📊</StatIcon>
+          <StatContent>
+            <StatLabel>Total de Etapas</StatLabel>
+            <StatValue>{stats.totalEtapas}</StatValue>
+          </StatContent>
+        </StatCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 rounded-lg p-3">
-              <span className="text-3xl">📝</span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Inscrições Abertas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.inscricoesAbertas}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard>
+          <StatIcon $variant="green">📝</StatIcon>
+          <StatContent>
+            <StatLabel>Inscrições Abertas</StatLabel>
+            <StatValue>{stats.inscricoesAbertas}</StatValue>
+          </StatContent>
+        </StatCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 rounded-lg p-3">
-              <span className="text-3xl">🎾</span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Em Andamento</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.emAndamento}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard>
+          <StatIcon $variant="purple">🎾</StatIcon>
+          <StatContent>
+            <StatLabel>Em Andamento</StatLabel>
+            <StatValue>{stats.emAndamento}</StatValue>
+          </StatContent>
+        </StatCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-gray-100 rounded-lg p-3">
-              <span className="text-3xl">🏆</span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Finalizadas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.finalizadas}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <StatCard>
+          <StatIcon $variant="gray">🏆</StatIcon>
+          <StatContent>
+            <StatLabel>Finalizadas</StatLabel>
+            <StatValue>{stats.finalizadas}</StatValue>
+          </StatContent>
+        </StatCard>
+      </StatsGrid>
 
       {/* Filtros */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">
-              Filtrar por:
-            </span>
-            <select
+      <FiltersCard>
+        <FiltersContent>
+          <FilterGroup>
+            <FilterLabel>Filtrar por:</FilterLabel>
+            <Select
               value={filtroStatus}
               onChange={(e) =>
                 setFiltroStatus(e.target.value as StatusEtapa | "")
               }
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Todos os status</option>
               <option value={StatusEtapa.INSCRICOES_ABERTAS}>
@@ -169,73 +452,63 @@ export const ListagemEtapas: React.FC = () => {
               <option value={StatusEtapa.CHAVES_GERADAS}>Chaves Geradas</option>
               <option value={StatusEtapa.EM_ANDAMENTO}>Em Andamento</option>
               <option value={StatusEtapa.FINALIZADA}>Finalizadas</option>
-            </select>
-          </div>
+            </Select>
+          </FilterGroup>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">
-              Ordenar por:
-            </span>
-            <select
+          <FilterGroup>
+            <FilterLabel>Ordenar por:</FilterLabel>
+            <Select
               value={ordenacao}
               onChange={(e) =>
                 setOrdenacao(e.target.value as "dataRealizacao" | "criadoEm")
               }
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="dataRealizacao">Data de Realização</option>
               <option value="criadoEm">Data de Criação</option>
-            </select>
-          </div>
+            </Select>
+          </FilterGroup>
 
           {(filtroStatus || ordenacao !== "dataRealizacao") && (
-            <button
+            <ClearButton
               onClick={() => {
                 setFiltroStatus("");
                 setOrdenacao("dataRealizacao");
               }}
-              className="text-sm text-gray-600 hover:text-gray-900 underline"
             >
               Limpar filtros
-            </button>
+            </ClearButton>
           )}
-        </div>
-      </div>
+        </FiltersContent>
+      </FiltersCard>
 
       {/* Lista de Etapas */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
+      {error && <ErrorBox>{error}</ErrorBox>}
 
       {etapas.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-          <span className="text-6xl mb-4 block">🎾</span>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Nenhuma etapa encontrada
-          </h3>
-          <p className="text-gray-600 mb-6">
+        <EmptyState>
+          <EmptyIcon>🎾</EmptyIcon>
+          <EmptyTitle>Nenhuma etapa encontrada</EmptyTitle>
+          <EmptyText>
             {filtroStatus
               ? "Não há etapas com esse status."
               : "Comece criando sua primeira etapa!"}
-          </p>
+          </EmptyText>
           {!filtroStatus && (
-            <button
-              onClick={() => navigate("/admin/etapas/criar")}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
+            <CreateButton onClick={() => navigate("/admin/etapas/criar")}>
+              <span>➕</span>
               Criar Primeira Etapa
-            </button>
+            </CreateButton>
           )}
-        </div>
+        </EmptyState>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <EtapasGrid>
           {etapas.map((etapa) => (
             <EtapaCard key={etapa.id} etapa={etapa} />
           ))}
-        </div>
+        </EtapasGrid>
       )}
-    </div>
+    </Container>
   );
 };
+
+export default ListagemEtapas;

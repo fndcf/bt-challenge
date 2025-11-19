@@ -1,12 +1,360 @@
-// frontend/src/pages/RegisterArena.tsx
-// ✅ VERSÃO SIMPLIFICADA (sem passar email para login)
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import styled from "styled-components";
 import { arenaService } from "../services/arenaService";
 import { useForm, useDebounce, useDocumentTitle } from "../hooks";
-import LoadingSpinner from "../components/LoadingSpinner";
-import "./RegisterArena.css";
+
+// ============== STYLED COMPONENTS ==============
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1rem;
+
+  @media (min-width: 768px) {
+    padding: 3rem 1rem;
+  }
+`;
+
+const Container = styled.div`
+  width: 100%;
+  max-width: 600px;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 2rem;
+
+  @media (min-width: 768px) {
+    padding: 3rem;
+  }
+`;
+
+const Header = styled.div`
+  text-align: center;
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+
+    @media (min-width: 768px) {
+      font-size: 2.25rem;
+    }
+  }
+
+  p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+
+    @media (min-width: 768px) {
+      font-size: 1rem;
+    }
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const Required = styled.span`
+  color: #ef4444;
+`;
+
+const OptionalBadge = styled.span`
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+`;
+
+const Input = styled.input<{ $hasError?: boolean }>`
+  padding: 0.75rem 1rem;
+  border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#d1d5db")};
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #111827;
+  background: white;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => (props.$hasError ? "#ef4444" : "#2563eb")};
+    box-shadow: 0 0 0 3px
+      ${(props) =>
+        props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(37, 99, 235, 0.1)"};
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+  }
+`;
+
+const SlugInputWrapper = styled.div`
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s;
+
+  &:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+`;
+
+const SlugPrefix = styled.span`
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #e5e7eb;
+
+  @media (max-width: 640px) {
+    font-size: 0.75rem;
+    padding: 0.75rem 0.5rem;
+  }
+`;
+
+const SlugInput = styled.input<{ $hasError?: boolean }>`
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  font-size: 1rem;
+  color: #111827;
+  background: white;
+
+  &:focus {
+    outline: none;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+  }
+`;
+
+const SlugStatus = styled.div<{
+  $status: "checking" | "available" | "unavailable";
+}>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+
+  ${(props) => {
+    switch (props.$status) {
+      case "checking":
+        return `color: #6b7280;`;
+      case "available":
+        return `color: #16a34a;`;
+      case "unavailable":
+        return `color: #dc2626;`;
+    }
+  }}
+`;
+
+const ErrorText = styled.span`
+  font-size: 0.8125rem;
+  color: #ef4444;
+  font-weight: 500;
+`;
+
+const HelperText = styled.small`
+  font-size: 0.8125rem;
+  color: #6b7280;
+`;
+
+const Alert = styled.div<{ $type: "success" | "error" }>`
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  ${(props) =>
+    props.$type === "success"
+      ? `
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  `
+      : `
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  `}
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  margin-top: 0.5rem;
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  @media (min-width: 768px) {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-height: 52px;
+  }
+`;
+
+const FormFooter = styled.div`
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+
+  p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+
+    @media (min-width: 768px) {
+      font-size: 0.9375rem;
+    }
+  }
+`;
+
+const StyledLink = styled(Link)`
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+  }
+`;
+
+const BackLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 1.5rem;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const BackLinkContainer = styled.div`
+  text-align: center;
+  margin-top: 1.5rem;
+`;
+
+const Spinner = styled.div`
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const SmallSpinner = styled.div`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #d1d5db;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+// ============== INTERFACES ==============
 
 interface RegisterArenaForm {
   nome: string;
@@ -15,6 +363,8 @@ interface RegisterArenaForm {
   adminPassword: string;
   confirmPassword: string;
 }
+
+// ============== COMPONENTE ==============
 
 const RegisterArena: React.FC = () => {
   useDocumentTitle("Registrar Arena");
@@ -37,9 +387,6 @@ const RegisterArena: React.FC = () => {
 
   const debouncedSlug = useDebounce(values.slug, 500);
 
-  /**
-   * Verificar disponibilidade do slug
-   */
   useEffect(() => {
     const checkSlug = async () => {
       if (debouncedSlug && debouncedSlug.length >= 3) {
@@ -62,9 +409,6 @@ const RegisterArena: React.FC = () => {
     checkSlug();
   }, [debouncedSlug]);
 
-  /**
-   * Validar formulário
-   */
   const validateForm = (): boolean => {
     let isValid = true;
 
@@ -113,9 +457,6 @@ const RegisterArena: React.FC = () => {
     return isValid;
   };
 
-  /**
-   * Submeter formulário
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -147,7 +488,6 @@ const RegisterArena: React.FC = () => {
       reset();
       setSlugAvailable(null);
 
-      // ✅ SIMPLIFICADO: Apenas navegar para login (sem state)
       setTimeout(() => {
         navigate("/login");
       }, 3000);
@@ -159,166 +499,155 @@ const RegisterArena: React.FC = () => {
   };
 
   return (
-    <div className="register-arena-page">
-      <div className="register-arena-container">
-        <div className="register-arena-header">
+    <PageContainer>
+      <Container>
+        <Header>
           <h1>🎾 Registrar Nova Arena</h1>
           <p>Crie sua arena e comece a organizar torneios</p>
-        </div>
+        </Header>
 
-        <form onSubmit={handleSubmit} className="register-arena-form">
-          {errorMessage && (
-            <div className="alert alert-error">{errorMessage}</div>
-          )}
+        <Form onSubmit={handleSubmit}>
+          {errorMessage && <Alert $type="error">{errorMessage}</Alert>}
 
-          {successMessage && (
-            <div className="alert alert-success">{successMessage}</div>
-          )}
+          {successMessage && <Alert $type="success">{successMessage}</Alert>}
 
           {/* Nome da Arena */}
-          <div className="form-group">
-            <label htmlFor="nome">
-              Nome da Arena <span className="required">*</span>
-            </label>
-            <input
+          <FormGroup>
+            <Label htmlFor="nome">
+              Nome da Arena <Required>*</Required>
+            </Label>
+            <Input
               type="text"
               id="nome"
               value={values.nome}
               onChange={(e) => handleChange("nome", e.target.value)}
-              className={errors.nome ? "input-error" : ""}
+              $hasError={!!errors.nome}
               disabled={loading}
               placeholder="Ex: Arena Azul Beach Tennis"
             />
-            {errors.nome && <span className="error-text">{errors.nome}</span>}
-          </div>
+            {errors.nome && <ErrorText>{errors.nome}</ErrorText>}
+          </FormGroup>
 
           {/* Slug */}
-          <div className="form-group">
-            <label htmlFor="slug">
+          <FormGroup>
+            <Label htmlFor="slug">
               Slug (URL da Arena)
-              <span className="optional-badge">opcional</span>
-            </label>
-            <div className="slug-input-wrapper">
-              <span className="slug-prefix">challengebt.com.br/arena/</span>
-              <input
+              <OptionalBadge>opcional</OptionalBadge>
+            </Label>
+            <SlugInputWrapper>
+              <SlugPrefix>challengebt.com.br/arena/</SlugPrefix>
+              <SlugInput
                 type="text"
                 id="slug"
                 value={values.slug}
                 onChange={(e) =>
                   handleChange("slug", e.target.value.toLowerCase())
                 }
-                className={errors.slug ? "input-error" : ""}
+                $hasError={!!errors.slug}
                 disabled={loading}
                 placeholder="deixe em branco para gerar automaticamente"
               />
-            </div>
+            </SlugInputWrapper>
 
             {checkingSlug && (
-              <div className="slug-status checking">
-                <LoadingSpinner size="small" /> Verificando disponibilidade...
-              </div>
+              <SlugStatus $status="checking">
+                <SmallSpinner /> Verificando disponibilidade...
+              </SlugStatus>
             )}
 
             {!checkingSlug &&
               slugAvailable === true &&
               values.slug.length >= 3 && (
-                <div className="slug-status available">✓ Slug disponível!</div>
+                <SlugStatus $status="available">✓ Slug disponível!</SlugStatus>
               )}
 
             {!checkingSlug && slugAvailable === false && (
-              <div className="slug-status unavailable">
+              <SlugStatus $status="unavailable">
                 ✗ Slug já está em uso
-              </div>
+              </SlugStatus>
             )}
 
-            {errors.slug && <span className="error-text">{errors.slug}</span>}
+            {errors.slug && <ErrorText>{errors.slug}</ErrorText>}
 
-            <small className="helper-text">
+            <HelperText>
               {values.slug
                 ? "Apenas letras minúsculas, números e hífens."
                 : "Será gerado automaticamente a partir do nome da arena."}
-            </small>
-          </div>
+            </HelperText>
+          </FormGroup>
 
           {/* Email do Admin */}
-          <div className="form-group">
-            <label htmlFor="adminEmail">
-              Seu Email (Administrador) <span className="required">*</span>
-            </label>
-            <input
+          <FormGroup>
+            <Label htmlFor="adminEmail">
+              Seu Email (Administrador) <Required>*</Required>
+            </Label>
+            <Input
               type="email"
               id="adminEmail"
               value={values.adminEmail}
               onChange={(e) => handleChange("adminEmail", e.target.value)}
-              className={errors.adminEmail ? "input-error" : ""}
+              $hasError={!!errors.adminEmail}
               disabled={loading}
               placeholder="seu@email.com"
             />
-            {errors.adminEmail && (
-              <span className="error-text">{errors.adminEmail}</span>
-            )}
-          </div>
+            {errors.adminEmail && <ErrorText>{errors.adminEmail}</ErrorText>}
+          </FormGroup>
 
           {/* Senha */}
-          <div className="form-group">
-            <label htmlFor="adminPassword">
-              Senha <span className="required">*</span>
-            </label>
-            <input
+          <FormGroup>
+            <Label htmlFor="adminPassword">
+              Senha <Required>*</Required>
+            </Label>
+            <Input
               type="password"
               id="adminPassword"
               value={values.adminPassword}
               onChange={(e) => handleChange("adminPassword", e.target.value)}
-              className={errors.adminPassword ? "input-error" : ""}
+              $hasError={!!errors.adminPassword}
               disabled={loading}
               placeholder="••••••••"
             />
             {errors.adminPassword && (
-              <span className="error-text">{errors.adminPassword}</span>
+              <ErrorText>{errors.adminPassword}</ErrorText>
             )}
-            <small className="helper-text">Mínimo de 6 caracteres</small>
-          </div>
+            <HelperText>Mínimo de 6 caracteres</HelperText>
+          </FormGroup>
 
           {/* Confirmar Senha */}
-          <div className="form-group">
-            <label htmlFor="confirmPassword">
-              Confirmar Senha <span className="required">*</span>
-            </label>
-            <input
+          <FormGroup>
+            <Label htmlFor="confirmPassword">
+              Confirmar Senha <Required>*</Required>
+            </Label>
+            <Input
               type="password"
               id="confirmPassword"
               value={values.confirmPassword}
               onChange={(e) => handleChange("confirmPassword", e.target.value)}
-              className={errors.confirmPassword ? "input-error" : ""}
+              $hasError={!!errors.confirmPassword}
               disabled={loading}
               placeholder="••••••••"
             />
             {errors.confirmPassword && (
-              <span className="error-text">{errors.confirmPassword}</span>
+              <ErrorText>{errors.confirmPassword}</ErrorText>
             )}
-          </div>
+          </FormGroup>
 
-          <button type="submit" className="btn-submit" disabled={loading}>
-            {loading ? <LoadingSpinner size="small" /> : "Criar Arena"}
-          </button>
+          <SubmitButton type="submit" disabled={loading}>
+            {loading ? <Spinner /> : "Criar Arena"}
+          </SubmitButton>
 
-          <div className="register-arena-footer">
+          <FormFooter>
             <p>
-              Já tem uma arena?{" "}
-              <Link to="/login" className="link">
-                Fazer login
-              </Link>
+              Já tem uma arena? <StyledLink to="/login">Fazer login</StyledLink>
             </p>
-          </div>
-        </form>
+          </FormFooter>
+        </Form>
 
-        <div className="register-arena-back">
-          <Link to="/" className="link-back">
-            ← Voltar para o site
-          </Link>
-        </div>
-      </div>
-    </div>
+        <BackLinkContainer>
+          <BackLink to="/">← Voltar para o site</BackLink>
+        </BackLinkContainer>
+      </Container>
+    </PageContainer>
   );
 };
 

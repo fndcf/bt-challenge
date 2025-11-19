@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import styled from "styled-components";
 import { Partida, SetPartida, StatusPartida } from "../../types/chave";
 import partidaService from "../../services/partidaService";
 
@@ -8,9 +9,298 @@ interface ModalRegistrarResultadoProps {
   onSuccess: () => void;
 }
 
-/**
- * Modal para registrar ou editar resultado de uma partida
- */
+// ============== STYLED COMPONENTS ==============
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+`;
+
+const OverlayBackground = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s;
+`;
+
+const ModalWrapper = styled.div`
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+`;
+
+const ModalContainer = styled.div`
+  position: relative;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 42rem;
+  width: 100%;
+  padding: 1.5rem;
+
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+`;
+
+const Title = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const CloseButton = styled.button`
+  color: #9ca3af;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #4b5563;
+  }
+`;
+
+const DuplasBox = styled.div`
+  margin-bottom: 1.5rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1rem;
+`;
+
+const DuplasContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const DuplaNome = styled.span`
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const VsSeparator = styled.span`
+  color: #9ca3af;
+  font-weight: 700;
+  font-size: 0.875rem;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const PlacarSection = styled.div`
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem;
+  }
+`;
+
+const PlacarTitle = styled.h4`
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const PlacarGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+`;
+
+const InputGroup = styled.div``;
+
+const InputLabel = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+`;
+
+const ScoreInput = styled.input`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #2563eb;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: #d1d5db;
+  }
+`;
+
+const ResultBox = styled.div`
+  margin-top: 1.5rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+`;
+
+const ResultContent = styled.div`
+  text-align: center;
+`;
+
+const ResultLabel = styled.span`
+  font-size: 0.875rem;
+  color: #166534;
+`;
+
+const WinnerName = styled.p`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #166534;
+  margin: 0.25rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const ResultScore = styled.p`
+  font-size: 0.875rem;
+  color: #166534;
+  margin: 0.25rem 0 0 0;
+`;
+
+const ErrorBox = styled.div`
+  margin-top: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+`;
+
+const ErrorText = styled.p`
+  font-size: 0.875rem;
+  color: #991b1b;
+  margin: 0;
+`;
+
+const ButtonsRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  ${(props) =>
+    props.$variant === "primary"
+      ? `
+    background: #2563eb;
+    color: white;
+    &:hover:not(:disabled) { background: #1d4ed8; }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    &:hover:not(:disabled) { background: #f9fafb; }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const Spinner = styled.div`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const HintsBox = styled.div`
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  p {
+    margin: 0;
+
+    strong {
+      font-weight: 600;
+    }
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const ModalRegistrarResultado: React.FC<
   ModalRegistrarResultadoProps
 > = ({ partida, onClose, onSuccess }) => {
@@ -18,14 +308,13 @@ export const ModalRegistrarResultado: React.FC<
 
   const [set, setSet] = useState<SetPartida>({
     numero: 1,
-    gamesDupla1: undefined as any, // Vazio inicialmente
-    gamesDupla2: undefined as any, // Vazio inicialmente
+    gamesDupla1: undefined as any,
+    gamesDupla2: undefined as any,
     vencedorId: "",
   });
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Preencher placar se for edição
   useEffect(() => {
     if (isEdicao && partida.placar && partida.placar.length > 0) {
       setSet({
@@ -49,7 +338,6 @@ export const ModalRegistrarResultado: React.FC<
   };
 
   const calcularVencedor = () => {
-    // Se algum campo não foi preenchido, não há vencedor ainda
     if (
       set.gamesDupla1 === undefined ||
       set.gamesDupla1 === null ||
@@ -74,7 +362,6 @@ export const ModalRegistrarResultado: React.FC<
   };
 
   const validarPlacar = (): boolean => {
-    // Verificar se o placar foi preenchido
     if (
       (set.gamesDupla1 === undefined || set.gamesDupla1 === null) &&
       (set.gamesDupla2 === undefined || set.gamesDupla2 === null)
@@ -93,13 +380,11 @@ export const ModalRegistrarResultado: React.FC<
       return false;
     }
 
-    // Permitir 0x0 apenas se for empate técnico (mas vamos rejeitar por enquanto)
     if (set.gamesDupla1 === 0 && set.gamesDupla2 === 0) {
       setErro("O placar não pode ser 0 x 0");
       return false;
     }
 
-    // Validar placar de set normal (6-4, 7-5, 7-6)
     const maxGames = Math.max(set.gamesDupla1, set.gamesDupla2);
     const minGames = Math.min(set.gamesDupla1, set.gamesDupla2);
 
@@ -123,7 +408,6 @@ export const ModalRegistrarResultado: React.FC<
       return false;
     }
 
-    // Verificar se há um vencedor
     const resultado = calcularVencedor();
     if (!resultado) {
       setErro("Não há um vencedor definido");
@@ -151,7 +435,6 @@ export const ModalRegistrarResultado: React.FC<
       );
       onSuccess();
     } catch (err: any) {
-      console.error("Erro ao registrar resultado:", err);
       setErro(
         err.message ||
           `Erro ao ${isEdicao ? "atualizar" : "registrar"} resultado`
@@ -164,133 +447,98 @@ export const ModalRegistrarResultado: React.FC<
   const resultado = calcularVencedor();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
-      ></div>
+    <Overlay>
+      <OverlayBackground onClick={onClose} />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">
+      <ModalWrapper>
+        <ModalContainer>
+          <Header>
+            <Title>
               {isEdicao ? "✏️ Editar Resultado" : "📝 Registrar Resultado"}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
+            </Title>
+            <CloseButton onClick={onClose}>✕</CloseButton>
+          </Header>
 
-          {/* Duplas */}
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-center gap-4">
-              <span className="font-medium text-gray-900">
-                {partida.dupla1Nome}
-              </span>
-              <span className="text-gray-400 font-bold">VS</span>
-              <span className="font-medium text-gray-900">
-                {partida.dupla2Nome}
-              </span>
-            </div>
-          </div>
+          <DuplasBox>
+            <DuplasContent>
+              <DuplaNome>{partida.dupla1Nome}</DuplaNome>
+              <VsSeparator>VS</VsSeparator>
+              <DuplaNome>{partida.dupla2Nome}</DuplaNome>
+            </DuplasContent>
+          </DuplasBox>
 
-          {/* Formulário */}
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              {/* Set Único */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-700 mb-3">🎾 Placar</h4>
+          <Form onSubmit={handleSubmit}>
+            <PlacarSection>
+              <PlacarTitle>🎾 Placar</PlacarTitle>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Dupla 1 */}
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      {partida.dupla1Nome}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={set.gamesDupla1 ?? ""}
-                      onChange={(e) =>
-                        handleSetChange("gamesDupla1", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+              <PlacarGrid>
+                <InputGroup>
+                  <InputLabel>{partida.dupla1Nome}</InputLabel>
+                  <ScoreInput
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={set.gamesDupla1 ?? ""}
+                    onChange={(e) =>
+                      handleSetChange("gamesDupla1", e.target.value)
+                    }
+                    placeholder="0"
+                    required
+                    disabled={loading}
+                  />
+                </InputGroup>
 
-                  {/* Dupla 2 */}
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      {partida.dupla2Nome}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={set.gamesDupla2 ?? ""}
-                      onChange={(e) =>
-                        handleSetChange("gamesDupla2", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+                <InputGroup>
+                  <InputLabel>{partida.dupla2Nome}</InputLabel>
+                  <ScoreInput
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={set.gamesDupla2 ?? ""}
+                    onChange={(e) =>
+                      handleSetChange("gamesDupla2", e.target.value)
+                    }
+                    placeholder="0"
+                    required
+                    disabled={loading}
+                  />
+                </InputGroup>
+              </PlacarGrid>
+            </PlacarSection>
 
-            {/* Vencedor */}
             {resultado && (
-              <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="text-center">
-                  <span className="text-sm text-green-700">🏆 Vencedor:</span>
-                  <p className="text-lg font-bold text-green-900 mt-1">
-                    {resultado.vencedor}
-                  </p>
-                  <p className="text-sm text-green-700 mt-1">
-                    Placar: {resultado.placar}
-                  </p>
-                </div>
-              </div>
+              <ResultBox>
+                <ResultContent>
+                  <ResultLabel>🏆 Vencedor:</ResultLabel>
+                  <WinnerName>{resultado.vencedor}</WinnerName>
+                  <ResultScore>Placar: {resultado.placar}</ResultScore>
+                </ResultContent>
+              </ResultBox>
             )}
 
-            {/* Erro */}
             {erro && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-800">❌ {erro}</p>
-              </div>
+              <ErrorBox>
+                <ErrorText>❌ {erro}</ErrorText>
+              </ErrorBox>
             )}
 
-            {/* Botões */}
-            <div className="flex gap-3 mt-6">
-              <button
+            <ButtonsRow>
+              <Button
                 type="button"
+                $variant="secondary"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 disabled={loading}
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                $variant="primary"
                 disabled={loading || !resultado}
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner />
                     <span>{isEdicao ? "Atualizando..." : "Salvando..."}</span>
                   </>
                 ) : (
@@ -301,12 +549,11 @@ export const ModalRegistrarResultado: React.FC<
                     </span>
                   </>
                 )}
-              </button>
-            </div>
-          </form>
+              </Button>
+            </ButtonsRow>
+          </Form>
 
-          {/* Dicas */}
-          <div className="mt-4 text-xs text-gray-500 space-y-1">
+          <HintsBox>
             <p>
               💡 <strong>Placares válidos:</strong> 6-0, 6-1, 6-2, 6-3, 6-4,
               7-5, 7-6
@@ -314,9 +561,11 @@ export const ModalRegistrarResultado: React.FC<
             <p>
               💡 <strong>Set único:</strong> Vencedor do set vence a partida
             </p>
-          </div>
-        </div>
-      </div>
-    </div>
+          </HintsBox>
+        </ModalContainer>
+      </ModalWrapper>
+    </Overlay>
   );
 };
+
+export default ModalRegistrarResultado;

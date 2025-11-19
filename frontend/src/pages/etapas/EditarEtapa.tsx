@@ -1,13 +1,311 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import styled, { keyframes } from "styled-components";
 import { Etapa, AtualizarEtapaDTO } from "../../types/etapa";
 import { NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 import { format } from "date-fns";
 
-/**
- * Página de editar etapa
- */
+// ============== ANIMATIONS ==============
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+`;
+
+const LoadingContent = styled.div`
+  text-align: center;
+`;
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+  margin: 0 auto 1rem;
+`;
+
+const LoadingText = styled.p`
+  color: #6b7280;
+  margin: 0;
+`;
+
+const ErrorContainer = styled.div`
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+const ErrorText = styled.p`
+  color: #991b1b;
+  font-weight: 500;
+  margin: 0 0 1rem 0;
+`;
+
+const Header = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const BackButton = styled.button`
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+`;
+
+const Subtitle = styled.p`
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9375rem;
+`;
+
+const Alert = styled.div<{ $variant: "red" | "yellow" }>`
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+
+  ${(props) =>
+    props.$variant === "red"
+      ? `
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  `
+      : `
+    background: #fefce8;
+    border: 1px solid #fef08a;
+    color: #854d0e;
+  `}
+
+  p {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  ul {
+    margin: 0.5rem 0 0 1rem;
+    padding-left: 1rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
+  li {
+    margin-top: 0.25rem;
+  }
+`;
+
+const Form = styled.form`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+`;
+
+const FormError = styled.div`
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+
+  p {
+    color: #991b1b;
+    margin: 0;
+  }
+`;
+
+const FieldsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+`;
+
+const Required = styled.span`
+  color: #dc2626;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3b82f6;
+  }
+
+  &:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const Textarea = styled.textarea`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3b82f6;
+  }
+
+  &:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3b82f6;
+  }
+
+  &:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+  }
+`;
+
+const HelperText = styled.p<{ $variant?: "warning" | "info" }>`
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0 0;
+  color: ${(props) => (props.$variant === "warning" ? "#b45309" : "#6b7280")};
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const ButtonsRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  ${(props) =>
+    props.$variant === "primary"
+      ? `
+    background: #3b82f6;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  `}
+`;
+
+// ============== COMPONENTE ==============
+
 export const EditarEtapa: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -43,13 +341,12 @@ export const EditarEtapa: React.FC = () => {
       const data = await etapaService.buscarPorId(id);
       setEtapa(data);
 
-      // Converter timestamps para formato de input (apenas data)
       const toInputDate = (timestamp: any) => {
         if (!timestamp) return "";
         const date = timestamp._seconds
           ? new Date(timestamp._seconds * 1000)
           : new Date(timestamp);
-        return format(date, "yyyy-MM-dd"); // Apenas data, sem hora
+        return format(date, "yyyy-MM-dd");
       };
 
       setFormData({
@@ -60,7 +357,7 @@ export const EditarEtapa: React.FC = () => {
         dataFim: toInputDate(data.dataFim),
         dataRealizacao: toInputDate(data.dataRealizacao),
         local: data.local || "",
-        maxJogadores: data.maxJogadores || 16, // Garantir que sempre tenha um valor
+        maxJogadores: data.maxJogadores || 16,
       });
     } catch (err: any) {
       console.error("Erro ao carregar etapa:", err);
@@ -83,7 +380,6 @@ export const EditarEtapa: React.FC = () => {
       setSalvando(true);
       setError(null);
 
-      // Validar maxJogadores
       if (!formData.maxJogadores) {
         setError("Número máximo de jogadores é obrigatório");
         return;
@@ -106,10 +402,8 @@ export const EditarEtapa: React.FC = () => {
         return;
       }
 
-      // Converter datas para ISO com timezone (adicionar hora 12:00 como padrão)
       const toISO = (dateStr: string) => {
         if (!dateStr) return undefined;
-        // Adicionar hora 12:00 UTC
         return new Date(`${dateStr}T12:00:00Z`).toISOString();
       };
 
@@ -124,8 +418,6 @@ export const EditarEtapa: React.FC = () => {
           : undefined,
       };
 
-      console.log("📤 Enviando dados:", dadosParaEnviar);
-
       await etapaService.atualizar(id, dadosParaEnviar);
       alert("Etapa atualizada com sucesso!");
       navigate(`/admin/etapas/${id}`);
@@ -139,28 +431,25 @@ export const EditarEtapa: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando etapa...</p>
-        </div>
-      </div>
+      <LoadingContainer>
+        <LoadingContent>
+          <Spinner />
+          <LoadingText>Carregando etapa...</LoadingText>
+        </LoadingContent>
+      </LoadingContainer>
     );
   }
 
   if (error && !etapa) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-800 font-medium mb-4">{error}</p>
-          <button
-            onClick={() => navigate("/admin/etapas")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
+      <Container>
+        <ErrorContainer>
+          <ErrorText>{error}</ErrorText>
+          <Button $variant="primary" onClick={() => navigate("/admin/etapas")}>
             Voltar para etapas
-          </button>
-        </div>
-      </div>
+          </Button>
+        </ErrorContainer>
+      </Container>
     );
   }
 
@@ -170,97 +459,80 @@ export const EditarEtapa: React.FC = () => {
   const chavesGeradas = etapa.chavesGeradas;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <button
-          onClick={() => navigate(`/admin/etapas/${id}`)}
-          className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
-        >
+    <Container>
+      <Header>
+        <BackButton onClick={() => navigate(`/admin/etapas/${id}`)}>
           ← Voltar
-        </button>
+        </BackButton>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Editar Etapa</h1>
-        <p className="text-gray-600">Atualize as informações da etapa</p>
-      </div>
+        <Title>Editar Etapa</Title>
+        <Subtitle>Atualize as informações da etapa</Subtitle>
+      </Header>
 
-      {/* Avisos */}
       {chavesGeradas && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <p className="text-red-800 font-medium">
+        <Alert $variant="red">
+          <p>
             ⚠️ Esta etapa não pode ser editada pois as chaves já foram geradas
           </p>
-        </div>
+        </Alert>
       )}
 
       {temInscritos && !chavesGeradas && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-yellow-800 font-medium mb-2">
+        <Alert $variant="yellow">
+          <p>
             ⚠️ Esta etapa já possui inscritos. Algumas alterações são restritas:
           </p>
-          <ul className="text-sm text-yellow-700 ml-4 list-disc">
+          <ul>
             <li>Não é possível alterar o nível</li>
             <li>Não é possível diminuir o número máximo de jogadores</li>
           </ul>
-        </div>
+        </Alert>
       )}
 
-      {/* Formulário */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-lg border border-gray-200 p-6"
-      >
+      <Form onSubmit={handleSubmit}>
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{error}</p>
-          </div>
+          <FormError>
+            <p>{error}</p>
+          </FormError>
         )}
 
-        <div className="space-y-6">
-          {/* Nome */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nome da Etapa <span className="text-red-500">*</span>
-            </label>
-            <input
+        <FieldsContainer>
+          <Field>
+            <Label>
+              Nome da Etapa <Required>*</Required>
+            </Label>
+            <Input
               type="text"
               required
               disabled={chavesGeradas}
               value={formData.nome}
               onChange={(e) => handleChange("nome", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Ex: Etapa 1 - Novembro 2025"
             />
-          </div>
+          </Field>
 
-          {/* Descrição */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descrição
-            </label>
-            <textarea
+          <Field>
+            <Label>Descrição</Label>
+            <Textarea
               disabled={chavesGeradas}
               value={formData.descricao}
               onChange={(e) => handleChange("descricao", e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Informações adicionais sobre a etapa"
             />
-          </div>
+          </Field>
 
-          {/* Nível */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nível da Etapa <span className="text-red-500">*</span>
-            </label>
-            <select
+          <Field>
+            <Label>
+              Nível da Etapa <Required>*</Required>
+            </Label>
+            <Select
               required
               disabled={chavesGeradas || temInscritos}
               value={formData.nivel}
               onChange={(e) =>
                 handleChange("nivel", e.target.value as NivelJogador)
               }
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
               <option value={NivelJogador.INTERMEDIARIO}>
@@ -268,81 +540,72 @@ export const EditarEtapa: React.FC = () => {
               </option>
               <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
               <option value={NivelJogador.PROFISSIONAL}>⭐ Profissional</option>
-            </select>
+            </Select>
             {temInscritos && (
-              <p className="text-xs text-yellow-700 mt-1">
+              <HelperText $variant="warning">
                 ⚠️ Não é possível alterar o nível pois já existem jogadores
                 inscritos
-              </p>
+              </HelperText>
             )}
-          </div>
+          </Field>
 
-          {/* Datas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Início das Inscrições <span className="text-red-500">*</span>
-              </label>
-              <input
+          <GridContainer>
+            <Field>
+              <Label>
+                Início das Inscrições <Required>*</Required>
+              </Label>
+              <Input
                 type="date"
                 required
                 disabled={chavesGeradas}
                 value={formData.dataInicio}
                 onChange={(e) => handleChange("dataInicio", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fim das Inscrições <span className="text-red-500">*</span>
-              </label>
-              <input
+            <Field>
+              <Label>
+                Fim das Inscrições <Required>*</Required>
+              </Label>
+              <Input
                 type="date"
                 required
                 disabled={chavesGeradas}
                 value={formData.dataFim}
                 onChange={(e) => handleChange("dataFim", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Data de Realização <span className="text-red-500">*</span>
-              </label>
-              <input
+            <Field>
+              <Label>
+                Data de Realização <Required>*</Required>
+              </Label>
+              <Input
                 type="date"
                 required
                 disabled={chavesGeradas}
                 value={formData.dataRealizacao}
                 onChange={(e) => handleChange("dataRealizacao", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
-            </div>
-          </div>
+            </Field>
+          </GridContainer>
 
-          {/* Local */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Local
-            </label>
-            <input
+          <Field>
+            <Label>Local</Label>
+            <Input
               type="text"
               disabled={chavesGeradas}
               value={formData.local}
               onChange={(e) => handleChange("local", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Ex: Arena Beach Tennis São Paulo"
             />
-          </div>
+          </Field>
 
-          {/* Max Jogadores */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Número Máximo de Jogadores <span className="text-red-500">*</span>
-            </label>
-            <input
+          <Field>
+            <Label>
+              Número Máximo de Jogadores <Required>*</Required>
+            </Label>
+            <Input
               type="number"
               required
               min={(() => {
@@ -356,34 +619,29 @@ export const EditarEtapa: React.FC = () => {
               disabled={chavesGeradas}
               value={formData.maxJogadores || ""}
               onChange={(e) => {
-                // Permite apagar e digitar livremente
                 const value =
                   e.target.value === "" ? undefined : parseInt(e.target.value);
                 handleChange("maxJogadores", value);
               }}
               onBlur={(e) => {
-                // Ao sair do campo, validar e ajustar
                 if (e.target.value === "" || parseInt(e.target.value) < 6) {
                   const minimo = Math.max(
                     6,
                     temInscritos ? etapa.totalInscritos : 6
                   );
-                  // Se minimo for ímpar, ajustar para próximo par
                   const minimoAjustado = minimo % 2 === 0 ? minimo : minimo + 1;
                   handleChange("maxJogadores", minimoAjustado);
                 } else {
-                  // Garantir que é par
                   const valor = parseInt(e.target.value);
                   if (valor % 2 !== 0) {
                     handleChange("maxJogadores", valor + 1);
                   }
                 }
               }}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Ex: 16, 20, 24..."
             />
             {temInscritos ? (
-              <p className="text-xs text-yellow-700 mt-1">
+              <HelperText $variant="warning">
                 {(() => {
                   const minimoReal = Math.max(6, etapa.totalInscritos);
                   const minimoAjustado =
@@ -397,34 +655,33 @@ export const EditarEtapa: React.FC = () => {
                     return `⚠️ Mínimo de ${minimoAjustado} (${etapa.totalInscritos} inscritos + próximo par é ${minimoAjustado}) - sempre número par`;
                   }
                 })()}
-              </p>
+              </HelperText>
             ) : (
-              <p className="text-xs text-gray-500 mt-1">
+              <HelperText $variant="info">
                 💡 Use números pares (mínimo 6, máximo 64)
-              </p>
+              </HelperText>
             )}
-          </div>
-        </div>
+          </Field>
+        </FieldsContainer>
 
-        {/* Botões */}
-        <div className="flex gap-4 mt-8">
-          <button
+        <ButtonsRow>
+          <Button
             type="button"
+            $variant="secondary"
             onClick={() => navigate(`/admin/etapas/${id}`)}
             disabled={salvando}
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
+            $variant="primary"
             disabled={salvando || chavesGeradas}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {salvando ? "Salvando..." : "Salvar Alterações"}
-          </button>
-        </div>
-      </form>
-    </div>
+          </Button>
+        </ButtonsRow>
+      </Form>
+    </Container>
   );
 };

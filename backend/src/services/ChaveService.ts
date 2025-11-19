@@ -1357,11 +1357,6 @@ export class ChaveService {
         console.log("↩️ Estatísticas antigas revertidas!");
       }
 
-      // Validar placar (melhor de 3 sets)
-      if (placar.length < 2 || placar.length > 3) {
-        throw new Error("Placar inválido. Deve ter 2 ou 3 sets (melhor de 3)");
-      }
-
       // Calcular resultado
       let setsDupla1 = 0;
       let setsDupla2 = 0;

@@ -1,5 +1,6 @@
 import { apiClient } from "./apiClient";
 import { Arena } from "../types";
+import { handleError } from "../utils/errorHandler";
 
 /**
  * DTO para criar arena
@@ -38,8 +39,8 @@ class ArenaService {
       );
       return response;
     } catch (error) {
-      console.error("Erro ao criar arena:", error);
-      throw error;
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -105,8 +106,8 @@ class ArenaService {
       const arena = await apiClient.put<Arena>(`${this.basePath}/${id}`, data);
       return arena;
     } catch (error) {
-      console.error("Erro ao atualizar arena:", error);
-      throw error;
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -117,8 +118,8 @@ class ArenaService {
     try {
       await apiClient.delete(`${this.basePath}/${id}`);
     } catch (error) {
-      console.error("Erro ao desativar arena:", error);
-      throw error;
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 

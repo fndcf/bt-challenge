@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import styled, { keyframes } from "styled-components";
 import { Etapa, Inscricao, StatusEtapa } from "../../types/etapa";
 import etapaService from "../../services/etapaService";
 import chaveService from "../../services/chaveService";
@@ -7,9 +8,600 @@ import { StatusBadge } from "../../components/etapas/StatusBadge";
 import { ModalInscricao } from "../../components/etapas/ModalInscricao";
 import { ChavesEtapa } from "../../components/etapas/ChavesEtapa";
 import { ConfirmacaoPerigosa } from "../../components/ConfirmacaoPerigosa";
-import { FaseEliminatoria } from "../../components/etapas/FaseEliminatoria";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+// ============== ANIMATIONS ==============
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  @media (min-width: 640px) {
+    padding: 2rem 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 2rem 2rem;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+`;
+
+const LoadingContent = styled.div`
+  text-align: center;
+`;
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+  margin: 0 auto 1rem;
+`;
+
+const LoadingText = styled.p`
+  color: #6b7280;
+  margin: 0;
+`;
+
+const ErrorContainer = styled.div`
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+const ErrorText = styled.p`
+  color: #991b1b;
+  font-weight: 500;
+  margin: 0 0 1rem 0;
+`;
+
+const Header = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const BackButton = styled.button`
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const HeaderContent = styled.div`
+  flex: 1;
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  color: #6b7280;
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9375rem;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const ActionButton = styled.button<{ $variant?: "primary" | "danger" }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+
+  ${(props) =>
+    props.$variant === "danger"
+      ? `
+    background: #dc2626;
+    color: white;
+
+    &:hover {
+      background: #b91c1c;
+    }
+  `
+      : `
+    background: #3b82f6;
+    color: white;
+
+    &:hover {
+      background: #2563eb;
+    }
+  `}
+`;
+
+const TabsContainer = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const TabsNav = styled.div`
+  border-bottom: 1px solid #e5e7eb;
+
+  /* ⭐ MOBILE: Remove borda */
+  @media (max-width: 768px) {
+    border-bottom: none;
+  }
+`;
+
+const TabsList = styled.nav`
+  display: flex;
+  gap: 2rem;
+  margin-bottom: -1px;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 2px;
+  }
+
+  /* ⭐ MOBILE: Layout vertical */
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-x: visible;
+    margin-bottom: 0;
+  }
+`;
+
+const Tab = styled.button<{ $active: boolean }>`
+  white-space: nowrap;
+  padding: 1rem 0.25rem;
+  border: none;
+  border-bottom: 2px solid
+    ${(props) => (props.$active ? "#3b82f6" : "transparent")};
+  background: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: ${(props) => (props.$active ? "#3b82f6" : "#6b7280")};
+
+  &:hover {
+    color: ${(props) => (props.$active ? "#3b82f6" : "#374151")};
+    border-bottom-color: ${(props) => (props.$active ? "#3b82f6" : "#d1d5db")};
+  }
+
+  /* ⭐ MOBILE: Botão full-width com fundo */
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: ${(props) => (props.$active ? "#eff6ff" : "white")};
+    border-color: ${(props) => (props.$active ? "#3b82f6" : "#e5e7eb")};
+    border-bottom: 1px solid
+      ${(props) => (props.$active ? "#3b82f6" : "#e5e7eb")};
+
+    &:hover {
+      background: ${(props) => (props.$active ? "#eff6ff" : "#f9fafb")};
+      border-bottom-color: ${(props) =>
+        props.$active ? "#3b82f6" : "#e5e7eb"};
+    }
+  }
+`;
+
+const TabBadge = styled.span`
+  margin-left: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #dbeafe;
+  color: #2563eb;
+
+  /* ⭐ MOBILE: Badge à direita */
+  @media (max-width: 768px) {
+    margin-left: auto;
+    margin-right: 0;
+  }
+`;
+
+const Grid = styled.div<{ $cols?: number }>`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(${(props) => props.$cols || 3}, 1fr);
+  }
+`;
+
+const Card = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+`;
+
+const CardIconRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+`;
+
+const CardIcon = styled.span`
+  font-size: 1.875rem;
+`;
+
+const CardInfo = styled.div`
+  flex: 1;
+`;
+
+const CardLabel = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+`;
+
+const CardValue = styled.p`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+`;
+
+const ProgressBar = styled.div`
+  margin-bottom: 0.5rem;
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 0.75rem;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $progress: number }>`
+  height: 100%;
+  border-radius: 9999px;
+  transition: all 0.3s;
+  width: ${(props) => props.$progress}%;
+  background: ${(props) =>
+    props.$progress === 100
+      ? "#22c55e"
+      : props.$progress >= 75
+      ? "#eab308"
+      : "#3b82f6"};
+`;
+
+const ProgressText = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+`;
+
+const CardContent = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: 0.5rem;
+  }
+`;
+
+const CardTitle = styled.h2`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1rem 0;
+`;
+
+const InfoList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const InfoRow = styled.div<{ $highlight?: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  ${(props) =>
+    props.$highlight &&
+    `
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+  `}
+`;
+
+const InfoLabel = styled.span`
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const InfoValue = styled.span<{ $color?: string }>`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${(props) => props.$color || "#111827"};
+`;
+
+const ActionsSection = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+`;
+
+const ActionsGrid = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+`;
+
+const Button = styled.button<{
+  $variant?: "blue" | "orange" | "green" | "purple" | "red" | "gray";
+  $fullWidth?: boolean;
+}>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  ${(props) => props.$fullWidth && "width: 100%;"}
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "blue":
+        return `
+          background: #3b82f6;
+          color: white;
+          &:hover { background: #2563eb; }
+        `;
+      case "orange":
+        return `
+          background: #f97316;
+          color: white;
+          &:hover { background: #ea580c; }
+        `;
+      case "green":
+        return `
+          background: #22c55e;
+          color: white;
+          &:hover { background: #16a34a; }
+        `;
+      case "purple":
+        return `
+          background: #a855f7;
+          color: white;
+          &:hover { background: #9333ea; }
+        `;
+      case "red":
+        return `
+          background: #dc2626;
+          color: white;
+          &:hover { background: #b91c1c; }
+        `;
+      case "gray":
+        return `
+          background: #6b7280;
+          color: white;
+          &:hover { background: #4b5563; }
+        `;
+      default:
+        return `
+          background: #3b82f6;
+          color: white;
+          &:hover { background: #2563eb; }
+        `;
+    }
+  }}
+`;
+
+const Alert = styled.div<{
+  $variant: "orange" | "red" | "blue" | "yellow" | "green";
+}>`
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-size: 0.875rem;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "orange":
+        return `
+          background: #fff7ed;
+          border: 1px solid #fed7aa;
+          color: #9a3412;
+        `;
+      case "red":
+        return `
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+        `;
+      case "blue":
+        return `
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          color: #1e40af;
+        `;
+      case "yellow":
+        return `
+          background: #fefce8;
+          border: 1px solid #fef08a;
+          color: #854d0e;
+        `;
+      case "green":
+        return `
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #166534;
+        `;
+    }
+  }}
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: 0.5rem;
+  }
+
+  ul {
+    margin: 0.25rem 0 0 0;
+    padding-left: 1.5rem;
+  }
+
+  li {
+    margin-top: 0.25rem;
+  }
+`;
+
+const InscricoesEmpty = styled.div`
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+
+  p {
+    color: #6b7280;
+    margin: 0;
+  }
+
+  button {
+    margin-top: 1rem;
+  }
+`;
+
+const InscricoesGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const InscricaoCard = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+`;
+
+const InscricaoInfo = styled.div`
+  flex: 1;
+`;
+
+const InscricaoNome = styled.p`
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+`;
+
+const InscricaoNivel = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+`;
+
+const CancelButton = styled.button`
+  margin-left: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+
+  &:hover {
+    color: #b91c1c;
+    background: #fef2f2;
+  }
+`;
 
 /**
  * Página de detalhes da etapa
@@ -25,12 +617,9 @@ export const DetalhesEtapa: React.FC = () => {
   const [modalInscricaoAberto, setModalInscricaoAberto] = useState(false);
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
-
-  // ==================== NOVO: Sistema de Abas ====================
   const [abaAtiva, setAbaAtiva] = useState<
     "visao-geral" | "inscricoes" | "chaves"
   >("visao-geral");
-  // ===============================================================
 
   useEffect(() => {
     carregarEtapa();
@@ -48,8 +637,6 @@ export const DetalhesEtapa: React.FC = () => {
 
       const data = await etapaService.buscarPorId(id);
       setEtapa(data);
-
-      // Carregar inscrições
       await carregarInscricoes(id);
     } catch (err: any) {
       console.error("Erro ao carregar etapa:", err);
@@ -75,27 +662,16 @@ export const DetalhesEtapa: React.FC = () => {
   ) => {
     if (!etapa) return;
 
-    console.log(`🔄 Cancelando inscrição de ${jogadorNome}...`);
-    console.log(`📋 Dados:`, { inscricaoId, etapaId: etapa.id });
-
     if (!confirm(`Deseja cancelar a inscrição de ${jogadorNome}?`)) {
-      console.log("❌ Usuário cancelou a operação");
       return;
     }
 
     try {
-      console.log("📡 Chamando API para cancelar...");
       await etapaService.cancelarInscricao(etapa.id, inscricaoId);
-      console.log("✅ API retornou sucesso!");
-
-      // Recarregar dados
-      console.log("🔄 Recarregando dados da etapa...");
       await carregarEtapa();
-      console.log("✅ Dados recarregados!");
-
       alert("Inscrição cancelada com sucesso!");
     } catch (err: any) {
-      console.error("❌ Erro ao cancelar inscrição:", err);
+      console.error("Erro ao cancelar inscrição:", err);
       alert(err.message || "Erro ao cancelar inscrição");
     }
   };
@@ -180,14 +756,7 @@ export const DetalhesEtapa: React.FC = () => {
 
     try {
       setLoading(true);
-      console.log("🎾 Iniciando geração de chaves...");
-
       const resultado = await chaveService.gerarChaves(etapa.id);
-
-      console.log("✅ Chaves geradas com sucesso!", resultado);
-      console.log(`📊 ${resultado.duplas.length} duplas criadas`);
-      console.log(`📊 ${resultado.grupos.length} grupos criados`);
-      console.log(`📊 ${resultado.partidas.length} partidas geradas`);
 
       alert(
         `✅ Chaves geradas com sucesso!\n\n` +
@@ -196,13 +765,10 @@ export const DetalhesEtapa: React.FC = () => {
           `• ${resultado.partidas.length} partidas agendadas`
       );
 
-      // Recarregar etapa para ver as mudanças
       await carregarEtapa();
-
-      // Mudar para aba de chaves
       setAbaAtiva("chaves");
     } catch (err: any) {
-      console.error("❌ Erro ao gerar chaves:", err);
+      console.error("Erro ao gerar chaves:", err);
       alert(err.message || "Erro ao gerar chaves");
     } finally {
       setLoading(false);
@@ -225,18 +791,13 @@ export const DetalhesEtapa: React.FC = () => {
 
     try {
       setLoading(true);
-      console.log("📝 Encerrando inscrições...");
-
       await etapaService.encerrarInscricoes(etapa.id);
-
       alert(
         "✅ Inscrições encerradas com sucesso!\n\nAgora você pode gerar as chaves da etapa."
       );
-
-      // Recarregar etapa para ver as mudanças
       await carregarEtapa();
     } catch (err: any) {
-      console.error("❌ Erro ao encerrar inscrições:", err);
+      console.error("Erro ao encerrar inscrições:", err);
       alert(err.message || "Erro ao encerrar inscrições");
     } finally {
       setLoading(false);
@@ -260,19 +821,13 @@ export const DetalhesEtapa: React.FC = () => {
 
     try {
       setLoading(true);
-      console.log("🔓 Reabrindo inscrições...");
-
       await etapaService.reabrirInscricoes(etapa.id);
-
       alert(
-        "✅ Inscrições reabertas com sucesso!\n\n" +
-          "Agora você pode adicionar ou remover jogadores."
+        "✅ Inscrições reabertas com sucesso!\n\nAgora você pode adicionar ou remover jogadores."
       );
-
-      // Recarregar etapa para ver as mudanças
       await carregarEtapa();
     } catch (err: any) {
-      console.error("❌ Erro ao reabrir inscrições:", err);
+      console.error("Erro ao reabrir inscrições:", err);
       alert(err.message || "Erro ao reabrir inscrições");
     } finally {
       setLoading(false);
@@ -284,10 +839,7 @@ export const DetalhesEtapa: React.FC = () => {
 
     try {
       setExcluindo(true);
-      console.log("🗑️ Excluindo chaves...");
-
       await chaveService.excluirChaves(etapa.id);
-
       setModalExcluirAberto(false);
 
       alert(
@@ -296,13 +848,10 @@ export const DetalhesEtapa: React.FC = () => {
           "Você pode gerar as chaves novamente quando quiser."
       );
 
-      // Recarregar etapa para ver as mudanças
       await carregarEtapa();
-
-      // Voltar para visão geral
       setAbaAtiva("visao-geral");
     } catch (err: any) {
-      console.error("❌ Erro ao excluir chaves:", err);
+      console.error("Erro ao excluir chaves:", err);
       alert(err.message || "Erro ao excluir chaves");
     } finally {
       setExcluindo(false);
@@ -311,30 +860,25 @@ export const DetalhesEtapa: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando etapa...</p>
-        </div>
-      </div>
+      <LoadingContainer>
+        <LoadingContent>
+          <Spinner />
+          <LoadingText>Carregando etapa...</LoadingText>
+        </LoadingContent>
+      </LoadingContainer>
     );
   }
 
   if (error || !etapa) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-800 font-medium mb-4">
-            {error || "Etapa não encontrada"}
-          </p>
-          <button
-            onClick={() => navigate("/admin/etapas")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
+      <Container>
+        <ErrorContainer>
+          <ErrorText>{error || "Etapa não encontrada"}</ErrorText>
+          <Button $variant="blue" onClick={() => navigate("/admin/etapas")}>
             Voltar para etapas
-          </button>
-        </div>
-      </div>
+          </Button>
+        </ErrorContainer>
+      </Container>
     );
   }
 
@@ -355,421 +899,333 @@ export const DetalhesEtapa: React.FC = () => {
     inscricoesEncerradas && !etapa.chavesGeradas && !vagasCompletas;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <button
-          onClick={() => navigate("/admin/etapas")}
-          className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
-        >
+    <Container>
+      <Header>
+        <BackButton onClick={() => navigate("/admin/etapas")}>
           ← Voltar
-        </button>
+        </BackButton>
 
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">{etapa.nome}</h1>
-            {etapa.descricao && (
-              <p className="text-gray-600 mt-2">{etapa.descricao}</p>
-            )}
-          </div>
+        <HeaderRow>
+          <HeaderContent>
+            <Title>{etapa.nome}</Title>
+            {etapa.descricao && <Subtitle>{etapa.descricao}</Subtitle>}
+          </HeaderContent>
 
-          <div className="flex items-center gap-3">
+          <HeaderActions>
             <StatusBadge status={etapa.status} />
 
-            {/* Botões de ação */}
             {!etapa.chavesGeradas && (
               <>
-                <button
-                  onClick={handleEditar}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                  title="Editar etapa"
-                >
-                  ✏️ Editar
-                </button>
+                <ActionButton onClick={handleEditar}>✏️ Editar</ActionButton>
 
                 {etapa.totalInscritos === 0 && (
-                  <button
-                    onClick={handleExcluir}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                    title="Excluir etapa"
-                  >
+                  <ActionButton $variant="danger" onClick={handleExcluir}>
                     🗑️ Excluir
-                  </button>
+                  </ActionButton>
                 )}
               </>
             )}
-          </div>
-        </div>
-      </div>
+          </HeaderActions>
+        </HeaderRow>
+      </Header>
 
-      {/* ==================== NOVO: SISTEMA DE ABAS ==================== */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
+      <TabsContainer>
+        <TabsNav>
+          <TabsList>
+            <Tab
+              $active={abaAtiva === "visao-geral"}
               onClick={() => setAbaAtiva("visao-geral")}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                abaAtiva === "visao-geral"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
             >
-              📊 Visão Geral
-            </button>
+              <span>📊 Visão Geral</span>
+            </Tab>
 
-            <button
+            <Tab
+              $active={abaAtiva === "inscricoes"}
               onClick={() => setAbaAtiva("inscricoes")}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                abaAtiva === "inscricoes"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
             >
-              📝 Inscrições{" "}
+              <span>📝 Inscrições</span>
               {etapa.totalInscritos > 0 && (
-                <span className="ml-1.5 py-0.5 px-2 rounded-full text-xs font-medium bg-blue-100 text-blue-600">
-                  {etapa.totalInscritos}
-                </span>
+                <TabBadge>{etapa.totalInscritos}</TabBadge>
               )}
-            </button>
+            </Tab>
 
             {etapa.chavesGeradas && (
-              <>
-                <button
-                  onClick={() => setAbaAtiva("chaves")}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    abaAtiva === "chaves"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  🎯 Grupos & Partidas
-                </button>
-              </>
+              <Tab
+                $active={abaAtiva === "chaves"}
+                onClick={() => setAbaAtiva("chaves")}
+              >
+                <span>🎯 Grupos & Partidas</span>
+              </Tab>
             )}
-          </nav>
-        </div>
-      </div>
-      {/* =============================================================== */}
-
-      {/* ==================== CONTEÚDO DAS ABAS ==================== */}
-
+          </TabsList>
+        </TabsNav>
+      </TabsContainer>
       {/* ABA: VISÃO GERAL */}
       {abaAtiva === "visao-geral" && (
         <>
           {/* Cards Principais */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Grid $cols={3}>
             {/* Inscrições */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">👥</span>
-                <div>
-                  <p className="text-sm text-gray-500">Inscritos</p>
-                  <p className="text-2xl font-bold text-gray-900">
+            <Card>
+              <CardIconRow>
+                <CardIcon>👥</CardIcon>
+                <CardInfo>
+                  <CardLabel>Inscritos</CardLabel>
+                  <CardValue>
                     {etapa.totalInscritos} / {etapa.maxJogadores}
-                  </p>
-                </div>
-              </div>
+                  </CardValue>
+                </CardInfo>
+              </CardIconRow>
 
-              {/* Barra de Progresso */}
-              <div className="mb-2">
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${
-                      progresso === 100
-                        ? "bg-green-500"
-                        : progresso >= 75
-                        ? "bg-yellow-500"
-                        : "bg-blue-500"
-                    }`}
-                    style={{ width: `${progresso}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {progresso}% preenchido
-                </p>
-              </div>
-            </div>
+              <ProgressBar>
+                <ProgressBarTrack>
+                  <ProgressBarFill $progress={progresso} />
+                </ProgressBarTrack>
+                <ProgressText>{progresso}% preenchido</ProgressText>
+              </ProgressBar>
+            </Card>
 
             {/* Grupos */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">🎯</span>
-                <div>
-                  <p className="text-sm text-gray-500">Grupos</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {etapa.qtdGrupos || 0}
-                  </p>
-                </div>
-              </div>
+            <Card>
+              <CardIconRow>
+                <CardIcon>🎯</CardIcon>
+                <CardInfo>
+                  <CardLabel>Grupos</CardLabel>
+                  <CardValue>{etapa.qtdGrupos || 0}</CardValue>
+                </CardInfo>
+              </CardIconRow>
 
-              <div className="text-sm text-gray-600">
+              <CardContent>
                 <p>• {etapa.jogadoresPorGrupo} duplas por grupo</p>
                 {etapa.chavesGeradas ? (
-                  <p className="text-green-600 font-medium mt-2">
+                  <p style={{ color: "#22c55e", fontWeight: 500 }}>
                     ✓ Chaves geradas
                   </p>
                 ) : (
-                  <p className="text-gray-400 mt-2">Chaves não geradas</p>
+                  <p style={{ color: "#9ca3af" }}>Chaves não geradas</p>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Realização */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">📅</span>
-                <div>
-                  <p className="text-sm text-gray-500">Realização</p>
-                  <p className="text-lg font-bold text-gray-900">
+            <Card>
+              <CardIconRow>
+                <CardIcon>📅</CardIcon>
+                <CardInfo>
+                  <CardLabel>Realização</CardLabel>
+                  <CardValue style={{ fontSize: "1.125rem" }}>
                     {formatarData(etapa.dataRealizacao)}
-                  </p>
-                </div>
-              </div>
+                  </CardValue>
+                </CardInfo>
+              </CardIconRow>
 
               {etapa.local && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>📍</span>
-                  <span>{etapa.local}</span>
-                </div>
+                <CardContent>
+                  <p
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span>📍</span>
+                    <span>{etapa.local}</span>
+                  </p>
+                </CardContent>
               )}
-            </div>
-          </div>
+            </Card>
+          </Grid>
 
           {/* Informações Detalhadas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <Grid $cols={2}>
             {/* Datas */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                📋 Datas Importantes
-              </h2>
+            <Card>
+              <CardTitle>📋 Datas Importantes</CardTitle>
 
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Início das inscrições:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {formatarData(etapa.dataInicio)}
-                  </span>
-                </div>
+              <InfoList>
+                <InfoRow>
+                  <InfoLabel>Início das inscrições:</InfoLabel>
+                  <InfoValue>{formatarData(etapa.dataInicio)}</InfoValue>
+                </InfoRow>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Fim das inscrições:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {formatarData(etapa.dataFim)}
-                  </span>
-                </div>
+                <InfoRow>
+                  <InfoLabel>Fim das inscrições:</InfoLabel>
+                  <InfoValue>{formatarData(etapa.dataFim)}</InfoValue>
+                </InfoRow>
 
-                <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-600">
-                    Data de realização:
-                  </span>
-                  <span className="text-sm font-medium text-blue-600">
+                <InfoRow $highlight>
+                  <InfoLabel>Data de realização:</InfoLabel>
+                  <InfoValue $color="#3b82f6">
                     {formatarData(etapa.dataRealizacao)}
-                  </span>
-                </div>
-              </div>
-            </div>
+                  </InfoValue>
+                </InfoRow>
+              </InfoList>
+            </Card>
 
             {/* Estatísticas */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                📊 Estatísticas
-              </h2>
+            <Card>
+              <CardTitle>📊 Estatísticas</CardTitle>
 
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Nível:</span>
-                  <span className="text-sm font-bold text-purple-600">
+              <InfoList>
+                <InfoRow>
+                  <InfoLabel>Nível:</InfoLabel>
+                  <InfoValue $color="#a855f7">
                     {etapa.nivel === "iniciante" && "🌱 Iniciante"}
                     {etapa.nivel === "intermediario" && "⚡ Intermediário"}
                     {etapa.nivel === "avancado" && "🔥 Avançado"}
                     {etapa.nivel === "profissional" && "⭐ Profissional"}
-                  </span>
-                </div>
+                  </InfoValue>
+                </InfoRow>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Total de duplas:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {Math.floor(etapa.totalInscritos / 2)}
-                  </span>
-                </div>
+                <InfoRow>
+                  <InfoLabel>Total de duplas:</InfoLabel>
+                  <InfoValue>{Math.floor(etapa.totalInscritos / 2)}</InfoValue>
+                </InfoRow>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Vagas disponíveis:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
+                <InfoRow>
+                  <InfoLabel>Vagas disponíveis:</InfoLabel>
+                  <InfoValue>
                     {etapa.maxJogadores - etapa.totalInscritos}
-                  </span>
-                </div>
+                  </InfoValue>
+                </InfoRow>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Taxa de preenchimento:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {progresso}%
-                  </span>
-                </div>
+                <InfoRow>
+                  <InfoLabel>Taxa de preenchimento:</InfoLabel>
+                  <InfoValue>{progresso}%</InfoValue>
+                </InfoRow>
 
                 {etapa.chavesGeradas && etapa.dataGeracaoChaves && (
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                    <span className="text-sm text-gray-600">
-                      Chaves geradas em:
-                    </span>
-                    <span className="text-sm font-medium text-green-600">
+                  <InfoRow $highlight>
+                    <InfoLabel>Chaves geradas em:</InfoLabel>
+                    <InfoValue $color="#22c55e">
                       {formatarData(etapa.dataGeracaoChaves)}
-                    </span>
-                  </div>
+                    </InfoValue>
+                  </InfoRow>
                 )}
-              </div>
-            </div>
-          </div>
-
+              </InfoList>
+            </Card>
+          </Grid>
           {/* Ações */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              ⚡ Ações
-            </h2>
+          <ActionsSection>
+            <CardTitle>⚡ Ações</CardTitle>
 
-            <div className="flex flex-wrap gap-3">
+            <ActionsGrid>
               {inscricoesAbertas && (
-                <button
-                  onClick={handleInscreverJogador}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
+                <Button $variant="blue" onClick={handleInscreverJogador}>
                   <span>➕</span>
                   <span>Inscrever Jogador</span>
-                </button>
+                </Button>
               )}
 
               {podeEncerrarInscricoes && (
-                <button
-                  onClick={handleEncerrarInscricoes}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
-                >
+                <Button $variant="orange" onClick={handleEncerrarInscricoes}>
                   <span>📝</span>
                   <span>Encerrar Inscrições</span>
-                </button>
+                </Button>
               )}
 
               {podeGerarChaves && (
-                <button
-                  onClick={handleGerarChaves}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                >
+                <Button $variant="green" onClick={handleGerarChaves}>
                   <span>🎲</span>
                   <span>Gerar Chaves</span>
-                </button>
+                </Button>
               )}
 
               {podeReabrirInscricoes && (
-                <button
-                  onClick={handleReabrirInscricoes}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
+                <Button $variant="blue" onClick={handleReabrirInscricoes}>
                   <span>🔓</span>
                   <span>Reabrir Inscrições</span>
-                </button>
+                </Button>
               )}
 
               {etapa.chavesGeradas && (
                 <>
-                  <button
+                  <Button
+                    $variant="purple"
                     onClick={() => setAbaAtiva("chaves")}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
                   >
                     <span>👁️</span>
                     <span>Ver Chaves</span>
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    $variant="red"
                     onClick={() => setModalExcluirAberto(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
                   >
                     <span>🗑️</span>
                     <span>Excluir Chaves</span>
-                  </button>
+                  </Button>
                 </>
               )}
 
-              <button
+              <Button
+                $variant="gray"
                 onClick={() => navigate(`/admin/etapas/${etapa.id}/editar`)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
               >
                 <span>✏️</span>
                 <span>Editar Etapa</span>
-              </button>
+              </Button>
 
               {!etapa.chavesGeradas && etapa.totalInscritos === 0 && (
-                <button
-                  onClick={handleExcluir}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                >
+                <Button $variant="red" onClick={handleExcluir}>
                   <span>🗑️</span>
                   <span>Excluir Etapa</span>
-                </button>
+                </Button>
               )}
-            </div>
+            </ActionsGrid>
 
-            {/* Mensagens de Aviso */}
+            {/* Alertas */}
             {etapa.totalInscritos > 0 && !etapa.chavesGeradas && (
-              <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <p className="text-sm text-orange-800">
+              <Alert $variant="orange">
+                <p>
                   ⚠️ <strong>Atenção:</strong> Para excluir esta etapa, você
                   precisa cancelar todas as {etapa.totalInscritos}{" "}
                   inscrição(ões) primeiro.
                 </p>
-              </div>
+              </Alert>
             )}
 
             {etapa.chavesGeradas && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800">
+              <Alert $variant="red">
+                <p>
                   🔒 <strong>Bloqueado:</strong> Não é possível excluir etapa
                   após geração de chaves.
                 </p>
-              </div>
+              </Alert>
             )}
 
             {inscricoesAbertas && etapa.totalInscritos < 4 && (
-              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
+              <Alert $variant="blue">
+                <p>
                   ℹ️ Você precisa de pelo menos 4 jogadores inscritos (número
                   par) para encerrar as inscrições.
                 </p>
-              </div>
+              </Alert>
             )}
 
             {inscricoesAbertas &&
               etapa.totalInscritos >= 4 &&
               etapa.totalInscritos % 2 !== 0 && (
-                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-800">
+                <Alert $variant="yellow">
+                  <p>
                     ⚠️ <strong>Atenção:</strong> Você tem {etapa.totalInscritos}{" "}
                     jogadores (número ímpar). É necessário um número PAR de
                     jogadores para formar duplas.
                   </p>
-                </div>
+                </Alert>
               )}
 
             {inscricoesAbertas && numeroValido && !vagasCompletas && (
-              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 mb-2">
+              <Alert $variant="yellow">
+                <p>
                   ⚠️ <strong>Vagas incompletas:</strong> Esta etapa está
                   configurada para {etapa.maxJogadores} jogadores, mas possui
                   apenas {etapa.totalInscritos} inscrito(s).
                 </p>
-                <p className="text-sm text-yellow-800">
+                <p>
                   <strong>Opções:</strong>
                 </p>
-                <ul className="text-sm text-yellow-800 list-disc list-inside mt-1 space-y-1">
+                <ul>
                   <li>
                     Aguardar completar as{" "}
                     {etapa.maxJogadores - etapa.totalInscritos} vaga(s)
@@ -780,36 +1236,32 @@ export const DetalhesEtapa: React.FC = () => {
                     {etapa.totalInscritos} jogadores
                   </li>
                 </ul>
-              </div>
+              </Alert>
             )}
 
-            {!inscricoesAbertas &&
-              etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS &&
-              !etapa.chavesGeradas &&
-              vagasCompletas && (
-                <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-800">
-                    ✅ <strong>Pronto!</strong> Inscrições encerradas com{" "}
-                    {etapa.totalInscritos} jogadores (vagas completas). Agora
-                    você pode gerar as chaves!
-                  </p>
-                </div>
-              )}
+            {inscricoesEncerradas && !etapa.chavesGeradas && vagasCompletas && (
+              <Alert $variant="green">
+                <p>
+                  ✅ <strong>Pronto!</strong> Inscrições encerradas com{" "}
+                  {etapa.totalInscritos} jogadores (vagas completas). Agora você
+                  pode gerar as chaves!
+                </p>
+              </Alert>
+            )}
 
-            {!inscricoesAbertas &&
-              etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS &&
+            {inscricoesEncerradas &&
               !etapa.chavesGeradas &&
               !vagasCompletas && (
-                <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-800 mb-2">
+                <Alert $variant="orange">
+                  <p>
                     ⚠️ <strong>Não é possível gerar chaves:</strong> Esta etapa
                     está configurada para {etapa.maxJogadores} jogadores, mas
                     possui apenas {etapa.totalInscritos} inscrito(s).
                   </p>
-                  <p className="text-sm text-orange-800">
+                  <p>
                     <strong>Soluções:</strong>
                   </p>
-                  <ul className="text-sm text-orange-800 list-disc list-inside mt-1 space-y-1">
+                  <ul>
                     <li>
                       Clique em "🔓 Reabrir Inscrições" e adicione mais{" "}
                       {etapa.maxJogadores - etapa.totalInscritos} jogador(es),
@@ -820,106 +1272,95 @@ export const DetalhesEtapa: React.FC = () => {
                       {etapa.totalInscritos}
                     </li>
                   </ul>
-                </div>
+                </Alert>
               )}
-          </div>
+          </ActionsSection>
         </>
       )}
-
       {/* ABA: INSCRIÇÕES */}
       {abaAtiva === "inscricoes" && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            📝 Jogadores Inscritos ({etapa.totalInscritos})
-          </h2>
+        <Card>
+          <CardTitle>📝 Jogadores Inscritos ({etapa.totalInscritos})</CardTitle>
 
           {inscricoes.length === 0 ? (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-gray-600">
+            <InscricoesEmpty>
+              <p>
                 {etapa.totalInscritos === 0
                   ? "Nenhum jogador inscrito ainda."
                   : "Carregando inscrições..."}
               </p>
               {etapa.totalInscritos === 0 && inscricoesAbertas && (
-                <button
-                  onClick={handleInscreverJogador}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
+                <Button $variant="blue" onClick={handleInscreverJogador}>
                   ➕ Inscrever Primeiro Jogador
-                </button>
+                </Button>
               )}
-            </div>
+            </InscricoesEmpty>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <InscricoesGrid>
               {inscricoes.map((inscricao) => (
-                <div
-                  key={inscricao.id}
-                  className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {inscricao.jogadorNome}
-                    </p>
-                    <p className="text-sm text-gray-500">
+                <InscricaoCard key={inscricao.id}>
+                  <InscricaoInfo>
+                    <InscricaoNome>{inscricao.jogadorNome}</InscricaoNome>
+                    <InscricaoNivel>
                       {inscricao.jogadorNivel === "iniciante" && "🌱 Iniciante"}
                       {inscricao.jogadorNivel === "intermediario" &&
                         "⚡ Intermediário"}
                       {inscricao.jogadorNivel === "avancado" && "🔥 Avançado"}
                       {inscricao.jogadorNivel === "profissional" &&
                         "⭐ Profissional"}
-                    </p>
-                  </div>
+                    </InscricaoNivel>
+                  </InscricaoInfo>
 
                   {!etapa.chavesGeradas && (
-                    <button
+                    <CancelButton
                       onClick={() =>
                         handleCancelarInscricao(
                           inscricao.id,
                           inscricao.jogadorNome
                         )
                       }
-                      className="ml-3 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                       title="Cancelar inscrição"
                     >
                       ✕
-                    </button>
+                    </CancelButton>
                   )}
-                </div>
+                </InscricaoCard>
               ))}
-            </div>
+            </InscricoesGrid>
           )}
 
           {etapa.chavesGeradas && (
-            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-sm text-yellow-800">
+            <Alert $variant="yellow">
+              <p>
                 ⚠️ <strong>Atenção:</strong> Não é possível cancelar inscrições
                 após a geração de chaves
               </p>
-            </div>
+            </Alert>
           )}
 
           {inscricoesAbertas && (
-            <div className="mt-4">
-              <button
+            <div style={{ marginTop: "1rem" }}>
+              <Button
+                $variant="blue"
+                $fullWidth
                 onClick={handleInscreverJogador}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
               >
                 <span>➕</span>
                 <span>Inscrever Novo Jogador</span>
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
-      {/* ABA: CHAVES (Grupos e Partidas) */}
+      {/* ABA: CHAVES */}
       {abaAtiva === "chaves" && etapa.chavesGeradas && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <Card>
           <ChavesEtapa etapaId={etapa.id} arenaId={etapa.arenaId} />
-        </div>
+        </Card>
       )}
 
-      {/* Modal de Inscrição */}
+      {/* Modais */}
       {modalInscricaoAberto && etapa && (
         <ModalInscricao
           etapaId={etapa.id}
@@ -932,7 +1373,6 @@ export const DetalhesEtapa: React.FC = () => {
         />
       )}
 
-      {/* Modal de Confirmação de Exclusão de Chaves */}
       <ConfirmacaoPerigosa
         isOpen={modalExcluirAberto}
         onClose={() => setModalExcluirAberto(false)}
@@ -943,6 +1383,6 @@ export const DetalhesEtapa: React.FC = () => {
         textoBotao="Sim, excluir tudo"
         loading={excluindo}
       />
-    </div>
+    </Container>
   );
 };

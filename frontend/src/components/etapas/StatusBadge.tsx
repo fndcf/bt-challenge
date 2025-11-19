@@ -1,4 +1,5 @@
 import React from "react";
+import styled from "styled-components";
 import { StatusEtapa } from "../../types/etapa";
 
 interface StatusBadgeProps {
@@ -6,9 +7,73 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-/**
- * Badge de status da etapa
- */
+// ============== STYLED COMPONENTS ==============
+
+const Badge = styled.span<{ $status: StatusEtapa }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid;
+
+  ${(props) => {
+    switch (props.$status) {
+      case StatusEtapa.INSCRICOES_ABERTAS:
+        return `
+          background: #dcfce7;
+          color: #166534;
+          border-color: #bbf7d0;
+        `;
+      case StatusEtapa.INSCRICOES_ENCERRADAS:
+        return `
+          background: #fef3c7;
+          color: #92400e;
+          border-color: #fde68a;
+        `;
+      case StatusEtapa.CHAVES_GERADAS:
+        return `
+          background: #dbeafe;
+          color: #1e40af;
+          border-color: #bfdbfe;
+        `;
+      case StatusEtapa.EM_ANDAMENTO:
+        return `
+          background: #f3e8ff;
+          color: #6b21a8;
+          border-color: #e9d5ff;
+        `;
+      case StatusEtapa.FINALIZADA:
+        return `
+          background: #f3f4f6;
+          color: #374151;
+          border-color: #e5e7eb;
+        `;
+      case StatusEtapa.CANCELADA:
+        return `
+          background: #fee2e2;
+          color: #991b1b;
+          border-color: #fecaca;
+        `;
+      default:
+        return `
+          background: #f3f4f6;
+          color: #374151;
+          border-color: #e5e7eb;
+        `;
+    }
+  }}
+`;
+
+const Icon = styled.span`
+  font-size: 0.875rem;
+  line-height: 1;
+`;
+
+// ============== COMPONENTE ==============
+
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   className = "",
@@ -18,43 +83,36 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       case StatusEtapa.INSCRICOES_ABERTAS:
         return {
           label: "Inscrições Abertas",
-          className: "bg-green-100 text-green-800 border-green-200",
           icon: "📝",
         };
       case StatusEtapa.INSCRICOES_ENCERRADAS:
         return {
           label: "Inscrições Encerradas",
-          className: "bg-yellow-100 text-yellow-800 border-yellow-200",
           icon: "🔒",
         };
       case StatusEtapa.CHAVES_GERADAS:
         return {
           label: "Chaves Geradas",
-          className: "bg-blue-100 text-blue-800 border-blue-200",
           icon: "🎯",
         };
       case StatusEtapa.EM_ANDAMENTO:
         return {
           label: "Em Andamento",
-          className: "bg-purple-100 text-purple-800 border-purple-200",
           icon: "🎾",
         };
       case StatusEtapa.FINALIZADA:
         return {
           label: "Finalizada",
-          className: "bg-gray-100 text-gray-800 border-gray-200",
           icon: "🏆",
         };
       case StatusEtapa.CANCELADA:
         return {
           label: "Cancelada",
-          className: "bg-red-100 text-red-800 border-red-200",
           icon: "❌",
         };
       default:
         return {
           label: status,
-          className: "bg-gray-100 text-gray-800 border-gray-200",
           icon: "❓",
         };
     }
@@ -63,11 +121,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   const config = getStatusConfig();
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${config.className} ${className}`}
-    >
-      <span>{config.icon}</span>
+    <Badge $status={status} className={className}>
+      <Icon>{config.icon}</Icon>
       {config.label}
-    </span>
+    </Badge>
   );
 };
+
+export default StatusBadge;

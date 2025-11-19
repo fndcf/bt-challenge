@@ -7,6 +7,7 @@ import {
   ConfrontoEliminatorio,
   TipoFase,
 } from "../types/chave";
+import { handleError } from "../utils/errorHandler";
 
 /**
  * Service para gerenciar chaves (duplas, grupos, partidas)
@@ -26,9 +27,9 @@ class ChaveService {
       );
       console.log("✅ Chaves geradas:", response);
       return response;
-    } catch (error: any) {
-      console.error("❌ Erro ao gerar chaves:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -44,9 +45,9 @@ class ChaveService {
       );
       console.log(`✅ Duplas carregadas:`, response?.length || 0);
       return response;
-    } catch (error: any) {
-      console.error("Erro ao buscar duplas:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -62,9 +63,9 @@ class ChaveService {
       );
       console.log(`✅ Grupos carregados:`, response?.length || 0);
       return response;
-    } catch (error: any) {
-      console.error("Erro ao buscar grupos:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -77,9 +78,9 @@ class ChaveService {
         `${this.baseURL}/${etapaId}/partidas`
       );
       return response;
-    } catch (error: any) {
-      console.error("Erro ao buscar partidas:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -95,9 +96,9 @@ class ChaveService {
         `${this.baseURL}/${etapaId}/grupos/${grupoId}/duplas`
       );
       return response;
-    } catch (error: any) {
-      console.error("Erro ao buscar duplas do grupo:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -109,9 +110,9 @@ class ChaveService {
       console.log(`🗑️ Excluindo chaves da etapa ${etapaId}...`);
       await apiClient.delete(`${this.baseURL}/${etapaId}/chaves`);
       console.log("✅ Chaves excluídas com sucesso!");
-    } catch (error: any) {
-      console.error("❌ Erro ao excluir chaves:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -128,9 +129,9 @@ class ChaveService {
         classificadosPorGrupo,
       });
       console.log("✅ Fase eliminatória gerada!");
-    } catch (error: any) {
-      console.error("❌ Erro ao gerar fase eliminatória:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -147,9 +148,9 @@ class ChaveService {
         `${this.baseURL}/${etapaId}/confrontos-eliminatorios${params}`
       );
       return response;
-    } catch (error: any) {
-      console.error("Erro ao buscar confrontos eliminatórios:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -167,9 +168,9 @@ class ChaveService {
         { placar }
       );
       console.log("✅ Resultado registrado!");
-    } catch (error: any) {
-      console.error("❌ Erro ao registrar resultado:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -183,9 +184,9 @@ class ChaveService {
         `${this.baseURL}/${etapaId}/cancelar-eliminatoria`
       );
       console.log("✅ Fase eliminatória cancelada!");
-    } catch (error: any) {
-      console.error("❌ Erro ao cancelar fase eliminatória:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 }

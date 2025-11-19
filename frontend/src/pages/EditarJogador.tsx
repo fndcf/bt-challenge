@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import jogadorService from "../services/jogadorService";
 import {
@@ -8,9 +9,428 @@ import {
   AtualizarJogadorDTO,
   Jogador,
 } from "../types/jogador";
-import LoadingSpinner from "../components/LoadingSpinner";
-import Alert from "../components/Alert";
-import "./EditarJogador.css";
+
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 2rem;
+  }
+`;
+
+// ============== HEADER ==============
+
+const Header = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+  }
+`;
+
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #1d4ed8;
+  }
+`;
+
+const HeaderInfo = styled.div`
+  flex: 1;
+`;
+
+const Title = styled.h1`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.875rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+// ============== ALERT ==============
+
+const Alert = styled.div<{ $type: "success" | "error" }>`
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  ${(props) =>
+    props.$type === "success"
+      ? `
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  `
+      : `
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  `}
+`;
+
+const AlertContent = styled.div`
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const AlertClose = styled.button`
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+// ============== FORM ==============
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const FormCard = styled.div`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+`;
+
+const CardTitle = styled.h2`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 1.5rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const FormGroup = styled.div<{ $fullWidth?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  ${(props) =>
+    props.$fullWidth &&
+    `
+    @media (min-width: 640px) {
+      grid-column: 1 / -1;
+    }
+  `}
+`;
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const Required = styled.span`
+  color: #ef4444;
+  margin-left: 0.25rem;
+`;
+
+const Input = styled.input<{ $hasError?: boolean }>`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#d1d5db")};
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: white;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => (props.$hasError ? "#ef4444" : "#2563eb")};
+    box-shadow: 0 0 0 3px
+      ${(props) =>
+        props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(37, 99, 235, 0.1)"};
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  @media (min-width: 768px) {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+`;
+
+const Select = styled.select<{ $hasError?: boolean }>`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#d1d5db")};
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => (props.$hasError ? "#ef4444" : "#2563eb")};
+    box-shadow: 0 0 0 3px
+      ${(props) =>
+        props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(37, 99, 235, 0.1)"};
+  }
+
+  @media (min-width: 768px) {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+`;
+
+const Textarea = styled.textarea<{ $hasError?: boolean }>`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#d1d5db")};
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: white;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => (props.$hasError ? "#ef4444" : "#2563eb")};
+    box-shadow: 0 0 0 3px
+      ${(props) =>
+        props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(37, 99, 235, 0.1)"};
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  @media (min-width: 768px) {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+`;
+
+const ErrorMessage = styled.span`
+  font-size: 0.8125rem;
+  color: #ef4444;
+  font-weight: 500;
+`;
+
+const FormHint = styled.small`
+  font-size: 0.8125rem;
+  color: #6b7280;
+`;
+
+// ============== ESTATÍSTICAS ==============
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+`;
+
+const StatIcon = styled.span`
+  font-size: 2rem;
+`;
+
+const StatInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const StatValue = styled.span`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+// ============== ACTIONS ==============
+
+const FormActions = styled.div`
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.75rem;
+  padding-top: 1rem;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "cancel" }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  ${(props) =>
+    props.$variant === "cancel"
+      ? `
+    background: #f3f4f6;
+    color: #374151;
+    
+    &:hover:not(:disabled) {
+      background: #e5e7eb;
+    }
+  `
+      : `
+    background: #2563eb;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+  `}
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (min-width: 640px) {
+    width: auto;
+    min-width: 150px;
+  }
+`;
+
+// ============== LOADING ==============
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  gap: 1rem;
+`;
+
+const Spinner = styled.div<{ $size?: "small" | "large" }>`
+  width: ${(props) => (props.$size === "small" ? "1.25rem" : "3rem")};
+  height: ${(props) => (props.$size === "small" ? "1.25rem" : "3rem")};
+  border: ${(props) => (props.$size === "small" ? "2px" : "4px")} solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingMessage = styled.p`
+  color: #6b7280;
+  font-size: 0.9375rem;
+`;
+
+// ============== COMPONENTE ==============
 
 const EditarJogador: React.FC = () => {
   useDocumentTitle("Editar Jogador");
@@ -254,141 +674,135 @@ const EditarJogador: React.FC = () => {
   // Loading inicial
   if (loading) {
     return (
-      <div className="editar-jogador-page">
-        <div className="loading-container">
-          <LoadingSpinner size="large" message="Carregando jogador..." />
-        </div>
-      </div>
+      <Container>
+        <LoadingContainer>
+          <Spinner $size="large" />
+          <LoadingMessage>Carregando jogador...</LoadingMessage>
+        </LoadingContainer>
+      </Container>
     );
   }
 
   // Jogador não encontrado
   if (!jogador) {
     return (
-      <div className="editar-jogador-page">
-        <Alert
-          type="error"
-          message="Jogador não encontrado"
-          onClose={() => navigate("/admin/jogadores")}
-        />
-      </div>
+      <Container>
+        <Alert $type="error">
+          <AlertContent>Jogador não encontrado</AlertContent>
+          <AlertClose onClick={() => navigate("/admin/jogadores")}>
+            ×
+          </AlertClose>
+        </Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="editar-jogador-page">
+    <Container>
       {/* Header */}
-      <div className="page-header">
-        <div className="header-content">
-          <button className="btn-back" onClick={handleCancel}>
-            ← Voltar
-          </button>
-          <div>
-            <h1>✏️ Editar Jogador</h1>
-            <p>Atualize as informações de {jogador.nome}</p>
-          </div>
-        </div>
-      </div>
+      <Header>
+        <HeaderContent>
+          <BackButton onClick={handleCancel}>← Voltar</BackButton>
+          <HeaderInfo>
+            <Title>✏️ Editar Jogador</Title>
+            <Subtitle>Atualize as informações de {jogador.nome}</Subtitle>
+          </HeaderInfo>
+        </HeaderContent>
+      </Header>
 
       {/* Mensagens */}
       {successMessage && (
-        <Alert
-          type="success"
-          message={successMessage}
-          onClose={() => setSuccessMessage("")}
-        />
+        <Alert $type="success">
+          <AlertContent>{successMessage}</AlertContent>
+          <AlertClose onClick={() => setSuccessMessage("")}>×</AlertClose>
+        </Alert>
       )}
 
       {errorMessage && (
-        <Alert
-          type="error"
-          message={errorMessage}
-          onClose={() => setErrorMessage("")}
-        />
+        <Alert $type="error">
+          <AlertContent>{errorMessage}</AlertContent>
+          <AlertClose onClick={() => setErrorMessage("")}>×</AlertClose>
+        </Alert>
       )}
 
       {/* Formulário */}
-      <form className="jogador-form" onSubmit={handleSubmit}>
+      <Form onSubmit={handleSubmit}>
         {/* Card: Informações Básicas */}
-        <div className="form-card">
-          <h2 className="card-title">📋 Informações Básicas</h2>
+        <FormCard>
+          <CardTitle>📋 Informações Básicas</CardTitle>
 
-          <div className="form-grid">
+          <FormGrid>
             {/* Nome */}
-            <div className="form-group full-width">
-              <label htmlFor="nome">
-                Nome Completo <span className="required">*</span>
-              </label>
-              <input
+            <FormGroup $fullWidth>
+              <Label htmlFor="nome">
+                Nome Completo <Required>*</Required>
+              </Label>
+              <Input
                 type="text"
                 id="nome"
                 name="nome"
                 value={formData.nome}
                 onChange={handleChange}
                 placeholder="Ex: João Silva"
-                className={errors.nome ? "error" : ""}
+                $hasError={!!errors.nome}
                 required
               />
-              {errors.nome && (
-                <span className="error-message">{errors.nome}</span>
-              )}
-            </div>
+              {errors.nome && <ErrorMessage>{errors.nome}</ErrorMessage>}
+            </FormGroup>
 
             {/* Email */}
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
-              <input
+            <FormGroup>
+              <Label htmlFor="email">Email</Label>
+              <Input
                 type="email"
                 id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="joao@email.com"
-                className={errors.email ? "error" : ""}
+                $hasError={!!errors.email}
               />
-              {errors.email && (
-                <span className="error-message">{errors.email}</span>
-              )}
-            </div>
+              {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+            </FormGroup>
 
             {/* Telefone */}
-            <div className="form-group">
-              <label htmlFor="telefone">Telefone</label>
-              <input
+            <FormGroup>
+              <Label htmlFor="telefone">Telefone</Label>
+              <Input
                 type="tel"
                 id="telefone"
                 name="telefone"
                 value={formData.telefone}
                 onChange={handleChange}
                 placeholder="(00) 00000-0000"
-                className={errors.telefone ? "error" : ""}
+                $hasError={!!errors.telefone}
                 maxLength={15}
               />
               {errors.telefone && (
-                <span className="error-message">{errors.telefone}</span>
+                <ErrorMessage>{errors.telefone}</ErrorMessage>
               )}
-            </div>
+            </FormGroup>
 
             {/* Data de Nascimento */}
-            <div className="form-group">
-              <label htmlFor="dataNascimento">Data de Nascimento</label>
-              <input
+            <FormGroup>
+              <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+              <Input
                 type="date"
                 id="dataNascimento"
                 name="dataNascimento"
                 value={formData.dataNascimento}
                 onChange={handleChange}
-                className={errors.dataNascimento ? "error" : ""}
+                $hasError={!!errors.dataNascimento}
               />
               {errors.dataNascimento && (
-                <span className="error-message">{errors.dataNascimento}</span>
+                <ErrorMessage>{errors.dataNascimento}</ErrorMessage>
               )}
-            </div>
+            </FormGroup>
 
             {/* Gênero */}
-            <div className="form-group">
-              <label htmlFor="genero">Gênero</label>
-              <select
+            <FormGroup>
+              <Label htmlFor="genero">Gênero</Label>
+              <Select
                 id="genero"
                 name="genero"
                 value={formData.genero || ""}
@@ -398,22 +812,22 @@ const EditarJogador: React.FC = () => {
                 <option value="masculino">Masculino</option>
                 <option value="feminino">Feminino</option>
                 <option value="outro">Outro</option>
-              </select>
-            </div>
-          </div>
-        </div>
+              </Select>
+            </FormGroup>
+          </FormGrid>
+        </FormCard>
 
         {/* Card: Nível e Status */}
-        <div className="form-card">
-          <h2 className="card-title">🎯 Nível e Status</h2>
+        <FormCard>
+          <CardTitle>🎯 Nível e Status</CardTitle>
 
-          <div className="form-grid">
+          <FormGrid>
             {/* Nível */}
-            <div className="form-group">
-              <label htmlFor="nivel">
-                Nível <span className="required">*</span>
-              </label>
-              <select
+            <FormGroup>
+              <Label htmlFor="nivel">
+                Nível <Required>*</Required>
+              </Label>
+              <Select
                 id="nivel"
                 name="nivel"
                 value={formData.nivel}
@@ -428,18 +842,16 @@ const EditarJogador: React.FC = () => {
                 <option value={NivelJogador.PROFISSIONAL}>
                   ⭐ Profissional
                 </option>
-              </select>
-              <small className="form-hint">
-                Nível de habilidade do jogador
-              </small>
-            </div>
+              </Select>
+              <FormHint>Nível de habilidade do jogador</FormHint>
+            </FormGroup>
 
             {/* Status */}
-            <div className="form-group">
-              <label htmlFor="status">
-                Status <span className="required">*</span>
-              </label>
-              <select
+            <FormGroup>
+              <Label htmlFor="status">
+                Status <Required>*</Required>
+              </Label>
+              <Select
                 id="status"
                 name="status"
                 value={formData.status}
@@ -449,49 +861,49 @@ const EditarJogador: React.FC = () => {
                 <option value={StatusJogador.ATIVO}>✅ Ativo</option>
                 <option value={StatusJogador.INATIVO}>⏸️ Inativo</option>
                 <option value={StatusJogador.SUSPENSO}>🚫 Suspenso</option>
-              </select>
-              <small className="form-hint">Status atual do jogador</small>
-            </div>
-          </div>
-        </div>
+              </Select>
+              <FormHint>Status atual do jogador</FormHint>
+            </FormGroup>
+          </FormGrid>
+        </FormCard>
 
         {/* Card: Estatísticas (read-only) */}
         {(jogador.vitorias || jogador.derrotas || jogador.pontos) && (
-          <div className="form-card stats-card">
-            <h2 className="card-title">📊 Estatísticas</h2>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-icon">🏆</span>
-                <div className="stat-info">
-                  <span className="stat-value">{jogador.vitorias || 0}</span>
-                  <span className="stat-label">Vitórias</span>
-                </div>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">❌</span>
-                <div className="stat-info">
-                  <span className="stat-value">{jogador.derrotas || 0}</span>
-                  <span className="stat-label">Derrotas</span>
-                </div>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">⭐</span>
-                <div className="stat-info">
-                  <span className="stat-value">{jogador.pontos || 0}</span>
-                  <span className="stat-label">Pontos</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <FormCard>
+            <CardTitle>📊 Estatísticas</CardTitle>
+            <StatsGrid>
+              <StatItem>
+                <StatIcon>🏆</StatIcon>
+                <StatInfo>
+                  <StatValue>{jogador.vitorias || 0}</StatValue>
+                  <StatLabel>Vitórias</StatLabel>
+                </StatInfo>
+              </StatItem>
+              <StatItem>
+                <StatIcon>❌</StatIcon>
+                <StatInfo>
+                  <StatValue>{jogador.derrotas || 0}</StatValue>
+                  <StatLabel>Derrotas</StatLabel>
+                </StatInfo>
+              </StatItem>
+              <StatItem>
+                <StatIcon>⭐</StatIcon>
+                <StatInfo>
+                  <StatValue>{jogador.pontos || 0}</StatValue>
+                  <StatLabel>Pontos</StatLabel>
+                </StatInfo>
+              </StatItem>
+            </StatsGrid>
+          </FormCard>
         )}
 
         {/* Card: Observações */}
-        <div className="form-card">
-          <h2 className="card-title">📝 Observações</h2>
+        <FormCard>
+          <CardTitle>📝 Observações</CardTitle>
 
-          <div className="form-group full-width">
-            <label htmlFor="observacoes">Observações (Opcional)</label>
-            <textarea
+          <FormGroup $fullWidth>
+            <Label htmlFor="observacoes">Observações (Opcional)</Label>
+            <Textarea
               id="observacoes"
               name="observacoes"
               value={formData.observacoes}
@@ -500,30 +912,30 @@ const EditarJogador: React.FC = () => {
               rows={4}
               maxLength={500}
             />
-            <small className="form-hint">
+            <FormHint>
               {formData.observacoes?.length || 0}/500 caracteres
-            </small>
-          </div>
-        </div>
+            </FormHint>
+          </FormGroup>
+        </FormCard>
 
         {/* Botões de Ação */}
-        <div className="form-actions">
-          <button type="button" className="btn-cancel" onClick={handleCancel}>
+        <FormActions>
+          <Button type="button" $variant="cancel" onClick={handleCancel}>
             Cancelar
-          </button>
-          <button type="submit" className="btn-submit" disabled={saving}>
+          </Button>
+          <Button type="submit" disabled={saving}>
             {saving ? (
               <>
-                <LoadingSpinner size="small" />
+                <Spinner $size="small" />
                 Salvando...
               </>
             ) : (
               <>✅ Salvar Alterações</>
             )}
-          </button>
-        </div>
-      </form>
-    </div>
+          </Button>
+        </FormActions>
+      </Form>
+    </Container>
   );
 };
 

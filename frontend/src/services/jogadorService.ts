@@ -1,4 +1,9 @@
-import axios from "axios";
+/**
+ * Jogador Service (PADRONIZADO)
+ * Service para gerenciar jogadores usando apiClient
+ */
+
+import { apiClient } from "./apiClient";
 import {
   Jogador,
   CriarJogadorDTO,
@@ -6,36 +11,26 @@ import {
   FiltrosJogador,
   ListagemJogadores,
 } from "../types/jogador";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { handleError } from "../utils/errorHandler";
 
 /**
  * Service para comunicação com API de Jogadores
  */
 class JogadorService {
-  private getAuthHeader() {
-    const token = localStorage.getItem("authToken");
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-  }
+  private readonly basePath = "/jogadores";
 
   /**
    * Criar jogador
    */
   async criar(data: CriarJogadorDTO): Promise<Jogador> {
     try {
-      const response = await axios.post(
-        `${API_URL}/jogadores`,
-        data,
-        this.getAuthHeader()
-      );
-      return response.data.data;
-    } catch (error: any) {
-      console.error("Erro ao criar jogador:", error);
-      throw new Error(error.response?.data?.error || "Erro ao criar jogador");
+      console.log("📝 Criando jogador...");
+      const jogador = await apiClient.post<Jogador>(this.basePath, data);
+      console.log("✅ Jogador criado:", jogador.id);
+      return jogador;
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.criar");
+      throw new Error(appError.message);
     }
   }
 
@@ -55,26 +50,32 @@ class JogadorService {
       if (filtros?.limite) params.append("limite", filtros.limite.toString());
       if (filtros?.offset) params.append("offset", filtros.offset.toString());
 
-      // Cache-busting: adiciona timestamp para evitar cache
-      params.append("_t", Date.now().toString());
+      const queryString = params.toString();
+      const url = queryString
+        ? `${this.basePath}?${queryString}`
+        : this.basePath;
 
-      const response = await axios.get(
-        `${API_URL}/jogadores?${params.toString()}`,
-        {
-          ...this.getAuthHeader(),
-          headers: {
-            ...this.getAuthHeader().headers,
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        }
+      const response = await apiClient.get<ListagemJogadores>(url);
+      console.log(
+        `✅ Jogadores listados: ${response.jogadores.length} de ${response.total}`
       );
-      return response.data.data;
-    } catch (error: any) {
-      console.error("Erro ao listar jogadores:", error);
-      throw new Error(
-        error.response?.data?.error || "Erro ao listar jogadores"
-      );
+      return response;
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.listar");
+      console.warn("⚠️ Erro ao listar jogadores, retornando lista vazia");
+
+      // Retornar lista vazia em caso de erro (exceto erro de auth)
+      if (appError.status === 401) {
+        throw new Error(appError.message);
+      }
+
+      return {
+        jogadores: [],
+        total: 0,
+        limite: filtros?.limite || 20,
+        offset: filtros?.offset || 0,
+        temMais: false,
+      };
     }
   }
 
@@ -83,14 +84,13 @@ class JogadorService {
    */
   async buscarPorId(id: string): Promise<Jogador> {
     try {
-      const response = await axios.get(
-        `${API_URL}/jogadores/${id}`,
-        this.getAuthHeader()
-      );
-      return response.data.data;
-    } catch (error: any) {
-      console.error("Erro ao buscar jogador:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar jogador");
+      console.log(`🔍 Buscando jogador ${id}...`);
+      const jogador = await apiClient.get<Jogador>(`${this.basePath}/${id}`);
+      console.log("✅ Jogador encontrado:", jogador.nome);
+      return jogador;
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.buscarPorId");
+      throw new Error(appError.message);
     }
   }
 
@@ -99,17 +99,16 @@ class JogadorService {
    */
   async atualizar(id: string, data: AtualizarJogadorDTO): Promise<Jogador> {
     try {
-      const response = await axios.put(
-        `${API_URL}/jogadores/${id}`,
-        data,
-        this.getAuthHeader()
+      console.log(`✏️ Atualizando jogador ${id}...`);
+      const jogador = await apiClient.put<Jogador>(
+        `${this.basePath}/${id}`,
+        data
       );
-      return response.data.data;
-    } catch (error: any) {
-      console.error("Erro ao atualizar jogador:", error);
-      throw new Error(
-        error.response?.data?.error || "Erro ao atualizar jogador"
-      );
+      console.log("✅ Jogador atualizado:", jogador.nome);
+      return jogador;
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.atualizar");
+      throw new Error(appError.message);
     }
   }
 
@@ -118,10 +117,12 @@ class JogadorService {
    */
   async deletar(id: string): Promise<void> {
     try {
-      await axios.delete(`${API_URL}/jogadores/${id}`, this.getAuthHeader());
-    } catch (error: any) {
-      console.error("Erro ao deletar jogador:", error);
-      throw new Error(error.response?.data?.error || "Erro ao deletar jogador");
+      console.log(`🗑️ Deletando jogador ${id}...`);
+      await apiClient.delete(`${this.basePath}/${id}`);
+      console.log("✅ Jogador deletado");
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.deletar");
+      throw new Error(appError.message);
     }
   }
 
@@ -130,13 +131,13 @@ class JogadorService {
    */
   async contarTotal(): Promise<number> {
     try {
-      const response = await axios.get(
-        `${API_URL}/jogadores/stats/total`,
-        this.getAuthHeader()
+      const response = await apiClient.get<{ total: number }>(
+        `${this.basePath}/stats/total`
       );
-      return response.data.data.total;
-    } catch (error: any) {
-      console.error("Erro ao contar jogadores:", error);
+      console.log(`📊 Total de jogadores: ${response.total}`);
+      return response.total;
+    } catch (error) {
+      handleError(error, "JogadorService.contarTotal");
       return 0;
     }
   }
@@ -146,16 +147,34 @@ class JogadorService {
    */
   async contarPorNivel(): Promise<Record<string, number>> {
     try {
-      const response = await axios.get(
-        `${API_URL}/jogadores/stats/por-nivel`,
-        this.getAuthHeader()
+      const response = await apiClient.get<Record<string, number>>(
+        `${this.basePath}/stats/por-nivel`
       );
-      return response.data.data;
-    } catch (error: any) {
-      console.error("Erro ao contar por nível:", error);
+      console.log("📊 Jogadores por nível:", response);
+      return response;
+    } catch (error) {
+      handleError(error, "JogadorService.contarPorNivel");
       return {};
+    }
+  }
+
+  /**
+   * Buscar jogadores disponíveis para inscrição em etapa
+   */
+  async buscarDisponiveis(etapaId: string): Promise<Jogador[]> {
+    try {
+      console.log(`🔍 Buscando jogadores disponíveis para etapa ${etapaId}...`);
+      const jogadores = await apiClient.get<Jogador[]>(
+        `${this.basePath}/disponiveis/${etapaId}`
+      );
+      console.log(`✅ ${jogadores.length} jogadores disponíveis`);
+      return jogadores;
+    } catch (error) {
+      handleError(error, "JogadorService.buscarDisponiveis");
+      return [];
     }
   }
 }
 
+// Exportar instância única
 export default new JogadorService();

@@ -1,6 +1,6 @@
 import React from "react";
+import styled from "styled-components";
 import { Jogador, NivelJogador, StatusJogador } from "../types/jogador";
-import "./JogadorCard.css";
 
 interface JogadorCardProps {
   jogador: Jogador;
@@ -9,188 +9,409 @@ interface JogadorCardProps {
   onView?: (jogador: Jogador) => void;
 }
 
+// ============== STYLED COMPONENTS ==============
+
+const Card = styled.div`
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+`;
+
+const Header = styled.div`
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const AvatarContainer = styled.div`
+  flex-shrink: 0;
+`;
+
+const Avatar = styled.img`
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const AvatarPlaceholder = styled.div`
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const InfoContainer = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const Nome = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const BadgesRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const NivelBadge = styled.span<{ $cor: string }>`
+  background: ${(props) => `${props.$cor}20`};
+  color: ${(props) => props.$cor};
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const StatusBadge = styled.span<{ $status: StatusJogador }>`
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  ${(props) => {
+    switch (props.$status) {
+      case StatusJogador.ATIVO:
+        return `
+          background: #dcfce7;
+          color: #166534;
+        `;
+      case StatusJogador.INATIVO:
+        return `
+          background: #fef3c7;
+          color: #92400e;
+        `;
+      case StatusJogador.SUSPENSO:
+        return `
+          background: #fee2e2;
+          color: #991b1b;
+        `;
+      default:
+        return `
+          background: #f3f4f6;
+          color: #6b7280;
+        `;
+    }
+  }}
+`;
+
+const Body = styled.div`
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const ContatoSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const ContatoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const ContatoIcon = styled.span`
+  font-size: 1rem;
+  flex-shrink: 0;
+`;
+
+const ContatoTexto = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const StatIcon = styled.span`
+  font-size: 1.5rem;
+`;
+
+const StatValue = styled.span`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const StatLabel = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const Footer = styled.div`
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "view":
+        return `
+          background: white;
+          color: #3b82f6;
+          border-color: #3b82f6;
+          
+          &:hover {
+            background: #3b82f6;
+            color: white;
+          }
+        `;
+      case "edit":
+        return `
+          background: white;
+          color: #f59e0b;
+          border-color: #f59e0b;
+          
+          &:hover {
+            background: #f59e0b;
+            color: white;
+          }
+        `;
+      case "delete":
+        return `
+          background: white;
+          color: #dc2626;
+          border-color: #dc2626;
+          
+          &:hover {
+            background: #dc2626;
+            color: white;
+          }
+        `;
+    }
+  }}
+`;
+
+// ============== HELPER FUNCTIONS ==============
+
+const getNivelInfo = (nivel: NivelJogador) => {
+  const niveis = {
+    [NivelJogador.INICIANTE]: {
+      emoji: "🌱",
+      cor: "#4caf50",
+      label: "Iniciante",
+    },
+    [NivelJogador.INTERMEDIARIO]: {
+      emoji: "⚡",
+      cor: "#2196f3",
+      label: "Intermediário",
+    },
+    [NivelJogador.AVANCADO]: {
+      emoji: "🔥",
+      cor: "#ff9800",
+      label: "Avançado",
+    },
+    [NivelJogador.PROFISSIONAL]: {
+      emoji: "⭐",
+      cor: "#9c27b0",
+      label: "Profissional",
+    },
+  };
+  return niveis[nivel] || niveis[NivelJogador.INICIANTE];
+};
+
+const getStatusBadge = (status: StatusJogador) => {
+  const badges = {
+    [StatusJogador.ATIVO]: {
+      emoji: "✅",
+      label: "Ativo",
+    },
+    [StatusJogador.INATIVO]: {
+      emoji: "⏸️",
+      label: "Inativo",
+    },
+    [StatusJogador.SUSPENSO]: {
+      emoji: "🚫",
+      label: "Suspenso",
+    },
+  };
+  return badges[status] || badges[StatusJogador.ATIVO];
+};
+
+const formatarTelefone = (telefone?: string) => {
+  if (!telefone) return "-";
+  return telefone;
+};
+
+// ============== COMPONENTE ==============
+
 const JogadorCard: React.FC<JogadorCardProps> = ({
   jogador,
   onEdit,
   onDelete,
   onView,
 }) => {
-  /**
-   * Retorna emoji e cor para cada nível
-   */
-  const getNivelInfo = (nivel: NivelJogador) => {
-    const niveis = {
-      [NivelJogador.INICIANTE]: {
-        emoji: "🌱",
-        cor: "#4caf50",
-        label: "Iniciante",
-      },
-      [NivelJogador.INTERMEDIARIO]: {
-        emoji: "⚡",
-        cor: "#2196f3",
-        label: "Intermediário",
-      },
-      [NivelJogador.AVANCADO]: {
-        emoji: "🔥",
-        cor: "#ff9800",
-        label: "Avançado",
-      },
-      [NivelJogador.PROFISSIONAL]: {
-        emoji: "⭐",
-        cor: "#9c27b0",
-        label: "Profissional",
-      },
-    };
-    return niveis[nivel] || niveis[NivelJogador.INICIANTE];
-  };
-
-  /**
-   * Retorna badge para status
-   */
-  const getStatusBadge = (status: StatusJogador) => {
-    const badges = {
-      [StatusJogador.ATIVO]: {
-        emoji: "✅",
-        label: "Ativo",
-        classe: "status-ativo",
-      },
-      [StatusJogador.INATIVO]: {
-        emoji: "⏸️",
-        label: "Inativo",
-        classe: "status-inativo",
-      },
-      [StatusJogador.SUSPENSO]: {
-        emoji: "🚫",
-        label: "Suspenso",
-        classe: "status-suspenso",
-      },
-    };
-    return badges[status] || badges[StatusJogador.ATIVO];
-  };
-
-  /**
-   * Formatar telefone
-   */
-  const formatarTelefone = (telefone?: string) => {
-    if (!telefone) return "-";
-    return telefone;
-  };
-
   const nivelInfo = getNivelInfo(jogador.nivel);
   const statusBadge = getStatusBadge(jogador.status);
 
   return (
-    <div className="jogador-card">
-      {/* Header */}
-      <div className="jogador-card-header">
-        <div className="jogador-avatar">
+    <Card>
+      <Header>
+        <AvatarContainer>
           {jogador.fotoUrl ? (
-            <img src={jogador.fotoUrl} alt={jogador.nome} />
+            <Avatar src={jogador.fotoUrl} alt={jogador.nome} />
           ) : (
-            <div className="avatar-placeholder">
+            <AvatarPlaceholder>
               {jogador.nome.charAt(0).toUpperCase()}
-            </div>
+            </AvatarPlaceholder>
           )}
-        </div>
+        </AvatarContainer>
 
-        <div className="jogador-info">
-          <h3 className="jogador-nome">{jogador.nome}</h3>
-          <div className="jogador-badges">
-            <span
-              className="nivel-badge"
-              style={{
-                backgroundColor: `${nivelInfo.cor}20`,
-                color: nivelInfo.cor,
-              }}
-            >
+        <InfoContainer>
+          <Nome>{jogador.nome}</Nome>
+          <BadgesRow>
+            <NivelBadge $cor={nivelInfo.cor}>
               {nivelInfo.emoji} {nivelInfo.label}
-            </span>
-            <span className={`status-badge ${statusBadge.classe}`}>
+            </NivelBadge>
+            <StatusBadge $status={jogador.status}>
               {statusBadge.emoji} {statusBadge.label}
-            </span>
-          </div>
-        </div>
-      </div>
+            </StatusBadge>
+          </BadgesRow>
+        </InfoContainer>
+      </Header>
 
-      {/* Body */}
-      <div className="jogador-card-body">
-        {/* Contato */}
+      <Body>
         {(jogador.email || jogador.telefone) && (
-          <div className="jogador-contato">
+          <ContatoSection>
             {jogador.email && (
-              <div className="contato-item">
-                <span className="contato-icon">📧</span>
-                <span className="contato-texto">{jogador.email}</span>
-              </div>
+              <ContatoItem>
+                <ContatoIcon>📧</ContatoIcon>
+                <ContatoTexto>{jogador.email}</ContatoTexto>
+              </ContatoItem>
             )}
             {jogador.telefone && (
-              <div className="contato-item">
-                <span className="contato-icon">📱</span>
-                <span className="contato-texto">
+              <ContatoItem>
+                <ContatoIcon>📱</ContatoIcon>
+                <ContatoTexto>
                   {formatarTelefone(jogador.telefone)}
-                </span>
-              </div>
+                </ContatoTexto>
+              </ContatoItem>
             )}
-          </div>
+          </ContatoSection>
         )}
 
-        {/* Estatísticas */}
-        <div className="jogador-stats">
-          <div className="stat-item">
-            <span className="stat-icon">🏆</span>
-            <div className="stat-info">
-              <span className="stat-value">{jogador.vitorias || 0}</span>
-              <span className="stat-label">Vitórias</span>
-            </div>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">❌</span>
-            <div className="stat-info">
-              <span className="stat-value">{jogador.derrotas || 0}</span>
-              <span className="stat-label">Derrotas</span>
-            </div>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">⭐</span>
-            <div className="stat-info">
-              <span className="stat-value">{jogador.pontos || 0}</span>
-              <span className="stat-label">Pontos</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <StatsGrid>
+          <StatItem>
+            <StatIcon>🏆</StatIcon>
+            <StatValue>{jogador.vitorias || 0}</StatValue>
+            <StatLabel>Vitórias</StatLabel>
+          </StatItem>
+          <StatItem>
+            <StatIcon>❌</StatIcon>
+            <StatValue>{jogador.derrotas || 0}</StatValue>
+            <StatLabel>Derrotas</StatLabel>
+          </StatItem>
+          <StatItem>
+            <StatIcon>⭐</StatIcon>
+            <StatValue>{jogador.pontos || 0}</StatValue>
+            <StatLabel>Pontos</StatLabel>
+          </StatItem>
+        </StatsGrid>
+      </Body>
 
-      {/* Footer - Ações */}
-      <div className="jogador-card-footer">
+      <Footer>
         {onView && (
-          <button
-            className="btn-action btn-view"
+          <ActionButton
+            $variant="view"
             onClick={() => onView(jogador)}
             title="Ver detalhes"
           >
             👁️ Ver
-          </button>
+          </ActionButton>
         )}
         {onEdit && (
-          <button
-            className="btn-action btn-edit"
+          <ActionButton
+            $variant="edit"
             onClick={() => onEdit(jogador)}
             title="Editar jogador"
           >
             ✏️ Editar
-          </button>
+          </ActionButton>
         )}
         {onDelete && (
-          <button
-            className="btn-action btn-delete"
+          <ActionButton
+            $variant="delete"
             onClick={() => onDelete(jogador)}
             title="Deletar jogador"
           >
             🗑️ Deletar
-          </button>
+          </ActionButton>
         )}
-      </div>
-    </div>
+      </Footer>
+    </Card>
   );
 };
 

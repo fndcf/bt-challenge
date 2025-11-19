@@ -10,6 +10,7 @@ import {
   EstatisticasEtapa,
   ResultadoGeracaoChaves,
 } from "../types/etapa";
+import { handleError } from "@/utils/errorHandler";
 
 /**
  * Service para gerenciar etapas
@@ -23,9 +24,9 @@ class EtapaService {
   async criar(data: CriarEtapaDTO): Promise<Etapa> {
     try {
       return await apiClient.post<Etapa>(this.baseURL, data);
-    } catch (error: any) {
-      console.error("Erro ao criar etapa:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -72,9 +73,9 @@ class EtapaService {
   async buscarPorId(id: string): Promise<Etapa> {
     try {
       return await apiClient.get<Etapa>(`${this.baseURL}/${id}`);
-    } catch (error: any) {
-      console.error("Erro ao buscar etapa:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -84,9 +85,9 @@ class EtapaService {
   async buscarPorSlug(slug: string): Promise<Etapa> {
     try {
       return await apiClient.get<Etapa>(`${this.baseURL}/slug/${slug}`);
-    } catch (error: any) {
-      console.error("Erro ao buscar etapa por slug:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -97,9 +98,9 @@ class EtapaService {
     try {
       console.log(`✏️ Atualizando etapa ${id}...`);
       return await apiClient.put<Etapa>(`${this.baseURL}/${id}`, data);
-    } catch (error: any) {
-      console.error("❌ Erro ao atualizar etapa:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -111,9 +112,9 @@ class EtapaService {
       console.log(`🗑️ Deletando etapa ${id}...`);
       await apiClient.delete(`${this.baseURL}/${id}`);
       console.log(`✅ Etapa ${id} deletada`);
-    } catch (error: any) {
-      console.error("❌ Erro ao deletar etapa:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -129,9 +130,9 @@ class EtapaService {
         `${this.baseURL}/${etapaId}/inscrever`,
         data
       );
-    } catch (error: any) {
-      console.error("Erro ao inscrever jogador:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -152,9 +153,9 @@ class EtapaService {
       }
 
       return inscricoes;
-    } catch (error: any) {
-      console.error("Erro ao inscrever jogadores:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -182,10 +183,9 @@ class EtapaService {
         `${this.baseURL}/${etapaId}/inscricoes/${inscricaoId}`
       );
       console.log("✅ DELETE retornou sucesso");
-    } catch (error: any) {
-      console.error("❌ Erro ao cancelar inscrição:", error);
-      console.error("❌ Detalhes:", error.response?.data);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -197,9 +197,9 @@ class EtapaService {
       return await apiClient.post<Etapa>(
         `${this.baseURL}/${etapaId}/encerrar-inscricoes`
       );
-    } catch (error: any) {
-      console.error("Erro ao encerrar inscrições:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -211,9 +211,9 @@ class EtapaService {
       return await apiClient.post<Etapa>(
         `${this.baseURL}/${etapaId}/reabrir-inscricoes`
       );
-    } catch (error: any) {
-      console.error("Erro ao reabrir inscrições:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -225,9 +225,9 @@ class EtapaService {
       return await apiClient.post<ResultadoGeracaoChaves>(
         `${this.baseURL}/${etapaId}/gerar-chaves`
       );
-    } catch (error: any) {
-      console.error("Erro ao gerar chaves:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 
@@ -265,9 +265,9 @@ class EtapaService {
       console.log(`🏁 Encerrando etapa ${id}...`);
       await apiClient.post(`${this.baseURL}/${id}/encerrar`);
       console.log("✅ Etapa encerrada com sucesso! 🏆");
-    } catch (error: any) {
-      console.error("❌ Erro ao encerrar etapa:", error);
-      throw error;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.listar");
+      throw new Error(appError.message);
     }
   }
 }

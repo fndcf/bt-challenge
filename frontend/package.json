@@ -9,12 +9,14 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
-    "react-router-dom": "^6.21.0"
+    "react-router-dom": "^6.21.0",
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
+    "@types/styled-components": "^5.1.36",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",

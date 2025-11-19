@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient";
-import { Partida, SetPartida } from "../types/chave";
+import { SetPartida } from "../types/chave";
 
 /**
  * Service para gerenciar partidas

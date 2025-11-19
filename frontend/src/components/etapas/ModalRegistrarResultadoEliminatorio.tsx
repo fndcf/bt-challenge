@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import styled from "styled-components";
 import {
   ConfrontoEliminatorio,
   StatusConfrontoEliminatorio,
@@ -11,9 +12,266 @@ interface ModalRegistrarResultadoEliminatorioProps {
   onSuccess: () => void;
 }
 
-/**
- * Modal para registrar ou editar resultado de um confronto eliminatório
- */
+// ============== STYLED COMPONENTS ==============
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+`;
+
+const OverlayBackground = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s;
+`;
+
+const ModalWrapper = styled.div`
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+`;
+
+const ModalContainer = styled.div`
+  position: relative;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 42rem;
+  width: 100%;
+  padding: 1.5rem;
+
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+`;
+
+const Title = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const CloseButton = styled.button`
+  color: #9ca3af;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #4b5563;
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+`;
+
+const InfoBox = styled.div`
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border-radius: 0.5rem;
+`;
+
+const InfoLabel = styled.div`
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+`;
+
+const InfoText = styled.div`
+  font-size: 0.75rem;
+  color: #2563eb;
+`;
+
+const PlacarSection = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const SectionLabel = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+`;
+
+const PlacarGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+`;
+
+const InputGroup = styled.div``;
+
+const InputLabel = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+`;
+
+const ScoreInput = styled.input`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #2563eb;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: #d1d5db;
+  }
+`;
+
+const ResultBox = styled.div`
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f0fdf4;
+  border-radius: 0.5rem;
+`;
+
+const ResultLabel = styled.div`
+  font-size: 0.875rem;
+  color: #166534;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+`;
+
+const WinnerName = styled.div`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #166534;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const ResultScore = styled.div`
+  font-size: 0.875rem;
+  color: #16a34a;
+  margin-top: 0.25rem;
+`;
+
+const ErrorBox = styled.div`
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  color: #991b1b;
+  font-size: 0.875rem;
+`;
+
+const ButtonsRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  ${(props) =>
+    props.$variant === "primary"
+      ? `
+    background: #2563eb;
+    color: white;
+    &:hover:not(:disabled) { background: #1d4ed8; }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    &:hover:not(:disabled) { background: #f9fafb; }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const Spinner = styled.div`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const WarningBox = styled.div`
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 0.5rem;
+`;
+
+const WarningText = styled.div`
+  font-size: 0.75rem;
+  color: #92400e;
+
+  strong {
+    font-weight: 600;
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const ModalRegistrarResultadoEliminatorio: React.FC<
   ModalRegistrarResultadoEliminatorioProps
 > = ({ confronto, onClose, onSuccess }) => {
@@ -24,7 +282,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Preencher placar se for edição
   useEffect(() => {
     if (isEdicao && confronto.placar) {
       const [g1, g2] = confronto.placar.split("-").map(Number);
@@ -58,7 +315,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
   };
 
   const validarPlacar = (): boolean => {
-    // Verificar se o placar foi preenchido
     if (
       (gamesDupla1 === undefined || gamesDupla1 === null) &&
       (gamesDupla2 === undefined || gamesDupla2 === null)
@@ -77,13 +333,11 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
       return false;
     }
 
-    // Permitir 0x0 apenas se for empate técnico (mas vamos rejeitar por enquanto)
     if (gamesDupla1 === 0 && gamesDupla2 === 0) {
       setErro("O placar não pode ser 0 x 0");
       return false;
     }
 
-    // Validar placar de set normal (6-4, 7-5, 7-6)
     const maxGames = Math.max(gamesDupla1, gamesDupla2);
     const minGames = Math.min(gamesDupla1, gamesDupla2);
 
@@ -107,7 +361,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
       return false;
     }
 
-    // Verificar se há um vencedor
     const resultado = calcularVencedor();
     if (!resultado) {
       setErro("Não há um vencedor definido");
@@ -141,7 +394,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
       );
       onSuccess();
     } catch (err: any) {
-      console.error("Erro ao registrar resultado:", err);
       setErro(
         err.message ||
           `Erro ao ${isEdicao ? "atualizar" : "registrar"} resultado`
@@ -154,53 +406,33 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
   const resultado = calcularVencedor();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={onClose}
-      ></div>
+    <Overlay>
+      <OverlayBackground onClick={onClose} />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">
+      <ModalWrapper>
+        <ModalContainer>
+          <Header>
+            <Title>
               {isEdicao ? "✏️ Editar Resultado" : "📝 Registrar Resultado"}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
+            </Title>
+            <CloseButton onClick={onClose}>✕</CloseButton>
+          </Header>
 
-          <form onSubmit={handleSubmit}>
-            {/* Info do confronto */}
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <div className="text-sm text-blue-700 font-semibold mb-1">
-                Confronto Eliminatório
-              </div>
-              <div className="text-xs text-blue-600">
+          <Form onSubmit={handleSubmit}>
+            <InfoBox>
+              <InfoLabel>Confronto Eliminatório</InfoLabel>
+              <InfoText>
                 {confronto.dupla1Origem} vs {confronto.dupla2Origem}
-              </div>
-            </div>
+              </InfoText>
+            </InfoBox>
 
-            {/* Placar */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                🎾 Placar do Set
-              </label>
+            <PlacarSection>
+              <SectionLabel>🎾 Placar do Set</SectionLabel>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Dupla 1 */}
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    {confronto.dupla1Nome}
-                  </label>
-                  <input
+              <PlacarGrid>
+                <InputGroup>
+                  <InputLabel>{confronto.dupla1Nome}</InputLabel>
+                  <ScoreInput
                     type="number"
                     min="0"
                     max="10"
@@ -212,19 +444,15 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                           : parseInt(e.target.value)
                       )
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                     required
                     disabled={loading}
                   />
-                </div>
+                </InputGroup>
 
-                {/* Dupla 2 */}
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">
-                    {confronto.dupla2Nome}
-                  </label>
-                  <input
+                <InputGroup>
+                  <InputLabel>{confronto.dupla2Nome}</InputLabel>
+                  <ScoreInput
                     type="number"
                     min="0"
                     max="10"
@@ -236,55 +464,41 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                           : parseInt(e.target.value)
                       )
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0"
                     required
                     disabled={loading}
                   />
-                </div>
-              </div>
-            </div>
+                </InputGroup>
+              </PlacarGrid>
+            </PlacarSection>
 
-            {/* Resultado calculado */}
             {resultado && (
-              <div className="mb-6 p-4 bg-green-50 rounded-lg">
-                <div className="text-sm text-green-700 font-semibold mb-1">
-                  🏆 Vencedor
-                </div>
-                <div className="text-lg font-bold text-green-700">
-                  {resultado.vencedor}
-                </div>
-                <div className="text-sm text-green-600 mt-1">
-                  Placar: {resultado.placar}
-                </div>
-              </div>
+              <ResultBox>
+                <ResultLabel>🏆 Vencedor</ResultLabel>
+                <WinnerName>{resultado.vencedor}</WinnerName>
+                <ResultScore>Placar: {resultado.placar}</ResultScore>
+              </ResultBox>
             )}
 
-            {/* Erro */}
-            {erro && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                ❌ {erro}
-              </div>
-            )}
+            {erro && <ErrorBox>❌ {erro}</ErrorBox>}
 
-            {/* Botões */}
-            <div className="flex gap-3">
-              <button
+            <ButtonsRow>
+              <Button
                 type="button"
+                $variant="secondary"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 disabled={loading}
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                $variant="primary"
                 disabled={loading || !resultado}
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <Spinner />
                     <span>{isEdicao ? "Atualizando..." : "Salvando..."}</span>
                   </>
                 ) : (
@@ -295,19 +509,20 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                     </span>
                   </>
                 )}
-              </button>
-            </div>
-          </form>
+              </Button>
+            </ButtonsRow>
+          </Form>
 
-          {/* Aviso */}
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="text-xs text-yellow-700">
+          <WarningBox>
+            <WarningText>
               ⚠️ <strong>Importante:</strong> O vencedor avançará
               automaticamente para a próxima fase!
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </WarningText>
+          </WarningBox>
+        </ModalContainer>
+      </ModalWrapper>
+    </Overlay>
   );
 };
+
+export default ModalRegistrarResultadoEliminatorio;

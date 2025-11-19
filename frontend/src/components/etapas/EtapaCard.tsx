@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import { Etapa, StatusEtapa } from "../../types/etapa";
 import { NivelJogador } from "../../types/jogador";
 import { StatusBadge } from "./StatusBadge";
@@ -10,9 +11,193 @@ interface EtapaCardProps {
   etapa: Etapa;
 }
 
-/**
- * Card de etapa
- */
+// ============== STYLED COMPONENTS ==============
+
+const Card = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border-color: #2563eb;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const HeaderContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const Title = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const Description = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const InfoSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const InfoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const IconWrapper = styled.span`
+  font-size: 1.5rem;
+  flex-shrink: 0;
+`;
+
+const InfoContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const InfoLabel = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.125rem 0;
+`;
+
+const InfoValue = styled.p`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+// Inscrições com barra de progresso
+const InscricoesContainer = styled.div`
+  flex: 1;
+`;
+
+const InscricoesHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 0.5rem;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $progress: number }>`
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+  width: ${(props) => props.$progress}%;
+  background: ${(props) =>
+    props.$progress === 100
+      ? "#10b981"
+      : props.$progress >= 75
+      ? "#f59e0b"
+      : "#3b82f6"};
+`;
+
+const Footer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const FooterInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  flex-wrap: wrap;
+`;
+
+const FooterItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const ActionButton = styled.button<{ $variant?: "blue" | "purple" | "gray" }>`
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0;
+
+  color: ${(props) => {
+    switch (props.$variant) {
+      case "purple":
+        return "#9333ea";
+      case "gray":
+        return "#6b7280";
+      default:
+        return "#2563eb";
+    }
+  }};
+
+  &:hover {
+    color: ${(props) => {
+      switch (props.$variant) {
+        case "purple":
+          return "#7e22ce";
+        case "gray":
+          return "#4b5563";
+        default:
+          return "#1d4ed8";
+      }
+    }};
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
   const navigate = useNavigate();
 
@@ -22,25 +207,21 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
 
   const formatarData = (data: any) => {
     try {
-      // Se for um Timestamp do Firebase (objeto com _seconds)
       if (data && typeof data === "object" && "_seconds" in data) {
         const date = new Date(data._seconds * 1000);
         return format(date, "dd/MM/yyyy", { locale: ptBR });
       }
 
-      // Se for uma string ISO
       if (typeof data === "string") {
         return format(new Date(data), "dd/MM/yyyy", { locale: ptBR });
       }
 
-      // Se for um Date
       if (data instanceof Date) {
         return format(data, "dd/MM/yyyy", { locale: ptBR });
       }
 
       return "Data inválida";
-    } catch (error) {
-      console.error("Erro ao formatar data:", error, data);
+    } catch {
       return "Data inválida";
     }
   };
@@ -50,143 +231,145 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
     return Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100);
   };
 
+  const getNivelIcon = (nivel: NivelJogador) => {
+    switch (nivel) {
+      case NivelJogador.INICIANTE:
+        return "🌱";
+      case NivelJogador.INTERMEDIARIO:
+        return "⚡";
+      case NivelJogador.AVANCADO:
+        return "🔥";
+      case NivelJogador.PROFISSIONAL:
+        return "⭐";
+      default:
+        return "🎯";
+    }
+  };
+
+  const getNivelLabel = (nivel: NivelJogador) => {
+    switch (nivel) {
+      case NivelJogador.INICIANTE:
+        return "Iniciante";
+      case NivelJogador.INTERMEDIARIO:
+        return "Intermediário";
+      case NivelJogador.AVANCADO:
+        return "Avançado";
+      case NivelJogador.PROFISSIONAL:
+        return "Profissional";
+      default:
+        return nivel;
+    }
+  };
+
   const progresso = calcularProgresso();
 
   return (
-    <div
-      onClick={handleClick}
-      className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
-    >
+    <Card onClick={handleClick}>
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 mb-1">{etapa.nome}</h3>
-          {etapa.descricao && (
-            <p className="text-sm text-gray-600 line-clamp-2">
-              {etapa.descricao}
-            </p>
-          )}
-        </div>
+      <Header>
+        <HeaderContent>
+          <Title>{etapa.nome}</Title>
+          {etapa.descricao && <Description>{etapa.descricao}</Description>}
+        </HeaderContent>
         <StatusBadge status={etapa.status} />
-      </div>
+      </Header>
 
       {/* Info Principal */}
-      <div className="space-y-3 mb-4">
-        {/* Data de Realização */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-2xl">📅</span>
-          <div>
-            <p className="text-gray-500 text-xs">Realização</p>
-            <p className="font-medium text-gray-900">
-              {formatarData(etapa.dataRealizacao)}
-            </p>
-          </div>
-        </div>
+      <InfoSection>
+        {/* Data */}
+        <InfoItem>
+          <IconWrapper>📅</IconWrapper>
+          <InfoContent>
+            <InfoLabel>Realização</InfoLabel>
+            <InfoValue>{formatarData(etapa.dataRealizacao)}</InfoValue>
+          </InfoContent>
+        </InfoItem>
 
         {/* Nível */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-2xl">
-            {etapa.nivel === NivelJogador.INICIANTE && "🌱"}
-            {etapa.nivel === NivelJogador.INTERMEDIARIO && "⚡"}
-            {etapa.nivel === NivelJogador.AVANCADO && "🔥"}
-            {etapa.nivel === NivelJogador.PROFISSIONAL && "⭐"}
-          </span>
-          <div>
-            <p className="text-gray-500 text-xs">Nível</p>
-            <p className="font-medium text-gray-900">
-              {etapa.nivel === NivelJogador.INICIANTE && "Iniciante"}
-              {etapa.nivel === NivelJogador.INTERMEDIARIO && "Intermediário"}
-              {etapa.nivel === NivelJogador.AVANCADO && "Avançado"}
-              {etapa.nivel === NivelJogador.PROFISSIONAL && "Profissional"}
-            </p>
-          </div>
-        </div>
+        <InfoItem>
+          <IconWrapper>{getNivelIcon(etapa.nivel)}</IconWrapper>
+          <InfoContent>
+            <InfoLabel>Nível</InfoLabel>
+            <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
+          </InfoContent>
+        </InfoItem>
 
         {/* Local */}
         {etapa.local && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-2xl">📍</span>
-            <div>
-              <p className="text-gray-500 text-xs">Local</p>
-              <p className="font-medium text-gray-900">{etapa.local}</p>
-            </div>
-          </div>
+          <InfoItem>
+            <IconWrapper>📍</IconWrapper>
+            <InfoContent>
+              <InfoLabel>Local</InfoLabel>
+              <InfoValue>{etapa.local}</InfoValue>
+            </InfoContent>
+          </InfoItem>
         )}
 
         {/* Inscrições */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-2xl">👥</span>
-          <div className="flex-1">
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-gray-500 text-xs">Inscritos</p>
-              <p className="font-medium text-gray-900">
+        <InfoItem>
+          <IconWrapper>👥</IconWrapper>
+          <InscricoesContainer>
+            <InscricoesHeader>
+              <InfoLabel>Inscritos</InfoLabel>
+              <InfoValue>
                 {etapa.totalInscritos} / {etapa.maxJogadores}
-              </p>
-            </div>
-            {/* Barra de Progresso */}
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all ${
-                  progresso === 100
-                    ? "bg-green-500"
-                    : progresso >= 75
-                    ? "bg-yellow-500"
-                    : "bg-blue-500"
-                }`}
-                style={{ width: `${progresso}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+              </InfoValue>
+            </InscricoesHeader>
+            <ProgressBar>
+              <ProgressFill $progress={progresso} />
+            </ProgressBar>
+          </InscricoesContainer>
+        </InfoItem>
+      </InfoSection>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-        <div className="flex items-center gap-4 text-xs text-gray-500">
+      <Footer>
+        <FooterInfo>
           {etapa.qtdGrupos && (
-            <div className="flex items-center gap-1">
+            <FooterItem>
               <span>🎯</span>
               <span>{etapa.qtdGrupos} grupos</span>
-            </div>
+            </FooterItem>
           )}
-          <div className="flex items-center gap-1">
+          <FooterItem>
             <span>👤</span>
             <span>{etapa.jogadoresPorGrupo} duplas/grupo</span>
-          </div>
-        </div>
+          </FooterItem>
+        </FooterInfo>
 
-        {/* Call to Action baseado no status */}
+        {/* Actions baseado no status */}
         {etapa.status === StatusEtapa.INSCRICOES_ABERTAS && (
-          <button
+          <ActionButton
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/admin/etapas/${etapa.id}`);
             }}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
           >
             Ver detalhes →
-          </button>
+          </ActionButton>
         )}
 
         {etapa.status === StatusEtapa.CHAVES_GERADAS && (
-          <button
+          <ActionButton
+            $variant="purple"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/admin/etapas/${etapa.id}/chaves`);
             }}
-            className="text-sm font-medium text-purple-600 hover:text-purple-700"
           >
             Ver chaves →
-          </button>
+          </ActionButton>
         )}
 
         {etapa.status === StatusEtapa.FINALIZADA && (
-          <div className="flex items-center gap-1 text-sm font-medium text-gray-600">
+          <ActionButton $variant="gray" as="div">
             <span>🏆</span>
             <span>Concluída</span>
-          </div>
+          </ActionButton>
         )}
-      </div>
-    </div>
+      </Footer>
+    </Card>
   );
 };
+
+export default EtapaCard;

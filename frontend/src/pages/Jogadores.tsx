@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import jogadorService from "../services/jogadorService";
 import {
@@ -10,9 +11,452 @@ import {
 } from "../types/jogador";
 import JogadorCard from "../components/JogadorCard";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
-import LoadingSpinner from "../components/LoadingSpinner";
-import Alert from "../components/Alert";
-import "./Jogadores.css";
+
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 2rem;
+  }
+`;
+
+// ============== HEADER ==============
+
+const Header = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+`;
+
+const HeaderInfo = styled.div`
+  flex: 1;
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 2.25rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const NewButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #2563eb;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+
+  @media (min-width: 768px) {
+    width: auto;
+  }
+`;
+
+// ============== ALERT ==============
+
+const Alert = styled.div<{ $type: "success" | "error" }>`
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  ${(props) =>
+    props.$type === "success"
+      ? `
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  `
+      : `
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  `}
+`;
+
+const AlertContent = styled.div`
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const AlertClose = styled.button`
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+// ============== FILTROS ==============
+
+const FiltersContainer = styled.div`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+`;
+
+const FiltersGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const FilterItem = styled.div<{ $fullWidth?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  ${(props) =>
+    props.$fullWidth &&
+    `
+    @media (min-width: 640px) {
+      grid-column: 1 / -1;
+    }
+  `}
+`;
+
+const FilterLabel = styled.label`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+`;
+
+const Input = styled.input`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: white;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  @media (min-width: 768px) {
+    padding: 0.75rem 1rem;
+  }
+`;
+
+const Select = styled.select`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  @media (min-width: 768px) {
+    padding: 0.75rem 1rem;
+  }
+`;
+
+const ClearButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+
+  @media (min-width: 640px) {
+    width: auto;
+  }
+`;
+
+// ============== RESULTADO INFO ==============
+
+const ResultInfo = styled.div`
+  margin-bottom: 1.5rem;
+
+  p {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+
+    @media (min-width: 768px) {
+      font-size: 0.9375rem;
+    }
+  }
+`;
+
+// ============== GRID ==============
+
+const JogadoresGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+// ============== LOADING ==============
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  gap: 1rem;
+`;
+
+const Spinner = styled.div`
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingMessage = styled.p`
+  color: #6b7280;
+  font-size: 0.9375rem;
+`;
+
+// ============== EMPTY STATE ==============
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 4rem 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+
+  @media (min-width: 768px) {
+    padding: 5rem 2rem;
+  }
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 4rem;
+  margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    font-size: 5rem;
+  }
+`;
+
+const EmptyTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.875rem;
+  }
+`;
+
+const EmptyText = styled.p`
+  color: #6b7280;
+  margin: 0 0 2rem 0;
+  font-size: 0.9375rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const EmptyButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #2563eb;
+  color: white;
+  padding: 0.875rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+// ============== PAGINAÇÃO ==============
+
+const Pagination = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    justify-content: center;
+  }
+`;
+
+const PaginationButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: white;
+  color: #374151;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+// ============== COMPONENTE ==============
 
 const ListagemJogadores: React.FC = () => {
   useDocumentTitle("Jogadores");
@@ -156,43 +600,41 @@ const ListagemJogadores: React.FC = () => {
   const totalPaginas = Math.ceil(total / limite);
 
   return (
-    <div className="jogadores-page">
+    <Container>
       {/* Header */}
-      <div className="listagem-header">
-        <div className="header-info">
-          <h1>👥 Jogadores</h1>
-          <p>Gerencie os jogadores da sua arena</p>
-        </div>
-        <button className="btn-novo-jogador" onClick={handleNovoJogador}>
-          ➕ Novo Jogador
-        </button>
-      </div>
+      <Header>
+        <HeaderInfo>
+          <Title>👥 Jogadores</Title>
+          <Subtitle>Gerencie os jogadores da sua arena</Subtitle>
+        </HeaderInfo>
+        <NewButton onClick={handleNovoJogador}>
+          <span>➕</span>
+          Novo Jogador
+        </NewButton>
+      </Header>
 
       {/* Mensagens */}
       {successMessage && (
-        <Alert
-          type="success"
-          message={successMessage}
-          onClose={() => setSuccessMessage("")}
-          autoClose={3000}
-        />
+        <Alert $type="success">
+          <AlertContent>{successMessage}</AlertContent>
+          <AlertClose onClick={() => setSuccessMessage("")}>×</AlertClose>
+        </Alert>
       )}
 
       {errorMessage && (
-        <Alert
-          type="error"
-          message={errorMessage}
-          onClose={() => setErrorMessage("")}
-        />
+        <Alert $type="error">
+          <AlertContent>{errorMessage}</AlertContent>
+          <AlertClose onClick={() => setErrorMessage("")}>×</AlertClose>
+        </Alert>
       )}
 
       {/* Filtros */}
-      <div className="filtros-container">
-        <div className="filtros-grid">
+      <FiltersContainer>
+        <FiltersGrid>
           {/* Busca */}
-          <div className="filtro-item filtro-busca">
-            <label htmlFor="busca">🔍 Buscar</label>
-            <input
+          <FilterItem $fullWidth>
+            <FilterLabel htmlFor="busca">🔍 Buscar</FilterLabel>
+            <Input
               type="text"
               id="busca"
               value={busca}
@@ -202,12 +644,12 @@ const ListagemJogadores: React.FC = () => {
               }}
               placeholder="Nome, email ou telefone..."
             />
-          </div>
+          </FilterItem>
 
           {/* Nível */}
-          <div className="filtro-item">
-            <label htmlFor="nivel">🎯 Nível</label>
-            <select
+          <FilterItem>
+            <FilterLabel htmlFor="nivel">🎯 Nível</FilterLabel>
+            <Select
               id="nivel"
               value={nivelFiltro}
               onChange={(e) => {
@@ -222,13 +664,13 @@ const ListagemJogadores: React.FC = () => {
               </option>
               <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
               <option value={NivelJogador.PROFISSIONAL}>⭐ Profissional</option>
-            </select>
-          </div>
+            </Select>
+          </FilterItem>
 
           {/* Status */}
-          <div className="filtro-item">
-            <label htmlFor="status">📊 Status</label>
-            <select
+          <FilterItem>
+            <FilterLabel htmlFor="status">📊 Status</FilterLabel>
+            <Select
               id="status"
               value={statusFiltro}
               onChange={(e) => {
@@ -240,13 +682,13 @@ const ListagemJogadores: React.FC = () => {
               <option value={StatusJogador.ATIVO}>✅ Ativo</option>
               <option value={StatusJogador.INATIVO}>⏸️ Inativo</option>
               <option value={StatusJogador.SUSPENSO}>🚫 Suspenso</option>
-            </select>
-          </div>
+            </Select>
+          </FilterItem>
 
           {/* Gênero */}
-          <div className="filtro-item">
-            <label htmlFor="genero">👤 Gênero</label>
-            <select
+          <FilterItem>
+            <FilterLabel htmlFor="genero">👤 Gênero</FilterLabel>
+            <Select
               id="genero"
               value={generoFiltro}
               onChange={(e) => {
@@ -258,36 +700,38 @@ const ListagemJogadores: React.FC = () => {
               <option value="masculino">♂️ Masculino</option>
               <option value="feminino">♀️ Feminino</option>
               <option value="outro">⚧ Outro</option>
-            </select>
-          </div>
-        </div>
+            </Select>
+          </FilterItem>
+        </FiltersGrid>
 
         {/* Limpar Filtros */}
         {(busca || nivelFiltro || statusFiltro || generoFiltro) && (
-          <button className="btn-limpar-filtros" onClick={limparFiltros}>
-            🗑️ Limpar Filtros
-          </button>
+          <ClearButton onClick={limparFiltros}>
+            <span>🗑️</span>
+            Limpar Filtros
+          </ClearButton>
         )}
-      </div>
+      </FiltersContainer>
 
       {/* Resultado Info */}
-      <div className="resultado-info">
+      <ResultInfo>
         <p>
           Mostrando {jogadores.length} de {total} jogador
           {total !== 1 ? "es" : ""}
         </p>
-      </div>
+      </ResultInfo>
 
       {/* Loading */}
       {loading && (
-        <div className="loading-container">
-          <LoadingSpinner size="large" message="Carregando jogadores..." />
-        </div>
+        <LoadingContainer>
+          <Spinner />
+          <LoadingMessage>Carregando jogadores...</LoadingMessage>
+        </LoadingContainer>
       )}
 
       {/* Lista de Jogadores */}
       {!loading && jogadores.length > 0 && (
-        <div className="jogadores-grid">
+        <JogadoresGrid>
           {jogadores.map((jogador) => (
             <JogadorCard
               key={jogador.id}
@@ -297,50 +741,44 @@ const ListagemJogadores: React.FC = () => {
               onDelete={handleDeletarJogador}
             />
           ))}
-        </div>
+        </JogadoresGrid>
       )}
-
-      <button className="btn-novo-jogador" onClick={handleNovoJogador}>
-        ➕ Novo Jogador
-      </button>
 
       {/* Empty State */}
       {!loading && jogadores.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">🎾</div>
-          <h2>Nenhum jogador encontrado</h2>
+        <EmptyState>
+          <EmptyIcon>🎾</EmptyIcon>
+          <EmptyTitle>Nenhum jogador encontrado</EmptyTitle>
           {busca || nivelFiltro || statusFiltro || generoFiltro ? (
-            <p>Tente ajustar os filtros para ver mais resultados.</p>
+            <EmptyText>
+              Tente ajustar os filtros para ver mais resultados.
+            </EmptyText>
           ) : (
-            <p>Cadastre o primeiro jogador da sua arena!</p>
+            <EmptyText>Cadastre o primeiro jogador da sua arena!</EmptyText>
           )}
-          <button className="btn-primary" onClick={handleNovoJogador}>
-            ➕ Cadastrar Primeiro Jogador
-          </button>
-        </div>
+          <EmptyButton onClick={handleNovoJogador}>
+            <span>➕</span>
+            Cadastrar Primeiro Jogador
+          </EmptyButton>
+        </EmptyState>
       )}
 
       {/* Paginação */}
       {!loading && jogadores.length > 0 && totalPaginas > 1 && (
-        <div className="paginacao">
-          <button
-            className="btn-paginacao"
+        <Pagination>
+          <PaginationButton
             onClick={handlePaginaAnterior}
             disabled={offset === 0}
           >
             ← Anterior
-          </button>
-          <span className="paginacao-info">
+          </PaginationButton>
+          <PaginationInfo>
             Página {paginaAtual} de {totalPaginas}
-          </span>
-          <button
-            className="btn-paginacao"
-            onClick={handleProximaPagina}
-            disabled={!temMais}
-          >
+          </PaginationInfo>
+          <PaginationButton onClick={handleProximaPagina} disabled={!temMais}>
             Próxima →
-          </button>
-        </div>
+          </PaginationButton>
+        </Pagination>
       )}
 
       {/* Modal de Confirmação de Exclusão */}
@@ -353,7 +791,7 @@ const ListagemJogadores: React.FC = () => {
         onCancel={cancelarDelecao}
         loading={deleteModal.loading}
       />
-    </div>
+    </Container>
   );
 };
 

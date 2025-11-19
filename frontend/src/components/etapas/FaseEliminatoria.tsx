@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import styled from "styled-components";
 import {
   ConfrontoEliminatorio,
   TipoFase,
@@ -15,58 +16,719 @@ interface FaseEliminatoriaProps {
   grupos: Grupo[];
 }
 
-/**
- * Componente da Fase Eliminatória
- * Mostra confrontos com opção de lista ou bracket visual
- */
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem;
+  }
+`;
+
+const Header = styled.div`
+  background: linear-gradient(135deg, #2563eb 0%, #9333ea 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  color: white;
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+
+    @media (min-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+
+  p {
+    color: #dbeafe;
+    margin: 0;
+    font-size: 0.875rem;
+
+    @media (min-width: 768px) {
+      font-size: 1rem;
+    }
+  }
+`;
+
+const ActionsRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const Button = styled.button<{
+  $variant?: "primary" | "danger" | "warning" | "gray";
+}>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "danger":
+        return `
+          background: #ef4444;
+          color: white;
+          &:hover:not(:disabled) { background: #dc2626; }
+        `;
+      case "warning":
+        return `
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          font-weight: 700;
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          }
+        `;
+      case "gray":
+        return `
+          background: #f3f4f6;
+          color: #374151;
+          &:hover:not(:disabled) { background: #e5e7eb; }
+        `;
+      default:
+        return `
+          background: #2563eb;
+          color: white;
+          &:hover:not(:disabled) { background: #1d4ed8; }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const Controls = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+`;
+
+const ToggleGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ToggleButton = styled.button<{ $active: boolean }>`
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  ${(props) =>
+    props.$active
+      ? `
+    background: #2563eb;
+    color: white;
+  `
+      : `
+    background: #f3f4f6;
+    color: #374151;
+    &:hover { background: #e5e7eb; }
+  `}
+`;
+
+const Select = styled.select`
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #2563eb;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+`;
+
+const Spinner = styled.div`
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const ErrorBox = styled.div`
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #991b1b;
+  text-align: center;
+`;
+
+const EmptyStateCard = styled.div`
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+`;
+
+const EmptyStateContent = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+
+  @media (min-width: 768px) {
+    font-size: 4rem;
+  }
+`;
+
+const EmptyTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const AlertBox = styled.div<{ $variant: "success" | "warning" }>`
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  ${(props) =>
+    props.$variant === "success"
+      ? `
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  `
+      : `
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    color: #92400e;
+  `}
+
+  h4 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem 0;
+
+    @media (min-width: 768px) {
+      font-size: 1.25rem;
+    }
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+
+    @media (min-width: 768px) {
+      font-size: 0.9375rem;
+    }
+  }
+`;
+
+const InfoBox = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  padding: 1rem;
+  margin-top: 0.75rem;
+`;
+
+const InfoText = styled.p`
+  font-size: 0.8125rem;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+
+  strong {
+    color: #166534;
+    font-weight: 600;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+`;
+
+const HintText = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 1rem 0 0 0;
+`;
+
+// ============== FASE CARDS ==============
+
+const FaseCard = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+`;
+
+const FaseHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+`;
+
+const FaseTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const FaseStatus = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+`;
+
+const ConfrontosList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const ConfrontoCard = styled.div`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const ConfrontoHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const ConfrontoInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const StatusInfo = styled.span`
+  display: flex;
+
+  @media (max-width: 414px) {
+    display: none;
+  }
+`;
+
+const ConfrontoLabel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+`;
+
+const StatusBadge = styled.span<{ $status: StatusConfrontoEliminatorio }>`
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  ${(props) => {
+    switch (props.$status) {
+      case StatusConfrontoEliminatorio.BYE:
+        return `background: #dcfce7; color: #166534;`;
+      case StatusConfrontoEliminatorio.FINALIZADA:
+        return `background: #dcfce7; color: #166534;`;
+      default:
+        return `background: #fef3c7; color: #92400e;`;
+    }
+  }}
+`;
+
+const ConfrontoContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const ByeBox = styled.div`
+  background: #dcfce7;
+  border: 2px solid #86efac;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+const ByeTeam = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 0.25rem;
+`;
+
+const ByeOrigin = styled.div`
+  font-size: 0.75rem;
+  color: #16a34a;
+  margin-top: 0.25rem;
+`;
+
+const ByeLabel = styled.div`
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #86efac;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #15803d;
+`;
+
+const DuplaRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const DuplaNome = styled.span<{ $isWinner?: boolean }>`
+  font-weight: ${(props) => (props.$isWinner ? 700 : 500)};
+  color: ${(props) => (props.$isWinner ? "#16a34a" : "#374151")};
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const DuplaOrigemText = styled.div`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+`;
+
+const Score = styled.span`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const VsSeparator = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  span {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-weight: 600;
+  }
+`;
+
+const PlacarDetalhado = styled.div`
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+`;
+
+const PlacarInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+
+  span:first-child {
+    font-weight: 600;
+  }
+`;
+
+const ActionSection = styled.div`
+  margin-top: 1rem;
+`;
+
+const ActionButton = styled.button<{
+  $variant?: "register" | "edit" | "disabled";
+}>`
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "register":
+        return `
+          background: #2563eb;
+          color: white;
+          &:hover { background: #1d4ed8; }
+        `;
+      case "edit":
+        return `
+          background: #f59e0b;
+          color: white;
+          &:hover { background: #d97706; }
+        `;
+      case "disabled":
+        return `
+          background: #9ca3af;
+          color: #e5e7eb;
+          cursor: not-allowed;
+        `;
+      default:
+        return `
+          background: #2563eb;
+          color: white;
+          &:hover { background: #1d4ed8; }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// ============== BRACKET ==============
+
+const BracketContainer = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  overflow-x: auto;
+`;
+
+const BracketContent = styled.div`
+  display: flex;
+  gap: 2rem;
+  min-width: max-content;
+`;
+
+const BracketColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 250px;
+`;
+
+const BracketTitle = styled.div`
+  text-align: center;
+  font-weight: 700;
+  color: #111827;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #2563eb;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const BracketMatches = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 1rem;
+`;
+
+const BracketMatch = styled.div`
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const BracketStatus = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+`;
+
+const BracketBye = styled.div`
+  text-align: center;
+`;
+
+const BracketTeam = styled.div<{ $isWinner?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+
+  span:first-child {
+    ${(props) =>
+      props.$isWinner &&
+      `
+      font-weight: 700;
+      color: #16a34a;
+    `}
+  }
+
+  span:last-child {
+    font-weight: 700;
+  }
+`;
+
+const BracketDivider = styled.div`
+  border-top: 1px solid #d1d5db;
+  margin: 0.25rem 0;
+`;
+
+const ChampionBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 250px;
+`;
+
+const ChampionTitle = styled.div`
+  text-align: center;
+  font-weight: 700;
+  color: #111827;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f59e0b;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const ChampionCard = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+`;
+
+const ChampionContent = styled.div`
+  width: 100%;
+  border: 4px solid #f59e0b;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  text-align: center;
+`;
+
+const ChampionIcon = styled.div`
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+`;
+
+const ChampionName = styled.div`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+
+  @media (min-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const ChampionScore = styled.div`
+  font-size: 0.875rem;
+  color: #b45309;
+  margin-top: 0.5rem;
+`;
+
+// ============== COMPONENTE ==============
+
 export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   etapaId,
-  arenaId,
   grupos,
 }) => {
   const [confrontos, setConfrontos] = useState<ConfrontoEliminatorio[]>([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-
-  // ============== VALIDAÇÃO DOS GRUPOS ==============
-  const todosGruposCompletos = React.useMemo(() => {
-    if (!grupos || grupos.length === 0) return false;
-    return grupos.every((g) => g.completo);
-  }, [grupos]);
-
-  // ============== NOVO: Validação para grupo único ==============
-  const isGrupoUnico = React.useMemo(() => {
-    return grupos && grupos.length === 1;
-  }, [grupos]);
-  // ==============================================================
-
-  const partidasPendentes = React.useMemo(() => {
-    if (!grupos) return 0;
-    return grupos.reduce((total, g) => {
-      return total + (g.totalPartidas - g.partidasFinalizadas);
-    }, 0);
-  }, [grupos]);
-
-  // ============== DEBUG: Ver estado dos grupos ==============
-  useEffect(() => {
-    console.log("📊 GRUPOS RECEBIDOS NA ELIMINATÓRIA:", grupos);
-    console.log("📊 Quantidade de grupos:", grupos?.length || 0);
-
-    if (grupos && grupos.length > 0) {
-      grupos.forEach((g, i) => {
-        console.log(`   Grupo ${i + 1} (${g.nome}):`, {
-          completo: g.completo,
-          partidasFinalizadas: g.partidasFinalizadas,
-          totalPartidas: g.totalPartidas,
-        });
-      });
-    }
-
-    console.log("✅ Todos grupos completos?", todosGruposCompletos);
-    console.log("🎯 Partidas pendentes:", partidasPendentes);
-  }, [grupos, todosGruposCompletos, partidasPendentes]);
-  // ==========================================================
-
   const [confrontoSelecionado, setConfrontoSelecionado] =
     useState<ConfrontoEliminatorio | null>(null);
   const [visualizacao, setVisualizacao] = useState<"lista" | "bracket">(
@@ -74,19 +736,28 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   );
   const [faseAtual, setFaseAtual] = useState<TipoFase | "todas">("todas");
 
-  // ============== VERIFICAR SE FINAL FOI FINALIZADA ==============
-  const finalFinalizada = React.useMemo(() => {
+  const todosGruposCompletos = useMemo(() => {
+    if (!grupos || grupos.length === 0) return false;
+    return grupos.every((g) => g.completo);
+  }, [grupos]);
+
+  const isGrupoUnico = useMemo(() => {
+    return grupos && grupos.length === 1;
+  }, [grupos]);
+
+  const partidasPendentes = useMemo(() => {
+    if (!grupos) return 0;
+    return grupos.reduce((total, g) => {
+      return total + (g.totalPartidas - g.partidasFinalizadas);
+    }, 0);
+  }, [grupos]);
+
+  const finalFinalizada = useMemo(() => {
     if (!confrontos || confrontos.length === 0) return false;
-
     const confrontoFinal = confrontos.find((c) => c.fase === TipoFase.FINAL);
-
     if (!confrontoFinal) return false;
-
     return confrontoFinal.status === StatusConfrontoEliminatorio.FINALIZADA;
   }, [confrontos]);
-
-  console.log("🏆 Final finalizada?", finalFinalizada);
-  // ==============================================================
 
   useEffect(() => {
     carregarConfrontos();
@@ -103,12 +774,8 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
         fase
       );
 
-      console.log("📊 Confrontos recebidos:", dados);
-      console.log("📊 Quantidade:", dados?.length || 0);
-
       setConfrontos(dados);
     } catch (err: any) {
-      console.error("Erro ao carregar confrontos:", err);
       setErro(err.message || "Erro ao carregar confrontos");
     } finally {
       setLoading(false);
@@ -123,22 +790,16 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     try {
       setLoading(true);
       await chaveService.gerarFaseEliminatoria(etapaId, 2);
-
-      // Aguardar um momento para o Firestore sincronizar
-      console.log("⏳ Aguardando sincronização...");
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       alert("✅ Fase eliminatória gerada com sucesso!");
       await carregarConfrontos();
     } catch (err: any) {
-      console.error("Erro ao gerar eliminatória:", err);
       alert(`❌ Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // ============== NOVO: CANCELAR ELIMINATÓRIA ==============
   const cancelarEliminatoria = async () => {
     if (
       !confirm(
@@ -158,25 +819,20 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     try {
       setLoading(true);
       await chaveService.cancelarFaseEliminatoria(etapaId);
-
       alert(
         "✅ Fase eliminatória cancelada!\n\n" +
           "Você pode agora:\n" +
           "• Ajustar resultados da fase de grupos\n" +
           "• Gerar a eliminatória novamente"
       );
-
       await carregarConfrontos();
     } catch (err: any) {
-      console.error("Erro ao cancelar eliminatória:", err);
       alert(`❌ Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
-  // ========================================================
 
-  // ============== NOVO: ENCERRAR ETAPA ==============
   const encerrarEtapa = async () => {
     if (
       !confirm(
@@ -191,21 +847,15 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
 
     try {
       setLoading(true);
-      // Aqui você pode chamar um método do service para encerrar a etapa
       await etapaService.encerrarEtapa(etapaId);
-
       alert("✅ Etapa encerrada com sucesso! 🏆");
-
-      // Recarregar ou redirecionar
       window.location.reload();
     } catch (err: any) {
-      console.error("Erro ao encerrar etapa:", err);
       alert(`❌ Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
-  // ==================================================
 
   const getNomeFase = (fase: TipoFase): string => {
     const nomes = {
@@ -218,24 +868,12 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   };
 
   const getStatusBadge = (status: StatusConfrontoEliminatorio) => {
-    const badges = {
-      [StatusConfrontoEliminatorio.BYE]: (
-        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
-          🎖️ BYE
-        </span>
-      ),
-      [StatusConfrontoEliminatorio.AGENDADA]: (
-        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
-          ⏳ Aguardando
-        </span>
-      ),
-      [StatusConfrontoEliminatorio.FINALIZADA]: (
-        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-          ✅ Finalizada
-        </span>
-      ),
+    const labels = {
+      [StatusConfrontoEliminatorio.BYE]: "🎖️ BYE",
+      [StatusConfrontoEliminatorio.AGENDADA]: "⏳ Aguardando",
+      [StatusConfrontoEliminatorio.FINALIZADA]: "✅ Finalizada",
     };
-    return badges[status];
+    return <StatusBadge $status={status}>{labels[status]}</StatusBadge>;
   };
 
   const agruparPorFase = () => {
@@ -246,7 +884,6 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       [TipoFase.FINAL]: [],
     };
 
-    // Verificar se confrontos existe e é array
     if (confrontos && Array.isArray(confrontos)) {
       confrontos.forEach((c) => {
         grupos[c.fase].push(c);
@@ -267,117 +904,93 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
 
   if (loading && (!confrontos || confrontos.length === 0)) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingContainer>
+        <Spinner />
+      </LoadingContainer>
     );
   }
 
   if (erro) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-700">❌ {erro}</p>
-          <button
-            onClick={carregarConfrontos}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            🔄 Tentar Novamente
-          </button>
-        </div>
-      </div>
+      <EmptyStateCard>
+        <EmptyStateContent>
+          <ErrorBox>❌ {erro}</ErrorBox>
+          <ButtonGroup>
+            <Button onClick={carregarConfrontos}>🔄 Tentar Novamente</Button>
+          </ButtonGroup>
+        </EmptyStateContent>
+      </EmptyStateCard>
     );
   }
 
   if (!confrontos || confrontos.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <div className="text-6xl mb-4">🏆</div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            Fase Eliminatória
-          </h3>
+      <EmptyStateCard>
+        <EmptyStateContent>
+          <EmptyIcon>🏆</EmptyIcon>
+          <EmptyTitle>Fase Eliminatória</EmptyTitle>
 
-          {/* ============== NOVO: VERIFICAR GRUPO ÚNICO PRIMEIRO ============== */}
           {isGrupoUnico ? (
-            // ============== MENSAGEM PARA GRUPO ÚNICO ==============
             <>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                <div className="text-5xl mb-3">🏆</div>
-                <h4 className="text-xl font-bold text-green-800 mb-3">
-                  Grupo Único - Campeão Definido!
-                </h4>
-                <p className="text-green-700 mb-4">
+              <AlertBox $variant="success">
+                <EmptyIcon>🏆</EmptyIcon>
+                <h4>Grupo Único - Campeão Definido!</h4>
+                <p>
                   Com apenas 1 grupo, todos os jogadores já se enfrentaram no
                   sistema <strong>Todos contra Todos</strong>.
                 </p>
-                <div className="bg-white rounded-lg p-4 border border-green-300">
-                  <p className="text-sm text-gray-700 mb-2">
-                    <strong className="text-green-700">Sistema:</strong>{" "}
-                    Round-Robin (Todos contra Todos)
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    O <strong className="text-green-700">1º colocado</strong> do
-                    grupo é automaticamente o{" "}
-                    <strong className="text-green-700">CAMPEÃO</strong>! 🥇
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500">
+                <InfoBox>
+                  <InfoText>
+                    <strong>Sistema:</strong> Round-Robin (Todos contra Todos)
+                  </InfoText>
+                  <InfoText>
+                    O <strong>1º colocado</strong> do grupo é automaticamente o{" "}
+                    <strong>CAMPEÃO</strong>! 🥇
+                  </InfoText>
+                </InfoBox>
+              </AlertBox>
+              <HintText>
                 💡 Para ter fase eliminatória, configure a etapa com 2 ou mais
                 grupos
-              </p>
+              </HintText>
             </>
           ) : !todosGruposCompletos ? (
-            // ============== PARTIDAS PENDENTES (SEU CÓDIGO ORIGINAL) ==============
             <>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <p className="text-yellow-800 font-semibold mb-2">
+              <AlertBox $variant="warning">
+                <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
                   ⚠️ Finalize todas as partidas da fase de grupos primeiro
                 </p>
-                <p className="text-yellow-700 text-sm">
+                <p style={{ fontSize: "0.875rem", margin: 0 }}>
                   Ainda há {partidasPendentes} partida(s) pendente(s) nos
                   grupos.
                   <br />
                   Complete todos os jogos para gerar a fase eliminatória.
                 </p>
-              </div>
-              <button
-                disabled
-                className="px-6 py-3 bg-gray-400 text-white rounded-lg cursor-not-allowed font-semibold"
-                title="Complete todas as partidas dos grupos primeiro"
-              >
-                🔒 Gerar Fase Eliminatória
-              </button>
+              </AlertBox>
+              <Button disabled>🔒 Gerar Fase Eliminatória</Button>
             </>
           ) : (
-            // ============== PRONTO PARA GERAR (SEU CÓDIGO ORIGINAL) ==============
             <>
-              <p className="text-gray-600 mb-6">
+              <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>
                 A fase de grupos foi concluída! Gere a fase eliminatória para
                 continuar o torneio.
               </p>
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={gerarEliminatoria}
-                  disabled={loading}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50"
-                >
+              <ButtonGroup>
+                <Button onClick={gerarEliminatoria} disabled={loading}>
                   🚀 Gerar Fase Eliminatória
-                </button>
-                <button
+                </Button>
+                <Button
+                  $variant="gray"
                   onClick={carregarConfrontos}
                   disabled={loading}
-                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold disabled:opacity-50"
                 >
                   🔄 Recarregar
-                </button>
-              </div>
+                </Button>
+              </ButtonGroup>
             </>
           )}
-          {/* ================================================================= */}
-        </div>
-      </div>
+        </EmptyStateContent>
+      </EmptyStateCard>
     );
   }
 
@@ -387,72 +1000,51 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   );
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-6 text-white">
-        <h2 className="text-3xl font-bold mb-2">🏆 Fase Eliminatória</h2>
-        <p className="text-blue-100">Confrontos mata-mata até o campeão!</p>
-      </div>
+    <Container>
+      <Header>
+        <h2>Fase Eliminatória</h2>
+        <p>Confrontos mata-mata até o campeão!</p>
+      </Header>
 
-      {/* ============== BOTÕES DE AÇÃO ============== */}
-      <div className="flex gap-3">
-        {/* Botão Cancelar - só aparece se final NÃO foi finalizada */}
+      <ActionsRow>
         {!finalFinalizada && (
-          <button
+          <Button
+            $variant="danger"
             onClick={cancelarEliminatoria}
             disabled={loading}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             <span>🗑️</span>
             <span>Cancelar Eliminatória</span>
-          </button>
+          </Button>
         )}
 
-        {/* Botão Encerrar - só aparece se final foi finalizada */}
         {finalFinalizada && (
-          <button
-            onClick={encerrarEtapa}
-            disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg"
-          >
+          <Button $variant="warning" onClick={encerrarEtapa} disabled={loading}>
             <span>🏁</span>
             <span>Encerrar Etapa 🏆</span>
-          </button>
+          </Button>
         )}
-      </div>
-      {/* ============================================ */}
+      </ActionsRow>
 
-      {/* Controles */}
-      <div className="bg-white rounded-lg shadow-md p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        {/* Toggle visualização */}
-        <div className="flex gap-2">
-          <button
+      <Controls>
+        <ToggleGroup>
+          <ToggleButton
+            $active={visualizacao === "lista"}
             onClick={() => setVisualizacao("lista")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              visualizacao === "lista"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
           >
             📋 Lista
-          </button>
-          <button
+          </ToggleButton>
+          <ToggleButton
+            $active={visualizacao === "bracket"}
             onClick={() => setVisualizacao("bracket")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              visualizacao === "bracket"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
           >
             🌳 Bracket
-          </button>
-        </div>
+          </ToggleButton>
+        </ToggleGroup>
 
-        {/* Filtro de fase */}
-        <select
+        <Select
           value={faseAtual}
           onChange={(e) => setFaseAtual(e.target.value as TipoFase | "todas")}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="todas">Todas as Fases</option>
           {fasesComConfrontos.map(([fase]) => (
@@ -460,25 +1052,15 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
               {getNomeFase(fase as TipoFase)}
             </option>
           ))}
-        </select>
+        </Select>
 
-        {/* Botão atualizar */}
-        <button
-          onClick={carregarConfrontos}
-          disabled={loading}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-        >
+        <Button $variant="gray" onClick={carregarConfrontos} disabled={loading}>
           🔄 Atualizar
-        </button>
-      </div>
+        </Button>
+      </Controls>
 
-      {erro && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          ❌ {erro}
-        </div>
-      )}
+      {erro && <ErrorBox>❌ {erro}</ErrorBox>}
 
-      {/* Conteúdo */}
       {visualizacao === "lista" ? (
         <VisualizacaoLista
           confrontosPorFase={confrontosPorFase}
@@ -497,7 +1079,6 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
         />
       )}
 
-      {/* Modal de registro/edição de resultado */}
       {confrontoSelecionado && (
         <ModalRegistrarResultadoEliminatorio
           confronto={confrontoSelecionado}
@@ -508,13 +1089,12 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
           }}
         />
       )}
-    </div>
+    </Container>
   );
 };
 
-/**
- * Visualização em Lista
- */
+// ============== VISUALIZAÇÃO LISTA ==============
+
 const VisualizacaoLista: React.FC<{
   confrontosPorFase: Record<TipoFase, ConfrontoEliminatorio[]>;
   fasesComConfrontos: [string, ConfrontoEliminatorio[]][];
@@ -523,7 +1103,6 @@ const VisualizacaoLista: React.FC<{
   contarStatus: (fase: ConfrontoEliminatorio[]) => string;
   setConfrontoSelecionado: (confronto: ConfrontoEliminatorio) => void;
 }> = ({
-  confrontosPorFase,
   fasesComConfrontos,
   getNomeFase,
   getStatusBadge,
@@ -531,148 +1110,135 @@ const VisualizacaoLista: React.FC<{
   setConfrontoSelecionado,
 }) => {
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {fasesComConfrontos.map(([fase, confrontos]) => (
-        <div key={fase} className="bg-white rounded-lg shadow-md p-6">
-          {/* Header da fase */}
-          <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900">
-              📍 {getNomeFase(fase as TipoFase)}
-            </h3>
-            <span className="text-sm font-semibold text-gray-600">
-              {contarStatus(confrontos)} completos
-            </span>
-          </div>
+        <FaseCard key={fase}>
+          <FaseHeader>
+            <FaseTitle>📍 {getNomeFase(fase as TipoFase)}</FaseTitle>
+            <FaseStatus>{contarStatus(confrontos)} completos</FaseStatus>
+          </FaseHeader>
 
-          {/* Lista de confrontos */}
-          <div className="space-y-4">
+          <ConfrontosList>
             {confrontos.map((confronto) => (
-              <div
-                key={confronto.id}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                {/* Status */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-500">
-                    CONFRONTO {confronto.ordem}
-                  </span>
-                  {getStatusBadge(confronto.status)}
-                </div>
+              <ConfrontoCard key={confronto.id}>
+                {/* HEADER - Igual PartidasGrupo */}
+                <ConfrontoHeader>
+                  <ConfrontoInfo>
+                    <ConfrontoLabel>CONFRONTO {confronto.ordem}</ConfrontoLabel>
+                    <StatusInfo>{getStatusBadge(confronto.status)}</StatusInfo>
+                  </ConfrontoInfo>
+                </ConfrontoHeader>
 
-                {/* Confronto BYE */}
+                {/* BYE */}
                 {confronto.status === StatusConfrontoEliminatorio.BYE ? (
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <div className="text-lg font-bold text-green-700 mb-1">
-                      {confronto.dupla1Nome}
-                    </div>
-                    <div className="text-sm text-green-600">
-                      {confronto.dupla1Origem}
-                    </div>
-                    <div className="mt-2 text-sm font-semibold text-green-700">
-                      🎖️ Classificado automaticamente (BYE)
-                    </div>
-                  </div>
+                  <ByeBox>
+                    <ByeTeam>{confronto.dupla1Nome}</ByeTeam>
+                    <ByeOrigin>({confronto.dupla1Origem})</ByeOrigin>
+                    <ByeLabel>🎖️ Classificado automaticamente (BYE)</ByeLabel>
+                  </ByeBox>
                 ) : (
                   <>
-                    {/* Dupla 1 */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <span
-                          className={`font-medium ${
-                            confronto.vencedoraId === confronto.dupla1Id
-                              ? "text-green-600 font-bold"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {confronto.dupla1Nome}
-                        </span>
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({confronto.dupla1Origem})
-                        </span>
-                      </div>
-                      {confronto.status ===
-                        StatusConfrontoEliminatorio.FINALIZADA &&
-                        confronto.placar && (
-                          <span className="text-lg font-bold text-gray-900">
-                            {confronto.placar.split("-")[0]}
-                          </span>
-                        )}
-                    </div>
-
-                    {/* VS */}
-                    <div className="flex items-center justify-center my-2">
-                      <span className="text-xs text-gray-400 font-medium">
-                        VS
-                      </span>
-                    </div>
-
-                    {/* Dupla 2 */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <span
-                          className={`font-medium ${
-                            confronto.vencedoraId === confronto.dupla2Id
-                              ? "text-green-600 font-bold"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          {confronto.dupla2Nome}
-                        </span>
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({confronto.dupla2Origem})
-                        </span>
-                      </div>
-                      {confronto.status ===
-                        StatusConfrontoEliminatorio.FINALIZADA &&
-                        confronto.placar && (
-                          <span className="text-lg font-bold text-gray-900">
-                            {confronto.placar.split("-")[1]}
-                          </span>
-                        )}
-                    </div>
-
-                    {/* Resultado/Ações */}
-                    {confronto.status ===
-                    StatusConfrontoEliminatorio.FINALIZADA ? (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm">
-                            <span className="text-gray-600">🏆 Vencedor:</span>
-                            <span className="font-bold text-green-600 ml-2">
-                              {confronto.vencedoraNome}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => setConfrontoSelecionado(confronto)}
-                            className="px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors"
+                    {/* CONTENT - Igual PartidasGrupo */}
+                    <ConfrontoContent>
+                      {/* DUPLA 1 */}
+                      <DuplaRow>
+                        <div>
+                          <DuplaNome
+                            $isWinner={
+                              confronto.vencedoraId === confronto.dupla1Id
+                            }
                           >
-                            ✏️ Editar
-                          </button>
+                            {confronto.dupla1Nome}
+                          </DuplaNome>
+                          <DuplaOrigemText>
+                            ({confronto.dupla1Origem})
+                          </DuplaOrigemText>
                         </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfrontoSelecionado(confronto)}
-                        className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <span>📝</span>
-                        <span>Registrar Resultado</span>
-                      </button>
+                        {confronto.status ===
+                          StatusConfrontoEliminatorio.FINALIZADA &&
+                          confronto.placar && (
+                            <Score>{confronto.placar.split("-")[0]}</Score>
+                          )}
+                      </DuplaRow>
+
+                      {/* VS */}
+                      <VsSeparator>
+                        <span>VS</span>
+                      </VsSeparator>
+
+                      {/* DUPLA 2 */}
+                      <DuplaRow>
+                        <div>
+                          <DuplaNome
+                            $isWinner={
+                              confronto.vencedoraId === confronto.dupla2Id
+                            }
+                          >
+                            {confronto.dupla2Nome}
+                          </DuplaNome>
+                          <DuplaOrigemText>
+                            ({confronto.dupla2Origem})
+                          </DuplaOrigemText>
+                        </div>
+                        {confronto.status ===
+                          StatusConfrontoEliminatorio.FINALIZADA &&
+                          confronto.placar && (
+                            <Score>{confronto.placar.split("-")[1]}</Score>
+                          )}
+                      </DuplaRow>
+                    </ConfrontoContent>
+
+                    {/* PLACAR DETALHADO - Igual PartidasGrupo */}
+                    {confronto.status ===
+                      StatusConfrontoEliminatorio.FINALIZADA && (
+                      <PlacarDetalhado>
+                        <PlacarInfo>
+                          <span>🏆 Vencedor:</span>
+                          <span style={{ fontWeight: 700, color: "#16a34a" }}>
+                            {confronto.vencedoraNome}
+                          </span>
+                        </PlacarInfo>
+                      </PlacarDetalhado>
+                    )}
+
+                    {/* ACTION SECTION - Igual PartidasGrupo */}
+                    {confronto.status ===
+                      StatusConfrontoEliminatorio.AGENDADA && (
+                      <ActionSection>
+                        <ActionButton
+                          $variant="register"
+                          onClick={() => setConfrontoSelecionado(confronto)}
+                        >
+                          <span>Registrar Resultado</span>
+                        </ActionButton>
+                      </ActionSection>
+                    )}
+
+                    {confronto.status ===
+                      StatusConfrontoEliminatorio.FINALIZADA && (
+                      <ActionSection>
+                        <ActionButton
+                          $variant="edit"
+                          onClick={() => setConfrontoSelecionado(confronto)}
+                        >
+                          <span>✏️</span>
+                          <span>Editar Resultado</span>
+                        </ActionButton>
+                      </ActionSection>
                     )}
                   </>
                 )}
-              </div>
+              </ConfrontoCard>
             ))}
-          </div>
-        </div>
+          </ConfrontosList>
+        </FaseCard>
       ))}
     </div>
   );
 };
 
-/**
- * Visualização em Bracket (árvore)
- */
+// ============== VISUALIZAÇÃO BRACKET ==============
+
 const VisualizacaoBracket: React.FC<{
   confrontosPorFase: Record<TipoFase, ConfrontoEliminatorio[]>;
   getNomeFase: (fase: TipoFase) => string;
@@ -692,113 +1258,101 @@ const VisualizacaoBracket: React.FC<{
   ].filter((f) => confrontosPorFase[f].length > 0);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 overflow-x-auto">
-      <div className="flex gap-8 min-w-max">
+    <BracketContainer>
+      <BracketContent>
         {fases.map((fase) => (
-          <div key={fase} className="flex flex-col gap-4 min-w-[250px]">
-            {/* Título da fase */}
-            <div className="text-center font-bold text-gray-900 pb-2 border-b-2 border-blue-600">
-              {getNomeFase(fase)}
-            </div>
+          <BracketColumn key={fase}>
+            <BracketTitle>{getNomeFase(fase)}</BracketTitle>
 
-            {/* Confrontos da fase */}
-            <div className="space-y-4 flex-1 flex flex-col justify-around">
+            <BracketMatches>
               {confrontosPorFase[fase].map((confronto) => (
-                <div
+                <BracketMatch
                   key={confronto.id}
-                  className="border-2 border-gray-300 rounded-lg p-3 bg-gray-50 hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => {
                     if (confronto.status !== StatusConfrontoEliminatorio.BYE) {
                       setConfrontoSelecionado(confronto);
                     }
                   }}
                 >
-                  {/* Status */}
-                  <div className="flex justify-center mb-2">
+                  <BracketStatus>
                     {getStatusBadge(confronto.status)}
-                  </div>
+                  </BracketStatus>
 
-                  {/* BYE */}
                   {confronto.status === StatusConfrontoEliminatorio.BYE ? (
-                    <div className="text-center">
-                      <div className="font-bold text-green-700 text-sm">
+                    <BracketBye>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: "#166534",
+                          fontSize: "0.875rem",
+                        }}
+                      >
                         {confronto.dupla1Nome}
                       </div>
-                      <div className="text-xs text-green-600 mt-1">BYE</div>
-                    </div>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "#16a34a",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        BYE
+                      </div>
+                    </BracketBye>
                   ) : (
                     <>
-                      {/* Dupla 1 */}
-                      <div className="flex items-center justify-between py-1">
-                        <span
-                          className={`text-sm ${
-                            confronto.vencedoraId === confronto.dupla1Id
-                              ? "font-bold text-green-600"
-                              : "text-gray-700"
-                          }`}
-                        >
+                      <BracketTeam
+                        $isWinner={confronto.vencedoraId === confronto.dupla1Id}
+                      >
+                        <span>
                           {confronto.dupla1Nome?.split("&")[0].trim()}
                         </span>
                         {confronto.placar && (
-                          <span className="font-bold text-sm">
-                            {confronto.placar.split("-")[0]}
-                          </span>
+                          <span>{confronto.placar.split("-")[0]}</span>
                         )}
-                      </div>
+                      </BracketTeam>
 
-                      {/* Separador */}
-                      <div className="border-t border-gray-300 my-1"></div>
+                      <BracketDivider />
 
-                      {/* Dupla 2 */}
-                      <div className="flex items-center justify-between py-1">
-                        <span
-                          className={`text-sm ${
-                            confronto.vencedoraId === confronto.dupla2Id
-                              ? "font-bold text-green-600"
-                              : "text-gray-700"
-                          }`}
-                        >
+                      <BracketTeam
+                        $isWinner={confronto.vencedoraId === confronto.dupla2Id}
+                      >
+                        <span>
                           {confronto.dupla2Nome?.split("&")[0].trim()}
                         </span>
                         {confronto.placar && (
-                          <span className="font-bold text-sm">
-                            {confronto.placar.split("-")[1]}
-                          </span>
+                          <span>{confronto.placar.split("-")[1]}</span>
                         )}
-                      </div>
+                      </BracketTeam>
                     </>
                   )}
-                </div>
+                </BracketMatch>
               ))}
-            </div>
-          </div>
+            </BracketMatches>
+          </BracketColumn>
         ))}
 
-        {/* Campeão */}
         {confrontosPorFase[TipoFase.FINAL].length > 0 &&
           confrontosPorFase[TipoFase.FINAL][0].status ===
             StatusConfrontoEliminatorio.FINALIZADA && (
-            <div className="flex flex-col gap-4 min-w-[250px]">
-              <div className="text-center font-bold text-gray-900 pb-2 border-b-2 border-yellow-500">
-                🏆 CAMPEÃO
-              </div>
-              <div className="flex-1 flex items-center">
-                <div className="w-full border-4 border-yellow-500 rounded-lg p-6 bg-gradient-to-br from-yellow-50 to-yellow-100">
-                  <div className="text-center">
-                    <div className="text-4xl mb-2">🏆</div>
-                    <div className="font-bold text-xl text-yellow-700">
-                      {confrontosPorFase[TipoFase.FINAL][0].vencedoraNome}
-                    </div>
-                    <div className="text-sm text-yellow-600 mt-2">
-                      Placar final:{" "}
-                      {confrontosPorFase[TipoFase.FINAL][0].placar}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ChampionBox>
+              <ChampionTitle>🏆 CAMPEÃO</ChampionTitle>
+              <ChampionCard>
+                <ChampionContent>
+                  <ChampionIcon>🏆</ChampionIcon>
+                  <ChampionName>
+                    {confrontosPorFase[TipoFase.FINAL][0].vencedoraNome}
+                  </ChampionName>
+                  <ChampionScore>
+                    Placar final: {confrontosPorFase[TipoFase.FINAL][0].placar}
+                  </ChampionScore>
+                </ChampionContent>
+              </ChampionCard>
+            </ChampionBox>
           )}
-      </div>
-    </div>
+      </BracketContent>
+    </BracketContainer>
   );
 };
+
+export default FaseEliminatoria;

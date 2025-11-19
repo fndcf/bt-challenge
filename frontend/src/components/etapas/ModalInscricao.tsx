@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import styled from "styled-components";
 import { Jogador, NivelJogador, StatusJogador } from "../../types/jogador";
 import jogadorService from "../../services/jogadorService";
 import etapaService from "../../services/etapaService";
@@ -6,20 +7,493 @@ import etapaService from "../../services/etapaService";
 interface ModalInscricaoProps {
   etapaId: string;
   etapaNome: string;
-  etapaNivel: NivelJogador; // ← ADICIONADO
+  etapaNivel: NivelJogador;
   maxJogadores: number;
   totalInscritos: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-/**
- * Modal para inscrever jogadores em uma etapa
- */
+// ============== STYLED COMPONENTS ==============
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+`;
+
+const ModalContainer = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 56rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Header = styled.div`
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const HeaderTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HeaderContent = styled.div``;
+
+const Title = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+`;
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+`;
+
+const CloseButton = styled.button`
+  font-size: 2rem;
+  color: #9ca3af;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #4b5563;
+  }
+`;
+
+const InfoRow = styled.div`
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+
+  @media (min-width: 375px) {
+    display: none;
+  }
+`;
+
+const InfoBadge = styled.div<{
+  $variant: "purple" | "cyan" | "blue" | "green";
+}>`
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "purple":
+        return `background: #faf5ff; color: #7c3aed;`;
+      case "cyan":
+        return `background: #ecfeff; color: #0891b2;`;
+      case "blue":
+        return `background: #eff6ff; color: #2563eb;`;
+      case "green":
+        return `background: #f0fdf4; color: #16a34a;`;
+    }
+  }}
+
+  span:first-child {
+    font-weight: 600;
+  }
+
+  span:last-child {
+    font-weight: 700;
+  }
+`;
+
+const WarningBox = styled.div`
+  margin-top: 0.75rem;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: #92400e;
+
+  strong {
+    font-weight: 600;
+  }
+
+  @media (min-width: 375px) {
+    display: none;
+  }
+`;
+
+const TabsContainer = styled.div`
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+`;
+
+const TabsRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const Tab = styled.button<{ $active: boolean }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+
+  ${(props) =>
+    props.$active
+      ? `
+    background: #2563eb;
+    color: white;
+  `
+      : `
+    background: white;
+    color: #374151;
+    &:hover { background: #f3f4f6; }
+  `}
+`;
+
+const SearchContainer = styled.div`
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #2563eb;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const Content = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+`;
+
+const FormContainer = styled.div`
+  max-width: 32rem;
+  margin: 0 auto;
+`;
+
+const FormTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1rem 0;
+`;
+
+const FormFields = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const FormField = styled.div``;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+
+  .required {
+    color: #ef4444;
+  }
+`;
+
+const Input = styled.input`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #2563eb;
+  }
+
+  &:disabled {
+    background: #f9fafb;
+    color: #6b7280;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const HintText = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+`;
+
+const Button = styled.button<{
+  $variant?: "primary" | "secondary" | "success";
+}>`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "success":
+        return `
+          background: #16a34a;
+          color: white;
+          &:hover:not(:disabled) { background: #15803d; }
+        `;
+      case "secondary":
+        return `
+          background: white;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          &:hover:not(:disabled) { background: #f9fafb; }
+        `;
+      default:
+        return `
+          background: #2563eb;
+          color: white;
+          &:hover:not(:disabled) { background: #1d4ed8; }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  text-align: center;
+  padding: 3rem 0;
+`;
+
+const Spinner = styled.div`
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingText = styled.p`
+  color: #6b7280;
+  margin: 0;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 3rem 0;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+`;
+
+const EmptyText = styled.p`
+  color: #6b7280;
+  margin: 0 0 0.5rem 0;
+`;
+
+const EmptyLink = styled.button`
+  color: #2563eb;
+  font-weight: 600;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+
+  &:hover {
+    color: #1d4ed8;
+  }
+`;
+
+const EmptyHint = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0 0;
+`;
+
+const JogadoresGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const JogadorCard = styled.div<{ $selected: boolean }>`
+  border: 1px solid ${(props) => (props.$selected ? "#3b82f6" : "#e5e7eb")};
+  border-radius: 0.5rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: ${(props) => (props.$selected ? "#eff6ff" : "white")};
+
+  &:hover {
+    border-color: ${(props) => (props.$selected ? "#3b82f6" : "#d1d5db")};
+    background: ${(props) => (props.$selected ? "#eff6ff" : "#f9fafb")};
+  }
+`;
+
+const JogadorContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const JogadorInfo = styled.div`
+  flex: 1;
+`;
+
+const JogadorHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const JogadorName = styled.h3`
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  font-size: 0.9375rem;
+`;
+
+const CheckIcon = styled.span`
+  color: #2563eb;
+  font-size: 1rem;
+`;
+
+const JogadorEmail = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+`;
+
+const JogadorLevel = styled.span`
+  display: inline-block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+`;
+
+const MessageBox = styled.div<{ $variant: "success" | "error" }>`
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid
+    ${(props) => (props.$variant === "success" ? "#bbf7d0" : "#fecaca")};
+  background: ${(props) =>
+    props.$variant === "success" ? "#f0fdf4" : "#fee2e2"};
+  font-size: 0.875rem;
+  color: ${(props) => (props.$variant === "success" ? "#166534" : "#991b1b")};
+`;
+
+const Footer = styled.div`
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+`;
+
+const FooterContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const FooterInfo = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const FooterButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const FooterButton = styled.button<{ $variant?: "primary" | "secondary" }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  ${(props) =>
+    props.$variant === "primary"
+      ? `
+    background: #2563eb;
+    color: white;
+    &:hover:not(:disabled) { background: #1d4ed8; }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    &:hover:not(:disabled) { background: #f9fafb; }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   etapaId,
   etapaNome,
-  etapaNivel, // ← ADICIONADO
+  etapaNivel,
   maxJogadores,
   totalInscritos,
   onClose,
@@ -28,7 +502,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
   const [jogadoresInscritosIds, setJogadoresInscritosIds] = useState<string[]>(
     []
-  ); // ← NOVO
+  );
   const [jogadoresSelecionados, setJogadoresSelecionados] = useState<Jogador[]>(
     []
   );
@@ -42,7 +516,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
     nome: "",
     email: "",
     telefone: "",
-    nivel: etapaNivel, // ← ALTERADO: Usa nível da etapa
+    nivel: etapaNivel,
     status: StatusJogador.ATIVO,
   });
 
@@ -59,13 +533,11 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const carregarJogadores = async () => {
     try {
       setLoadingJogadores(true);
-      const data = await jogadorService.listar({ nivel: etapaNivel }); // ← Filtrar pelo nível
-      // data é ListagemJogadores, então pegamos data.jogadores
+      const data = await jogadorService.listar({ nivel: etapaNivel });
       setJogadores(data.jogadores || []);
     } catch (err: any) {
-      console.error("Erro ao carregar jogadores:", err);
       setError("Erro ao carregar jogadores");
-      setJogadores([]); // Array vazio em caso de erro
+      setJogadores([]);
     } finally {
       setLoadingJogadores(false);
     }
@@ -74,12 +546,9 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const carregarInscritos = async () => {
     try {
       const inscricoes = await etapaService.listarInscricoes(etapaId);
-      // Extrair apenas os IDs dos jogadores inscritos
       const ids = inscricoes.map((i) => i.jogadorId);
       setJogadoresInscritosIds(ids);
-      console.log(`📋 ${ids.length} jogadores já inscritos nesta etapa`);
     } catch (err: any) {
-      console.error("Erro ao carregar inscritos:", err);
       setJogadoresInscritosIds([]);
     }
   };
@@ -98,35 +567,23 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
 
       const jogadorCriado = await jogadorService.criar(novoJogador);
 
-      // Adiciona à lista
       setJogadores([...jogadores, jogadorCriado]);
 
-      // Limpa formulário
       setNovoJogador({
         nome: "",
         email: "",
         telefone: "",
-        nivel: NivelJogador.INICIANTE,
+        nivel: etapaNivel,
         status: StatusJogador.ATIVO,
       });
       setMostrarFormulario(false);
 
-      // Mostrar sucesso
       setSuccessMessage(`✓ ${jogadorCriado.nome} cadastrado com sucesso!`);
 
-      // Limpar mensagem após 3 segundos
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      console.error("Erro ao cadastrar:", err);
+      let mensagemErro = err.message || "Erro ao cadastrar jogador";
 
-      // Extrair mensagem de erro
-      let mensagemErro = "Erro ao cadastrar jogador";
-
-      if (err.message) {
-        mensagemErro = err.message;
-      }
-
-      // Verificar se é erro de nome duplicado
       if (mensagemErro.toLowerCase().includes("já existe")) {
         mensagemErro = "⚠️ " + mensagemErro;
       }
@@ -138,9 +595,8 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
     }
   };
 
-  // Filtrar jogadores disponíveis (não inscritos + busca)
   const jogadoresDisponiveis = (jogadores || []).filter(
-    (jogador) => !jogadoresInscritosIds.includes(jogador.id) // ← NÃO mostrar se já inscrito
+    (jogador) => !jogadoresInscritosIds.includes(jogador.id)
   );
 
   const jogadoresFiltrados = jogadoresDisponiveis.filter(
@@ -159,7 +615,6 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         jogadoresSelecionados.filter((j) => j.id !== jogador.id)
       );
     } else {
-      // Verificar se ainda tem vaga
       if (jogadoresSelecionados.length >= vagasDisponiveis) {
         alert(
           `Você só pode inscrever ${vagasDisponiveis} jogador(es) nesta etapa.`
@@ -180,7 +635,6 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
       setLoading(true);
       setError(null);
 
-      // Inscrever jogadores usando o serviço
       const jogadorIds = jogadoresSelecionados.map((j) => j.id);
       await etapaService.inscreverJogadores(etapaId, jogadorIds);
 
@@ -190,165 +644,135 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      console.error("Erro ao inscrever:", err);
       setError(err.message || "Erro ao inscrever jogadores");
     } finally {
       setLoading(false);
     }
   };
 
+  const getNivelLabel = (nivel: NivelJogador) => {
+    switch (nivel) {
+      case NivelJogador.INICIANTE:
+        return "🌱 Iniciante";
+      case NivelJogador.INTERMEDIARIO:
+        return "⚡ Intermediário";
+      case NivelJogador.AVANCADO:
+        return "🔥 Avançado";
+      case NivelJogador.PROFISSIONAL:
+        return "⭐ Profissional";
+      default:
+        return nivel;
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Inscrever Jogadores
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">{etapaNome}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
-            >
-              ×
-            </button>
-          </div>
+    <Overlay onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <ModalContainer>
+        <Header>
+          <HeaderTop>
+            <HeaderContent>
+              <Title>Inscrever Jogadores</Title>
+              <Subtitle>{etapaNome}</Subtitle>
+            </HeaderContent>
+            <CloseButton onClick={onClose}>×</CloseButton>
+          </HeaderTop>
 
-          {/* Info */}
-          <div className="mt-4 flex flex-wrap gap-4 text-sm">
-            {/* Nível da etapa */}
-            <div className="bg-purple-50 px-3 py-2 rounded">
-              <span className="text-purple-600 font-medium">Nível: </span>
-              <span className="text-purple-900 font-bold">
-                {etapaNivel === NivelJogador.INICIANTE && "🌱 Iniciante"}
-                {etapaNivel === NivelJogador.INTERMEDIARIO &&
-                  "⚡ Intermediário"}
-                {etapaNivel === NivelJogador.AVANCADO && "🔥 Avançado"}
-                {etapaNivel === NivelJogador.PROFISSIONAL && "⭐ Profissional"}
-              </span>
-            </div>
+          <InfoRow>
+            <InfoBadge $variant="purple">
+              <span>Nível: </span>
+              <span>{getNivelLabel(etapaNivel)}</span>
+            </InfoBadge>
 
-            {/* Jogadores disponíveis para inscrever */}
-            <div className="bg-cyan-50 px-3 py-2 rounded">
-              <span className="text-cyan-600 font-medium">
-                Jogadores disponíveis:{" "}
-              </span>
-              <span className="text-cyan-900 font-bold">
+            <InfoBadge $variant="cyan">
+              <span>Jogadores disponíveis: </span>
+              <span>
                 {jogadoresDisponiveis.length} de {jogadores.length}
               </span>
-            </div>
+            </InfoBadge>
 
-            <div className="bg-blue-50 px-3 py-2 rounded">
-              <span className="text-blue-600 font-medium">
-                Vagas na etapa:{" "}
-              </span>
-              <span className="text-blue-900">{vagasDisponiveis}</span>
-            </div>
-            <div className="bg-green-50 px-3 py-2 rounded">
-              <span className="text-green-600 font-medium">Selecionados: </span>
-              <span className="text-green-900">
-                {jogadoresSelecionados.length}
-              </span>
-            </div>
-          </div>
+            <InfoBadge $variant="blue">
+              <span>Vagas na etapa: </span>
+              <span>{vagasDisponiveis}</span>
+            </InfoBadge>
 
-          {/* Aviso sobre nível */}
-          <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
-            <p className="text-xs text-yellow-800">
-              ⚠️ <strong>Atenção:</strong> Apenas jogadores{" "}
-              <strong>{etapaNivel}</strong> que ainda não estão inscritos
-              aparecem na lista
-            </p>
-          </div>
-        </div>
+            <InfoBadge $variant="green">
+              <span>Selecionados: </span>
+              <span>{jogadoresSelecionados.length}</span>
+            </InfoBadge>
+          </InfoRow>
 
-        {/* Tabs: Selecionar ou Cadastrar */}
-        <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-          <div className="flex gap-2">
-            <button
+          <WarningBox>
+            ⚠️ <strong>Atenção:</strong> Apenas jogadores{" "}
+            <strong>{etapaNivel}</strong> que ainda não estão inscritos aparecem
+            na lista
+          </WarningBox>
+        </Header>
+
+        <TabsContainer>
+          <TabsRow>
+            <Tab
+              $active={!mostrarFormulario}
               onClick={() => setMostrarFormulario(false)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                !mostrarFormulario
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
             >
               Selecionar Jogadores
-            </button>
-            <button
+            </Tab>
+            <Tab
+              $active={mostrarFormulario}
               onClick={() => setMostrarFormulario(true)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                mostrarFormulario
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
             >
               + Cadastrar Novo
-            </button>
-          </div>
-        </div>
+            </Tab>
+          </TabsRow>
+        </TabsContainer>
 
-        {/* Busca (apenas quando está selecionando) */}
         {!mostrarFormulario && (
-          <div className="px-6 py-4 border-b border-gray-200">
-            <input
+          <SearchContainer>
+            <SearchInput
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="🔍 Buscar jogador por nome ou email..."
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
+          </SearchContainer>
         )}
 
-        {/* Conteúdo: Lista ou Formulário */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <Content>
           {mostrarFormulario ? (
-            // FORMULÁRIO DE CADASTRO
-            <div className="max-w-lg mx-auto">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Cadastrar Novo Jogador
-              </h3>
+            <FormContainer>
+              <FormTitle>Cadastrar Novo Jogador</FormTitle>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome <span className="text-red-500">*</span>
-                  </label>
-                  <input
+              <FormFields>
+                <FormField>
+                  <Label>
+                    Nome <span className="required">*</span>
+                  </Label>
+                  <Input
                     type="text"
                     value={novoJogador.nome}
                     onChange={(e) =>
                       setNovoJogador({ ...novoJogador, nome: e.target.value })
                     }
                     placeholder="Nome completo"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <FormField>
+                  <Label>
+                    Email <span className="required">*</span>
+                  </Label>
+                  <Input
                     type="email"
                     value={novoJogador.email}
                     onChange={(e) =>
                       setNovoJogador({ ...novoJogador, email: e.target.value })
                     }
                     placeholder="email@exemplo.com"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefone
-                  </label>
-                  <input
+                <FormField>
+                  <Label>Telefone</Label>
+                  <Input
                     type="tel"
                     value={novoJogador.telefone}
                     onChange={(e) =>
@@ -358,53 +782,41 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                       })
                     }
                     placeholder="(00) 00000-0000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nível <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                <FormField>
+                  <Label>
+                    Nível <span className="required">*</span>
+                  </Label>
+                  <Input
                     type="text"
-                    value={
-                      etapaNivel === NivelJogador.INICIANTE
-                        ? "🌱 Iniciante"
-                        : etapaNivel === NivelJogador.INTERMEDIARIO
-                        ? "⚡ Intermediário"
-                        : etapaNivel === NivelJogador.AVANCADO
-                        ? "🔥 Avançado"
-                        : "⭐ Profissional"
-                    }
+                    value={getNivelLabel(etapaNivel)}
                     disabled
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2 bg-gray-50 text-gray-700 cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <HintText>
                     O jogador será criado automaticamente com o nível desta
                     etapa
-                  </p>
-                </div>
+                  </HintText>
+                </FormField>
 
-                <button
+                <Button
+                  $variant="success"
                   onClick={handleCadastrarJogador}
                   disabled={loading || !novoJogador.nome.trim()}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {loading ? "Cadastrando..." : "✓ Cadastrar Jogador"}
-                </button>
-              </div>
-            </div>
+                </Button>
+              </FormFields>
+            </FormContainer>
           ) : loadingJogadores ? (
-            // LOADING
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando jogadores...</p>
-            </div>
+            <LoadingContainer>
+              <Spinner />
+              <LoadingText>Carregando jogadores...</LoadingText>
+            </LoadingContainer>
           ) : jogadoresFiltrados.length === 0 ? (
-            // LISTA VAZIA
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-600 mb-2">
+            <EmptyState>
+              <EmptyText>
                 {busca
                   ? "Nenhum jogador encontrado com esse termo"
                   : jogadores.length === 0
@@ -412,111 +824,90 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                   : jogadoresDisponiveis.length === 0
                   ? "✅ Todos os jogadores deste nível já estão inscritos!"
                   : "Nenhum jogador disponível"}
-              </p>
+              </EmptyText>
               {!busca && jogadores.length === 0 && (
-                <button
-                  onClick={() => setMostrarFormulario(true)}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
+                <EmptyLink onClick={() => setMostrarFormulario(true)}>
                   + Cadastrar primeiro jogador
-                </button>
+                </EmptyLink>
               )}
               {jogadoresDisponiveis.length === 0 && jogadores.length > 0 && (
-                <p className="text-sm text-gray-500 mt-2">
+                <EmptyHint>
                   {jogadores.length} jogador(es) {etapaNivel} já inscrito(s)
                   nesta etapa
-                </p>
+                </EmptyHint>
               )}
-            </div>
+            </EmptyState>
           ) : (
-            // GRID DE JOGADORES
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <JogadoresGrid>
               {jogadoresFiltrados.map((jogador) => {
                 const selecionado = jogadoresSelecionados.some(
                   (j) => j.id === jogador.id
                 );
 
                 return (
-                  <div
+                  <JogadorCard
                     key={jogador.id}
+                    $selected={selecionado}
                     onClick={() => toggleJogador(jogador)}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      selecionado
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-gray-900">
-                            {jogador.nome}
-                          </h3>
-                          {selecionado && (
-                            <span className="text-blue-600">✓</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600">{jogador.email}</p>
+                    <JogadorContent>
+                      <JogadorInfo>
+                        <JogadorHeader>
+                          <JogadorName>{jogador.nome}</JogadorName>
+                          {selecionado && <CheckIcon>✓</CheckIcon>}
+                        </JogadorHeader>
+                        <JogadorEmail>{jogador.email}</JogadorEmail>
                         {jogador.nivel && (
-                          <span className="text-xs text-gray-500 mt-1 inline-block">
-                            Nível: {jogador.nivel}
-                          </span>
+                          <JogadorLevel>Nível: {jogador.nivel}</JogadorLevel>
                         )}
-                      </div>
-                    </div>
-                  </div>
+                      </JogadorInfo>
+                    </JogadorContent>
+                  </JogadorCard>
                 );
               })}
-            </div>
+            </JogadoresGrid>
           )}
-        </div>
+        </Content>
 
-        {/* Success */}
         {successMessage && (
-          <div className="px-6 py-3 bg-green-50 border-t border-green-200">
-            <p className="text-sm text-green-800">{successMessage}</p>
-          </div>
+          <MessageBox $variant="success">{successMessage}</MessageBox>
         )}
 
-        {/* Error */}
-        {error && (
-          <div className="px-6 py-3 bg-red-50 border-t border-red-200">
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        )}
+        {error && <MessageBox $variant="error">{error}</MessageBox>}
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
+        <Footer>
+          <FooterContent>
+            <FooterInfo>
               {jogadoresSelecionados.length > 0 && !mostrarFormulario && (
                 <span>
                   {jogadoresSelecionados.length} jogador(es) selecionado(s)
                 </span>
               )}
-            </div>
+            </FooterInfo>
 
-            <div className="flex gap-3">
-              <button
+            <FooterButtons>
+              <FooterButton
+                $variant="secondary"
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancelar
-              </button>
+              </FooterButton>
               {!mostrarFormulario && (
-                <button
+                <FooterButton
+                  $variant="primary"
                   onClick={handleInscrever}
                   disabled={loading || jogadoresSelecionados.length === 0}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Inscrevendo..." : "Inscrever"}
-                </button>
+                </FooterButton>
               )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </FooterButtons>
+          </FooterContent>
+        </Footer>
+      </ModalContainer>
+    </Overlay>
   );
 };
+
+export default ModalInscricao;

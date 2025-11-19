@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import styled from "styled-components";
 
 interface ConfirmacaoPerigosaProps {
   isOpen: boolean;
@@ -11,10 +12,175 @@ interface ConfirmacaoPerigosaProps {
   loading?: boolean;
 }
 
-/**
- * Modal de confirmação para ações perigosas
- * Requer que o usuário digite uma palavra específica para confirmar
- */
+// ============== STYLED COMPONENTS ==============
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+`;
+
+const OverlayBackground = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s;
+`;
+
+const ModalWrapper = styled.div`
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+`;
+
+const ModalContainer = styled.div`
+  position: relative;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 28rem;
+  width: 100%;
+  padding: 1.5rem;
+`;
+
+const IconWarning = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  background: #fee2e2;
+  border-radius: 50%;
+
+  span {
+    font-size: 1.5rem;
+  }
+`;
+
+const Title = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin: 0 0 0.5rem 0;
+`;
+
+const Message = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  white-space: pre-line;
+`;
+
+const InputSection = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+`;
+
+const RequiredWord = styled.span`
+  font-weight: 700;
+  color: #dc2626;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #dc2626;
+  }
+
+  &:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+  }
+`;
+
+const ValidationMessage = styled.p<{ $isValid: boolean }>`
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  color: ${(props) => (props.$isValid ? "#16a34a" : "#dc2626")};
+`;
+
+const ButtonsRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  ${(props) =>
+    props.$variant === "primary"
+      ? `
+    background: #dc2626;
+    color: white;
+    border: none;
+    
+    &:hover:not(:disabled) {
+      background: #b91c1c;
+    }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+    }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const Spinner = styled.div`
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
   isOpen,
   onClose,
@@ -44,84 +210,73 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={handleClose}
-      ></div>
+    <Overlay>
+      <OverlayBackground onClick={handleClose} />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-          {/* Ícone de Aviso */}
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-            <span className="text-2xl">⚠️</span>
-          </div>
+      <ModalWrapper>
+        <ModalContainer>
+          <IconWarning>
+            <span>⚠️</span>
+          </IconWarning>
 
-          {/* Título */}
-          <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
-            {titulo}
-          </h3>
+          <Title>{titulo}</Title>
 
-          {/* Mensagem */}
-          <div className="text-sm text-gray-600 text-center mb-6 whitespace-pre-line">
-            {mensagem}
-          </div>
+          <Message>{mensagem}</Message>
 
-          {/* Input de Confirmação */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <InputSection>
+            <Label>
               Para confirmar, digite{" "}
-              <span className="font-bold text-red-600">
-                {palavraConfirmacao}
-              </span>
-            </label>
-            <input
+              <RequiredWord>{palavraConfirmacao}</RequiredWord>
+            </Label>
+            <Input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={`Digite "${palavraConfirmacao}"`}
               disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100"
               autoFocus
             />
             {inputValue && !isConfirmacaoCorreta && (
-              <p className="text-xs text-red-600 mt-1">❌ Texto incorreto</p>
+              <ValidationMessage $isValid={false}>
+                ❌ Texto incorreto
+              </ValidationMessage>
             )}
             {isConfirmacaoCorreta && (
-              <p className="text-xs text-green-600 mt-1">✅ Texto correto</p>
+              <ValidationMessage $isValid={true}>
+                ✅ Texto correto
+              </ValidationMessage>
             )}
-          </div>
+          </InputSection>
 
-          {/* Botões */}
-          <div className="flex gap-3">
-            <button
+          <ButtonsRow>
+            <Button
               type="button"
+              $variant="secondary"
               onClick={handleClose}
               disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              $variant="primary"
               onClick={handleConfirm}
               disabled={!isConfirmacaoCorreta || loading}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <Spinner />
                   <span>Processando...</span>
                 </>
               ) : (
                 <span>{textoBotao}</span>
               )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            </Button>
+          </ButtonsRow>
+        </ModalContainer>
+      </ModalWrapper>
+    </Overlay>
   );
 };
+
+export default ConfirmacaoPerigosa;

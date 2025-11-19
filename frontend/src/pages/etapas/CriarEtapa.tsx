@@ -1,12 +1,307 @@
-import React, { useState } from "react";
+/**
+ * CriarEtapa - Usando MESMA estrutura do Dashboard
+ */
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import { CriarEtapaDTO } from "../../types/etapa";
 import { NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 
-/**
- * Página de criar etapa
- */
+// ============== STYLED COMPONENTS ==============
+
+// ⭐ MESMA estrutura do Dashboard - SEM padding-top
+const Container = styled.div`
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+  }
+`;
+
+const Header = styled.div`
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    margin-bottom: 1.5rem;
+  }
+`;
+
+const BackButton = styled.button`
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+  padding: 0;
+
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9375rem;
+
+  @media (max-width: 768px) {
+    font-size: 0.875rem;
+  }
+`;
+
+const ErrorAlert = styled.div`
+  margin-bottom: 1.5rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 1rem;
+  border-radius: 0.5rem;
+
+  p:first-child {
+    font-weight: 500;
+    margin: 0 0 0.25rem 0;
+  }
+
+  p:last-child {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const Card = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+  }
+`;
+
+const CardTitle = styled.h2`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1rem 0;
+`;
+
+const FieldsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+`;
+
+const Input = styled.input<{ $hasError?: boolean }>`
+  width: 100%;
+  border: 1px solid ${(props) => (props.$hasError ? "#fca5a5" : "#d1d5db")};
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: ${(props) => (props.$hasError ? "#ef4444" : "#3b82f6")};
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const Textarea = styled.textarea`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3b82f6;
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3b82f6;
+  }
+`;
+
+const HelperText = styled.p<{ $error?: boolean }>`
+  font-size: 0.75rem;
+  color: ${(props) => (props.$error ? "#dc2626" : "#6b7280")};
+  margin: 0.25rem 0 0 0;
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const PreviewCard = styled.div`
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1rem;
+`;
+
+const PreviewTitle = styled.h3`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+  margin: 0 0 0.5rem 0;
+`;
+
+const PreviewContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const PreviewRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+
+  strong {
+    font-weight: 600;
+  }
+`;
+
+const PreviewBox = styled.div`
+  background: white;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+`;
+
+const PreviewNote = styled.p`
+  font-size: 0.75rem;
+  color: #2563eb;
+  margin: 0;
+`;
+
+const ButtonsRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    flex-direction: column-reverse;
+
+    button {
+      width: 100%;
+    }
+  }
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  ${(props) =>
+    props.$variant === "primary"
+      ? `
+    background: #3b82f6;
+    color: white;
+    border: none;
+
+    &:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+
+    &:hover {
+      background: #f9fafb;
+    }
+  `}
+`;
+
+// ============== COMPONENTE ==============
+
 export const CriarEtapa: React.FC = () => {
   const navigate = useNavigate();
 
@@ -21,22 +316,16 @@ export const CriarEtapa: React.FC = () => {
   const [formData, setFormData] = useState<CriarEtapaDTO>({
     nome: "",
     descricao: "",
-    nivel: NivelJogador.INTERMEDIARIO, // ← ADICIONADO: Valor padrão
+    nivel: NivelJogador.INTERMEDIARIO,
     dataInicio: "",
     dataFim: "",
     dataRealizacao: "",
     local: "",
     maxJogadores: 16,
-    jogadoresPorGrupo: 3, // Valor fixo, não editável
+    jogadoresPorGrupo: 3,
   });
 
-  /**
-   * Calcula a distribuição otimizada de duplas em grupos
-   * Prioriza grupos de 3 duplas, distribui extras nos últimos grupos
-   * EXCEÇÃO: 10 jogadores (5 duplas) = 1 grupo único
-   */
   const calcularDistribuicaoGrupos = () => {
-    // Validar se maxJogadores é um número válido
     if (
       !formData.maxJogadores ||
       isNaN(formData.maxJogadores) ||
@@ -61,7 +350,6 @@ export const CriarEtapa: React.FC = () => {
       };
     }
 
-    // EXCEÇÃO ESPECIAL: 10 jogadores (5 duplas) = 1 grupo único
     if (totalDuplas === 5) {
       return {
         qtdGrupos: 1,
@@ -71,18 +359,15 @@ export const CriarEtapa: React.FC = () => {
       };
     }
 
-    // Calcular quantidade de grupos (sempre começando com 3 duplas)
     const gruposBase = Math.floor(totalDuplas / 3);
     const duplasRestantes = totalDuplas % 3;
 
     const distribuicao: number[] = [];
 
-    // Criar grupos de 3 duplas
     for (let i = 0; i < gruposBase; i++) {
       distribuicao.push(3);
     }
 
-    // Distribuir duplas restantes nos últimos grupos (1 por grupo)
     if (duplasRestantes > 0) {
       for (let i = 0; i < duplasRestantes; i++) {
         const index = distribuicao.length - 1 - i;
@@ -94,7 +379,6 @@ export const CriarEtapa: React.FC = () => {
 
     const qtdGrupos = distribuicao.length;
 
-    // Criar descrição detalhada
     const descricaoGrupos = distribuicao
       .map((duplas, i) => `Grupo ${i + 1}: ${duplas} duplas`)
       .join(" | ");
@@ -109,13 +393,6 @@ export const CriarEtapa: React.FC = () => {
 
   const infoGrupos = calcularDistribuicaoGrupos();
 
-  /**
-   * Valida as datas do formulário
-   * Regras:
-   * 1. Data início < Data fim
-   * 2. Data fim < Data realização
-   * 3. Data realização deve ser após o fim das inscrições
-   */
   const validarDatas = () => {
     const erros: typeof errosDatas = {};
 
@@ -124,18 +401,15 @@ export const CriarEtapa: React.FC = () => {
       const fim = new Date(formData.dataFim);
       const realizacao = new Date(formData.dataRealizacao);
 
-      // Validar: início < fim
       if (inicio >= fim) {
         erros.dataFim = "Data fim deve ser após a data de início";
       }
 
-      // Validar: fim < realização
       if (fim >= realizacao) {
         erros.dataRealizacao =
           "Data de realização deve ser após o fim das inscrições";
       }
 
-      // Validar: início < realização
       if (inicio >= realizacao) {
         erros.dataRealizacao =
           "Data de realização deve ser após o início das inscrições";
@@ -146,8 +420,7 @@ export const CriarEtapa: React.FC = () => {
     return Object.keys(erros).length === 0;
   };
 
-  // Validar datas sempre que mudarem
-  React.useEffect(() => {
+  useEffect(() => {
     if (formData.dataInicio || formData.dataFim || formData.dataRealizacao) {
       validarDatas();
     }
@@ -160,24 +433,20 @@ export const CriarEtapa: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Validar datas
       if (!validarDatas()) {
         setError("Corrija os erros nas datas antes de continuar");
         setLoading(false);
         return;
       }
 
-      // Validar mínimo de jogadores
       if (formData.maxJogadores < 6) {
         setError("Mínimo de 6 jogadores necessário");
         setLoading(false);
         return;
       }
 
-      // Formatar datas para ISO
       const totalDuplas = Math.floor(formData.maxJogadores / 2);
 
-      // Calcular jogadoresPorGrupo que fará o backend chegar ao qtdGrupos correto
       const jogadoresPorGrupoCalculado = Math.ceil(
         totalDuplas / infoGrupos.qtdGrupos
       );
@@ -197,8 +466,6 @@ export const CriarEtapa: React.FC = () => {
       };
 
       await etapaService.criar(dadosFormatados);
-
-      // Redirecionar para a lista de etapas
       navigate("/admin/etapas");
     } catch (err: any) {
       console.error("Erro ao criar etapa:", err);
@@ -212,79 +479,58 @@ export const CriarEtapa: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <button
-          onClick={() => navigate("/admin/etapas")}
-          className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
-        >
+    <Container>
+      <Header>
+        <BackButton onClick={() => navigate("/admin/etapas")}>
           ← Voltar
-        </button>
-        <h1 className="text-3xl font-bold text-gray-900">Criar Nova Etapa</h1>
-        <p className="text-gray-600 mt-1">
+        </BackButton>
+        <Title>Criar Nova Etapa</Title>
+        <Subtitle>
           Preencha os dados para criar uma nova etapa do torneio
-        </p>
-      </div>
+        </Subtitle>
+      </Header>
 
-      {/* Erro */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-          <p className="font-medium">Erro ao criar etapa</p>
-          <p className="text-sm mt-1">{error}</p>
-        </div>
+        <ErrorAlert>
+          <p>Erro ao criar etapa</p>
+          <p>{error}</p>
+        </ErrorAlert>
       )}
 
-      {/* Formulário */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Card Principal */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Informações Básicas
-          </h2>
+      <Form onSubmit={handleSubmit}>
+        <Card>
+          <CardTitle>Informações Básicas</CardTitle>
 
-          <div className="space-y-4">
-            {/* Nome */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome da Etapa *
-              </label>
-              <input
+          <FieldsContainer>
+            <Field>
+              <Label>Nome da Etapa *</Label>
+              <Input
                 type="text"
                 required
                 value={formData.nome}
                 onChange={(e) => handleChange("nome", e.target.value)}
                 placeholder="Ex: Etapa 1 - Classificatória"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </Field>
 
-            {/* Descrição */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrição
-              </label>
-              <textarea
+            <Field>
+              <Label>Descrição</Label>
+              <Textarea
                 value={formData.descricao}
                 onChange={(e) => handleChange("descricao", e.target.value)}
                 placeholder="Descreva os detalhes da etapa..."
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </Field>
 
-            {/* Nível */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nível da Etapa *
-              </label>
-              <select
+            <Field>
+              <Label>Nível da Etapa *</Label>
+              <Select
                 required
                 value={formData.nivel}
                 onChange={(e) =>
                   handleChange("nivel", e.target.value as NivelJogador)
                 }
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
                 <option value={NivelJogador.INTERMEDIARIO}>
@@ -294,117 +540,79 @@ export const CriarEtapa: React.FC = () => {
                 <option value={NivelJogador.PROFISSIONAL}>
                   ⭐ Profissional
                 </option>
-              </select>
-              <p className="text-sm text-gray-500 mt-1">
+              </Select>
+              <HelperText>
                 ⚠️ Apenas jogadores deste nível poderão se inscrever
-              </p>
-            </div>
+              </HelperText>
+            </Field>
 
-            {/* Local */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Local
-              </label>
-              <input
+            <Field>
+              <Label>Local</Label>
+              <Input
                 type="text"
                 value={formData.local}
                 onChange={(e) => handleChange("local", e.target.value)}
                 placeholder="Ex: Quadras Arena Beach Tennis"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-          </div>
-        </div>
+            </Field>
+          </FieldsContainer>
+        </Card>
 
-        {/* Datas */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Datas</h2>
+        <Card>
+          <CardTitle>Datas</CardTitle>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Data Início Inscrições */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Início das Inscrições *
-              </label>
-              <input
+          <GridContainer>
+            <Field>
+              <Label>Início das Inscrições *</Label>
+              <Input
                 type="date"
                 required
+                $hasError={!!errosDatas.dataInicio}
                 value={formData.dataInicio}
                 onChange={(e) => handleChange("dataInicio", e.target.value)}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
-                  errosDatas.dataInicio
-                    ? "border-red-300 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
               />
               {errosDatas.dataInicio && (
-                <p className="text-xs text-red-600 mt-1">
-                  ⚠️ {errosDatas.dataInicio}
-                </p>
+                <HelperText $error>⚠️ {errosDatas.dataInicio}</HelperText>
               )}
-            </div>
+            </Field>
 
-            {/* Data Fim Inscrições */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fim das Inscrições *
-              </label>
-              <input
+            <Field>
+              <Label>Fim das Inscrições *</Label>
+              <Input
                 type="date"
                 required
+                $hasError={!!errosDatas.dataFim}
                 value={formData.dataFim}
                 onChange={(e) => handleChange("dataFim", e.target.value)}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
-                  errosDatas.dataFim
-                    ? "border-red-300 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
               />
               {errosDatas.dataFim && (
-                <p className="text-xs text-red-600 mt-1">
-                  ⚠️ {errosDatas.dataFim}
-                </p>
+                <HelperText $error>⚠️ {errosDatas.dataFim}</HelperText>
               )}
-            </div>
+            </Field>
 
-            {/* Data Realização */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Data de Realização *
-              </label>
-              <input
+            <Field>
+              <Label>Data de Realização *</Label>
+              <Input
                 type="date"
                 required
+                $hasError={!!errosDatas.dataRealizacao}
                 value={formData.dataRealizacao}
                 onChange={(e) => handleChange("dataRealizacao", e.target.value)}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
-                  errosDatas.dataRealizacao
-                    ? "border-red-300 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
               />
               {errosDatas.dataRealizacao && (
-                <p className="text-xs text-red-600 mt-1">
-                  ⚠️ {errosDatas.dataRealizacao}
-                </p>
+                <HelperText $error>⚠️ {errosDatas.dataRealizacao}</HelperText>
               )}
-            </div>
-          </div>
-        </div>
+            </Field>
+          </GridContainer>
+        </Card>
 
-        {/* Configurações */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Configurações
-          </h2>
+        <Card>
+          <CardTitle>Configurações</CardTitle>
 
-          <div className="space-y-4">
-            {/* Máximo de Jogadores */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Máximo de Jogadores *
-              </label>
-              <input
+          <FieldsContainer>
+            <Field>
+              <Label>Máximo de Jogadores *</Label>
+              <Input
                 type="number"
                 required
                 min="6"
@@ -418,78 +626,69 @@ export const CriarEtapa: React.FC = () => {
                   );
                 }}
                 onBlur={(e) => {
-                  // Validar e ajustar para par ao sair do campo
                   const valor = parseInt(e.target.value);
                   if (isNaN(valor) || valor < 6) {
                     handleChange("maxJogadores", 6);
                   } else if (valor % 2 !== 0) {
-                    // Se for ímpar, ajustar para próximo par
                     handleChange("maxJogadores", valor + 1);
                   }
                 }}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <HelperText>
                 Deve ser um número par (mínimo 6, máximo 64)
-              </p>
-            </div>
+              </HelperText>
+            </Field>
 
-            {/* Preview da Distribuição de Grupos */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">
-                📊 Distribuição Automática de Grupos
-              </h3>
+            <PreviewCard>
+              <PreviewTitle>📊 Distribuição Automática de Grupos</PreviewTitle>
 
               {infoGrupos.qtdGrupos > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-blue-700">
+                <PreviewContent>
+                  <PreviewRow>
+                    <span>
                       <strong>{infoGrupos.totalDuplas}</strong> duplas
                     </span>
-                    <span className="text-blue-700">→</span>
-                    <span className="text-blue-700">
+                    <span>→</span>
+                    <span>
                       <strong>{infoGrupos.qtdGrupos}</strong>{" "}
                       {infoGrupos.qtdGrupos === 1 ? "grupo" : "grupos"}
                     </span>
-                  </div>
+                  </PreviewRow>
 
-                  <div className="bg-white rounded p-3 text-sm text-gray-700">
-                    {infoGrupos.descricao}
-                  </div>
+                  <PreviewBox>{infoGrupos.descricao}</PreviewBox>
 
-                  <p className="text-xs text-blue-600">
+                  <PreviewNote>
                     ✓ Grupos criados automaticamente com 3 duplas cada (mínimo)
-                  </p>
-                </div>
+                  </PreviewNote>
+                </PreviewContent>
               ) : (
-                <p className="text-sm text-blue-700">{infoGrupos.descricao}</p>
+                <PreviewRow>{infoGrupos.descricao}</PreviewRow>
               )}
-            </div>
-          </div>
-        </div>
+            </PreviewCard>
+          </FieldsContainer>
+        </Card>
 
-        {/* Botões */}
-        <div className="flex items-center justify-end gap-4">
-          <button
+        <ButtonsRow>
+          <Button
             type="button"
+            $variant="secondary"
             onClick={() => navigate("/admin/etapas")}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
+            $variant="primary"
             disabled={
               loading ||
               infoGrupos.qtdGrupos === 0 ||
               Object.keys(errosDatas).length > 0
             }
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Criando..." : "Criar Etapa"}
-          </button>
-        </div>
-      </form>
-    </div>
+          </Button>
+        </ButtonsRow>
+      </Form>
+    </Container>
   );
 };

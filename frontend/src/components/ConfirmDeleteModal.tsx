@@ -1,5 +1,5 @@
 import React from "react";
-import "./ConfirmDeleteModal.css";
+import styled from "styled-components";
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -10,6 +10,133 @@ interface ConfirmDeleteModalProps {
   onCancel: () => void;
   loading?: boolean;
 }
+
+// ============== STYLED COMPONENTS ==============
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 28rem;
+  width: 100%;
+  overflow: hidden;
+`;
+
+const Header = styled.div`
+  padding: 1.5rem;
+  text-align: center;
+  border-bottom: 1px solid #f3f4f6;
+`;
+
+const IconContainer = styled.div`
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  background: #fee2e2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+`;
+
+const Title = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+`;
+
+const Body = styled.div`
+  padding: 1.5rem;
+`;
+
+const Message = styled.p`
+  font-size: 0.9375rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+`;
+
+const ItemHighlight = styled.div`
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+
+  strong {
+    color: #dc2626;
+    font-weight: 600;
+  }
+`;
+
+const Warning = styled.p`
+  font-size: 0.875rem;
+  color: #dc2626;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const Footer = styled.div`
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  display: flex;
+  gap: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+`;
+
+const Button = styled.button<{ $variant: "cancel" | "delete" }>`
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  ${(props) =>
+    props.$variant === "delete"
+      ? `
+    background: #dc2626;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #b91c1c;
+    }
+  `
+      : `
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+    }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// ============== COMPONENTE ==============
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   isOpen,
@@ -23,44 +150,33 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="modal-header">
-          <div className="modal-icon danger">🗑️</div>
-          <h2 className="modal-title">{title}</h2>
-        </div>
+    <Overlay onClick={onCancel}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
+        <Header>
+          <IconContainer>🗑️</IconContainer>
+          <Title>{title}</Title>
+        </Header>
 
-        {/* Body */}
-        <div className="modal-body">
-          <p className="modal-message">{message}</p>
+        <Body>
+          <Message>{message}</Message>
           {itemName && (
-            <div className="item-highlight">
+            <ItemHighlight>
               <strong>{itemName}</strong>
-            </div>
+            </ItemHighlight>
           )}
-          <p className="modal-warning">⚠️ Esta ação não pode ser desfeita!</p>
-        </div>
+          <Warning>⚠️ Esta ação não pode ser desfeita!</Warning>
+        </Body>
 
-        {/* Footer */}
-        <div className="modal-footer">
-          <button
-            className="btn-modal btn-cancel"
-            onClick={onCancel}
-            disabled={loading}
-          >
+        <Footer>
+          <Button $variant="cancel" onClick={onCancel} disabled={loading}>
             Cancelar
-          </button>
-          <button
-            className="btn-modal btn-delete"
-            onClick={onConfirm}
-            disabled={loading}
-          >
+          </Button>
+          <Button $variant="delete" onClick={onConfirm} disabled={loading}>
             {loading ? "Deletando..." : "Sim, Deletar"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Footer>
+      </ModalContent>
+    </Overlay>
   );
 };
 

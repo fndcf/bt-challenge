@@ -1,4 +1,9 @@
+/**
+ * ChavesEtapa - Versão responsiva e equilibrada
+ */
+
 import React, { useState, useEffect } from "react";
+import styled from "styled-components";
 import chaveService from "../../services/chaveService";
 import { Dupla, Grupo } from "../../types/chave";
 import { PartidasGrupo } from "./PartidasGrupo";
@@ -6,14 +11,426 @@ import { FaseEliminatoria } from "./FaseEliminatoria";
 
 interface ChavesEtapaProps {
   etapaId: string;
-  arenaId?: string; // ← ADICIONAR
+  arenaId?: string;
 }
 
 type AbaAtiva = "grupos" | "eliminatoria";
 
-/**
- * Componente para visualizar chaves geradas (grupos, duplas e eliminatória)
- */
+// ============== STYLED COMPONENTS ==============
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  @media (min-width: 768px) {
+    padding: 1.5rem;
+  }
+`;
+
+const TabsContainer = styled.div`
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 2rem;
+
+  /* ⭐ MOBILE: Remove borda */
+  @media (max-width: 768px) {
+    border-bottom: none;
+  }
+`;
+
+const TabsList = styled.nav`
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ⭐ MOBILE: Layout vertical */
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+`;
+
+const Tab = styled.button<{ $isActive: boolean }>`
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: none;
+  border-bottom: 3px solid
+    ${(props) => (props.$isActive ? "#2563eb" : "transparent")};
+  color: ${(props) => (props.$isActive ? "#2563eb" : "#6b7280")};
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover {
+    color: #2563eb;
+  }
+
+  /* ⭐ MOBILE: Botões verticais */
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    text-align: left;
+    background: ${(props) => (props.$isActive ? "#eff6ff" : "white")};
+    border-color: ${(props) => (props.$isActive ? "#2563eb" : "#e5e7eb")};
+    border-bottom: 1px solid
+      ${(props) => (props.$isActive ? "#2563eb" : "#e5e7eb")};
+
+    &:hover {
+      background: ${(props) => (props.$isActive ? "#eff6ff" : "#f9fafb")};
+    }
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const Stats = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const GruposGrid = styled.div`
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+
+  /* ⭐ TABLET: Também 2 colunas (antes era só a partir de 1024px) */
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const GrupoCard = styled.div`
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+`;
+
+const GrupoHeader = styled.div`
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const GrupoNome = styled.h3`
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+
+  @media (min-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const GrupoBadge = styled.div`
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+`;
+
+const DuplasList = styled.div`
+  > * + * {
+    border-top: 1px solid #f3f4f6;
+  }
+`;
+
+const DuplaItem = styled.div`
+  padding: 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f9fafb;
+  }
+
+  @media (min-width: 768px) {
+    align-items: center;
+    gap: 1.5rem;
+  }
+`;
+
+const PosicaoBadge = styled.div`
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  background: #dbeafe;
+  color: #2563eb;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+
+  @media (min-width: 768px) {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+  }
+`;
+
+const DuplaContent = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  /* ⭐ DESKTOP: Só fica horizontal a partir de 1024px */
+  @media (min-width: 1025px) {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+`;
+
+const DuplaInfo = styled.div`
+  min-width: 0;
+
+  @media (min-width: 1024px) {
+    flex: 1 1 65%; // Mais espaço para nomes
+    max-width: 75%;
+  }
+`;
+
+const JogadoresNome = styled.div`
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.9375rem;
+  margin-bottom: 0.25rem;
+  overflow-wrap: break-word; /* ⭐ MUDOU: break-word → overflow-wrap */
+  word-wrap: break-word;
+  hyphens: auto; /* ⭐ NOVO: quebra com hífens */
+
+  @media (min-width: 768px) {
+    font-size: 1rem;
+  }
+
+  /* ⭐ TABLET: Linha única se couber */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* ⭐ DESKTOP: Pode quebrar normalmente */
+  @media (min-width: 1024px) {
+    white-space: normal;
+  }
+`;
+
+const NivelText = styled.div`
+  font-size: 0.8125rem;
+  color: #6b7280;
+`;
+
+// Estatísticas em GRID 2x2 no mobile, inline no desktop
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+
+  /* ⭐ DESKTOP: Inline só a partir de 1024px */
+  @media (min-width: 1024px) {
+    display: flex;
+    gap: 1.5rem;
+  }
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 60px;
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.6875rem;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  @media (min-width: 768px) {
+    font-size: 0.75rem;
+  }
+`;
+
+const StatValue = styled.div<{
+  $variant?: "primary" | "success" | "error" | "neutral";
+}>`
+  font-weight: 700;
+  font-size: ${(props) =>
+    props.$variant === "primary" ? "1.25rem" : "0.9375rem"};
+
+  color: ${(props) => {
+    switch (props.$variant) {
+      case "primary":
+        return "#2563eb";
+      case "success":
+        return "#16a34a";
+      case "error":
+        return "#dc2626";
+      default:
+        return "#374151";
+    }
+  }};
+
+  @media (min-width: 768px) {
+    font-size: ${(props) =>
+      props.$variant === "primary" ? "1.5rem" : "1.125rem"};
+  }
+`;
+
+const GrupoFooter = styled.div`
+  background: #f9fafb;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+`;
+
+const FooterInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const CompletoBadge = styled.span`
+  background: #dcfce7;
+  color: #15803d;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+`;
+
+const VerPartidasButton = styled.button`
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 0.9375rem;
+  }
+`;
+
+const PartidasContainer = styled.div`
+  margin-top: 1rem;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem;
+`;
+
+const Spinner = styled.div`
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const ErrorContainer = styled.div`
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #991b1b;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+  font-size: 0.9375rem;
+`;
+
+const InfoCard = styled.div`
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1.5rem;
+
+  h4 {
+    color: #1e40af;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9375rem;
+  }
+
+  p {
+    color: #1e40af;
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+`;
+
+// ============== COMPONENTE ==============
+
 export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   etapaId,
   arenaId,
@@ -23,266 +440,195 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [grupoSelecionado, setGrupoSelecionado] = useState<string | null>(null);
-
-  // ============== VERIFICAR SE ELIMINATÓRIA EXISTE ==============
   const [eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
-  // ==============================================================
-
-  // ============== SISTEMA DE ABAS ==============
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
-  // =============================================
 
   useEffect(() => {
     carregarChaves();
-  }, [etapaId]);
-
-  // Recarregar grupos quando entrar na aba eliminatória
-  useEffect(() => {
-    if (abaAtiva === "eliminatoria") {
-      console.log("🔄 Aba eliminatória aberta - recarregando grupos...");
-      carregarChaves();
-    }
-  }, [abaAtiva]);
-
-  // ============== LOG: Ver estado dos grupos ==============
-  useEffect(() => {
-    console.log("🔍 ChavesEtapa: Estado 'grupos' mudou!");
-    console.log("🔍 ChavesEtapa: grupos.length =", grupos?.length || 0);
-    console.log("🔍 ChavesEtapa: grupos =", grupos);
-  }, [grupos]);
-  // ========================================================
+  }, [etapaId, abaAtiva]);
 
   const carregarChaves = async () => {
     try {
       setLoading(true);
-      console.log("🔄 ChavesEtapa: Carregando grupos e duplas...");
+      setError(null);
+
       const [gruposData, duplasData] = await Promise.all([
         chaveService.buscarGrupos(etapaId),
         chaveService.buscarDuplas(etapaId),
       ]);
 
-      console.log(
-        "✅ ChavesEtapa: Grupos carregados:",
-        gruposData?.length || 0
-      );
-      console.log(
-        "✅ ChavesEtapa: Duplas carregadas:",
-        duplasData?.length || 0
-      );
-      console.log("📊 ChavesEtapa: Grupos DATA:", gruposData);
-
       setGrupos(gruposData);
       setDuplas(duplasData);
 
-      // ============== VERIFICAR SE ELIMINATÓRIA EXISTE ==============
       try {
         const confrontos = await chaveService.buscarConfrontosEliminatorios(
           etapaId
         );
-        const existe = confrontos && confrontos.length > 0;
-        setEliminatoriaExiste(existe);
-        console.log("🔍 ChavesEtapa: Eliminatória existe?", existe);
-      } catch (err) {
-        console.log("🔍 ChavesEtapa: Sem eliminatória");
+        setEliminatoriaExiste(confrontos && confrontos.length > 0);
+      } catch {
         setEliminatoriaExiste(false);
       }
-      // ==============================================================
-
-      // Log após setar no estado
-      console.log("✅ ChavesEtapa: Estado atualizado!");
     } catch (err: any) {
-      console.error("Erro ao carregar chaves:", err);
-      setError(err.message);
+      setError(err.message || "Erro ao carregar chaves");
     } finally {
       setLoading(false);
     }
   };
 
+  const toggleGrupo = (grupoId: string) => {
+    setGrupoSelecionado((prev) => (prev === grupoId ? null : grupoId));
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingContainer>
+        <Spinner />
+      </LoadingContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">Erro ao carregar chaves: {error}</p>
-      </div>
+      <Container>
+        <ErrorContainer>
+          <strong>Erro:</strong> {error}
+        </ErrorContainer>
+      </Container>
     );
   }
 
   if (grupos.length === 0) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-        <p className="text-gray-600">Nenhuma chave gerada ainda</p>
-      </div>
+      <Container>
+        <EmptyState>📭 Nenhuma chave gerada ainda</EmptyState>
+      </Container>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* ============== ABAS ============== */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex gap-4">
-          <button
+    <Container>
+      <TabsContainer>
+        <TabsList>
+          <Tab
+            $isActive={abaAtiva === "grupos"}
             onClick={() => setAbaAtiva("grupos")}
-            className={`
-              px-4 py-3 border-b-2 font-medium text-sm transition-colors
-              ${
-                abaAtiva === "grupos"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }
-            `}
           >
             📊 Fase de Grupos
-          </button>
-          <button
+          </Tab>
+          <Tab
+            $isActive={abaAtiva === "eliminatoria"}
             onClick={() => setAbaAtiva("eliminatoria")}
-            className={`
-              px-4 py-3 border-b-2 font-medium text-sm transition-colors
-              ${
-                abaAtiva === "eliminatoria"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }
-            `}
           >
             🏆 Eliminatória
-          </button>
-        </nav>
-      </div>
-      {/* ================================== */}
+          </Tab>
+        </TabsList>
+      </TabsContainer>
 
-      {/* ============== CONTEÚDO DAS ABAS ============== */}
       {abaAtiva === "grupos" ? (
-        // ABA GRUPOS (código original)
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Grupos e Duplas
-            </h2>
-            <div className="text-sm text-gray-500">
+        <>
+          <Header>
+            <Title>Grupos e Duplas</Title>
+            <Stats>
               {grupos.length} grupos • {duplas.length} duplas
-            </div>
-          </div>
+            </Stats>
+          </Header>
 
-          {/* Lista de Grupos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <GruposGrid>
             {grupos.map((grupo) => {
               const duplasDoGrupo = duplas.filter(
                 (d) => d.grupoId === grupo.id
               );
 
               return (
-                <div
-                  key={grupo.id}
-                  className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-                >
-                  {/* Header do Grupo */}
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-white">
-                        {grupo.nome}
-                      </h3>
-                      <div className="bg-white/20 px-3 py-1 rounded-full">
-                        <span className="text-sm font-medium text-white">
-                          {duplasDoGrupo.length} duplas
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                <GrupoCard key={grupo.id}>
+                  <GrupoHeader>
+                    <GrupoNome>{grupo.nome}</GrupoNome>
+                    <GrupoBadge>{duplasDoGrupo.length} duplas</GrupoBadge>
+                  </GrupoHeader>
 
-                  {/* Lista de Duplas */}
-                  <div className="divide-y divide-gray-100">
+                  <DuplasList>
                     {duplasDoGrupo.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-gray-500">
-                        Nenhuma dupla neste grupo
-                      </div>
+                      <EmptyState>Nenhuma dupla neste grupo</EmptyState>
                     ) : (
                       duplasDoGrupo.map((dupla, index) => (
-                        <div
-                          key={dupla.id}
-                          className="px-4 py-4 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            {/* Posição */}
-                            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-bold text-blue-600">
-                                {index + 1}
-                              </span>
-                            </div>
+                        <DuplaItem key={dupla.id}>
+                          <PosicaoBadge>{index + 1}</PosicaoBadge>
 
-                            {/* Jogadores */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900 truncate">
-                                  {dupla.jogador1Nome}
-                                </span>
-                                <span className="text-gray-400">&</span>
-                                <span className="font-medium text-gray-900 truncate">
-                                  {dupla.jogador2Nome}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-500 mt-0.5">
+                          <DuplaContent>
+                            <DuplaInfo>
+                              <JogadoresNome>
+                                {dupla.jogador1Nome} & {dupla.jogador2Nome}
+                              </JogadoresNome>
+                              <NivelText>
                                 Nível: {dupla.jogador1Nivel}
-                              </div>
-                            </div>
+                              </NivelText>
+                            </DuplaInfo>
 
-                            {/* Estatísticas (se houver) */}
                             {dupla.jogos > 0 && (
-                              <div className="flex-shrink-0 text-right">
-                                <div className="text-sm font-bold text-gray-900">
-                                  {dupla.pontos} pts
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {dupla.vitorias}V - {dupla.derrotas}D
-                                </div>
-                              </div>
+                              <StatsGrid>
+                                <StatItem>
+                                  <StatLabel>PTS</StatLabel>
+                                  <StatValue $variant="primary">
+                                    {dupla.pontos}
+                                  </StatValue>
+                                </StatItem>
+
+                                <StatItem>
+                                  <StatLabel>V-D</StatLabel>
+                                  <StatValue>
+                                    {dupla.vitorias}-{dupla.derrotas}
+                                  </StatValue>
+                                </StatItem>
+
+                                <StatItem>
+                                  <StatLabel>GF-GC</StatLabel>
+                                  <StatValue>
+                                    {dupla.gamesVencidos}-{dupla.gamesPerdidos}
+                                  </StatValue>
+                                </StatItem>
+
+                                <StatItem>
+                                  <StatLabel>SG</StatLabel>
+                                  <StatValue
+                                    $variant={
+                                      dupla.saldoGames > 0
+                                        ? "success"
+                                        : dupla.saldoGames < 0
+                                        ? "error"
+                                        : "neutral"
+                                    }
+                                  >
+                                    {dupla.saldoGames > 0 ? "+" : ""}
+                                    {dupla.saldoGames}
+                                  </StatValue>
+                                </StatItem>
+                              </StatsGrid>
                             )}
-                          </div>
-                        </div>
+                          </DuplaContent>
+                        </DuplaItem>
                       ))
                     )}
-                  </div>
+                  </DuplasList>
 
-                  {/* Footer do Grupo */}
-                  <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">
+                  <GrupoFooter>
+                    <FooterInfo>
+                      <span>
                         {grupo.partidasFinalizadas} / {grupo.totalPartidas}{" "}
-                        partidas jogadas
+                        partidas
                       </span>
                       {grupo.completo && (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium text-xs">
-                          ✓ Completo
-                        </span>
+                        <CompletoBadge>✓ Completo</CompletoBadge>
                       )}
-                    </div>
+                    </FooterInfo>
 
-                    {/* Botão Ver Partidas */}
-                    <button
-                      onClick={() =>
-                        setGrupoSelecionado(
-                          grupoSelecionado === grupo.id ? null : grupo.id
-                        )
-                      }
-                      className="w-full mt-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                    >
-                      <span>⚔️</span>
-                      <span>
-                        {grupoSelecionado === grupo.id
-                          ? "Ocultar Partidas"
-                          : "Ver Partidas"}
-                      </span>
-                    </button>
+                    <VerPartidasButton onClick={() => toggleGrupo(grupo.id)}>
+                      {grupoSelecionado === grupo.id
+                        ? "🔼 Ocultar Partidas"
+                        : "⚔️ Ver Partidas"}
+                    </VerPartidasButton>
 
-                    {/* Partidas do Grupo */}
                     {grupoSelecionado === grupo.id && (
-                      <div className="mt-4">
+                      <PartidasContainer>
                         <PartidasGrupo
                           etapaId={etapaId}
                           grupoId={grupo.id}
@@ -290,55 +636,31 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                           onAtualizarGrupos={carregarChaves}
                           eliminatoriaExiste={eliminatoriaExiste}
                         />
-                      </div>
+                      </PartidasContainer>
                     )}
-                  </div>
-                </div>
+                  </GrupoFooter>
+                </GrupoCard>
               );
             })}
-          </div>
+          </GruposGrid>
 
-          {/* Informações Adicionais */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">ℹ️</span>
-              <div className="flex-1">
-                <h4 className="font-medium text-blue-900 mb-1">
-                  Fase de Grupos
-                </h4>
-                <p className="text-sm text-blue-700">
-                  Cada dupla joga contra todas as outras duplas do seu grupo. As
-                  duplas com melhor campanha classificam para a próxima fase.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        // ABA ELIMINATÓRIA
-        <>
-          {(() => {
-            console.log(
-              "🔍 ChavesEtapa: Passando grupos para FaseEliminatoria"
-            );
-            console.log("🔍 Quantidade:", grupos?.length || 0);
-            grupos?.forEach((g, i) => {
-              console.log(`🔍 Grupo ${i + 1} (${g.nome}):`, {
-                completo: g.completo,
-                partidasFinalizadas: g.partidasFinalizadas,
-                totalPartidas: g.totalPartidas,
-              });
-            });
-            return null;
-          })()}
-          <FaseEliminatoria
-            etapaId={etapaId}
-            arenaId={arenaId || ""}
-            grupos={grupos}
-          />
+          <InfoCard>
+            <h4>ℹ️ Fase de Grupos</h4>
+            <p>
+              Cada dupla joga contra todas as outras duplas do seu grupo. As
+              duplas com melhor campanha classificam para a próxima fase.
+            </p>
+          </InfoCard>
         </>
+      ) : (
+        <FaseEliminatoria
+          etapaId={etapaId}
+          arenaId={arenaId || ""}
+          grupos={grupos}
+        />
       )}
-      {/* =============================================== */}
-    </div>
+    </Container>
   );
 };
+
+export default ChavesEtapa;
