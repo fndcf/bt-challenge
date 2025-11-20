@@ -8,6 +8,7 @@ import React, {
 import { useLocation } from "react-router-dom";
 import { Arena, ArenaContextType } from "../types";
 import { arenaService } from "../services/arenaService";
+import { useAuth } from "./AuthContext"; // ✅ NOVO
 
 const ArenaContext = createContext<ArenaContextType | undefined>(undefined);
 
@@ -24,6 +25,7 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
+  const { user } = useAuth(); // ✅ NOVO: Pegar usuário autenticado
 
   /**
    * Extrair slug da arena da URL
@@ -35,12 +37,14 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
   };
 
   /**
-   * Buscar arena pelo slug
+   * Buscar arena pelo slug (rotas públicas)
    */
-  const fetchArena = async (slug: string) => {
+  const fetchArenaBySlug = async (slug: string) => {
     try {
       setLoading(true);
       setError(null);
+
+      console.log("🔍 Buscando arena pelo slug:", slug);
 
       const arenaData = await arenaService.getBySlug(slug);
 
@@ -50,8 +54,39 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
         return;
       }
 
+      console.log("✅ Arena carregada (slug):", arenaData);
       setArena(arenaData);
     } catch (err: any) {
+      console.error("❌ Erro ao carregar arena:", err);
+      setError(err.message || "Erro ao carregar arena");
+      setArena(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * ✅ NOVO: Buscar arena do admin logado (rotas admin)
+   */
+  const fetchMyArena = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log("🔍 Buscando arena do admin logado...");
+
+      const arenaData = await arenaService.getMyArena();
+
+      if (!arenaData) {
+        setError("Arena não encontrada");
+        setArena(null);
+        return;
+      }
+
+      console.log("✅ Arena carregada (admin):", arenaData);
+      setArena(arenaData);
+    } catch (err: any) {
+      console.error("❌ Erro ao carregar arena:", err);
       setError(err.message || "Erro ao carregar arena");
       setArena(null);
     } finally {
@@ -66,13 +101,17 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
     const slug = extractArenaSlug(location.pathname);
 
     if (slug) {
-      fetchArena(slug);
+      // ✅ Rota pública com slug: /arena/:slug
+      fetchArenaBySlug(slug);
+    } else if (location.pathname.startsWith("/admin") && user) {
+      // ✅ NOVO: Rota admin: buscar arena do admin logado
+      fetchMyArena();
     } else {
-      // Não está em uma rota de arena específica
+      // Não está em uma rota de arena
       setArena(null);
       setLoading(false);
     }
-  }, [location.pathname]);
+  }, [location.pathname, user]); // ✅ Adicionar user como dependência
 
   const value: ArenaContextType = {
     arena,

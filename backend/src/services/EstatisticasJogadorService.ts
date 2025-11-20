@@ -99,18 +99,15 @@ export class EstatisticasJogadorService {
       let estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
 
       if (!estatisticas) {
-        console.warn(
-          `Estatísticas não encontradas para jogador ${jogadorId} na etapa ${etapaId}`
-        );
+        console.warn(`Estatísticas não encontradas...`);
         return;
       }
 
-      // Calcular novos valores
       const novasEstatisticas = {
         jogos: estatisticas.jogos + 1,
         vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
         derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
-        pontos: estatisticas.pontos + (dto.venceu ? 3 : 0),
+        pontos: estatisticas.pontos, // ← NÃO MEXE (sempre 0 até finalizar etapa)
         setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
         setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
         gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
@@ -145,18 +142,15 @@ export class EstatisticasJogadorService {
       const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
 
       if (!estatisticas) {
-        console.warn(
-          `Estatísticas não encontradas para reverter: jogador ${jogadorId}`
-        );
+        console.warn(`Estatísticas não encontradas...`);
         return;
       }
 
-      // Reverter valores
       const estatisticasRevertidas = {
         jogos: estatisticas.jogos - 1,
         vitorias: estatisticas.vitorias - (dto.venceu ? 1 : 0),
         derrotas: estatisticas.derrotas - (dto.venceu ? 0 : 1),
-        pontos: estatisticas.pontos - (dto.venceu ? 3 : 0),
+        pontos: estatisticas.pontos, // ← NÃO MEXE
         setsVencidos: estatisticas.setsVencidos - dto.setsVencidos,
         setsPerdidos: estatisticas.setsPerdidos - dto.setsPerdidos,
         gamesVencidos: estatisticas.gamesVencidos - dto.gamesVencidos,
@@ -335,32 +329,6 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * Buscar ranking global da arena (todos os jogadores, todas as etapas)
-   */
-  async buscarRankingGlobal(
-    arenaId: string,
-    limite: number = 50
-  ): Promise<EstatisticasJogador[]> {
-    try {
-      const snapshot = await db
-        .collection(this.collection)
-        .where("arenaId", "==", arenaId)
-        .orderBy("pontos", "desc")
-        .orderBy("saldoGames", "desc")
-        .limit(limite)
-        .get();
-
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as EstatisticasJogador[];
-    } catch (error) {
-      console.error("Erro ao buscar ranking global:", error);
-      throw error;
-    }
-  }
-
-  /**
    * Buscar histórico de um jogador (todas as etapas)
    */
   async buscarHistoricoJogador(
@@ -381,6 +349,193 @@ export class EstatisticasJogadorService {
       })) as EstatisticasJogador[];
     } catch (error) {
       console.error("Erro ao buscar histórico do jogador:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar estatísticas AGREGADAS de um jogador (todas as etapas)
+   *
+   * AGREGA:
+   * - Total de etapas participadas
+   * - Total de jogos, vitórias, derrotas
+   * - Total de sets, games, pontos
+   * - Saldos acumulados
+   */
+  async buscarEstatisticasAgregadas(
+    jogadorId: string,
+    arenaId: string
+  ): Promise<any> {
+    try {
+      console.log(`📊 Buscando estatísticas agregadas: jogador ${jogadorId}`);
+
+      const snapshot = await db
+        .collection(this.collection)
+        .where("jogadorId", "==", jogadorId)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (snapshot.empty) {
+        console.log("⚠️ Nenhuma estatística encontrada");
+        return null;
+      }
+
+      // Agregar estatísticas
+      let jogadorNome = "";
+      let jogadorNivel = "";
+      let etapasParticipadas = 0;
+      let jogos = 0;
+      let vitorias = 0;
+      let derrotas = 0;
+      let pontos = 0;
+      let setsVencidos = 0;
+      let setsPerdidos = 0;
+      let gamesVencidos = 0;
+      let gamesPerdidos = 0;
+
+      snapshot.docs.forEach((doc) => {
+        const stat = doc.data() as EstatisticasJogador;
+        jogadorNome = stat.jogadorNome;
+        jogadorNivel = stat.jogadorNivel;
+        etapasParticipadas++;
+        jogos += stat.jogos || 0;
+        vitorias += stat.vitorias || 0;
+        derrotas += stat.derrotas || 0;
+        pontos += stat.pontos || 0;
+        setsVencidos += stat.setsVencidos || 0;
+        setsPerdidos += stat.setsPerdidos || 0;
+        gamesVencidos += stat.gamesVencidos || 0;
+        gamesPerdidos += stat.gamesPerdidos || 0;
+      });
+
+      const saldoSets = setsVencidos - setsPerdidos;
+      const saldoGames = gamesVencidos - gamesPerdidos;
+
+      // ✅ NOVO: Buscar posição no ranking
+      const rankingCompleto = await this.buscarRankingGlobalAgregado(
+        arenaId,
+        999
+      );
+      const posicaoRanking =
+        rankingCompleto.findIndex((j) => j.jogadorId === jogadorId) + 1;
+
+      console.log(
+        `✅ Estatísticas agregadas calculadas (Posição: ${posicaoRanking}º)`
+      );
+
+      return {
+        jogadorId,
+        jogadorNome,
+        jogadorNivel,
+        arenaId,
+        etapasParticipadas,
+        jogos,
+        vitorias,
+        derrotas,
+        pontos,
+        setsVencidos,
+        setsPerdidos,
+        gamesVencidos,
+        gamesPerdidos,
+        saldoSets,
+        saldoGames,
+        posicaoRanking, // ✅ NOVO
+      };
+    } catch (error) {
+      console.error("Erro ao buscar estatísticas agregadas:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buscar ranking GLOBAL agregado (todas as etapas de todos os jogadores)
+   */
+  async buscarRankingGlobalAgregado(
+    arenaId: string,
+    limite: number = 50
+  ): Promise<
+    Array<{
+      jogadorId: string;
+      jogadorNome: string;
+      jogadorNivel?: number;
+      etapasParticipadas: number;
+      jogos: number;
+      vitorias: number;
+      derrotas: number;
+      pontos: number;
+      setsVencidos: number;
+      setsPerdidos: number;
+      gamesVencidos: number;
+      gamesPerdidos: number;
+      saldoSets: number;
+      saldoGames: number;
+    }>
+  > {
+    try {
+      // Buscar TODAS as estatísticas da arena
+      const snapshot = await db
+        .collection(this.collection)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      // Agregar por jogador
+      const jogadoresMap = new Map<string, any>();
+
+      snapshot.docs.forEach((doc) => {
+        const stats = doc.data() as EstatisticasJogador;
+
+        if (!jogadoresMap.has(stats.jogadorId)) {
+          jogadoresMap.set(stats.jogadorId, {
+            jogadorId: stats.jogadorId,
+            jogadorNome: stats.jogadorNome,
+            jogadorNivel: stats.jogadorNivel,
+            etapasParticipadas: 0,
+            jogos: 0,
+            vitorias: 0,
+            derrotas: 0,
+            pontos: 0,
+            setsVencidos: 0,
+            setsPerdidos: 0,
+            gamesVencidos: 0,
+            gamesPerdidos: 0,
+            saldoSets: 0,
+            saldoGames: 0,
+          });
+        }
+
+        const jogador = jogadoresMap.get(stats.jogadorId);
+        jogador.etapasParticipadas += 1;
+        jogador.jogos += stats.jogos || 0;
+        jogador.vitorias += stats.vitorias || 0;
+        jogador.derrotas += stats.derrotas || 0;
+        jogador.pontos += stats.pontos || 0;
+        jogador.setsVencidos += stats.setsVencidos || 0;
+        jogador.setsPerdidos += stats.setsPerdidos || 0;
+        jogador.gamesVencidos += stats.gamesVencidos || 0;
+        jogador.gamesPerdidos += stats.gamesPerdidos || 0;
+        jogador.saldoSets += stats.saldoSets || 0;
+        jogador.saldoGames += stats.saldoGames || 0;
+      });
+
+      // Converter para array e ordenar
+      const ranking = Array.from(jogadoresMap.values());
+
+      ranking.sort((a, b) => {
+        // 1. Pontos
+        if (a.pontos !== b.pontos) return b.pontos - a.pontos;
+        // 2. Saldo de games
+        if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
+        // 3. Games vencidos
+        if (a.gamesVencidos !== b.gamesVencidos)
+          return b.gamesVencidos - a.gamesVencidos;
+        // 4. Vitórias
+        if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
+        return 0;
+      });
+
+      return ranking.slice(0, limite);
+    } catch (error) {
+      console.error("Erro ao buscar ranking global agregado:", error);
       throw error;
     }
   }

@@ -11,7 +11,6 @@ import Dashboard from "./pages/Dashboard";
 import Jogadores from "./pages/Jogadores";
 import NovoJogador from "./pages/NovoJogador";
 import EditarJogador from "./pages/EditarJogador";
-import { Ranking } from "./pages/AdminPages";
 import { ListagemEtapas } from "./pages/etapas/ListagemEtapas";
 import { CriarEtapa } from "./pages/etapas/CriarEtapa";
 import { EditarEtapa } from "./pages/etapas/EditarEtapa";
@@ -20,6 +19,9 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import "./config/firebase"; // Inicializar Firebase
 import { ToastProvider } from "./components/ui";
+import ArenaPublica from "./pages/ArenaPublica";
+import EtapaDetalhes from "./pages/EtapaDetalhe";
+import JogadorPerfil from "./pages/JogadorPerfil";
 
 function App() {
   return (
@@ -38,7 +40,15 @@ function App() {
               <Route path="/unauthorized" element={<Unauthorized />} />
 
               {/* Rotas de Arena Pública */}
-              <Route path="/arena/:slug" element={<Home />} />
+              <Route path="/arena/:slug" element={<ArenaPublica />} />
+              <Route
+                path="/arena/:slug/etapa/:etapaId"
+                element={<EtapaDetalhes />}
+              />
+              <Route
+                path="/arena/:slug/jogador/:jogadorId"
+                element={<JogadorPerfil />}
+              />
 
               {/* Rotas Administrativas Protegidas */}
               <Route
@@ -61,7 +71,6 @@ function App() {
                 <Route path="etapas/criar" element={<CriarEtapa />} />
                 <Route path="etapas/:id" element={<DetalhesEtapa />} />
                 <Route path="etapas/:id/editar" element={<EditarEtapa />} />
-                <Route path="ranking" element={<Ranking />} />
               </Route>
 
               {/* Rota 404 */}

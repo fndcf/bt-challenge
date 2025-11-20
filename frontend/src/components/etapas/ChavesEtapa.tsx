@@ -550,63 +550,102 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                     {duplasDoGrupo.length === 0 ? (
                       <EmptyState>Nenhuma dupla neste grupo</EmptyState>
                     ) : (
-                      duplasDoGrupo.map((dupla, index) => (
-                        <DuplaItem key={dupla.id}>
-                          <PosicaoBadge>{index + 1}</PosicaoBadge>
+                      duplasDoGrupo
+                        // ============== ORDENAÇÃO ==============
+                        .sort((a, b) => {
+                          // ✅ Se tem posição definida pelo backend, usar ela!
+                          if (
+                            a.posicaoGrupo !== undefined &&
+                            b.posicaoGrupo !== undefined
+                          ) {
+                            return a.posicaoGrupo - b.posicaoGrupo;
+                          }
 
-                          <DuplaContent>
-                            <DuplaInfo>
-                              <JogadoresNome>
-                                {dupla.jogador1Nome} & {dupla.jogador2Nome}
-                              </JogadoresNome>
-                              <NivelText>
-                                Nível: {dupla.jogador1Nivel}
-                              </NivelText>
-                            </DuplaInfo>
+                          // ⚠️ FALLBACK: Se posicaoGrupo não existe ainda
+                          // 1. Pontos
+                          if (a.pontos !== b.pontos) {
+                            return b.pontos - a.pontos;
+                          }
 
-                            {dupla.jogos > 0 && (
-                              <StatsGrid>
-                                <StatItem>
-                                  <StatLabel>PTS</StatLabel>
-                                  <StatValue $variant="primary">
-                                    {dupla.pontos}
-                                  </StatValue>
-                                </StatItem>
+                          // 2. Saldo de games
+                          if (a.saldoGames !== b.saldoGames) {
+                            return b.saldoGames - a.saldoGames;
+                          }
 
-                                <StatItem>
-                                  <StatLabel>V-D</StatLabel>
-                                  <StatValue>
-                                    {dupla.vitorias}-{dupla.derrotas}
-                                  </StatValue>
-                                </StatItem>
+                          // 3. Saldo de sets
+                          if (a.saldoSets !== b.saldoSets) {
+                            return b.saldoSets - a.saldoSets;
+                          }
 
-                                <StatItem>
-                                  <StatLabel>GF-GC</StatLabel>
-                                  <StatValue>
-                                    {dupla.gamesVencidos}-{dupla.gamesPerdidos}
-                                  </StatValue>
-                                </StatItem>
+                          // 4. Games vencidos
+                          if (a.gamesVencidos !== b.gamesVencidos) {
+                            return b.gamesVencidos - a.gamesVencidos;
+                          }
 
-                                <StatItem>
-                                  <StatLabel>SG</StatLabel>
-                                  <StatValue
-                                    $variant={
-                                      dupla.saldoGames > 0
-                                        ? "success"
-                                        : dupla.saldoGames < 0
-                                        ? "error"
-                                        : "neutral"
-                                    }
-                                  >
-                                    {dupla.saldoGames > 0 ? "+" : ""}
-                                    {dupla.saldoGames}
-                                  </StatValue>
-                                </StatItem>
-                              </StatsGrid>
-                            )}
-                          </DuplaContent>
-                        </DuplaItem>
-                      ))
+                          // 5. Desempate final: ordem alfabética
+                          const nomeA = `${a.jogador1Nome} & ${a.jogador2Nome}`;
+                          const nomeB = `${b.jogador1Nome} & ${b.jogador2Nome}`;
+                          return nomeA.localeCompare(nomeB);
+                        })
+                        // ============== RENDERIZAÇÃO ==============
+                        .map((dupla, index) => (
+                          <DuplaItem key={dupla.id}>
+                            <PosicaoBadge>{index + 1}</PosicaoBadge>
+
+                            <DuplaContent>
+                              <DuplaInfo>
+                                <JogadoresNome>
+                                  {dupla.jogador1Nome} & {dupla.jogador2Nome}
+                                </JogadoresNome>
+                                <NivelText>
+                                  Nível: {dupla.jogador1Nivel}
+                                </NivelText>
+                              </DuplaInfo>
+
+                              {dupla.jogos > 0 && (
+                                <StatsGrid>
+                                  <StatItem>
+                                    <StatLabel>PTS</StatLabel>
+                                    <StatValue $variant="primary">
+                                      {dupla.pontos}
+                                    </StatValue>
+                                  </StatItem>
+
+                                  <StatItem>
+                                    <StatLabel>V-D</StatLabel>
+                                    <StatValue>
+                                      {dupla.vitorias}-{dupla.derrotas}
+                                    </StatValue>
+                                  </StatItem>
+
+                                  <StatItem>
+                                    <StatLabel>GF-GC</StatLabel>
+                                    <StatValue>
+                                      {dupla.gamesVencidos}-
+                                      {dupla.gamesPerdidos}
+                                    </StatValue>
+                                  </StatItem>
+
+                                  <StatItem>
+                                    <StatLabel>SG</StatLabel>
+                                    <StatValue
+                                      $variant={
+                                        dupla.saldoGames > 0
+                                          ? "success"
+                                          : dupla.saldoGames < 0
+                                          ? "error"
+                                          : "neutral"
+                                      }
+                                    >
+                                      {dupla.saldoGames > 0 ? "+" : ""}
+                                      {dupla.saldoGames}
+                                    </StatValue>
+                                  </StatItem>
+                                </StatsGrid>
+                              )}
+                            </DuplaContent>
+                          </DuplaItem>
+                        ))
                     )}
                   </DuplasList>
 

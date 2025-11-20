@@ -735,6 +735,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     "lista"
   );
   const [faseAtual, setFaseAtual] = useState<TipoFase | "todas">("todas");
+  const [etapaFinalizada, setEtapaFinalizada] = useState(false);
 
   const todosGruposCompletos = useMemo(() => {
     if (!grupos || grupos.length === 0) return false;
@@ -758,6 +759,36 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     if (!confrontoFinal) return false;
     return confrontoFinal.status === StatusConfrontoEliminatorio.FINALIZADA;
   }, [confrontos]);
+
+  const grupoUnicoCompleto = useMemo(() => {
+    if (!isGrupoUnico) return false;
+    return grupos[0]?.completo || false;
+  }, [isGrupoUnico, grupos]);
+
+  const campeaoGrupoUnico = useMemo(() => {
+    if (!isGrupoUnico || !grupoUnicoCompleto) return null;
+
+    // Buscar 1º colocado do grupo único
+    // Seria necessário buscar as duplas do grupo
+    // Por simplicidade, vamos retornar null aqui e buscar no componente
+    return null;
+  }, [isGrupoUnico, grupoUnicoCompleto]);
+
+  useEffect(() => {
+    const verificarStatusEtapa = async () => {
+      try {
+        const etapa = await etapaService.buscarPorId(etapaId);
+        if (etapa) {
+          setEtapaFinalizada(etapa.status === "finalizada");
+          console.log("📊 Status da etapa:", etapa.status);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status da etapa:", error);
+      }
+    };
+
+    verificarStatusEtapa();
+  }, [etapaId]);
 
   useEffect(() => {
     carregarConfrontos();
@@ -934,7 +965,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
             <>
               <AlertBox $variant="success">
                 <EmptyIcon>🏆</EmptyIcon>
-                <h4>Grupo Único - Campeão Definido!</h4>
+                <h4>Grupo Único - Sistema Round-Robin</h4>
                 <p>
                   Com apenas 1 grupo, todos os jogadores já se enfrentaram no
                   sistema <strong>Todos contra Todos</strong>.
@@ -949,6 +980,63 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                   </InfoText>
                 </InfoBox>
               </AlertBox>
+
+              {/* ✅ NOVO: Verificar se grupo está completo */}
+              {grupoUnicoCompleto ? (
+                <>
+                  {/* ✅ Se etapa já finalizada */}
+                  {etapaFinalizada ? (
+                    <AlertBox $variant="success">
+                      <h4>🏆 Etapa Finalizada!</h4>
+                      <p>
+                        Esta etapa já foi encerrada. O campeão foi definido e os
+                        pontos foram atribuídos.
+                      </p>
+                    </AlertBox>
+                  ) : (
+                    /* ✅ Se grupo completo mas etapa não finalizada */
+                    <>
+                      <AlertBox $variant="warning">
+                        <h4>✅ Grupo Completo!</h4>
+                        <p>
+                          Todas as partidas foram finalizadas. O campeão está
+                          definido!
+                        </p>
+                        <InfoBox>
+                          <InfoText>
+                            <strong>Próximo passo:</strong> Encerre a etapa para
+                            atribuir pontos ao ranking.
+                          </InfoText>
+                        </InfoBox>
+                      </AlertBox>
+
+                      <ButtonGroup>
+                        <Button
+                          $variant="warning"
+                          onClick={encerrarEtapa}
+                          disabled={loading}
+                        >
+                          <span>🏁</span>
+                          <span>Encerrar Etapa e Atribuir Pontos</span>
+                        </Button>
+                      </ButtonGroup>
+                    </>
+                  )}
+                </>
+              ) : (
+                /* ✅ Grupo ainda não completo */
+                <AlertBox $variant="warning">
+                  <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
+                    ⏳ Finalize todas as partidas do grupo primeiro
+                  </p>
+                  <p style={{ fontSize: "0.875rem", margin: 0 }}>
+                    Ainda há {partidasPendentes} partida(s) pendente(s).
+                    <br />
+                    Complete todos os jogos para definir o campeão.
+                  </p>
+                </AlertBox>
+              )}
+
               <HintText>
                 💡 Para ter fase eliminatória, configure a etapa com 2 ou mais
                 grupos
@@ -1018,11 +1106,30 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
           </Button>
         )}
 
+        {/* ✅ ATUALIZADO: Botão com estados */}
         {finalFinalizada && (
-          <Button $variant="warning" onClick={encerrarEtapa} disabled={loading}>
-            <span>🏁</span>
-            <span>Encerrar Etapa 🏆</span>
-          </Button>
+          <>
+            {etapaFinalizada && (
+              <AlertBox $variant="success">
+                <h4>🏆 Etapa Finalizada!</h4>
+                <p>
+                  Esta etapa já foi encerrada. O campeão foi definido e os
+                  pontos foram atribuídos.
+                </p>
+              </AlertBox>
+            )}
+
+            <Button
+              $variant="warning"
+              onClick={encerrarEtapa}
+              disabled={loading || etapaFinalizada}
+            >
+              <span>🏁</span>
+              <span>
+                {etapaFinalizada ? "Etapa Encerrada ✅" : "Encerrar Etapa 🏆"}
+              </span>
+            </Button>
+          </>
         )}
       </ActionsRow>
 

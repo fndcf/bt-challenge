@@ -634,7 +634,10 @@ export class EtapaService {
   }
 
   /**
-   * Encerrar etapa (marcar como finalizada após eliminatória)
+   * Encerrar etapa e atribuir pontos
+   * Suporta 2 cenários:
+   * 1. GRUPO ÚNICO (sem eliminatória) - pontos pela classificação do grupo
+   * 2. COM ELIMINATÓRIA - pontos pelas fases eliminatórias
    */
   async encerrarEtapa(id: string, arenaId: string): Promise<void> {
     try {
@@ -646,7 +649,122 @@ export class EtapaService {
         throw new Error("Etapa não encontrada");
       }
 
-      // Verificar se eliminatória existe
+      // Verificar se já está finalizada
+      if (etapa.status === StatusEtapa.FINALIZADA) {
+        throw new Error("Etapa já está finalizada");
+      }
+
+      // Buscar configuração de pontos
+      const configDoc = await db.collection("config").doc("global").get();
+      const pontuacao = configDoc.data()?.pontuacaoColocacao || {
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      };
+
+      // ============== VERIFICAR NÚMERO DE GRUPOS ==============
+      const gruposSnapshot = await db
+        .collection("grupos")
+        .where("etapaId", "==", id)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (gruposSnapshot.empty) {
+        throw new Error("Nenhum grupo encontrado para esta etapa");
+      }
+
+      const grupos = gruposSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      console.log(`📊 Total de grupos: ${grupos.length}`);
+
+      // ============== CENÁRIO 1: GRUPO ÚNICO ==============
+      if (grupos.length === 1) {
+        console.log(
+          "🏆 GRUPO ÚNICO - Atribuindo pontos pela classificação do grupo"
+        );
+
+        const grupo = grupos[0] as any;
+
+        // Verificar se grupo está completo
+        if (!grupo.completo) {
+          throw new Error(
+            "Não é possível encerrar a etapa. O grupo ainda possui partidas pendentes."
+          );
+        }
+
+        // Buscar duplas ordenadas por posição
+        const duplasSnapshot = await db
+          .collection("duplas")
+          .where("grupoId", "==", grupo.id)
+          .orderBy("posicaoGrupo", "asc")
+          .get();
+
+        const duplas = duplasSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        console.log(`👥 ${duplas.length} duplas no grupo`);
+
+        if (duplas.length === 0) {
+          throw new Error("Nenhuma dupla encontrada no grupo");
+        }
+
+        // Definir colocações e pontos
+        const tabelaColocacoes = [
+          { colocacao: "campeao", pontos: pontuacao.campeao },
+          { colocacao: "vice", pontos: pontuacao.vice },
+          { colocacao: "semifinalista", pontos: pontuacao.semifinalista },
+          { colocacao: "quartas", pontos: pontuacao.quartas },
+          { colocacao: "participacao", pontos: pontuacao.participacao },
+        ];
+
+        // Atribuir pontos a cada dupla
+        for (let i = 0; i < duplas.length; i++) {
+          const dupla = duplas[i];
+          const { colocacao, pontos } =
+            tabelaColocacoes[i] ||
+            tabelaColocacoes[tabelaColocacoes.length - 1];
+
+          console.log(
+            `   📍 ${i + 1}º lugar: ${dupla.jogador1Nome} & ${
+              dupla.jogador2Nome
+            } - ${colocacao} (${pontos} pts)`
+          );
+
+          await this.atribuirPontosParaDupla(dupla.id, id, pontos, colocacao);
+        }
+
+        // Atualizar etapa
+        const campeao = duplas[0] as any;
+        await db
+          .collection("etapas")
+          .doc(id)
+          .update({
+            status: StatusEtapa.FINALIZADA,
+            dataFinalizacao: Timestamp.now(),
+            campeaoId: campeao.id,
+            campeaoNome: `${campeao.jogador1Nome} & ${campeao.jogador2Nome}`,
+            atualizadoEm: Timestamp.now(),
+          });
+
+        console.log("✅ Etapa encerrada com sucesso (grupo único)!");
+        console.log(
+          `🏆 Campeão: ${campeao.jogador1Nome} & ${campeao.jogador2Nome}`
+        );
+        return;
+      }
+
+      // ============== CENÁRIO 2: COM ELIMINATÓRIA ==============
+      console.log("🏆 COM ELIMINATÓRIA - Atribuindo pontos pelas fases");
+
+      // Buscar final
       const confrontosSnapshot = await db
         .collection("confrontos_eliminatorios")
         .where("etapaId", "==", id)
@@ -661,9 +779,117 @@ export class EtapaService {
 
       const confrontoFinal = confrontosSnapshot.docs[0].data();
 
-      // Verificar se final foi finalizada
       if (confrontoFinal.status !== "finalizada") {
         throw new Error("A final ainda não foi finalizada");
+      }
+
+      console.log("🏆 Atribuindo pontos de colocação...");
+
+      // 1. CAMPEÃO (vencedor da final) = 100 pontos
+      const campeaoDuplaId = confrontoFinal.vencedoraId;
+      await this.atribuirPontosParaDupla(
+        campeaoDuplaId,
+        id,
+        pontuacao.campeao,
+        "campeao"
+      );
+
+      // 2. VICE (perdedor da final) = 70 pontos
+      const viceDuplaId =
+        confrontoFinal.dupla1Id === campeaoDuplaId
+          ? confrontoFinal.dupla2Id
+          : confrontoFinal.dupla1Id;
+      await this.atribuirPontosParaDupla(
+        viceDuplaId,
+        id,
+        pontuacao.vice,
+        "vice"
+      );
+
+      // 3. SEMIFINALISTAS (perdedores das semis) = 50 pontos
+      const semisSnapshot = await db
+        .collection("confrontos_eliminatorios")
+        .where("etapaId", "==", id)
+        .where("arenaId", "==", arenaId)
+        .where("fase", "==", "semifinal")
+        .where("status", "==", "finalizada")
+        .get();
+
+      for (const doc of semisSnapshot.docs) {
+        const confronto = doc.data();
+        const perdedorId =
+          confronto.vencedoraId === confronto.dupla1Id
+            ? confronto.dupla2Id
+            : confronto.dupla1Id;
+        await this.atribuirPontosParaDupla(
+          perdedorId,
+          id,
+          pontuacao.semifinalista,
+          "semifinalista"
+        );
+      }
+
+      // 4. QUARTAS (perdedores das quartas) = 30 pontos
+      const quartasSnapshot = await db
+        .collection("confrontos_eliminatorios")
+        .where("etapaId", "==", id)
+        .where("arenaId", "==", arenaId)
+        .where("fase", "==", "quartas")
+        .where("status", "==", "finalizada")
+        .get();
+
+      for (const doc of quartasSnapshot.docs) {
+        const confronto = doc.data();
+        const perdedorId =
+          confronto.vencedoraId === confronto.dupla1Id
+            ? confronto.dupla2Id
+            : confronto.dupla1Id;
+        await this.atribuirPontosParaDupla(
+          perdedorId,
+          id,
+          pontuacao.quartas,
+          "quartas"
+        );
+      }
+
+      // 5. OITAVAS (perdedores das oitavas) = 20 pontos
+      const oitavasSnapshot = await db
+        .collection("confrontos_eliminatorios")
+        .where("etapaId", "==", id)
+        .where("arenaId", "==", arenaId)
+        .where("fase", "==", "oitavas")
+        .where("status", "==", "finalizada")
+        .get();
+
+      for (const doc of oitavasSnapshot.docs) {
+        const confronto = doc.data();
+        const perdedorId =
+          confronto.vencedoraId === confronto.dupla1Id
+            ? confronto.dupla2Id
+            : confronto.dupla1Id;
+        await this.atribuirPontosParaDupla(
+          perdedorId,
+          id,
+          pontuacao.oitavas,
+          "oitavas"
+        );
+      }
+
+      // 6. PARTICIPAÇÃO (não classificados para eliminatória) = 10 pontos
+      const duplasSnapshot = await db
+        .collection("duplas")
+        .where("etapaId", "==", id)
+        .where("arenaId", "==", arenaId)
+        .where("classificada", "==", false)
+        .get();
+
+      for (const doc of duplasSnapshot.docs) {
+        await this.atribuirPontosParaDupla(
+          doc.id,
+          id,
+          pontuacao.participacao,
+          "participacao"
+        );
       }
 
       // Atualizar etapa para finalizada
@@ -675,11 +901,95 @@ export class EtapaService {
         atualizadoEm: Timestamp.now(),
       });
 
-      console.log("✅ Etapa encerrada com sucesso!");
+      console.log("✅ Etapa encerrada com sucesso (com eliminatória)!");
       console.log(`🏆 Campeão: ${confrontoFinal.vencedoraNome}`);
     } catch (error: any) {
       console.error("Erro ao encerrar etapa:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Atribuir pontos de colocação para os 2 jogadores de uma dupla
+   */
+  private async atribuirPontosParaDupla(
+    duplaId: string,
+    etapaId: string,
+    pontos: number,
+    colocacao: string
+  ): Promise<void> {
+    try {
+      // Buscar dupla
+      const duplaDoc = await db.collection("duplas").doc(duplaId).get();
+      if (!duplaDoc.exists) {
+        console.warn(`Dupla ${duplaId} não encontrada`);
+        return;
+      }
+
+      const dupla = duplaDoc.data();
+
+      // Atribuir pontos para jogador 1
+      await this.atribuirPontosParaJogador(
+        dupla.jogador1Id,
+        etapaId,
+        pontos,
+        colocacao
+      );
+
+      // Atribuir pontos para jogador 2
+      await this.atribuirPontosParaJogador(
+        dupla.jogador2Id,
+        etapaId,
+        pontos,
+        colocacao
+      );
+
+      console.log(
+        `   ✅ ${pontos} pts (${colocacao}): ${dupla.jogador1Nome} & ${dupla.jogador2Nome}`
+      );
+    } catch (error) {
+      console.error(`Erro ao atribuir pontos para dupla ${duplaId}:`, error);
+    }
+  }
+
+  /**
+   * Atribuir pontos de colocação para um jogador individual
+   */
+  private async atribuirPontosParaJogador(
+    jogadorId: string,
+    etapaId: string,
+    pontos: number,
+    colocacao: string
+  ): Promise<void> {
+    try {
+      // Buscar estatísticas do jogador nesta etapa
+      const snapshot = await db
+        .collection("estatisticas_jogador")
+        .where("jogadorId", "==", jogadorId)
+        .where("etapaId", "==", etapaId)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        console.warn(
+          `Estatísticas não encontradas para jogador ${jogadorId} na etapa ${etapaId}`
+        );
+        return;
+      }
+
+      const estatisticasDoc = snapshot.docs[0];
+
+      // Atualizar pontos e colocação
+      await estatisticasDoc.ref.update({
+        pontos: pontos,
+        colocacao: colocacao,
+        atualizadoEm: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error(
+        `Erro ao atribuir pontos para jogador ${jogadorId}:`,
+        error
+      );
     }
   }
 }

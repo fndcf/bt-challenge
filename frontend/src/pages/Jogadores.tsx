@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import jogadorService from "../services/jogadorService";
+import { arenaService } from "../services/arenaService";
 import {
   Jogador,
   FiltrosJogador,
   NivelJogador,
   StatusJogador,
 } from "../types/jogador";
+import { Arena } from "../types";
 import JogadorCard from "../components/JogadorCard";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 
@@ -467,6 +469,9 @@ const ListagemJogadores: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // ✅ Estado da arena
+  const [arena, setArena] = useState<Arena | null>(null);
+
   // Modal de exclusão
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -487,6 +492,34 @@ const ListagemJogadores: React.FC = () => {
   const [limite] = useState(12);
   const [offset, setOffset] = useState(0);
   const [temMais, setTemMais] = useState(false);
+
+  /**
+   * ✅ Carregar arena ao montar
+   */
+  useEffect(() => {
+    const carregarArena = async () => {
+      try {
+        // Opção 1: Se você tem um service que retorna a arena do usuário logado
+        const arenaData = await arenaService.getMyArena();
+        setArena(arenaData);
+      } catch (error) {
+        console.error("Erro ao carregar arena:", error);
+
+        // Opção 2: Fallback - pegar do localStorage se tiver
+        const arenaLocalStorage = localStorage.getItem("arena");
+        if (arenaLocalStorage) {
+          try {
+            const arenaParsed = JSON.parse(arenaLocalStorage);
+            setArena(arenaParsed);
+          } catch (e) {
+            console.error("Erro ao parsear arena do localStorage:", e);
+          }
+        }
+      }
+    };
+
+    carregarArena();
+  }, []);
 
   /**
    * Carregar jogadores
@@ -736,9 +769,10 @@ const ListagemJogadores: React.FC = () => {
             <JogadorCard
               key={jogador.id}
               jogador={jogador}
-              onView={handleVisualizarJogador}
+              arenaSlug={arena?.slug}
               onEdit={handleEditarJogador}
               onDelete={handleDeletarJogador}
+              // onView removido - agora usa o link automático
             />
           ))}
         </JogadoresGrid>

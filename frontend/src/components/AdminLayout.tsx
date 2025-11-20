@@ -307,7 +307,6 @@ const AdminLayout: React.FC = () => {
     { path: "/admin", icon: "📊", label: "Dashboard", exact: true },
     { path: "/admin/jogadores", icon: "👥", label: "Jogadores" },
     { path: "/admin/etapas", icon: "🏆", label: "Challenges" },
-    { path: "/admin/ranking", icon: "📈", label: "Ranking" },
   ];
 
   const isActive = (path: string, exact?: boolean) => {

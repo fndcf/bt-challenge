@@ -1,14 +1,15 @@
 /**
- * Dashboard - CRIADO DO ZERO
- * Dashboard limpo e funcional
+ * Dashboard - REFATORADO COM RankingList
+ * Usa o componente reutilizável RankingList
  */
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "../contexts/AuthContext";
 import { useArena } from "../contexts/ArenaContext";
 import { useDocumentTitle } from "../hooks";
+import RankingList from "../components/RankingList";
 
 // ===========================
 // CONTAINER PRINCIPAL
@@ -373,9 +374,11 @@ const HelpButton = styled.a`
 
 const Dashboard: React.FC = () => {
   useDocumentTitle("Dashboard");
-
   const { user } = useAuth();
   const { arena } = useArena();
+
+  console.log("🏟️ Arena no Dashboard:", arena);
+  console.log("📍 Slug da arena:", arena?.slug);
 
   const actions = [
     {
@@ -395,7 +398,7 @@ const Dashboard: React.FC = () => {
     {
       icon: "📈",
       label: "Ver Ranking",
-      description: "Confira a classificação geral",
+      description: "Confira a classificação completa",
       link: "/admin/ranking",
       color: "#4facfe",
     },
@@ -435,6 +438,16 @@ const Dashboard: React.FC = () => {
             </ActionCard>
           ))}
         </ActionsGrid>
+      </Section>
+
+      {/* ✨ TOP 5 JOGADORES - Usando componente RankingList */}
+      <Section>
+        <RankingList
+          arenaSlug={arena?.slug}
+          limit={5}
+          showPagination={true}
+          showHeader={true}
+        />
       </Section>
 
       {/* Primeiros Passos */}

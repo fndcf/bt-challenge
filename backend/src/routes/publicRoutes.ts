@@ -4,6 +4,8 @@ import { arenaService } from "../services/ArenaService";
 import etapaService from "../services/EtapaService";
 import jogadorService from "../services/JogadorService";
 import estatisticasJogadorService from "../services/EstatisticasJogadorService";
+import chaveService from "../services/ChaveService";
+import { db } from "../config/firebase";
 
 const router = Router();
 
@@ -142,6 +144,372 @@ router.get(
   }
 );
 
+/**
+ * Buscar grupos de uma etapa
+ * GET /api/public/:arenaSlug/etapas/:etapaId/grupos
+ */
+router.get(
+  "/:arenaSlug/etapas/:etapaId/grupos",
+  async (req: Request, res: Response) => {
+    try {
+      const { arenaSlug, etapaId } = req.params;
+
+      console.log("🔍 Buscando grupos para etapa:", etapaId);
+
+      // Buscar arena
+      const arena = await arenaService.getArenaBySlug(arenaSlug);
+
+      // Buscar grupos usando ChaveService
+      const grupos = await chaveService.buscarGrupos(etapaId, arena.id);
+
+      console.log("📊 Grupos encontrados:", grupos.length);
+
+      // Buscar duplas de cada grupo
+      const gruposComDuplas = await Promise.all(
+        grupos.map(async (grupo) => {
+          console.log("🎯 Processando grupo:", grupo.id, grupo.nome);
+
+          // Buscar duplas do grupo
+          const duplasSnapshot = await db
+            .collection("duplas")
+            .where("grupoId", "==", grupo.id)
+            .orderBy("posicaoGrupo", "asc")
+            .get();
+
+          const duplas = duplasSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              jogador1Nome: data.jogador1Nome,
+              jogador2Nome: data.jogador2Nome,
+              posicaoGrupo: data.posicaoGrupo,
+              vitorias: data.vitorias || 0,
+              derrotas: data.derrotas || 0,
+              pontos: data.pontos || 0,
+              saldoGames: data.saldoGames || 0,
+              jogos: data.jogos || 0,
+              classificada: data.classificada || false,
+            };
+          });
+
+          console.log("👥 Duplas do grupo:", duplas.length);
+
+          // Buscar partidas do grupo
+          const partidasSnapshot = await db
+            .collection("partidas")
+            .where("grupoId", "==", grupo.id)
+            .orderBy("criadoEm", "asc")
+            .get();
+
+          console.log("⚔️ Partidas do grupo:", partidasSnapshot.docs.length);
+
+          const partidas = partidasSnapshot.docs.map((doc) => {
+            const data = doc.data();
+
+            // O placar detalhado está no campo "placar"
+            // É um array de objetos: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }, ...]
+            const placarDetalhado = data.placar || [];
+
+            console.log("📈 Partida:", {
+              id: doc.id,
+              dupla1: data.dupla1Nome,
+              dupla2: data.dupla2Nome,
+              status: data.status,
+              temPlacar: !!data.placar,
+              placar: data.placar,
+              tipoPlacar: typeof data.placar,
+              isArray: Array.isArray(data.placar),
+              length: data.placar?.length,
+            });
+
+            return {
+              id: doc.id,
+              dupla1Id: data.dupla1Id,
+              dupla2Id: data.dupla2Id,
+              dupla1Nome: data.dupla1Nome,
+              dupla2Nome: data.dupla2Nome,
+              status: data.status,
+              setsDupla1: data.setsDupla1 || 0,
+              setsDupla2: data.setsDupla2 || 0,
+              placar: placarDetalhado, // Array com placar de cada set
+              vencedoraId: data.vencedoraId,
+              vencedoraNome: data.vencedoraNome,
+              criadoEm: data.criadoEm,
+            };
+          });
+
+          console.log("✅ Grupo processado:", {
+            nome: grupo.nome,
+            qtdDuplas: duplas.length,
+            qtdPartidas: partidas.length,
+            partidasComPlacar: partidas.filter(
+              (p) => p.placar && p.placar.length > 0
+            ).length,
+          });
+
+          return {
+            id: grupo.id,
+            nome: grupo.nome,
+            ordem: grupo.ordem,
+            totalDuplas: grupo.totalDuplas,
+            completo: grupo.completo || false,
+            duplas,
+            partidas,
+          };
+        })
+      );
+
+      console.log("🎉 Resposta final:", {
+        qtdGrupos: gruposComDuplas.length,
+      });
+
+      res.json({
+        success: true,
+        data: gruposComDuplas,
+      });
+    } catch (error: any) {
+      console.error("❌ ERRO GERAL:", error);
+      res.status(500).json({
+        success: false,
+        error: "Erro ao buscar grupos",
+      });
+    }
+  }
+);
+
+/**
+ * Buscar chaves eliminatórias de uma etapa
+ * GET /api/public/:arenaSlug/etapas/:etapaId/chaves
+ */
+router.get(
+  "/:arenaSlug/etapas/:etapaId/chaves",
+  async (req: Request, res: Response) => {
+    try {
+      const { arenaSlug, etapaId } = req.params;
+
+      console.log("🔍 Buscando chaves para etapa:", etapaId);
+
+      // Buscar arena
+      const arena = await arenaService.getArenaBySlug(arenaSlug);
+
+      // Buscar confrontos eliminatórios usando ChaveService
+      const confrontos = await chaveService.buscarConfrontosEliminatorios(
+        etapaId,
+        arena.id
+      );
+
+      console.log("📊 Confrontos encontrados:", confrontos.length);
+
+      // Se não tem confrontos, retornar vazio
+      if (!confrontos || confrontos.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            formato: "eliminacao_simples",
+            temChaves: false,
+            rodadas: [],
+          },
+        });
+      }
+
+      // Agrupar confrontos por fase
+      const confrontosPorFase = new Map<string, any[]>();
+
+      confrontos.forEach((confronto) => {
+        // Normalizar fase para MAIÚSCULAS
+        const fase = confronto.fase.toUpperCase();
+
+        console.log("🎯 Confronto:", {
+          id: confronto.id,
+          faseOriginal: confronto.fase,
+          faseNormalizada: fase,
+          partidaId: confronto.partidaId,
+        });
+
+        if (!confrontosPorFase.has(fase)) {
+          confrontosPorFase.set(fase, []);
+        }
+        confrontosPorFase.get(fase)!.push(confronto);
+      });
+
+      // Ordenar fases (FINAL → SEMIFINAL → QUARTAS → OITAVAS)
+      const ordensFase: Record<string, number> = {
+        FINAL: 1,
+        SEMIFINAL: 2,
+        QUARTAS: 3,
+        OITAVAS: 4,
+      };
+
+      const fasesOrdenadas = Array.from(confrontosPorFase.keys()).sort(
+        (a, b) => (ordensFase[a] || 99) - (ordensFase[b] || 99)
+      );
+
+      console.log("📋 Fases ordenadas:", fasesOrdenadas);
+
+      // Mapear para formato esperado pelo frontend
+      const rodadas = await Promise.all(
+        fasesOrdenadas.map(async (fase) => {
+          const confrontosDaFase = confrontosPorFase.get(fase)!;
+
+          // Buscar partidas para obter placar detalhado
+          const partidasComPlacar = await Promise.all(
+            confrontosDaFase.map(async (confronto) => {
+              let placarDetalhado = null;
+
+              // Se tem partidaId, buscar partida para pegar placar detalhado
+              if (confronto.partidaId) {
+                try {
+                  console.log("🔍 Buscando partida:", confronto.partidaId);
+
+                  const partidaDoc = await db
+                    .collection("partidas")
+                    .doc(confronto.partidaId)
+                    .get();
+
+                  if (partidaDoc.exists) {
+                    const partida = partidaDoc.data();
+
+                    console.log("📈 Partida encontrada:", {
+                      partidaId: confronto.partidaId,
+                      temPlacar: !!partida?.placar,
+                      placar: partida?.placar,
+                      tipoPlacar: typeof partida?.placar,
+                      isArray: Array.isArray(partida?.placar),
+                      length: partida?.placar?.length,
+                    });
+
+                    // O placar está no campo "placar" da partida
+                    // É um array de objetos com { numero, gamesDupla1, gamesDupla2 }
+                    if (
+                      partida &&
+                      partida.placar &&
+                      Array.isArray(partida.placar)
+                    ) {
+                      placarDetalhado = partida.placar;
+                      console.log(
+                        "✅ Placar detalhado atribuído:",
+                        placarDetalhado
+                      );
+                    } else {
+                      console.log(
+                        "⚠️ Campo placar não é um array ou não existe"
+                      );
+                    }
+                  } else {
+                    console.log(
+                      "❌ Partida não encontrada:",
+                      confronto.partidaId
+                    );
+                  }
+                } catch (err) {
+                  console.error("❌ Erro ao buscar placar:", err);
+                }
+              } else {
+                console.log("⚠️ Confronto sem partidaId:", confronto.id);
+              }
+
+              return {
+                id: confronto.id,
+                numero: confronto.ordem,
+                jogador1: {
+                  id: confronto.dupla1Id || "",
+                  nome: confronto.dupla1Nome || "A definir",
+                  seed: undefined,
+                },
+                jogador2: confronto.dupla2Id
+                  ? {
+                      id: confronto.dupla2Id,
+                      nome: confronto.dupla2Nome || "A definir",
+                      seed: undefined,
+                    }
+                  : null,
+                placar: confronto.placar || null,
+                placarDetalhado: placarDetalhado,
+                vencedor: confronto.vencedoraId
+                  ? confronto.vencedoraId === confronto.dupla1Id
+                    ? "jogador1"
+                    : "jogador2"
+                  : null,
+                status:
+                  confronto.status === "finalizada"
+                    ? "finalizada"
+                    : confronto.status === "FINALIZADA"
+                    ? "finalizada"
+                    : confronto.status === "BYE"
+                    ? "bye"
+                    : confronto.status === "bye"
+                    ? "bye"
+                    : confronto.status === "EM_ANDAMENTO"
+                    ? "em_andamento"
+                    : confronto.status === "em_andamento"
+                    ? "em_andamento"
+                    : "agendada",
+              };
+            })
+          );
+
+          // Nome correto da fase
+          let nomeFase = "Fase Desconhecida";
+          switch (fase) {
+            case "FINAL":
+              nomeFase = "Final";
+              break;
+            case "SEMIFINAL":
+              nomeFase = "Semifinal";
+              break;
+            case "QUARTAS":
+              nomeFase = "Quartas de Final";
+              break;
+            case "OITAVAS":
+              nomeFase = "Oitavas de Final";
+              break;
+            default:
+              nomeFase = fase;
+          }
+
+          console.log("✅ Rodada criada:", {
+            nome: nomeFase,
+            qtdPartidas: partidasComPlacar.length,
+            partidasComPlacarDetalhado: partidasComPlacar.filter(
+              (p) => p.placarDetalhado
+            ).length,
+          });
+
+          return {
+            numero: ordensFase[fase] || 99,
+            nome: nomeFase,
+            partidas: partidasComPlacar,
+          };
+        })
+      );
+
+      console.log("🎉 Resposta final:", {
+        temChaves: true,
+        qtdRodadas: rodadas.length,
+        rodadas: rodadas.map((r) => ({
+          nome: r.nome,
+          qtdPartidas: r.partidas.length,
+        })),
+      });
+
+      res.json({
+        success: true,
+        data: {
+          formato: "eliminacao_simples",
+          temChaves: true,
+          rodadas,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ ERRO GERAL:", error);
+      res.status(500).json({
+        success: false,
+        error: "Erro ao buscar chaves",
+      });
+    }
+  }
+);
+
 // ============================================
 // JOGADORES
 // ============================================
@@ -231,25 +599,130 @@ router.get(
     try {
       const { arenaSlug, jogadorId } = req.params;
 
-      const arena = await arenaService.getArenaBySlug(arenaSlug);
-      const historico = await estatisticasJogadorService.buscarHistoricoJogador(
+      console.log("📊 Buscando histórico enriquecido:", {
+        arenaSlug,
         jogadorId,
-        arena.id
+      });
+
+      const arena = await arenaService.getArenaBySlug(arenaSlug);
+
+      // Buscar todas as estatísticas do jogador nesta arena
+      const snapshot = await db
+        .collection("estatisticas_jogador")
+        .where("jogadorId", "==", jogadorId)
+        .where("arenaId", "==", arena.id)
+        .get();
+
+      if (snapshot.empty) {
+        console.log("⚠️ Nenhuma estatística encontrada");
+        return res.json({ success: true, data: [] });
+      }
+
+      console.log(`📈 ${snapshot.docs.length} registros encontrados`);
+
+      // Enriquecer cada registro com nome da etapa
+      const historicoEnriquecido = await Promise.all(
+        snapshot.docs.map(async (doc) => {
+          try {
+            const stat = doc.data();
+
+            // ✅ Buscar nome da etapa
+            const etapaDoc = await db
+              .collection("etapas")
+              .doc(stat.etapaId)
+              .get();
+            const etapa = etapaDoc.exists ? etapaDoc.data() : null;
+
+            // ✅ Converter colocação para posição numérica
+            const posicao = converterColocacaoParaPosicao(stat.colocacao);
+
+            console.log(
+              `  ✅ Etapa: ${etapa?.nome || "Sem nome"} - Posição: ${posicao}`
+            );
+
+            return {
+              id: doc.id,
+              etapaId: stat.etapaId,
+              etapaNome: etapa?.nome || "Etapa Sem Nome", // ✅ CAMPO IMPORTANTE
+
+              posicao: posicao, // 1, 2, 3, etc
+              colocacao: stat.colocacao, // "campeao", "vice", etc
+
+              vitorias: stat.vitorias || 0,
+              derrotas: stat.derrotas || 0,
+              pontos: stat.pontos || 0,
+
+              jogos: stat.jogos || 0,
+              setsVencidos: stat.setsVencidos || 0,
+              setsPerdidos: stat.setsPerdidos || 0,
+              gamesVencidos: stat.gamesVencidos || 0,
+              gamesPerdidos: stat.gamesPerdidos || 0,
+              saldoSets: (stat.setsVencidos || 0) - (stat.setsPerdidos || 0),
+              saldoGames: (stat.gamesVencidos || 0) - (stat.gamesPerdidos || 0),
+
+              classificado: stat.classificado || false,
+              grupoNome: stat.grupoNome,
+              posicaoGrupo: stat.posicaoGrupo,
+
+              criadoEm: stat.criadoEm,
+            };
+          } catch (error) {
+            console.error(
+              `❌ Erro ao enriquecer estatística ${doc.id}:`,
+              error
+            );
+            return null;
+          }
+        })
+      );
+
+      // Filtrar nulos e ordenar por data (mais recente primeiro)
+      const historicoFiltrado = historicoEnriquecido
+        .filter((h) => h !== null)
+        .sort((a, b) => {
+          const dateA = a.criadoEm?.toDate?.() || new Date(0);
+          const dateB = b.criadoEm?.toDate?.() || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+      console.log(
+        `✅ Histórico enriquecido: ${historicoFiltrado.length} itens`
       );
 
       res.json({
         success: true,
-        data: historico,
+        data: historicoFiltrado,
       });
     } catch (error: any) {
-      console.error("Erro ao buscar histórico:", error);
+      console.error("❌ Erro ao buscar histórico:", error);
       res.status(500).json({
         success: false,
         error: "Erro ao buscar histórico",
+        message: error.message,
       });
     }
   }
 );
+
+/**
+ * Converter colocação (string) para posição numérica
+ */
+function converterColocacaoParaPosicao(
+  colocacao: string | undefined
+): number | undefined {
+  if (!colocacao) return undefined;
+
+  const mapa: Record<string, number> = {
+    campeao: 1,
+    vice: 2,
+    semifinalista: 3,
+    quartas: 5,
+    oitavas: 9,
+    participacao: 99,
+  };
+
+  return mapa[colocacao.toLowerCase()] || 99;
+}
 
 // ============================================
 // RANKING
@@ -264,21 +737,73 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
     const { arenaSlug } = req.params;
     const { limite = "50" } = req.query;
 
+    console.log("🏅 Buscando ranking agregado para:", arenaSlug);
+
+    // Buscar arena
     const arena = await arenaService.getArenaBySlug(arenaSlug);
-    const ranking = await estatisticasJogadorService.buscarRankingGlobal(
-      arena.id,
-      parseInt(limite as string)
-    );
+
+    // Buscar ranking AGREGADO (todas as etapas)
+    const ranking =
+      await estatisticasJogadorService.buscarRankingGlobalAgregado(
+        arena.id,
+        parseInt(limite as string)
+      );
+
+    console.log(`📊 Ranking encontrado: ${ranking.length} jogadores`);
+
+    // Formatar resposta com campos compatíveis (novos + legados)
+    const rankingFormatado = ranking.map((jogador, index) => ({
+      // IDs
+      id: jogador.jogadorId,
+      jogadorId: jogador.jogadorId,
+
+      // Nome
+      nome: jogador.jogadorNome,
+      jogadorNome: jogador.jogadorNome,
+
+      // Nível
+      nivel: jogador.jogadorNivel,
+      jogadorNivel: jogador.jogadorNivel,
+
+      // Pontos
+      pontos: jogador.pontos,
+      ranking: jogador.pontos,
+
+      // ✨ NOVOS CAMPOS (estatísticas agregadas)
+      etapasParticipadas: jogador.etapasParticipadas,
+      totalEtapas: jogador.etapasParticipadas, // alias
+
+      vitorias: jogador.vitorias,
+      totalVitorias: jogador.vitorias, // alias
+
+      derrotas: jogador.derrotas,
+      totalDerrotas: jogador.derrotas, // alias
+
+      // Campos adicionais (opcional)
+      jogos: jogador.jogos,
+      setsVencidos: jogador.setsVencidos,
+      setsPerdidos: jogador.setsPerdidos,
+      gamesVencidos: jogador.gamesVencidos,
+      gamesPerdidos: jogador.gamesPerdidos,
+      saldoSets: jogador.saldoSets,
+      saldoGames: jogador.saldoGames,
+
+      // Posição no ranking
+      posicao: index + 1,
+    }));
+
+    console.log("✅ Ranking formatado com sucesso!");
 
     res.json({
       success: true,
-      data: ranking,
+      data: rankingFormatado,
     });
   } catch (error: any) {
-    console.error("Erro ao buscar ranking:", error);
+    console.error("❌ Erro ao buscar ranking:", error);
     res.status(500).json({
       success: false,
       error: "Erro ao buscar ranking",
+      message: error.message,
     });
   }
 });
@@ -286,6 +811,52 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
 // ============================================
 // ESTATÍSTICAS
 // ============================================
+
+/**
+ * Buscar estatísticas AGREGADAS de um jogador (todas as etapas)
+ * GET /api/public/:arenaSlug/jogadores/:jogadorId/estatisticas
+ */
+router.get(
+  "/:arenaSlug/jogadores/:jogadorId/estatisticas",
+  async (req: Request, res: Response) => {
+    try {
+      const { arenaSlug, jogadorId } = req.params;
+
+      console.log("📊 Buscando estatísticas agregadas:", {
+        arenaSlug,
+        jogadorId,
+      });
+
+      const arena = await arenaService.getArenaBySlug(arenaSlug);
+
+      // Buscar estatísticas agregadas (soma de todas as etapas)
+      const stats =
+        await estatisticasJogadorService.buscarEstatisticasAgregadas(
+          jogadorId,
+          arena.id
+        );
+
+      console.log("✅ Estatísticas agregadas:", stats);
+
+      res.json({
+        success: true,
+        data: stats || {
+          totalVitorias: 0,
+          totalDerrotas: 0,
+          totalJogos: 0,
+          totalEtapas: 0,
+          totalPontos: 0,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Erro ao buscar estatísticas agregadas:", error);
+      res.status(500).json({
+        success: false,
+        error: "Erro ao buscar estatísticas",
+      });
+    }
+  }
+);
 
 /**
  * Buscar estatísticas gerais da arena

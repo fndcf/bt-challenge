@@ -1,12 +1,14 @@
 import React from "react";
 import styled from "styled-components";
+import { Link, useNavigate } from "react-router-dom";
 import { Jogador, NivelJogador, StatusJogador } from "../types/jogador";
 
 interface JogadorCardProps {
   jogador: Jogador;
+  arenaSlug?: string; // ✅ Adicionar slug da arena
   onEdit?: (jogador: Jogador) => void;
   onDelete?: (jogador: Jogador) => void;
-  onView?: (jogador: Jogador) => void;
+  onView?: (jogador: Jogador) => void; // Mantém para compatibilidade
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -202,6 +204,7 @@ const Footer = styled.div`
   gap: 0.5rem;
 `;
 
+// ✅ Botão que pode ser Link ou Button
 const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
   flex: 1;
   padding: 0.5rem 0.75rem;
@@ -215,6 +218,62 @@ const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
+  text-decoration: none;
+
+  ${(props) => {
+    switch (props.$variant) {
+      case "view":
+        return `
+          background: white;
+          color: #3b82f6;
+          border-color: #3b82f6;
+          
+          &:hover {
+            background: #3b82f6;
+            color: white;
+          }
+        `;
+      case "edit":
+        return `
+          background: white;
+          color: #f59e0b;
+          border-color: #f59e0b;
+          
+          &:hover {
+            background: #f59e0b;
+            color: white;
+          }
+        `;
+      case "delete":
+        return `
+          background: white;
+          color: #dc2626;
+          border-color: #dc2626;
+          
+          &:hover {
+            background: #dc2626;
+            color: white;
+          }
+        `;
+    }
+  }}
+`;
+
+// ✅ Link estilizado igual ao botão
+const ActionLink = styled(Link)<{ $variant: "view" | "edit" | "delete" }>`
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  text-decoration: none;
 
   ${(props) => {
     switch (props.$variant) {
@@ -310,12 +369,25 @@ const formatarTelefone = (telefone?: string) => {
 
 const JogadorCard: React.FC<JogadorCardProps> = ({
   jogador,
+  arenaSlug,
   onEdit,
   onDelete,
   onView,
 }) => {
+  const navigate = useNavigate();
   const nivelInfo = getNivelInfo(jogador.nivel);
   const statusBadge = getStatusBadge(jogador.status);
+
+  // ✅ Função para ir para o perfil público
+  const handleViewProfile = () => {
+    if (arenaSlug) {
+      // Ir para página pública
+      navigate(`/arena/${arenaSlug}/jogador/${jogador.id}`);
+    } else if (onView) {
+      // Fallback: usar onView se não tiver slug
+      onView(jogador);
+    }
+  };
 
   return (
     <Card>
@@ -383,15 +455,27 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
       </Body>
 
       <Footer>
-        {onView && (
-          <ActionButton
+        {/* ✅ Botão Ver vai para perfil público */}
+        {arenaSlug ? (
+          <ActionLink
             $variant="view"
-            onClick={() => onView(jogador)}
-            title="Ver detalhes"
+            to={`/arena/${arenaSlug}/jogador/${jogador.id}`}
+            title="Ver perfil público"
           >
             👁️ Ver
-          </ActionButton>
+          </ActionLink>
+        ) : (
+          onView && (
+            <ActionButton
+              $variant="view"
+              onClick={handleViewProfile}
+              title="Ver detalhes"
+            >
+              👁️ Ver
+            </ActionButton>
+          )
         )}
+
         {onEdit && (
           <ActionButton
             $variant="edit"

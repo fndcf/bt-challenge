@@ -1209,6 +1209,27 @@ export class ChaveService {
       }
       // ==============================================================
 
+      // ============== NOVO: EXCLUIR ESTATÍSTICAS INDIVIDUAIS ==============
+      console.log("🗑️ Excluindo estatísticas individuais dos jogadores...");
+
+      const estatisticasSnapshot = await db
+        .collection("estatisticas_jogador")
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (!estatisticasSnapshot.empty) {
+        const estatisticasBatch = db.batch();
+        estatisticasSnapshot.docs.forEach((doc) => {
+          estatisticasBatch.delete(doc.ref);
+        });
+        await estatisticasBatch.commit();
+        console.log(
+          `   ✅ ${estatisticasSnapshot.size} estatísticas individuais excluídas`
+        );
+      }
+      // ====================================================================
+
       console.log("🗑️ Limpando histórico de parceiros...");
       // Limpar histórico de parceiros desta etapa
       for (const jogadorId of jogadoresIds) {
@@ -2078,212 +2099,297 @@ export class ChaveService {
   }
 
   /**
-   * Gerar confrontos eliminatórios com CHAVEAMENTO POR SEEDS + PROTEÇÃO CONTRA MESMO GRUPO
+   * Gerar confrontos com algoritmo clássico de bracket de torneio
    *
-   * LÓGICA:
-   * 1. Primeiros N seeds ganham BYE
-   * 2. Seeds restantes jogam: Seed i vs Seed (total - 1 - offset)
-   * 3. PROTEÇÃO: Se confronto é mesmo grupo, tentar trocar com outro
-   * 4. Priorizar manter seeds próximos (não distorcer muito o chaveamento)
-   *
-   * Exemplo com 6 seeds (3 grupos, 2 classificados):
-   * Seeds:
-   * - Seed 1: 1º A → BYE
-   * - Seed 2: 1º B → BYE
-   * - Seed 3: 1º C
-   * - Seed 4: 2º A
-   * - Seed 5: 2º B
-   * - Seed 6: 2º C
-   *
-   * Pareamento inicial (por seeds):
-   * - Seed 3 vs Seed 6 → 1º C vs 2º C ❌ MESMO GRUPO!
-   * - Seed 4 vs Seed 5 → 2º A vs 2º B ✅
-   *
-   * Após proteção (trocar Seed 5 com Seed 6):
-   * - Seed 3 vs Seed 5 → 1º C vs 2º B ✅
-   * - Seed 4 vs Seed 6 → 2º A vs 2º C ✅
+   * Para N=8: [1v8, 4v5, 2v7, 3v6]
+   * Garante que os melhores seeds não se encontrem até a final
    */
   private async gerarConfrontosEliminatorios(
     etapaId: string,
     arenaId: string,
     tipoFase: TipoFase,
     classificados: Dupla[],
-    byes: number
+    _byes: number
   ): Promise<ConfrontoEliminatorio[]> {
     const confrontos: ConfrontoEliminatorio[] = [];
     let ordem = 1;
 
-    console.log(
-      "🎲 Gerando confrontos eliminatórios (com proteção mesmo grupo)..."
-    );
+    console.log("🎲 Gerando confrontos com algoritmo clássico de bracket...");
 
-    // ============== PASSO 1: GERAR BYEs ==============
-    for (let i = 0; i < byes; i++) {
-      const dupla = classificados[i];
+    const totalSeeds = classificados.length;
+    const proximaPotencia = Math.pow(2, Math.ceil(Math.log2(totalSeeds)));
 
-      console.log(
-        `   🎯 Seed ${i + 1} (BYE): ${dupla.posicaoGrupo}º ${
-          dupla.grupoNome
-        } - ${dupla.jogador1Nome} & ${dupla.jogador2Nome}`
-      );
+    console.log(`   📊 Total seeds: ${totalSeeds}`);
+    console.log(`   📊 Potência: ${proximaPotencia}`);
 
-      const confronto: ConfrontoEliminatorio = {
-        id: "",
-        etapaId,
-        arenaId,
-        fase: tipoFase,
-        ordem: ordem++,
-        dupla1Id: dupla.id,
-        dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        dupla1Origem: `${dupla.posicaoGrupo}º ${dupla.grupoNome}`,
-        status: StatusConfrontoEliminatorio.BYE,
-        vencedoraId: dupla.id,
-        vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        criadoEm: Timestamp.now(),
-        atualizadoEm: Timestamp.now(),
-      };
+    // ============== ALGORITMO CLÁSSICO DE SEEDING ==============
+    // Gera a ordem correta de pareamentos para qualquer potência de 2
 
-      const docRef = await db
-        .collection("confrontos_eliminatorios")
-        .add(confronto);
-      confronto.id = docRef.id;
-      await docRef.update({ id: docRef.id });
+    function gerarOrdemBracket(n: number): number[] {
+      if (n === 1) return [1];
 
-      confrontos.push(confronto);
+      const anterior = gerarOrdemBracket(n / 2);
+      const resultado: number[] = [];
+
+      for (const seed of anterior) {
+        resultado.push(seed);
+        resultado.push(n + 1 - seed);
+      }
+
+      return resultado;
     }
 
-    // ============== PASSO 2: GERAR CONFRONTOS REAIS COM PROTEÇÃO ==============
-    const totalSeeds = classificados.length;
-    const seedsQueJogam = totalSeeds - byes;
-    const confrontosReais = seedsQueJogam / 2;
+    const ordemSeeds = gerarOrdemBracket(proximaPotencia);
 
-    // Criar lista de pareamentos iniciais (por seed)
+    console.log(`   🎯 Ordem de seeds: [${ordemSeeds.join(", ")}]`);
+
+    // Criar pareamentos (pares consecutivos)
     const pareamentos: Array<{
-      seed1Index: number;
-      seed2Index: number;
-      dupla1: Dupla;
-      dupla2: Dupla;
+      seed1: number;
+      seed2: number;
+      seed1Existe: boolean;
+      seed2Existe: boolean;
     }> = [];
 
-    for (let i = 0; i < confrontosReais; i++) {
-      const seed1Index = byes + i;
-      const seed2Index = totalSeeds - 1 - i;
+    for (let i = 0; i < ordemSeeds.length; i += 2) {
+      const seed1 = ordemSeeds[i];
+      const seed2 = ordemSeeds[i + 1];
 
       pareamentos.push({
-        seed1Index,
-        seed2Index,
-        dupla1: classificados[seed1Index],
-        dupla2: classificados[seed2Index],
+        seed1,
+        seed2,
+        seed1Existe: seed1 <= totalSeeds,
+        seed2Existe: seed2 <= totalSeeds,
       });
     }
 
-    // ============== PASSO 3: PROTEGER CONTRA MESMO GRUPO ==============
-    console.log("   🛡️ Verificando proteção contra mesmo grupo...");
+    console.log(`   🎯 Pareamentos base (para ${proximaPotencia}):`);
+    pareamentos.forEach((p, idx) => {
+      const s1 = p.seed1Existe ? `Seed ${p.seed1}` : "---";
+      const s2 = p.seed2Existe ? `Seed ${p.seed2}` : "---";
+      console.log(`      ${idx + 1}. ${s1} vs ${s2}`);
+    });
 
-    for (let i = 0; i < pareamentos.length; i++) {
-      const pareamento = pareamentos[i];
-      const mesmoGrupo =
-        pareamento.dupla1.grupoId === pareamento.dupla2.grupoId;
+    // ============== PROTEÇÃO CONTRA MESMO GRUPO ==============
+    console.log("   🛡️ Aplicando proteção contra mesmo grupo...");
 
-      if (mesmoGrupo) {
+    const confrontosReais = pareamentos
+      .map((p, index) => ({ ...p, index }))
+      .filter((p) => p.seed1Existe && p.seed2Existe);
+
+    for (let i = 0; i < confrontosReais.length; i++) {
+      const pareamento = confrontosReais[i];
+      const dupla1 = classificados[pareamento.seed1 - 1];
+      const dupla2 = classificados[pareamento.seed2 - 1];
+
+      if (dupla1.grupoId === dupla2.grupoId) {
         console.log(
-          `   ⚠️ Detectado mesmo grupo: Seed ${pareamento.seed1Index + 1} (${
-            pareamento.dupla1.grupoNome
-          }) vs Seed ${pareamento.seed2Index + 1} (${
-            pareamento.dupla2.grupoNome
-          })`
+          `   ⚠️ Mesmo grupo: Seed ${pareamento.seed1} (${dupla1.grupoNome}) vs Seed ${pareamento.seed2} (${dupla2.grupoNome})`
         );
 
-        // Tentar trocar dupla2 com outra dupla2 de outro pareamento
         let trocaFeita = false;
 
-        for (let j = i + 1; j < pareamentos.length; j++) {
-          const outroPareamento = pareamentos[j];
+        // ========== ESTRATÉGIA 1: Trocar seed2 com outro seed2 (PARA FRENTE) ==========
+        for (let j = i + 1; j < confrontosReais.length; j++) {
+          const outro = confrontosReais[j];
+          const outraDupla1 = classificados[outro.seed1 - 1];
+          const outraDupla2 = classificados[outro.seed2 - 1];
 
-          // Verificar se trocar resolve o problema sem criar outro
-          const novoPareamento1SemProblema =
-            pareamento.dupla1.grupoId !== outroPareamento.dupla2.grupoId;
-          const novoPareamento2SemProblema =
-            outroPareamento.dupla1.grupoId !== pareamento.dupla2.grupoId;
+          const novoPar1Ok = dupla1.grupoId !== outraDupla2.grupoId;
+          const novoPar2Ok = outraDupla1.grupoId !== dupla2.grupoId;
 
-          if (novoPareamento1SemProblema && novoPareamento2SemProblema) {
+          if (novoPar1Ok && novoPar2Ok) {
             console.log(
-              `   🔄 Trocando: Seed ${pareamento.seed2Index + 1} ↔ Seed ${
-                outroPareamento.seed2Index + 1
-              }`
+              `   🔄 Trocando seed2: Seed ${pareamento.seed2} ↔ Seed ${outro.seed2}`
             );
 
-            // Trocar as dupla2
-            const temp = pareamento.dupla2;
-            pareamento.dupla2 = outroPareamento.dupla2;
-            outroPareamento.dupla2 = temp;
+            const temp = pareamento.seed2;
+            pareamento.seed2 = outro.seed2;
+            outro.seed2 = temp;
 
-            // Atualizar índices
-            const tempIndex = pareamento.seed2Index;
-            pareamento.seed2Index = outroPareamento.seed2Index;
-            outroPareamento.seed2Index = tempIndex;
+            pareamentos[pareamento.index].seed2 = pareamento.seed2;
+            pareamentos[outro.index].seed2 = outro.seed2;
 
             trocaFeita = true;
-            console.log(`   ✅ Troca realizada! Novos confrontos:`);
-            console.log(
-              `      ${pareamento.dupla1.grupoNome} vs ${pareamento.dupla2.grupoNome}`
-            );
-            console.log(
-              `      ${outroPareamento.dupla1.grupoNome} vs ${outroPareamento.dupla2.grupoNome}`
-            );
+            console.log(`   ✅ Troca realizada!`);
             break;
+          }
+        }
+
+        // ========== ESTRATÉGIA 2: Trocar seed2 com outro seed2 (PARA TRÁS) ==========
+        if (!trocaFeita) {
+          for (let j = i - 1; j >= 0; j--) {
+            const outro = confrontosReais[j];
+            const outraDupla1 = classificados[outro.seed1 - 1];
+            const outraDupla2 = classificados[outro.seed2 - 1];
+
+            const novoPar1Ok = dupla1.grupoId !== outraDupla2.grupoId;
+            const novoPar2Ok = outraDupla1.grupoId !== dupla2.grupoId;
+
+            if (novoPar1Ok && novoPar2Ok) {
+              console.log(
+                `   🔄 Trocando seed2 (para trás): Seed ${pareamento.seed2} ↔ Seed ${outro.seed2}`
+              );
+
+              const temp = pareamento.seed2;
+              pareamento.seed2 = outro.seed2;
+              outro.seed2 = temp;
+
+              pareamentos[pareamento.index].seed2 = pareamento.seed2;
+              pareamentos[outro.index].seed2 = outro.seed2;
+
+              trocaFeita = true;
+              console.log(`   ✅ Troca realizada!`);
+              break;
+            }
+          }
+        }
+
+        // ========== ESTRATÉGIA 3: Trocar seed1 com outro seed1 (SE NECESSÁRIO) ==========
+        if (!trocaFeita) {
+          console.log(`   🔍 Tentando trocar seed1...`);
+
+          for (let j = 0; j < confrontosReais.length; j++) {
+            if (j === i) continue; // Pular o próprio confronto
+
+            const outro = confrontosReais[j];
+            const outraDupla1 = classificados[outro.seed1 - 1];
+            const outraDupla2 = classificados[outro.seed2 - 1];
+
+            const novoPar1Ok = outraDupla1.grupoId !== dupla2.grupoId;
+            const novoPar2Ok = dupla1.grupoId !== outraDupla2.grupoId;
+
+            if (novoPar1Ok && novoPar2Ok) {
+              console.log(
+                `   🔄 Trocando seed1: Seed ${pareamento.seed1} ↔ Seed ${outro.seed1}`
+              );
+
+              const temp = pareamento.seed1;
+              pareamento.seed1 = outro.seed1;
+              outro.seed1 = temp;
+
+              pareamentos[pareamento.index].seed1 = pareamento.seed1;
+              pareamentos[outro.index].seed1 = outro.seed1;
+
+              trocaFeita = true;
+              console.log(`   ✅ Troca realizada!`);
+              break;
+            }
           }
         }
 
         if (!trocaFeita) {
           console.log(
-            `   ⚠️ Não foi possível evitar confronto do mesmo grupo (inevitável com esta configuração)`
+            `   ⚠️ Não foi possível evitar confronto do mesmo grupo (configuração inevitável)`
           );
         }
       }
     }
 
-    // ============== PASSO 4: CRIAR CONFRONTOS FINAIS ==============
-    console.log("   ⚔️ Confrontos da primeira fase:");
+    // ============== CRIAR CONFRONTOS ==============
+    console.log("   ⚔️ Criando confrontos:");
 
-    for (let i = 0; i < pareamentos.length; i++) {
-      const { seed1Index, seed2Index, dupla1, dupla2 } = pareamentos[i];
+    for (const pareamento of pareamentos) {
+      if (pareamento.seed1Existe && pareamento.seed2Existe) {
+        // Confronto real
+        const dupla1 = classificados[pareamento.seed1 - 1];
+        const dupla2 = classificados[pareamento.seed2 - 1];
 
-      const mesmoGrupo = dupla1.grupoId === dupla2.grupoId;
-      const statusMesmoGrupo = mesmoGrupo ? "⚠️ mesmo grupo" : "✅";
+        const mesmoGrupo = dupla1.grupoId === dupla2.grupoId;
 
-      console.log(
-        `      Confronto ${i + 1}: Seed ${seed1Index + 1} (${
-          dupla1.posicaoGrupo
-        }º ${dupla1.grupoNome}) vs Seed ${seed2Index + 1} (${
-          dupla2.posicaoGrupo
-        }º ${dupla2.grupoNome}) ${statusMesmoGrupo}`
-      );
+        console.log(
+          `   ${ordem}. Seed ${pareamento.seed1} vs Seed ${pareamento.seed2} (${
+            dupla1.grupoNome
+          } vs ${dupla2.grupoNome}) ${mesmoGrupo ? "⚠️" : "✅"}`
+        );
 
-      const confronto: ConfrontoEliminatorio = {
-        id: "",
-        etapaId,
-        arenaId,
-        fase: tipoFase,
-        ordem: ordem++,
-        dupla1Id: dupla1.id,
-        dupla1Nome: `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`,
-        dupla1Origem: `${dupla1.posicaoGrupo}º ${dupla1.grupoNome}`,
-        dupla2Id: dupla2.id,
-        dupla2Nome: `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`,
-        dupla2Origem: `${dupla2.posicaoGrupo}º ${dupla2.grupoNome}`,
-        status: StatusConfrontoEliminatorio.AGENDADA,
-        criadoEm: Timestamp.now(),
-        atualizadoEm: Timestamp.now(),
-      };
+        const confronto: ConfrontoEliminatorio = {
+          id: "",
+          etapaId,
+          arenaId,
+          fase: tipoFase,
+          ordem: ordem++,
+          dupla1Id: dupla1.id,
+          dupla1Nome: `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`,
+          dupla1Origem: `${dupla1.posicaoGrupo}º ${dupla1.grupoNome}`,
+          dupla2Id: dupla2.id,
+          dupla2Nome: `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`,
+          dupla2Origem: `${dupla2.posicaoGrupo}º ${dupla2.grupoNome}`,
+          status: StatusConfrontoEliminatorio.AGENDADA,
+          criadoEm: Timestamp.now(),
+          atualizadoEm: Timestamp.now(),
+        };
 
-      const docRef = await db
-        .collection("confrontos_eliminatorios")
-        .add(confronto);
-      confronto.id = docRef.id;
-      await docRef.update({ id: docRef.id });
+        const docRef = await db
+          .collection("confrontos_eliminatorios")
+          .add(confronto);
+        confronto.id = docRef.id;
+        await docRef.update({ id: docRef.id });
 
-      confrontos.push(confronto);
+        confrontos.push(confronto);
+      } else if (pareamento.seed1Existe) {
+        // BYE para seed1
+        const dupla = classificados[pareamento.seed1 - 1];
+
+        console.log(
+          `   ${ordem}. Seed ${pareamento.seed1} (BYE) - ${dupla.grupoNome}`
+        );
+
+        const confronto: ConfrontoEliminatorio = {
+          id: "",
+          etapaId,
+          arenaId,
+          fase: tipoFase,
+          ordem: ordem++,
+          dupla1Id: dupla.id,
+          dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+          dupla1Origem: `${dupla.posicaoGrupo}º ${dupla.grupoNome}`,
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: dupla.id,
+          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+          criadoEm: Timestamp.now(),
+          atualizadoEm: Timestamp.now(),
+        };
+
+        const docRef = await db
+          .collection("confrontos_eliminatorios")
+          .add(confronto);
+        confronto.id = docRef.id;
+        await docRef.update({ id: docRef.id });
+
+        confrontos.push(confronto);
+      } else if (pareamento.seed2Existe) {
+        // BYE para seed2
+        const dupla = classificados[pareamento.seed2 - 1];
+
+        console.log(
+          `   ${ordem}. Seed ${pareamento.seed2} (BYE) - ${dupla.grupoNome}`
+        );
+
+        const confronto: ConfrontoEliminatorio = {
+          id: "",
+          etapaId,
+          arenaId,
+          fase: tipoFase,
+          ordem: ordem++,
+          dupla1Id: dupla.id,
+          dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+          dupla1Origem: `${dupla.posicaoGrupo}º ${dupla.grupoNome}`,
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: dupla.id,
+          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+          criadoEm: Timestamp.now(),
+          atualizadoEm: Timestamp.now(),
+        };
+
+        const docRef = await db
+          .collection("confrontos_eliminatorios")
+          .add(confronto);
+        confronto.id = docRef.id;
+        await docRef.update({ id: docRef.id });
+
+        confrontos.push(confronto);
+      }
     }
 
     console.log(`   ✅ ${confrontos.length} confrontos gerados!`);
@@ -2456,18 +2562,81 @@ export class ChaveService {
           });
       }
 
-      // Atualizar estatísticas das duplas
-      await this.atualizarEstatisticasDuplas(
-        confronto.dupla1Id!,
-        confronto.dupla2Id!,
-        vencedoraId,
-        set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
-        set.gamesDupla2 > set.gamesDupla1 ? 1 : 0,
-        set.gamesDupla1,
-        set.gamesDupla2,
-        set.gamesDupla2,
-        set.gamesDupla1
+      // Buscar duplas (para pegar IDs dos jogadores)
+      const dupla1Doc = await db
+        .collection("duplas")
+        .doc(confronto.dupla1Id!)
+        .get();
+      const dupla2Doc = await db
+        .collection("duplas")
+        .doc(confronto.dupla2Id!)
+        .get();
+
+      if (!dupla1Doc.exists || !dupla2Doc.exists) {
+        throw new Error("Duplas não encontradas");
+      }
+
+      const dupla1 = { id: dupla1Doc.id, ...dupla1Doc.data() } as Dupla;
+      const dupla2 = { id: dupla2Doc.id, ...dupla2Doc.data() } as Dupla;
+
+      // ✅ NOVO: Atualizar estatísticas INDIVIDUAIS dos 4 jogadores
+      console.log("📊 Atualizando estatísticas individuais (eliminatória)...");
+
+      const dupla1Venceu = vencedoraId === confronto.dupla1Id;
+
+      // Jogador 1A (dupla 1)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla1.jogador1Id,
+        confronto.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: dupla1Venceu ? 1 : 0,
+          setsPerdidos: dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        }
       );
+
+      // Jogador 1B (dupla 1)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla1.jogador2Id,
+        confronto.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: dupla1Venceu ? 1 : 0,
+          setsPerdidos: dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        }
+      );
+
+      // Jogador 2A (dupla 2)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla2.jogador1Id,
+        confronto.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: !dupla1Venceu ? 1 : 0,
+          setsPerdidos: !dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        }
+      );
+
+      // Jogador 2B (dupla 2)
+      await estatisticasJogadorService.atualizarAposPartida(
+        dupla2.jogador2Id,
+        confronto.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: !dupla1Venceu ? 1 : 0,
+          setsPerdidos: !dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        }
+      );
+
+      console.log("✅ Estatísticas individuais atualizadas (eliminatória)!");
 
       // Atualizar confronto
       await db
@@ -2493,7 +2662,7 @@ export class ChaveService {
   }
 
   /**
-   * Avançar vencedor para próxima fase (COM PROTEÇÃO CONTRA DUPLICAÇÃO)
+   * Avançar vencedor para próxima fase (COM ORDENAÇÃO CORRETA)
    */
   private async avancarVencedor(
     confronto: ConfrontoEliminatorio,
@@ -2515,6 +2684,7 @@ export class ChaveService {
       .collection("confrontos_eliminatorios")
       .where("etapaId", "==", confronto.etapaId)
       .where("fase", "==", confronto.fase)
+      .orderBy("ordem", "asc") // ✅ IMPORTANTE: Ordenar por ordem!
       .get();
 
     const confrontosFase = confrontosFaseSnapshot.docs.map((doc) => ({
@@ -2528,11 +2698,24 @@ export class ChaveService {
         c.status === StatusConfrontoEliminatorio.BYE
     );
 
+    console.log(`   📊 Fase ${confronto.fase}:`);
+    console.log(
+      `      Finalizados: ${finalizados.length}/${confrontosFase.length}`
+    );
+
     // Se todos os confrontos da fase atual foram finalizados
     if (finalizados.length === confrontosFase.length) {
-      console.log(
-        `   ✅ Fase ${confronto.fase} completa! Gerando ${proximaFase}...`
-      );
+      console.log(`   ✅ Todos finalizados! Gerando ${proximaFase}...`);
+
+      // ✅ LOG CRÍTICO: Mostrar ordem dos vencedores
+      console.log(`   📋 Lista de vencedores NA ORDEM:`);
+      finalizados.forEach((c) => {
+        console.log(
+          `      Ordem ${c.ordem}: ${c.vencedoraNome} (${
+            c.status === StatusConfrontoEliminatorio.BYE ? "BYE" : "vencedor"
+          })`
+        );
+      });
 
       // ============= VERIFICAR SE PRÓXIMA FASE JÁ EXISTE =============
       const confrontosProximaFaseSnapshot = await db
@@ -2542,39 +2725,39 @@ export class ChaveService {
         .where("fase", "==", proximaFase)
         .get();
 
-      // Se já existe confrontos na próxima fase, ATUALIZAR em vez de criar
-      if (!confrontosProximaFaseSnapshot.empty) {
+      // ✅ IMPORTANTE: Coletar vencedores JÁ ORDENADOS pela ordem do confronto
+      const vencedores = finalizados.map((c) => ({
+        id: c.vencedoraId!,
+        nome: c.vencedoraNome!,
+        origem: `Vencedor ${c.fase} ${c.ordem}`,
+        ordem: c.ordem, // ✅ Manter a ordem
+        confrontoOrigem: c.id,
+      }));
+
+      // ✅ LOG CRÍTICO: Mostrar como vão ser pareados
+      console.log(`   🎯 Pareamentos da ${proximaFase}:`);
+      for (let i = 0; i < vencedores.length; i += 2) {
+        const v1 = vencedores[i];
+        const v2 = vencedores[i + 1];
         console.log(
-          `   ⚠️ ${proximaFase} já existe! Atualizando confrontos...`
+          `      Confronto ${i / 2 + 1}: ${v1.nome} (ordem ${v1.ordem}) vs ${
+            v2.nome
+          } (ordem ${v2.ordem})`
         );
+      }
 
-        // Buscar todos os vencedores da fase atual
-        const vencedores = finalizados.map((c) => ({
-          id: c.vencedoraId!,
-          nome: c.vencedoraNome!,
-          origem: `Vencedor ${c.fase} ${c.ordem}`,
-          confrontoOrigem: c.id,
-        }));
-
-        // Atualizar confrontos existentes da próxima fase
+      if (!confrontosProximaFaseSnapshot.empty) {
+        console.log(`   ⚠️ ${proximaFase} já existe! Atualizando...`);
         await this.atualizarProximaFaseConfrontos(
           confronto.etapaId,
           confronto.arenaId,
           proximaFase,
           vencedores
         );
-
         return;
       }
-      // ==============================================================
 
       // Se não existe, criar nova fase
-      const vencedores = finalizados.map((c) => ({
-        id: c.vencedoraId!,
-        nome: c.vencedoraNome!,
-        origem: `Vencedor ${c.fase} ${c.ordem}`,
-      }));
-
       await this.gerarProximaFaseConfrontos(
         confronto.etapaId,
         confronto.arenaId,
@@ -2596,6 +2779,7 @@ export class ChaveService {
       nome: string;
       origem: string;
       confrontoOrigem: string;
+      ordem: number;
     }[]
   ): Promise<void> {
     try {
@@ -2691,19 +2875,26 @@ export class ChaveService {
   }
 
   /**
-   * Gerar confrontos da próxima fase
+   * Gerar confrontos da próxima fase (COM PAREAMENTO CORRETO)
    */
   private async gerarProximaFaseConfrontos(
     etapaId: string,
     arenaId: string,
     fase: TipoFase,
-    vencedores: { id: string; nome: string; origem: string }[]
+    vencedores: { id: string; nome: string; origem: string; ordem: number }[]
   ): Promise<void> {
     let ordem = 1;
+
+    console.log(`   🎯 Gerando ${fase}...`);
+    console.log(`      Pareamentos:`);
 
     for (let i = 0; i < vencedores.length; i += 2) {
       const v1 = vencedores[i];
       const v2 = vencedores[i + 1];
+
+      console.log(
+        `      Confronto ${ordem}: ${v1.nome} (da ordem ${v1.ordem}) vs ${v2.nome} (da ordem ${v2.ordem})`
+      );
 
       const confronto: Partial<ConfrontoEliminatorio> = {
         etapaId,
@@ -2792,14 +2983,10 @@ export class ChaveService {
         `   📊 ${confrontosSnapshot.size} confrontos eliminatórios encontrados`
       );
 
-      // Excluir todos os confrontos eliminatórios
-      const confrontosBatch = db.batch();
-      confrontosSnapshot.docs.forEach((doc) => {
-        confrontosBatch.delete(doc.ref);
-      });
-      await confrontosBatch.commit();
+      // ============== NOVO: REVERTER ESTATÍSTICAS INDIVIDUAIS ==============
+      console.log("🔄 Revertendo estatísticas individuais dos jogadores...");
 
-      // Excluir partidas da fase eliminatória
+      // Buscar partidas eliminatórias ANTES de deletar
       const partidasSnapshot = await db
         .collection(this.collectionPartidas)
         .where("etapaId", "==", etapaId)
@@ -2808,6 +2995,115 @@ export class ChaveService {
         .get();
 
       if (!partidasSnapshot.empty) {
+        console.log(`   📊 ${partidasSnapshot.size} partidas encontradas`);
+
+        for (const partidaDoc of partidasSnapshot.docs) {
+          const partida = {
+            id: partidaDoc.id,
+            ...partidaDoc.data(),
+          } as Partida;
+
+          // Só reverter se a partida foi finalizada
+          if (
+            partida.status === StatusPartida.FINALIZADA &&
+            partida.placar &&
+            partida.placar.length > 0
+          ) {
+            console.log(`   ↩️ Revertendo partida ${partida.id}...`);
+
+            // Buscar duplas para pegar IDs dos jogadores
+            const dupla1Doc = await db
+              .collection(this.collectionDuplas)
+              .doc(partida.dupla1Id)
+              .get();
+            const dupla2Doc = await db
+              .collection(this.collectionDuplas)
+              .doc(partida.dupla2Id)
+              .get();
+
+            if (dupla1Doc.exists && dupla2Doc.exists) {
+              const dupla1 = { id: dupla1Doc.id, ...dupla1Doc.data() } as Dupla;
+              const dupla2 = { id: dupla2Doc.id, ...dupla2Doc.data() } as Dupla;
+
+              // Calcular estatísticas da partida
+              let setsDupla1 = 0;
+              let setsDupla2 = 0;
+              let gamesVencidosDupla1 = 0;
+              let gamesPerdidosDupla1 = 0;
+              let gamesVencidosDupla2 = 0;
+              let gamesPerdidosDupla2 = 0;
+
+              partida.placar.forEach((set) => {
+                if (set.gamesDupla1 > set.gamesDupla2) {
+                  setsDupla1++;
+                } else {
+                  setsDupla2++;
+                }
+                gamesVencidosDupla1 += set.gamesDupla1;
+                gamesPerdidosDupla1 += set.gamesDupla2;
+                gamesVencidosDupla2 += set.gamesDupla2;
+                gamesPerdidosDupla2 += set.gamesDupla1;
+              });
+
+              const dupla1Venceu = partida.vencedoraId === dupla1.id;
+
+              // Reverter estatísticas dos 4 jogadores
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla1.jogador1Id,
+                etapaId,
+                {
+                  venceu: dupla1Venceu,
+                  setsVencidos: setsDupla1,
+                  setsPerdidos: setsDupla2,
+                  gamesVencidos: gamesVencidosDupla1,
+                  gamesPerdidos: gamesPerdidosDupla1,
+                }
+              );
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla1.jogador2Id,
+                etapaId,
+                {
+                  venceu: dupla1Venceu,
+                  setsVencidos: setsDupla1,
+                  setsPerdidos: setsDupla2,
+                  gamesVencidos: gamesVencidosDupla1,
+                  gamesPerdidos: gamesPerdidosDupla1,
+                }
+              );
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla2.jogador1Id,
+                etapaId,
+                {
+                  venceu: !dupla1Venceu,
+                  setsVencidos: setsDupla2,
+                  setsPerdidos: setsDupla1,
+                  gamesVencidos: gamesVencidosDupla2,
+                  gamesPerdidos: gamesPerdidosDupla2,
+                }
+              );
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla2.jogador2Id,
+                etapaId,
+                {
+                  venceu: !dupla1Venceu,
+                  setsVencidos: setsDupla2,
+                  setsPerdidos: setsDupla1,
+                  gamesVencidos: gamesVencidosDupla2,
+                  gamesPerdidos: gamesPerdidosDupla2,
+                }
+              );
+
+              console.log(`      ✅ Estatísticas de 4 jogadores revertidas`);
+            }
+          }
+        }
+
+        console.log("   ✅ Estatísticas individuais revertidas!");
+
+        // Agora deletar as partidas
         const partidasBatch = db.batch();
         partidasSnapshot.docs.forEach((doc) => {
           partidasBatch.delete(doc.ref);
@@ -2817,8 +3113,22 @@ export class ChaveService {
           `   ✅ ${partidasSnapshot.size} partidas eliminatórias excluídas`
         );
       }
+      // ====================================================================
 
-      // Desmarcar duplas como classificadas
+      // Excluir confrontos eliminatórios
+      const confrontosBatch = db.batch();
+      confrontosSnapshot.docs.forEach((doc) => {
+        confrontosBatch.delete(doc.ref);
+      });
+      await confrontosBatch.commit();
+      console.log(
+        `   ✅ ${confrontosSnapshot.size} confrontos eliminatórios excluídos`
+      );
+
+      // ============== NOVO: DESMARCAR JOGADORES INDIVIDUAIS ==============
+      console.log("📊 Desmarcando jogadores individuais como classificados...");
+
+      // Buscar duplas classificadas para pegar IDs dos jogadores
       const duplasSnapshot = await db
         .collection(this.collectionDuplas)
         .where("etapaId", "==", etapaId)
@@ -2827,6 +3137,29 @@ export class ChaveService {
         .get();
 
       if (!duplasSnapshot.empty) {
+        const jogadoresIds = new Set<string>();
+
+        // Coletar IDs de todos os jogadores classificados
+        duplasSnapshot.docs.forEach((doc) => {
+          const dupla = doc.data() as Dupla;
+          jogadoresIds.add(dupla.jogador1Id);
+          jogadoresIds.add(dupla.jogador2Id);
+        });
+
+        // Desmarcar jogadores individuais
+        for (const jogadorId of jogadoresIds) {
+          await estatisticasJogadorService.marcarComoClassificado(
+            jogadorId,
+            etapaId,
+            false
+          );
+        }
+
+        console.log(
+          `   ✅ ${jogadoresIds.size} jogadores desmarcados como classificados`
+        );
+
+        // Desmarcar duplas
         const duplasBatch = db.batch();
         duplasSnapshot.docs.forEach((doc) => {
           duplasBatch.update(doc.ref, {
@@ -2839,6 +3172,7 @@ export class ChaveService {
           `   ✅ ${duplasSnapshot.size} duplas desmarcadas como classificadas`
         );
       }
+      // ====================================================================
 
       console.log("✅ Fase eliminatória cancelada com sucesso!");
       console.log(
