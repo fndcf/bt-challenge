@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "styled-components";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Jogador, NivelJogador, StatusJogador } from "../types/jogador";
 
 interface JogadorCardProps {
@@ -41,8 +41,8 @@ const AvatarContainer = styled.div`
 `;
 
 const Avatar = styled.img`
-  width: 4rem;
-  height: 4rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid white;
@@ -50,8 +50,8 @@ const Avatar = styled.img`
 `;
 
 const AvatarPlaceholder = styled.div`
-  width: 4rem;
-  height: 4rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
@@ -77,12 +77,6 @@ const Nome = styled.h3`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const BadgesRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
 `;
 
 const NivelBadge = styled.span<{ $cor: string }>`
@@ -164,40 +158,16 @@ const ContatoTexto = styled.span`
   white-space: nowrap;
 `;
 
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #f3f4f6;
-`;
-
 const StatItem = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
 `;
 
-const StatIcon = styled.span`
-  font-size: 1.5rem;
-`;
-
-const StatValue = styled.span`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-`;
-
-const StatLabel = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
 const Footer = styled.div`
-  padding: 1rem 1.5rem;
+  padding: 0.5rem 1rem;
   background: #f9fafb;
   border-top: 1px solid #e5e7eb;
   display: flex;
@@ -207,7 +177,7 @@ const Footer = styled.div`
 // ✅ Botão que pode ser Link ou Button
 const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.5rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -262,7 +232,7 @@ const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
 // ✅ Link estilizado igual ao botão
 const ActionLink = styled(Link)<{ $variant: "view" | "edit" | "delete" }>`
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.5rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -372,22 +342,9 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
   arenaSlug,
   onEdit,
   onDelete,
-  onView,
 }) => {
-  const navigate = useNavigate();
   const nivelInfo = getNivelInfo(jogador.nivel);
   const statusBadge = getStatusBadge(jogador.status);
-
-  // ✅ Função para ir para o perfil público
-  const handleViewProfile = () => {
-    if (arenaSlug) {
-      // Ir para página pública
-      navigate(`/arena/${arenaSlug}/jogador/${jogador.id}`);
-    } else if (onView) {
-      // Fallback: usar onView se não tiver slug
-      onView(jogador);
-    }
-  };
 
   return (
     <Card>
@@ -404,14 +361,6 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
 
         <InfoContainer>
           <Nome>{jogador.nome}</Nome>
-          <BadgesRow>
-            <NivelBadge $cor={nivelInfo.cor}>
-              {nivelInfo.emoji} {nivelInfo.label}
-            </NivelBadge>
-            <StatusBadge $status={jogador.status}>
-              {statusBadge.emoji} {statusBadge.label}
-            </StatusBadge>
-          </BadgesRow>
         </InfoContainer>
       </Header>
 
@@ -434,46 +383,24 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
             )}
           </ContatoSection>
         )}
-
-        <StatsGrid>
-          <StatItem>
-            <StatIcon>🏆</StatIcon>
-            <StatValue>{jogador.vitorias || 0}</StatValue>
-            <StatLabel>Vitórias</StatLabel>
-          </StatItem>
-          <StatItem>
-            <StatIcon>❌</StatIcon>
-            <StatValue>{jogador.derrotas || 0}</StatValue>
-            <StatLabel>Derrotas</StatLabel>
-          </StatItem>
-          <StatItem>
-            <StatIcon>⭐</StatIcon>
-            <StatValue>{jogador.pontos || 0}</StatValue>
-            <StatLabel>Pontos</StatLabel>
-          </StatItem>
-        </StatsGrid>
+        <StatItem>
+          <NivelBadge $cor={nivelInfo.cor}>{nivelInfo.label}</NivelBadge>
+          <StatusBadge $status={jogador.status}>
+            {statusBadge.label}
+          </StatusBadge>
+        </StatItem>
       </Body>
 
       <Footer>
         {/* ✅ Botão Ver vai para perfil público */}
-        {arenaSlug ? (
+        {arenaSlug && (
           <ActionLink
             $variant="view"
             to={`/arena/${arenaSlug}/jogador/${jogador.id}`}
             title="Ver perfil público"
           >
-            👁️ Ver
+            Ver
           </ActionLink>
-        ) : (
-          onView && (
-            <ActionButton
-              $variant="view"
-              onClick={handleViewProfile}
-              title="Ver detalhes"
-            >
-              👁️ Ver
-            </ActionButton>
-          )
         )}
 
         {onEdit && (
@@ -482,7 +409,7 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
             onClick={() => onEdit(jogador)}
             title="Editar jogador"
           >
-            ✏️ Editar
+            Editar
           </ActionButton>
         )}
         {onDelete && (
@@ -491,7 +418,7 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
             onClick={() => onDelete(jogador)}
             title="Deletar jogador"
           >
-            🗑️ Deletar
+            Deletar
           </ActionButton>
         )}
       </Footer>

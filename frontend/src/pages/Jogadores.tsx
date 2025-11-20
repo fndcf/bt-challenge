@@ -580,10 +580,6 @@ const ListagemJogadores: React.FC = () => {
     navigate(`/admin/jogadores/${jogador.id}/editar`);
   };
 
-  const handleVisualizarJogador = (jogador: Jogador) => {
-    navigate(`/admin/jogadores/${jogador.id}`);
-  };
-
   const handleDeletarJogador = (jogador: Jogador) => {
     setDeleteModal({
       isOpen: true,
