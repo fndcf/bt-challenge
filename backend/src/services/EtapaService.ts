@@ -447,6 +447,42 @@ export class EtapaService {
         atualizadoEm: Timestamp.now(),
       };
 
+      // ✅ CORRIGIDO: Recalcular grupos e distribuição
+      if (
+        dadosValidados.maxJogadores &&
+        dadosValidados.maxJogadores !== etapa.maxJogadores
+      ) {
+        const totalDuplas = dadosValidados.maxJogadores / 2;
+
+        // Lógica: tentar manter ~3 duplas por grupo
+        let jogadoresPorGrupo = 3;
+        let qtdGrupos = Math.ceil(totalDuplas / jogadoresPorGrupo);
+
+        // Se resultou em apenas 1 grupo e tem mais de 4 duplas, dividir
+        if (qtdGrupos === 1 && totalDuplas > 5) {
+          qtdGrupos = 2;
+        }
+
+        // Se resultou em grupos muito pequenos (< 3), consolidar
+        if (totalDuplas / qtdGrupos < 3 && qtdGrupos > 1) {
+          qtdGrupos = Math.max(1, Math.floor(totalDuplas / 3));
+        }
+
+        // ✅ CRÍTICO: SEMPRE recalcular jogadoresPorGrupo baseado no qtdGrupos final
+        jogadoresPorGrupo = Math.ceil(totalDuplas / qtdGrupos);
+
+        console.log(`🔢 Recalculando distribuição:`, {
+          maxJogadores: dadosValidados.maxJogadores,
+          totalDuplas,
+          qtdGrupos,
+          jogadoresPorGrupo,
+          distribuicao: `${qtdGrupos} grupos de ~${jogadoresPorGrupo} duplas`,
+        });
+
+        dadosAtualizacao.qtdGrupos = qtdGrupos;
+        dadosAtualizacao.jogadoresPorGrupo = jogadoresPorGrupo;
+      }
+
       // Converter datas se fornecidas
       if (dadosValidados.dataInicio) {
         dadosAtualizacao.dataInicio = Timestamp.fromDate(

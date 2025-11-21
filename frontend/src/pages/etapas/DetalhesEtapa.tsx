@@ -625,6 +625,31 @@ export const DetalhesEtapa: React.FC = () => {
     carregarEtapa();
   }, [id]);
 
+  // ✅ ADICIONAR: Recarregar quando volta para a página
+  useEffect(() => {
+    // Recarregar quando a aba fica visível
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("🔄 Página visível - recarregando etapa");
+        carregarEtapa();
+      }
+    };
+
+    // Recarregar quando a janela recebe foco
+    const handleFocus = () => {
+      console.log("🔄 Janela com foco - recarregando etapa");
+      carregarEtapa();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
   const carregarEtapa = async () => {
     try {
       setLoading(true);
