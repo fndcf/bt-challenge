@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { Etapa, AtualizarEtapaDTO } from "../../types/etapa";
-import { NivelJogador } from "../../types/jogador";
+import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 import { format } from "date-fns";
 
@@ -319,6 +319,7 @@ export const EditarEtapa: React.FC = () => {
     nome: "",
     descricao: "",
     nivel: undefined,
+    genero: undefined,
     dataInicio: "",
     dataFim: "",
     dataRealizacao: "",
@@ -353,6 +354,7 @@ export const EditarEtapa: React.FC = () => {
         nome: data.nome,
         descricao: data.descricao || "",
         nivel: data.nivel,
+        genero: data.genero,
         dataInicio: toInputDate(data.dataInicio),
         dataFim: toInputDate(data.dataFim),
         dataRealizacao: toInputDate(data.dataRealizacao),
@@ -524,6 +526,29 @@ export const EditarEtapa: React.FC = () => {
 
           <Field>
             <Label>
+              Gênero da Etapa <Required>*</Required>
+            </Label>
+            <Select
+              required
+              disabled={chavesGeradas || temInscritos}
+              value={formData.genero}
+              onChange={(e) =>
+                handleChange("genero", e.target.value as GeneroJogador)
+              }
+            >
+              <option value={GeneroJogador.MASCULINO}>Masculino</option>
+              <option value={GeneroJogador.FEMININO}>Feminino</option>
+            </Select>
+            {temInscritos && (
+              <HelperText $variant="warning">
+                ⚠️ Não é possível alterar o gênero pois já existem jogadores
+                inscritos
+              </HelperText>
+            )}
+          </Field>
+
+          <Field>
+            <Label>
               Nível da Etapa <Required>*</Required>
             </Label>
             <Select
@@ -539,7 +564,6 @@ export const EditarEtapa: React.FC = () => {
                 ⚡ Intermediário
               </option>
               <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
-              <option value={NivelJogador.PROFISSIONAL}>⭐ Profissional</option>
             </Select>
             {temInscritos && (
               <HelperText $variant="warning">

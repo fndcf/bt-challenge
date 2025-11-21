@@ -144,11 +144,11 @@ export class ChaveService {
    */
   private async formarDuplasProtegendoCabecas(
     etapaId: string,
-    etapaNome: string,
+    _etapaNome: string,
     arenaId: string,
     cabecas: Inscricao[],
     normais: Inscricao[],
-    stats: EstatisticasCombinacoes
+    _stats: EstatisticasCombinacoes
   ): Promise<Dupla[]> {
     try {
       const duplas: Dupla[] = [];
@@ -229,7 +229,7 @@ export class ChaveService {
    */
   private async formarDuplasLivre(
     etapaId: string,
-    etapaNome: string,
+    _etapaNome: string,
     arenaId: string,
     inscricoes: Inscricao[]
   ): Promise<Dupla[]> {
@@ -316,7 +316,7 @@ export class ChaveService {
     arenaId: string,
     jogador1: Inscricao,
     jogador2: Inscricao,
-    ordem: number
+    _ordem: number
   ): Promise<Dupla> {
     try {
       const dupla: Dupla = {
@@ -326,9 +326,11 @@ export class ChaveService {
         jogador1Id: jogador1.jogadorId,
         jogador1Nome: jogador1.jogadorNome,
         jogador1Nivel: jogador1.jogadorNivel,
+        jogador1Genero: jogador1.jogadorGenero,
         jogador2Id: jogador2.jogadorId,
         jogador2Nome: jogador2.jogadorNome,
         jogador2Nivel: jogador2.jogadorNivel,
+        jogador2Genero: jogador2.jogadorGenero,
         grupoId: "",
         grupoNome: "",
         jogos: 0,
@@ -423,9 +425,8 @@ export class ChaveService {
           arenaId,
           jogadorId: dupla.jogador1Id,
           jogadorNome: dupla.jogador1Nome,
-          jogadorNivel: dupla.jogador1Nivel
-            ? Number(dupla.jogador1Nivel)
-            : undefined,
+          jogadorNivel: dupla.jogador1Nivel,
+          jogadorGenero: dupla.jogador1Genero,
           grupoId: dupla.grupoId,
           grupoNome: dupla.grupoNome,
         });
@@ -436,9 +437,8 @@ export class ChaveService {
           arenaId,
           jogadorId: dupla.jogador2Id,
           jogadorNome: dupla.jogador2Nome,
-          jogadorNivel: dupla.jogador2Nivel
-            ? Number(dupla.jogador2Nivel)
-            : undefined,
+          jogadorNivel: dupla.jogador2Nivel,
+          jogadorGenero: dupla.jogador2Genero,
           grupoId: dupla.grupoId,
           grupoNome: dupla.grupoNome,
         });
@@ -497,6 +497,7 @@ export class ChaveService {
         id: i.jogadorId,
         nome: i.jogadorNome,
         nivel: i.jogadorNivel,
+        genero: i.jogadorGenero,
       }));
 
       // Embaralhar jogadores
@@ -552,9 +553,11 @@ export class ChaveService {
             jogador1Id: jogador1.id,
             jogador1Nome: jogador1.nome,
             jogador1Nivel: jogador1.nivel,
+            jogador1Genero: jogador1.genero,
             jogador2Id: melhorParceiro.id,
             jogador2Nome: melhorParceiro.nome,
             jogador2Nivel: melhorParceiro.nivel,
+            jogador2Genero: jogador1.genero,
             grupoId: "",
             grupoNome: "",
             jogos: 0,
@@ -1621,82 +1624,6 @@ export class ChaveService {
       console.log("   ↩️ Estatísticas antigas revertidas");
     } catch (error) {
       console.error("Erro ao reverter estatísticas:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Atualizar estatísticas das duplas após partida
-   */
-  private async atualizarEstatisticasDuplas(
-    dupla1Id: string,
-    dupla2Id: string,
-    vencedoraId: string,
-    setsDupla1: number,
-    setsDupla2: number,
-    gamesVencidosDupla1: number,
-    gamesPerdidosDupla1: number,
-    gamesVencidosDupla2: number,
-    gamesPerdidosDupla2: number
-  ): Promise<void> {
-    try {
-      // Atualizar dupla 1
-      const dupla1Doc = await db
-        .collection(this.collectionDuplas)
-        .doc(dupla1Id)
-        .get();
-      const dupla1 = dupla1Doc.data() as Dupla;
-
-      const venceuDupla1 = vencedoraId === dupla1Id;
-
-      await db
-        .collection(this.collectionDuplas)
-        .doc(dupla1Id)
-        .update({
-          jogos: dupla1.jogos + 1,
-          vitorias: dupla1.vitorias + (venceuDupla1 ? 1 : 0),
-          derrotas: dupla1.derrotas + (venceuDupla1 ? 0 : 1),
-          pontos: dupla1.pontos + (venceuDupla1 ? 3 : 0),
-          setsVencidos: dupla1.setsVencidos + setsDupla1,
-          setsPerdidos: dupla1.setsPerdidos + setsDupla2,
-          gamesVencidos: dupla1.gamesVencidos + gamesVencidosDupla1,
-          gamesPerdidos: dupla1.gamesPerdidos + gamesPerdidosDupla1,
-          saldoSets: dupla1.saldoSets + (setsDupla1 - setsDupla2),
-          saldoGames:
-            dupla1.saldoGames + (gamesVencidosDupla1 - gamesPerdidosDupla1),
-          atualizadoEm: Timestamp.now(),
-        });
-
-      // Atualizar dupla 2
-      const dupla2Doc = await db
-        .collection(this.collectionDuplas)
-        .doc(dupla2Id)
-        .get();
-      const dupla2 = dupla2Doc.data() as Dupla;
-
-      const venceuDupla2 = vencedoraId === dupla2Id;
-
-      await db
-        .collection(this.collectionDuplas)
-        .doc(dupla2Id)
-        .update({
-          jogos: dupla2.jogos + 1,
-          vitorias: dupla2.vitorias + (venceuDupla2 ? 1 : 0),
-          derrotas: dupla2.derrotas + (venceuDupla2 ? 0 : 1),
-          pontos: dupla2.pontos + (venceuDupla2 ? 3 : 0),
-          setsVencidos: dupla2.setsVencidos + setsDupla2,
-          setsPerdidos: dupla2.setsPerdidos + setsDupla1,
-          gamesVencidos: dupla2.gamesVencidos + gamesVencidosDupla2,
-          gamesPerdidos: dupla2.gamesPerdidos + gamesPerdidosDupla2,
-          saldoSets: dupla2.saldoSets + (setsDupla2 - setsDupla1),
-          saldoGames:
-            dupla2.saldoGames + (gamesVencidosDupla2 - gamesPerdidosDupla2),
-          atualizadoEm: Timestamp.now(),
-        });
-
-      console.log("   📊 Estatísticas atualizadas");
-    } catch (error) {
-      console.error("Erro ao atualizar estatísticas:", error);
       throw error;
     }
   }

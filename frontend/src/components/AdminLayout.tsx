@@ -25,7 +25,7 @@ const Layout = styled.div`
 // ===========================
 
 const Sidebar = styled.aside<{ $open: boolean }>`
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #134e5e 0%, #71b280 100%);
   color: white;
   width: ${(props) => (props.$open ? "260px" : "70px")};
   transition: width 0.3s ease;
@@ -225,7 +225,7 @@ const ToggleButton = styled.button`
   width: 24px;
   height: 24px;
   background: white;
-  color: #667eea;
+  color: #134e5e;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -255,7 +255,7 @@ const MenuButton = styled.button`
     right: 2rem;
     width: 56px;
     height: 56px;
-    background: #667eea;
+    background: #134e5e;
     color: white;
     border: none;
     border-radius: 50%;

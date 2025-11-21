@@ -765,15 +765,6 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     return grupos[0]?.completo || false;
   }, [isGrupoUnico, grupos]);
 
-  const campeaoGrupoUnico = useMemo(() => {
-    if (!isGrupoUnico || !grupoUnicoCompleto) return null;
-
-    // Buscar 1º colocado do grupo único
-    // Seria necessário buscar as duplas do grupo
-    // Por simplicidade, vamos retornar null aqui e buscar no componente
-    return null;
-  }, [isGrupoUnico, grupoUnicoCompleto]);
-
   useEffect(() => {
     const verificarStatusEtapa = async () => {
       try {

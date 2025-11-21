@@ -40,20 +40,11 @@ const AvatarContainer = styled.div`
   flex-shrink: 0;
 `;
 
-const Avatar = styled.img`
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
 const AvatarPlaceholder = styled.div`
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,11 +294,6 @@ const getNivelInfo = (nivel: NivelJogador) => {
       cor: "#ff9800",
       label: "Avançado",
     },
-    [NivelJogador.PROFISSIONAL]: {
-      emoji: "⭐",
-      cor: "#9c27b0",
-      label: "Profissional",
-    },
   };
   return niveis[nivel] || niveis[NivelJogador.INICIANTE];
 };
@@ -350,13 +336,9 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
     <Card>
       <Header>
         <AvatarContainer>
-          {jogador.fotoUrl ? (
-            <Avatar src={jogador.fotoUrl} alt={jogador.nome} />
-          ) : (
-            <AvatarPlaceholder>
-              {jogador.nome.charAt(0).toUpperCase()}
-            </AvatarPlaceholder>
-          )}
+          <AvatarPlaceholder>
+            {jogador.nome.charAt(0).toUpperCase()}
+          </AvatarPlaceholder>
         </AvatarContainer>
 
         <InfoContainer>

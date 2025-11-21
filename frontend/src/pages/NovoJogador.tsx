@@ -3,7 +3,12 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import jogadorService from "../services/jogadorService";
-import { NivelJogador, StatusJogador, CriarJogadorDTO } from "../types/jogador";
+import {
+  NivelJogador,
+  StatusJogador,
+  CriarJogadorDTO,
+  GeneroJogador,
+} from "../types/jogador";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -364,7 +369,7 @@ const NovoJogador: React.FC = () => {
     email: "",
     telefone: "",
     dataNascimento: "",
-    genero: undefined,
+    genero: GeneroJogador.MASCULINO,
     nivel: NivelJogador.INICIANTE,
     status: StatusJogador.ATIVO,
     observacoes: "",
@@ -585,17 +590,17 @@ const NovoJogador: React.FC = () => {
             </FormGroup>
 
             <FormGroup>
-              <Label htmlFor="genero">Gênero</Label>
+              <Label htmlFor="genero">
+                Gênero <Required>*</Required>
+              </Label>
               <Select
                 id="genero"
                 name="genero"
                 value={formData.genero || ""}
                 onChange={handleChange}
               >
-                <option value="">Selecione...</option>
                 <option value="masculino">Masculino</option>
                 <option value="feminino">Feminino</option>
-                <option value="outro">Outro</option>
               </Select>
             </FormGroup>
           </FormGrid>
@@ -621,9 +626,6 @@ const NovoJogador: React.FC = () => {
                   ⚡ Intermediário
                 </option>
                 <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
-                <option value={NivelJogador.PROFISSIONAL}>
-                  ⭐ Profissional
-                </option>
               </Select>
               <FormHint>Escolha o nível de habilidade do jogador</FormHint>
             </FormGroup>

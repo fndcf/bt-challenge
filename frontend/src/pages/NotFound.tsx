@@ -10,7 +10,7 @@ const PageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   padding: 1rem;
   position: relative;
   overflow: hidden;
@@ -143,7 +143,7 @@ const HomeButton = styled(Link)`
   gap: 0.5rem;
   padding: 1rem 2rem;
   background: white;
-  color: #667eea;
+  color: #134e5e;
   border-radius: 0.75rem;
   font-weight: 700;
   font-size: 1rem;

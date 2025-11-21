@@ -14,7 +14,7 @@ import { Arena } from "../types";
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
 `;
 
 const Header = styled.header`
@@ -126,7 +126,7 @@ const Avatar = styled.div`
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,6 +176,37 @@ const NivelBadge = styled.span`
   text-transform: uppercase;
   background: #dbeafe;
   color: #1e40af;
+  margin-top: 0.75rem;
+`;
+
+const GeneroTag = styled.span<{ $genero: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: ${
+    (props) =>
+      props.$genero === "masculino"
+        ? "#dbeafe" // Azul claro
+        : "#fce7f3" // Rosa claro
+  };
+  color: ${
+    (props) =>
+      props.$genero === "masculino"
+        ? "#1e40af" // Azul escuro
+        : "#9f1239" // Rosa escuro
+  };
+`;
+
+const BadgeGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   margin-top: 0.75rem;
 `;
 
@@ -430,6 +461,13 @@ const JogadorPerfil: React.FC = () => {
     return j.nivel || j.jogadorNivel || (j as any).categoria;
   };
 
+  // ✅ Helper para pegar o gênero
+  const getGenero = (j: JogadorPublico | null): string | undefined => {
+    if (!j) return undefined;
+    return j.genero || j.jogadorGenero || (j as any).sexo;
+  };
+
+  const generoJogador = getGenero(jogador);
   const nomeJogador = getNomeJogador(jogador);
   const nivelJogador = getNivel(jogador);
 
@@ -556,7 +594,16 @@ const JogadorPerfil: React.FC = () => {
           <ProfileInfo>
             <h1>{nomeJogador}</h1>
             <p>Jogador da {arena.nome}</p>
-            {nivelJogador && <NivelBadge>Nível: {nivelJogador}</NivelBadge>}
+
+            {/* ✅ NOVO: Badges de nível e gênero */}
+            <BadgeGroup>
+              {nivelJogador && <NivelBadge>Nível: {nivelJogador}</NivelBadge>}
+              {generoJogador && (
+                <GeneroTag $genero={generoJogador}>
+                  {generoJogador === "masculino" ? "♂️" : "♀️"} {generoJogador}
+                </GeneroTag>
+              )}
+            </BadgeGroup>
           </ProfileInfo>
           {/* Melhor Posição */}
           <StatCard>

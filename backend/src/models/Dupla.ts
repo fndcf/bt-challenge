@@ -12,10 +12,12 @@ export interface Dupla {
   jogador1Id: string;
   jogador1Nome: string;
   jogador1Nivel: string;
+  jogador1Genero: string;
 
   jogador2Id: string;
   jogador2Nome: string;
   jogador2Nivel: string;
+  jogador2Genero: string;
 
   // Grupo
   grupoId: string;

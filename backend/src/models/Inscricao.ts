@@ -21,6 +21,7 @@ export interface Inscricao {
   jogadorId: string;
   jogadorNome: string;
   jogadorNivel: string;
+  jogadorGenero: string;
 
   // Status
   status: StatusInscricao;

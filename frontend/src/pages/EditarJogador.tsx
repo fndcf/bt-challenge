@@ -8,6 +8,7 @@ import {
   StatusJogador,
   AtualizarJogadorDTO,
   Jogador,
+  GeneroJogador,
 } from "../types/jogador";
 
 // ============== STYLED COMPONENTS ==============
@@ -450,7 +451,7 @@ const EditarJogador: React.FC = () => {
     email: "",
     telefone: "",
     dataNascimento: "",
-    genero: undefined,
+    genero: GeneroJogador.MASCULINO,
     nivel: NivelJogador.INICIANTE,
     status: StatusJogador.ATIVO,
     observacoes: "",
@@ -801,17 +802,17 @@ const EditarJogador: React.FC = () => {
 
             {/* Gênero */}
             <FormGroup>
-              <Label htmlFor="genero">Gênero</Label>
+              <Label htmlFor="genero">
+                Gênero <Required>*</Required>
+              </Label>
               <Select
                 id="genero"
                 name="genero"
                 value={formData.genero || ""}
                 onChange={handleChange}
               >
-                <option value="">Selecione...</option>
-                <option value="masculino">Masculino</option>
-                <option value="feminino">Feminino</option>
-                <option value="outro">Outro</option>
+                <option value={GeneroJogador.MASCULINO}>Masculino</option>
+                <option value={GeneroJogador.FEMININO}>Feminino</option>
               </Select>
             </FormGroup>
           </FormGrid>
@@ -839,9 +840,6 @@ const EditarJogador: React.FC = () => {
                   ⚡ Intermediário
                 </option>
                 <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
-                <option value={NivelJogador.PROFISSIONAL}>
-                  ⭐ Profissional
-                </option>
               </Select>
               <FormHint>Nível de habilidade do jogador</FormHint>
             </FormGroup>

@@ -27,6 +27,7 @@ export class EstatisticasJogadorService {
         jogadorId: dto.jogadorId,
         jogadorNome: dto.jogadorNome,
         jogadorNivel: dto.jogadorNivel,
+        jogadorGenero: dto.jogadorGenero,
         grupoId: dto.grupoId,
         grupoNome: dto.grupoNome,
         jogos: 0,
@@ -382,7 +383,8 @@ export class EstatisticasJogadorService {
 
       // Agregar estatísticas
       let jogadorNome = "";
-      let jogadorNivel = "";
+      let jogadorNivel: string | undefined = undefined;
+      let jogadorGenero: string | undefined = undefined;
       let etapasParticipadas = 0;
       let jogos = 0;
       let vitorias = 0;
@@ -397,6 +399,7 @@ export class EstatisticasJogadorService {
         const stat = doc.data() as EstatisticasJogador;
         jogadorNome = stat.jogadorNome;
         jogadorNivel = stat.jogadorNivel;
+        jogadorGenero = stat.jogadorGenero;
         etapasParticipadas++;
         jogos += stat.jogos || 0;
         vitorias += stat.vitorias || 0;
@@ -427,6 +430,7 @@ export class EstatisticasJogadorService {
         jogadorId,
         jogadorNome,
         jogadorNivel,
+        jogadorGenero,
         arenaId,
         etapasParticipadas,
         jogos,
@@ -457,7 +461,8 @@ export class EstatisticasJogadorService {
     Array<{
       jogadorId: string;
       jogadorNome: string;
-      jogadorNivel?: number;
+      jogadorNivel?: string;
+      jogadorGenero?: string;
       etapasParticipadas: number;
       jogos: number;
       vitorias: number;
@@ -489,6 +494,7 @@ export class EstatisticasJogadorService {
             jogadorId: stats.jogadorId,
             jogadorNome: stats.jogadorNome,
             jogadorNivel: stats.jogadorNivel,
+            jogadorGenero: stats.jogadorGenero,
             etapasParticipadas: 0,
             jogos: 0,
             vitorias: 0,

@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { Etapa, StatusEtapa, FiltrosEtapa } from "../../types/etapa";
 import etapaService from "../../services/etapaService";
 import { EtapaCard } from "../../components/etapas/EtapaCard";
+import { GeneroJogador, NivelJogador } from "@/types/jogador";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -328,6 +329,8 @@ export const ListagemEtapas: React.FC = () => {
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState<StatusEtapa | "">("");
+  const [filtroNivel, setFiltroNivel] = useState<NivelJogador | "">(""); // ✅ NOVO
+  const [filtroGenero, setFiltroGenero] = useState<GeneroJogador | "">(""); // ✅ NOVO
   const [ordenacao, setOrdenacao] = useState<"dataRealizacao" | "criadoEm">(
     "dataRealizacao"
   );
@@ -342,7 +345,7 @@ export const ListagemEtapas: React.FC = () => {
 
   useEffect(() => {
     carregarDados();
-  }, [filtroStatus, ordenacao]);
+  }, [filtroStatus, filtroNivel, filtroGenero, ordenacao]);
 
   const carregarDados = async () => {
     try {
@@ -357,6 +360,15 @@ export const ListagemEtapas: React.FC = () => {
 
       if (filtroStatus) {
         filtros.status = filtroStatus;
+      }
+
+      // ✅ ADICIONAR filtros de nível e gênero
+      if (filtroNivel) {
+        filtros.nivel = filtroNivel;
+      }
+
+      if (filtroGenero) {
+        filtros.genero = filtroGenero;
       }
 
       const [resultado, estatisticas] = await Promise.all([
@@ -455,6 +467,39 @@ export const ListagemEtapas: React.FC = () => {
             </Select>
           </FilterGroup>
 
+          {/* ✅ NOVO: Filtro de Nível */}
+          <FilterGroup>
+            <FilterLabel>Nível:</FilterLabel>
+            <Select
+              value={filtroNivel}
+              onChange={(e) =>
+                setFiltroNivel(e.target.value as NivelJogador | "")
+              }
+            >
+              <option value="">Todos os níveis</option>
+              <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
+              <option value={NivelJogador.INTERMEDIARIO}>
+                ⚡ Intermediário
+              </option>
+              <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+            </Select>
+          </FilterGroup>
+
+          {/* ✅ NOVO: Filtro de Gênero */}
+          <FilterGroup>
+            <FilterLabel>Gênero:</FilterLabel>
+            <Select
+              value={filtroGenero}
+              onChange={(e) =>
+                setFiltroGenero(e.target.value as GeneroJogador | "")
+              }
+            >
+              <option value="">Todos os gêneros</option>
+              <option value={GeneroJogador.MASCULINO}>♂️ Masculino</option>
+              <option value={GeneroJogador.FEMININO}>♀️ Feminino</option>
+            </Select>
+          </FilterGroup>
+
           <FilterGroup>
             <FilterLabel>Ordenar por:</FilterLabel>
             <Select
@@ -468,10 +513,16 @@ export const ListagemEtapas: React.FC = () => {
             </Select>
           </FilterGroup>
 
-          {(filtroStatus || ordenacao !== "dataRealizacao") && (
+          {/* ✅ ATUALIZAR condição do botão limpar */}
+          {(filtroStatus ||
+            filtroNivel ||
+            filtroGenero ||
+            ordenacao !== "dataRealizacao") && (
             <ClearButton
               onClick={() => {
                 setFiltroStatus("");
+                setFiltroNivel(""); // ✅ ADICIONAR
+                setFiltroGenero(""); // ✅ ADICIONAR
                 setOrdenacao("dataRealizacao");
               }}
             >
@@ -489,7 +540,7 @@ export const ListagemEtapas: React.FC = () => {
           <EmptyIcon>🎾</EmptyIcon>
           <EmptyTitle>Nenhuma etapa encontrada</EmptyTitle>
           <EmptyText>
-            {filtroStatus
+            {filtroStatus || filtroNivel || filtroGenero
               ? "Não há etapas com esse status."
               : "Comece criando sua primeira etapa!"}
           </EmptyText>

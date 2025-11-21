@@ -187,9 +187,8 @@ export class ReiDaPraiaService {
             arenaId,
             jogadorId: inscricao.jogadorId,
             jogadorNome: inscricao.jogadorNome,
-            jogadorNivel: inscricao.jogadorNivel
-              ? Number(inscricao.jogadorNivel)
-              : undefined,
+            jogadorNivel: inscricao.jogadorNivel,
+            jogadorGenero: inscricao.jogadorGenero,
             grupoNome: nomeGrupo,
           });
 
@@ -1147,9 +1146,15 @@ export class ReiDaPraiaService {
       jogador1Id: jogador1.jogadorId,
       jogador1Nome: jogador1.jogadorNome,
       jogador1Nivel: jogador1.jogadorNivel ? String(jogador1.jogadorNivel) : "",
+      jogador1Genero: jogador1.jogadorGenero
+        ? String(jogador1.jogadorGenero)
+        : "",
       jogador2Id: jogador2.jogadorId,
       jogador2Nome: jogador2.jogadorNome,
       jogador2Nivel: jogador2.jogadorNivel ? String(jogador2.jogadorNivel) : "",
+      jogador2Genero: jogador2.jogadorGenero
+        ? String(jogador2.jogadorGenero)
+        : "",
       grupoId: "", // Sem grupo na fase eliminatória
       grupoNome: "Eliminatória",
       jogos: 0,

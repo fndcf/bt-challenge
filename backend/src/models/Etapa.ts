@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Timestamp } from "firebase-admin/firestore";
+import { GeneroJogador } from "./Jogador";
 
 /**
  * Enums
@@ -8,7 +9,6 @@ export enum NivelJogador {
   INICIANTE = "iniciante",
   INTERMEDIARIO = "intermediario",
   AVANCADO = "avancado",
-  PROFISSIONAL = "profissional",
 }
 
 export enum StatusEtapa {
@@ -40,6 +40,7 @@ export interface Etapa {
   nome: string; // "Etapa 1 - Novembro 2025"
   descricao?: string;
   nivel: NivelJogador; // ← ADICIONADO: Nível da etapa
+  genero: GeneroJogador;
   dataInicio: Timestamp | string; // Início das inscrições
   dataFim: Timestamp | string; // Fim das inscrições
   dataRealizacao: Timestamp | string; // Data dos jogos
@@ -80,7 +81,10 @@ export interface Etapa {
 export const CriarEtapaSchema = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
   descricao: z.string().max(500).optional(),
-  nivel: z.nativeEnum(NivelJogador), // ← ADICIONADO
+  nivel: z.nativeEnum(NivelJogador),
+  genero: z.enum(GeneroJogador, {
+    message: "Gênero é obrigatório (masculino ou feminino)",
+  }),
   dataInicio: z.string().datetime().or(z.date()),
   dataFim: z.string().datetime().or(z.date()),
   dataRealizacao: z.string().datetime().or(z.date()),
@@ -102,6 +106,7 @@ export const AtualizarEtapaSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
   descricao: z.string().max(500).optional(),
   nivel: z.nativeEnum(NivelJogador).optional(), // ← ADICIONADO
+  genero: z.enum(GeneroJogador).optional(),
   dataInicio: z.string().datetime().or(z.date()).optional(),
   dataFim: z.string().datetime().or(z.date()).optional(),
   dataRealizacao: z.string().datetime().or(z.date()).optional(),

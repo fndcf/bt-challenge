@@ -8,7 +8,6 @@ export enum NivelJogador {
   INICIANTE = "iniciante",
   INTERMEDIARIO = "intermediario",
   AVANCADO = "avancado",
-  PROFISSIONAL = "profissional",
 }
 
 /**
@@ -18,6 +17,11 @@ export enum StatusJogador {
   ATIVO = "ativo",
   INATIVO = "inativo",
   SUSPENSO = "suspenso",
+}
+
+export enum GeneroJogador {
+  MASCULINO = "masculino",
+  FEMININO = "feminino",
 }
 
 /**
@@ -30,7 +34,7 @@ export interface Jogador {
   email?: string;
   telefone?: string;
   dataNascimento?: string;
-  genero?: "masculino" | "feminino" | "outro";
+  genero: GeneroJogador;
   nivel: NivelJogador;
   status: StatusJogador;
   observacoes?: string;
@@ -65,7 +69,11 @@ export const CriarJogadorSchema = z.object({
     .optional()
     .or(z.literal("")),
 
-  genero: z.enum(["masculino", "feminino", "outro"]).optional(),
+  genero: z
+    .enum(GeneroJogador, {
+      message: "Gênero é obrigatório (masculino ou feminino)",
+    })
+    .default(GeneroJogador.MASCULINO),
 
   nivel: z.nativeEnum(NivelJogador, {
     // ✅ CORRIGIDO: Usar apenas message, não errorMap
@@ -104,7 +112,7 @@ export interface FiltrosJogador {
   arenaId: string;
   nivel?: NivelJogador;
   status?: StatusJogador;
-  genero?: "masculino" | "feminino" | "outro";
+  genero?: GeneroJogador;
   busca?: string; // Busca por nome, email ou telefone
   ordenarPor?: "nome" | "criadoEm" | "pontos" | "vitorias";
   ordem?: "asc" | "desc";

@@ -731,13 +731,19 @@ function converterColocacaoParaPosicao(
 /**
  * Buscar ranking geral da arena
  * GET /api/public/:arenaSlug/ranking
+ * ✅ ATUALIZADO: Suporta filtros de gênero e nível
  */
 router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
   try {
     const { arenaSlug } = req.params;
-    const { limite = "50" } = req.query;
+    const { limite = "50", genero, nivel } = req.query; // ✅ ADICIONAR genero e nivel
 
-    console.log("🏅 Buscando ranking agregado para:", arenaSlug);
+    console.log("🏅 Buscando ranking agregado:", {
+      arenaSlug,
+      limite,
+      genero,
+      nivel,
+    });
 
     // Buscar arena
     const arena = await arenaService.getArenaBySlug(arenaSlug);
@@ -749,10 +755,39 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
         parseInt(limite as string)
       );
 
-    console.log(`📊 Ranking encontrado: ${ranking.length} jogadores`);
+    console.log(`📊 Ranking bruto: ${ranking.length} jogadores`);
+
+    // ✅ FILTRAR POR GÊNERO E NÍVEL (se fornecidos)
+    let rankingFiltrado = ranking;
+
+    if (genero || nivel) {
+      rankingFiltrado = ranking.filter((jogador) => {
+        let match = true;
+
+        // Filtrar por gênero
+        if (genero) {
+          const jogadorGenero = (jogador.jogadorGenero || "").toLowerCase();
+          const filtroGenero = (genero as string).toLowerCase();
+          match = match && jogadorGenero === filtroGenero;
+        }
+
+        // Filtrar por nível
+        if (nivel) {
+          const jogadorNivel = jogador.jogadorNivel || "";
+          const filtroNivel = (nivel as string).toLowerCase();
+          match = match && jogadorNivel === filtroNivel;
+        }
+
+        return match;
+      });
+
+      console.log(
+        `✅ Ranking filtrado: ${rankingFiltrado.length} jogadores (gênero: ${genero}, nível: ${nivel})`
+      );
+    }
 
     // Formatar resposta com campos compatíveis (novos + legados)
-    const rankingFormatado = ranking.map((jogador, index) => ({
+    const rankingFormatado = rankingFiltrado.map((jogador, index) => ({
       // IDs
       id: jogador.jogadorId,
       jogadorId: jogador.jogadorId,
@@ -764,6 +799,10 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
       // Nível
       nivel: jogador.jogadorNivel,
       jogadorNivel: jogador.jogadorNivel,
+
+      // ✅ GÊNERO (importante para o frontend)
+      genero: jogador.jogadorGenero,
+      jogadorGenero: jogador.jogadorGenero,
 
       // Pontos
       pontos: jogador.pontos,
@@ -788,7 +827,7 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
       saldoSets: jogador.saldoSets,
       saldoGames: jogador.saldoGames,
 
-      // Posição no ranking
+      // Posição no ranking (recalculada após filtro)
       posicao: index + 1,
     }));
 

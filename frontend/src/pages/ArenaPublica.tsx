@@ -18,7 +18,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
 `;
 
 const Header = styled.header`
@@ -195,7 +195,7 @@ const EtapaHeader = styled.div`
 `;
 
 const EtapaNumero = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   color: white;
   width: 3rem;
   height: 3rem;
@@ -607,14 +607,36 @@ const ArenaPublica: React.FC = () => {
 
                 <EtapaInfo>
                   <InfoItem>
-                    🏁 <strong>Data:</strong>{" "}
+                    📅 <strong>Data:</strong>{" "}
                     {formatarData(etapa.dataRealizacao)}
                   </InfoItem>
+
+                  {/* ✅ NOVO: Nível */}
+                  {etapa.nivel && (
+                    <InfoItem>
+                      🎯 <strong>Nível:</strong>{" "}
+                      {etapa.nivel === "iniciante" && "🌱 Iniciante"}
+                      {etapa.nivel === "intermediario" && "⚡ Intermediário"}
+                      {etapa.nivel === "avancado" && "🔥 Avançado"}
+                    </InfoItem>
+                  )}
+
+                  {/* ✅ NOVO: Gênero */}
+                  {etapa.genero && (
+                    <InfoItem>
+                      👤 <strong>Gênero:</strong>{" "}
+                      {etapa.genero === "masculino"
+                        ? "♂️ Masculino"
+                        : "♀️ Feminino"}
+                    </InfoItem>
+                  )}
+
                   {etapa.totalJogadores !== undefined && (
                     <InfoItem>
                       👥 <strong>Jogadores:</strong> {etapa.totalJogadores}
                     </InfoItem>
                   )}
+
                   <InfoItem>
                     🎾 <strong>Formato:</strong> {etapa.formato}
                   </InfoItem>
@@ -633,12 +655,12 @@ const ArenaPublica: React.FC = () => {
         )}
 
         {/* ✨ RANKING - Usando componente RankingList */}
-        <SectionTitle>🏅 Ranking de Jogadores</SectionTitle>
+        <SectionTitle>🏅 Ranking Completo</SectionTitle>
         <RankingList
           arenaSlug={slug}
-          limit={5}
-          showPagination={true}
-          showHeader={true}
+          limitPorNivel={10} // Ignorado quando showPagination=true
+          showPagination={true} // Com paginação
+          itensPorPagina={5} // 20 jogadores por página
         />
       </Container>
 

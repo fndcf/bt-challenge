@@ -455,18 +455,20 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                       </MatchStatus>
                     )}
 
-                    {finished && match.placarDetalhado?.length > 0 && (
-                      <ScoreDetails>
-                        {match.placarDetalhado.map((set) => (
-                          <SetBox key={`${match.id}-set-${set.numero}`}>
-                            <SetLabel>Set {set.numero}</SetLabel>
-                            <SetScore>
-                              {set.gamesDupla1}-{set.gamesDupla2}
-                            </SetScore>
-                          </SetBox>
-                        ))}
-                      </ScoreDetails>
-                    )}
+                    {finished &&
+                      match.placarDetalhado &&
+                      match.placarDetalhado.length > 0 && (
+                        <ScoreDetails>
+                          {match.placarDetalhado.map((set) => (
+                            <SetBox key={`${match.id}-set-${set.numero}`}>
+                              <SetLabel>Set {set.numero}</SetLabel>
+                              <SetScore>
+                                {set.gamesDupla1}-{set.gamesDupla2}
+                              </SetScore>
+                            </SetBox>
+                          ))}
+                        </ScoreDetails>
+                      )}
                   </Match>
                 );
               })}

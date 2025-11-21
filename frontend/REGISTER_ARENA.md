@@ -148,8 +148,8 @@ await arenaService.deactivate("arena-id");
 - **Disponível:** Verde (#27ae60)
 - **Indisponível:** Vermelho (#e74c3c)
 - **Verificando:** Cinza (#666)
-- **Primary:** Roxo (#667eea)
-- **Gradiente:** #667eea → #764ba2
+- **Primary:** Roxo (#134e5e)
+- **Gradiente:** #134e5e → #71b280
 
 ### Estados Visuais
 

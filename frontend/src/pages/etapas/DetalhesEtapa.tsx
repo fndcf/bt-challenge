@@ -1073,7 +1073,16 @@ export const DetalhesEtapa: React.FC = () => {
                     {etapa.nivel === "iniciante" && "🌱 Iniciante"}
                     {etapa.nivel === "intermediario" && "⚡ Intermediário"}
                     {etapa.nivel === "avancado" && "🔥 Avançado"}
-                    {etapa.nivel === "profissional" && "⭐ Profissional"}
+                  </InfoValue>
+                </InfoRow>
+
+                {/* ✅ ADICIONAR: Gênero */}
+                <InfoRow>
+                  <InfoLabel>Gênero:</InfoLabel>
+                  <InfoValue $color="#3b82f6">
+                    {etapa.genero === "masculino"
+                      ? "♂️ Masculino"
+                      : "♀️ Feminino"}
                   </InfoValue>
                 </InfoRow>
 
@@ -1306,8 +1315,6 @@ export const DetalhesEtapa: React.FC = () => {
                       {inscricao.jogadorNivel === "intermediario" &&
                         "⚡ Intermediário"}
                       {inscricao.jogadorNivel === "avancado" && "🔥 Avançado"}
-                      {inscricao.jogadorNivel === "profissional" &&
-                        "⭐ Profissional"}
                     </InscricaoNivel>
                   </InscricaoInfo>
 
@@ -1366,6 +1373,7 @@ export const DetalhesEtapa: React.FC = () => {
           etapaId={etapa.id}
           etapaNome={etapa.nome}
           etapaNivel={etapa.nivel}
+          etapaGenero={etapa.genero}
           maxJogadores={etapa.maxJogadores}
           totalInscritos={etapa.totalInscritos}
           onClose={() => setModalInscricaoAberto(false)}

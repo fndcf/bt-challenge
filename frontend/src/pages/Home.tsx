@@ -7,7 +7,7 @@ import { useDocumentTitle } from "../hooks";
 
 const Container = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
 `;
 
 // ============== HERO SECTION ==============
@@ -159,7 +159,7 @@ const Button = styled(Link)<{ $variant?: "primary" | "secondary" }>`
     props.$variant === "secondary"
       ? `
     background: white;
-    color: #667eea;
+    color: #134e5e;
     
     &:hover {
       background: #f9fafb;
@@ -255,7 +255,7 @@ const StepNumber = styled.span`
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   color: white;
   border-radius: 50%;
   font-size: 1.5rem;

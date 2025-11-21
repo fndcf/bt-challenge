@@ -20,9 +20,9 @@ export const validators = {
   /**
    * Campo obrigatório
    */
-  required: (message: string = 'Campo obrigatório'): ValidationRule => ({
+  required: (message: string = "Campo obrigatório"): ValidationRule => ({
     validate: (value: any) => {
-      if (typeof value === 'string') return value.trim().length > 0;
+      if (typeof value === "string") return value.trim().length > 0;
       if (Array.isArray(value)) return value.length > 0;
       return value !== null && value !== undefined;
     },
@@ -32,7 +32,7 @@ export const validators = {
   /**
    * Email válido
    */
-  email: (message: string = 'Email inválido'): ValidationRule => ({
+  email: (message: string = "Email inválido"): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true; // Apenas valida se tiver valor
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,11 +44,25 @@ export const validators = {
   /**
    * Telefone válido (Brasil)
    */
-  phone: (message: string = 'Telefone inválido'): ValidationRule => ({
+  phone: (message: string = "Telefone inválido"): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true;
       const phoneRegex = /^\(?[1-9]{2}\)?\s?9?\d{4}-?\d{4}$/;
-      return phoneRegex.test(value.replace(/\s/g, ''));
+      return phoneRegex.test(value.replace(/\s/g, ""));
+    },
+    message,
+  }),
+
+  /**
+   * Gênero válido (masculino ou feminino)
+   */
+  genero: (
+    message: string = "Gênero inválido. Deve ser 'masculino' ou 'feminino'"
+  ): ValidationRule => ({
+    validate: (value: string) => {
+      if (!value) return true; // Só valida se tiver valor (required valida obrigatoriedade)
+      const generosValidos = ["masculino", "feminino"];
+      return generosValidos.includes(value.toLowerCase());
     },
     message,
   }),
@@ -111,7 +125,7 @@ export const validators = {
   /**
    * Data válida
    */
-  date: (message: string = 'Data inválida'): ValidationRule => ({
+  date: (message: string = "Data inválida"): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true;
       const date = new Date(value);
@@ -123,7 +137,7 @@ export const validators = {
   /**
    * Data futura
    */
-  futureDate: (message: string = 'Data deve ser futura'): ValidationRule => ({
+  futureDate: (message: string = "Data deve ser futura"): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true;
       const date = new Date(value);
@@ -137,7 +151,7 @@ export const validators = {
   /**
    * Data passada
    */
-  pastDate: (message: string = 'Data deve ser passada'): ValidationRule => ({
+  pastDate: (message: string = "Data deve ser passada"): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true;
       const date = new Date(value);
@@ -151,7 +165,9 @@ export const validators = {
   /**
    * Senha forte
    */
-  strongPassword: (message: string = 'Senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula e número'): ValidationRule => ({
+  strongPassword: (
+    message: string = "Senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula e número"
+  ): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true;
       const hasMinLength = value.length >= 8;
@@ -166,7 +182,10 @@ export const validators = {
   /**
    * Confirmação de senha
    */
-  passwordMatch: (passwordField: string, message: string = 'Senhas não conferem'): ValidationRule => ({
+  passwordMatch: (
+    passwordField: string,
+    message: string = "Senhas não conferem"
+  ): ValidationRule => ({
     validate: (value: string, formData: any) => {
       if (!value) return true;
       return value === formData[passwordField];
@@ -177,7 +196,7 @@ export const validators = {
   /**
    * URL válida
    */
-  url: (message: string = 'URL inválida'): ValidationRule => ({
+  url: (message: string = "URL inválida"): ValidationRule => ({
     validate: (value: string) => {
       if (!value) return true;
       try {
@@ -193,7 +212,10 @@ export const validators = {
   /**
    * Validador customizado
    */
-  custom: (validateFn: (value: any, formData?: any) => boolean, message: string): ValidationRule => ({
+  custom: (
+    validateFn: (value: any, formData?: any) => boolean,
+    message: string
+  ): ValidationRule => ({
     validate: validateFn,
     message,
   }),
@@ -256,13 +278,13 @@ export const validateField = (
  */
 
 // Schema para login
-export const loginSchema: ValidationSchema<{ email: string; password: string }> = {
-  email: [
-    validators.required('Email é obrigatório'),
-    validators.email(),
-  ],
+export const loginSchema: ValidationSchema<{
+  email: string;
+  password: string;
+}> = {
+  email: [validators.required("Email é obrigatório"), validators.email()],
   password: [
-    validators.required('Senha é obrigatória'),
+    validators.required("Senha é obrigatória"),
     validators.minLength(6),
   ],
 };
@@ -270,52 +292,46 @@ export const loginSchema: ValidationSchema<{ email: string; password: string }> 
 // Schema para criar jogador
 export const createJogadorSchema: ValidationSchema<any> = {
   nome: [
-    validators.required('Nome é obrigatório'),
-    validators.minLength(3, 'Nome deve ter no mínimo 3 caracteres'),
-    validators.maxLength(100, 'Nome deve ter no máximo 100 caracteres'),
+    validators.required("Nome é obrigatório"),
+    validators.minLength(3, "Nome deve ter no mínimo 3 caracteres"),
+    validators.maxLength(100, "Nome deve ter no máximo 100 caracteres"),
   ],
-  email: [
-    validators.email(),
-  ],
-  telefone: [
-    validators.phone(),
-  ],
-  nivel: [
-    validators.required('Nível é obrigatório'),
-  ],
+  email: [validators.email()],
+  telefone: [validators.phone()],
+  nivel: [validators.required("Nível é obrigatório")],
+  genero: [validators.required("Gênero é obrigatório")],
 };
 
 // Schema para criar etapa
 export const createEtapaSchema: ValidationSchema<any> = {
   nome: [
-    validators.required('Nome é obrigatório'),
+    validators.required("Nome é obrigatório"),
     validators.minLength(3),
     validators.maxLength(100),
   ],
   dataInicio: [
-    validators.required('Data de início é obrigatória'),
+    validators.required("Data de início é obrigatória"),
     validators.date(),
   ],
   dataFim: [
-    validators.required('Data de fim é obrigatória'),
+    validators.required("Data de fim é obrigatória"),
     validators.date(),
   ],
   dataRealizacao: [
-    validators.required('Data de realização é obrigatória'),
+    validators.required("Data de realização é obrigatória"),
     validators.date(),
     validators.futureDate(),
   ],
   maxJogadores: [
-    validators.required('Número máximo de jogadores é obrigatório'),
-    validators.min(4, 'Mínimo de 4 jogadores'),
-    validators.max(100, 'Máximo de 100 jogadores'),
+    validators.required("Número máximo de jogadores é obrigatório"),
+    validators.min(4, "Mínimo de 4 jogadores"),
+    validators.max(100, "Máximo de 100 jogadores"),
   ],
   jogadoresPorGrupo: [
-    validators.required('Jogadores por grupo é obrigatório'),
-    validators.min(2, 'Mínimo de 2 jogadores por grupo'),
-    validators.max(6, 'Máximo de 6 jogadores por grupo'),
+    validators.required("Jogadores por grupo é obrigatório"),
+    validators.min(2, "Mínimo de 2 jogadores por grupo"),
+    validators.max(6, "Máximo de 6 jogadores por grupo"),
   ],
-  nivel: [
-    validators.required('Nível da etapa é obrigatório'),
-  ],
+  nivel: [validators.required("Nível da etapa é obrigatório")],
+  genero: [validators.required("Gênero é obrigatório")],
 };

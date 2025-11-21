@@ -9,6 +9,7 @@ import {
   FiltrosJogador,
   NivelJogador,
   StatusJogador,
+  GeneroJogador,
 } from "../types/jogador";
 import { Arena } from "../types";
 import JogadorCard from "../components/JogadorCard";
@@ -483,9 +484,7 @@ const ListagemJogadores: React.FC = () => {
   const [busca, setBusca] = useState("");
   const [nivelFiltro, setNivelFiltro] = useState<NivelJogador | "">("");
   const [statusFiltro, setStatusFiltro] = useState<StatusJogador | "">("");
-  const [generoFiltro, setGeneroFiltro] = useState<
-    "masculino" | "feminino" | "outro" | ""
-  >("");
+  const [generoFiltro, setGeneroFiltro] = useState<GeneroJogador | "">("");
 
   // Paginação
   const [total, setTotal] = useState(0);
@@ -692,7 +691,6 @@ const ListagemJogadores: React.FC = () => {
                 ⚡ Intermediário
               </option>
               <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
-              <option value={NivelJogador.PROFISSIONAL}>⭐ Profissional</option>
             </Select>
           </FilterItem>
 
@@ -716,7 +714,7 @@ const ListagemJogadores: React.FC = () => {
 
           {/* Gênero */}
           <FilterItem>
-            <FilterLabel htmlFor="genero">👤 Gênero</FilterLabel>
+            <FilterLabel htmlFor="genero">Gênero</FilterLabel>
             <Select
               id="genero"
               value={generoFiltro}
@@ -726,9 +724,8 @@ const ListagemJogadores: React.FC = () => {
               }}
             >
               <option value="">Todos</option>
-              <option value="masculino">♂️ Masculino</option>
-              <option value="feminino">♀️ Feminino</option>
-              <option value="outro">⚧ Outro</option>
+              <option value={GeneroJogador.MASCULINO}>Masculino</option>
+              <option value={GeneroJogador.FEMININO}>Feminino</option>
             </Select>
           </FilterItem>
         </FiltersGrid>

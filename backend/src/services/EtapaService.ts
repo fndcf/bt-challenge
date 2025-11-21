@@ -16,6 +16,7 @@ import {
 import { Inscricao, StatusInscricao } from "../models/Inscricao";
 import { Timestamp } from "firebase-admin/firestore";
 import jogadorService from "./JogadorService";
+import { Dupla } from "../models/Dupla";
 
 /**
  * Service para gerenciar etapas
@@ -69,6 +70,7 @@ export class EtapaService {
         nome: dadosValidados.nome.trim(),
         descricao: dadosValidados.descricao?.trim() || undefined,
         nivel: dadosValidados.nivel, // ← ADICIONADO
+        genero: dadosValidados.genero,
         dataInicio: Timestamp.fromDate(dataInicio),
         dataFim: Timestamp.fromDate(dataFim),
         dataRealizacao: Timestamp.fromDate(dataRealizacao),
@@ -171,6 +173,14 @@ export class EtapaService {
         );
       }
 
+      // ✅ NOVA VALIDAÇÃO: GÊNERO
+      if (jogador.genero !== etapa.genero) {
+        throw new Error(
+          `Este jogador não pode se inscrever nesta etapa. ` +
+            `Etapa ${etapa.genero}, jogador é ${jogador.genero}`
+        );
+      }
+
       // Verificar se jogador já está inscrito
       if (etapa.jogadoresInscritos.includes(dadosValidados.jogadorId)) {
         throw new Error("Jogador já está inscrito nesta etapa");
@@ -185,6 +195,7 @@ export class EtapaService {
         jogadorId: dadosValidados.jogadorId,
         jogadorNome: jogador.nome,
         jogadorNivel: jogador.nivel,
+        jogadorGenero: jogador.genero,
         status: StatusInscricao.CONFIRMADA,
         duplaId: undefined,
         parceiroId: undefined,
@@ -409,6 +420,13 @@ export class EtapaService {
         if (dadosValidados.nivel && dadosValidados.nivel !== etapa.nivel) {
           throw new Error(
             "Não é possível alterar o nível da etapa após ter inscritos"
+          );
+        }
+
+        // ✅ NOVA VALIDAÇÃO: Não pode mudar gênero
+        if (dadosValidados.genero && dadosValidados.genero !== etapa.genero) {
+          throw new Error(
+            "Não é possível alterar o gênero da etapa após ter inscritos"
           );
         }
 
@@ -708,7 +726,7 @@ export class EtapaService {
         const duplas = duplasSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })) as Dupla[];
 
         console.log(`👥 ${duplas.length} duplas no grupo`);
 
@@ -743,6 +761,9 @@ export class EtapaService {
 
         // Atualizar etapa
         const campeao = duplas[0] as any;
+        if (!campeao) {
+          throw new Error("Nenhum campeão encontrado");
+        }
         await db
           .collection("etapas")
           .doc(id)
@@ -927,6 +948,11 @@ export class EtapaService {
       }
 
       const dupla = duplaDoc.data();
+
+      if (!dupla) {
+        console.warn(`Dados da dupla ${duplaId} não encontrados`);
+        return;
+      }
 
       // Atribuir pontos para jogador 1
       await this.atribuirPontosParaJogador(

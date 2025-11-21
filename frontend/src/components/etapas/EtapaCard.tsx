@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { Etapa, StatusEtapa } from "../../types/etapa";
-import { NivelJogador } from "../../types/jogador";
+import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import { StatusBadge } from "./StatusBadge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -239,10 +239,19 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
         return "⚡";
       case NivelJogador.AVANCADO:
         return "🔥";
-      case NivelJogador.PROFISSIONAL:
-        return "⭐";
       default:
         return "🎯";
+    }
+  };
+
+  const getGeneroIcon = (genero: GeneroJogador) => {
+    switch (genero) {
+      case GeneroJogador.MASCULINO:
+        return "♂️";
+      case GeneroJogador.FEMININO:
+        return "♀️";
+      default:
+        return "👤";
     }
   };
 
@@ -254,10 +263,19 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
         return "Intermediário";
       case NivelJogador.AVANCADO:
         return "Avançado";
-      case NivelJogador.PROFISSIONAL:
-        return "Profissional";
       default:
         return nivel;
+    }
+  };
+
+  const getGeneroLabel = (genero: GeneroJogador) => {
+    switch (genero) {
+      case GeneroJogador.FEMININO:
+        return "Feminino";
+      case GeneroJogador.MASCULINO:
+        return "Masculino";
+      default:
+        return genero;
     }
   };
 
@@ -291,6 +309,15 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           <InfoContent>
             <InfoLabel>Nível</InfoLabel>
             <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
+          </InfoContent>
+        </InfoItem>
+
+        {/* Gênero */}
+        <InfoItem>
+          <IconWrapper>{getGeneroIcon(etapa.genero)}</IconWrapper>
+          <InfoContent>
+            <InfoLabel>Gênero</InfoLabel>
+            <InfoValue>{getGeneroLabel(etapa.genero)}</InfoValue>
           </InfoContent>
         </InfoItem>
 

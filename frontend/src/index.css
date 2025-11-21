@@ -30,7 +30,7 @@ body {
 
 /* ⭐ Background APENAS para páginas públicas */
 body:not(.admin-area) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   min-height: 100vh;
 }
 
@@ -157,7 +157,7 @@ body:not(.admin-area) header {
 
 body:not(.admin-area) header h1 {
   font-size: clamp(1.5rem, 4vw, 2.5rem);
-  color: #667eea;
+  color: #134e5e;
   margin-bottom: 0.25rem;
 }
 
@@ -220,7 +220,7 @@ body:not(.admin-area) main {
 }
 
 .card h2 {
-  color: #667eea;
+  color: #134e5e;
   margin-bottom: 1rem;
 }
 
@@ -276,7 +276,7 @@ body:not(.admin-area) main {
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #134e5e;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -318,7 +318,7 @@ body:not(.admin-area) main {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   color: white;
 }
 
@@ -339,12 +339,12 @@ body:not(.admin-area) main {
 
 .btn-outline {
   background: transparent;
-  border: 2px solid #667eea;
-  color: #667eea;
+  border: 2px solid #134e5e;
+  color: #134e5e;
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: #667eea;
+  background: #134e5e;
   color: white;
 }
 
@@ -448,7 +448,7 @@ body:not(.admin-area) main {
 
 .spinner {
   border: 3px solid rgba(102, 126, 234, 0.1);
-  border-top-color: #667eea;
+  border-top-color: #134e5e;
   border-radius: 50%;
   width: 2rem;
   height: 2rem;

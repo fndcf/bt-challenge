@@ -32,6 +32,7 @@ export class CabecaDeChaveService {
         jogadorId: dto.jogadorId,
         jogadorNome: dto.jogadorNome,
         jogadorNivel: dto.jogadorNivel,
+        jogadorGenero: dto.jogadorGenero,
         ordem: dto.ordem,
         ativo: true,
         criadoEm: Timestamp.now(),

@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "../contexts/AuthContext";
 import { useArena } from "../contexts/ArenaContext";
@@ -25,7 +25,7 @@ const Container = styled.div`
 // ===========================
 
 const WelcomeBanner = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   border-radius: 12px;
   padding: 2rem;
   color: white;
@@ -225,7 +225,7 @@ const StepCard = styled.div`
 const StepNumber = styled.div`
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -268,7 +268,7 @@ const StepContent = styled.div`
   }
 
   a {
-    color: #667eea;
+    color: #134e5e;
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 600;
@@ -386,7 +386,7 @@ const Dashboard: React.FC = () => {
       label: "Cadastrar Jogador",
       description: "Adicione novos jogadores à arena",
       link: "/admin/jogadores/novo",
-      color: "#667eea",
+      color: "#134e5e",
     },
     {
       icon: "🎯",
@@ -444,9 +444,9 @@ const Dashboard: React.FC = () => {
       <Section>
         <RankingList
           arenaSlug={arena?.slug}
-          limit={5}
-          showPagination={true}
-          showHeader={true}
+          limitPorNivel={10} // Ignorado quando showPagination=true
+          showPagination={true} // Com paginação
+          itensPorPagina={5} // 20 jogadores por página
         />
       </Section>
 

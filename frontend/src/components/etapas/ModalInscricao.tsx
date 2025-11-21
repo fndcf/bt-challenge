@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { Jogador, NivelJogador, StatusJogador } from "../../types/jogador";
+import {
+  GeneroJogador,
+  Jogador,
+  NivelJogador,
+  StatusJogador,
+} from "../../types/jogador";
 import jogadorService from "../../services/jogadorService";
 import etapaService from "../../services/etapaService";
 
@@ -8,6 +13,7 @@ interface ModalInscricaoProps {
   etapaId: string;
   etapaNome: string;
   etapaNivel: NivelJogador;
+  etapaGenero: GeneroJogador;
   maxJogadores: number;
   totalInscritos: number;
   onClose: () => void;
@@ -494,6 +500,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   etapaId,
   etapaNome,
   etapaNivel,
+  etapaGenero,
   maxJogadores,
   totalInscritos,
   onClose,
@@ -518,6 +525,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
     telefone: "",
     nivel: etapaNivel,
     status: StatusJogador.ATIVO,
+    genero: etapaGenero,
   });
 
   const vagasDisponiveis = maxJogadores - totalInscritos;
@@ -533,7 +541,11 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const carregarJogadores = async () => {
     try {
       setLoadingJogadores(true);
-      const data = await jogadorService.listar({ nivel: etapaNivel });
+      // ✅ CORRIGIDO: Filtrar por nível E gênero
+      const data = await jogadorService.listar({
+        nivel: etapaNivel,
+        genero: etapaGenero,
+      });
       setJogadores(data.jogadores || []);
     } catch (err: any) {
       setError("Erro ao carregar jogadores");
@@ -575,6 +587,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         telefone: "",
         nivel: etapaNivel,
         status: StatusJogador.ATIVO,
+        genero: etapaGenero,
       });
       setMostrarFormulario(false);
 
@@ -602,7 +615,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const jogadoresFiltrados = jogadoresDisponiveis.filter(
     (jogador) =>
       jogador.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      jogador.email.toLowerCase().includes(busca.toLowerCase())
+      jogador.email?.toLowerCase().includes(busca.toLowerCase())
   );
 
   const toggleJogador = (jogador: Jogador) => {
@@ -658,10 +671,19 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         return "⚡ Intermediário";
       case NivelJogador.AVANCADO:
         return "🔥 Avançado";
-      case NivelJogador.PROFISSIONAL:
-        return "⭐ Profissional";
       default:
         return nivel;
+    }
+  };
+
+  const getGeneroLabel = (genero: GeneroJogador) => {
+    switch (genero) {
+      case GeneroJogador.MASCULINO:
+        return "♂️ Masculino"; // ✅ ADICIONAR
+      case GeneroJogador.FEMININO:
+        return "♀️ Feminino"; // ✅ ADICIONAR
+      default:
+        return genero;
     }
   };
 
@@ -783,6 +805,21 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                     }
                     placeholder="(00) 00000-0000"
                   />
+                </FormField>
+
+                <FormField>
+                  <Label>
+                    Gênero <span className="required">*</span>
+                  </Label>
+                  <Input
+                    type="text"
+                    value={getGeneroLabel(etapaGenero)}
+                    disabled
+                  />
+                  <HintText>
+                    O jogador será criado automaticamente com o gênero desta
+                    etapa
+                  </HintText>
                 </FormField>
 
                 <FormField>

@@ -22,7 +22,7 @@ import { ptBR } from "date-fns/locale/pt-BR";
 
 const Page = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
 `;
 
 const TopBar = styled.header`
@@ -152,6 +152,70 @@ const Badge = styled.span<{ $variant: string }>`
     font-size: 12px;
     padding: 6px 14px;
   }
+`;
+
+const NivelBadge = styled.span<{ $nivel: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  ${(props) => {
+    switch (props.$nivel) {
+      case "iniciante":
+        return `background: #dcfce7; color: #166534;`;
+      case "intermediario":
+        return `background: #dbeafe; color: #1e40af;`;
+      case "avancado":
+        return `background: #fed7aa; color: #9a3412;`;
+      default:
+        return `background: #f3f4f6; color: #6b7280;`;
+    }
+  }}
+
+  @media (min-width: 768px) {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+`;
+
+const GeneroBadge = styled.span<{ $genero: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  ${(props) => {
+    switch (props.$genero) {
+      case "masculino":
+        return `background: #dbeafe; color: #1e40af;`;
+      case "feminino":
+        return `background: #fce7f3; color: #9f1239;`;
+      default:
+        return `background: #f3f4f6; color: #6b7280;`;
+    }
+  }}
+
+  @media (min-width: 768px) {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+`;
+
+const BadgeGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
 `;
 
 const BackBtn = styled(Link)`
@@ -320,7 +384,7 @@ const PlayerNum = styled.div`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -694,9 +758,27 @@ const EtapaDetalhes: React.FC = () => {
               <PageTitle>
                 #{etapa.numero} {etapa.nome}
               </PageTitle>
-              <Badge $variant={etapa.status}>
-                {getStatusLabel(etapa.status)}
-              </Badge>
+
+              {/* ✅ NOVO: Badges de status, nível e gênero */}
+              <BadgeGroup>
+                <Badge $variant={etapa.status}>
+                  {getStatusLabel(etapa.status)}
+                </Badge>
+
+                {etapa.nivel && (
+                  <NivelBadge $nivel={etapa.nivel}>
+                    {etapa.nivel === "iniciante" && "🌱"}
+                    {etapa.nivel === "intermediario" && "⚡"}
+                    {etapa.nivel === "avancado" && "🔥"}
+                  </NivelBadge>
+                )}
+
+                {etapa.genero && (
+                  <GeneroBadge $genero={etapa.genero}>
+                    {etapa.genero === "masculino" ? "♂️" : "♀️"} {etapa.genero}
+                  </GeneroBadge>
+                )}
+              </BadgeGroup>
             </TitleArea>
             <BackBtn to={`/arena/${slug}`}>← Voltar</BackBtn>
           </HeaderRow>
@@ -716,10 +798,36 @@ const EtapaDetalhes: React.FC = () => {
                   <InfoLabel>Data</InfoLabel>
                   <InfoValue>{formatarData(etapa.dataRealizacao)}</InfoValue>
                 </InfoBox>
+
                 <InfoBox>
                   <InfoLabel>Formato</InfoLabel>
                   <InfoValue>{etapa.formato}</InfoValue>
                 </InfoBox>
+
+                {/* ✅ NOVO: Nível */}
+                {etapa.nivel && (
+                  <InfoBox>
+                    <InfoLabel>Nível</InfoLabel>
+                    <InfoValue>
+                      {etapa.nivel === "iniciante" && "🌱 Iniciante"}
+                      {etapa.nivel === "intermediario" && "⚡ Intermediário"}
+                      {etapa.nivel === "avancado" && "🔥 Avançado"}
+                    </InfoValue>
+                  </InfoBox>
+                )}
+
+                {/* ✅ NOVO: Gênero */}
+                {etapa.genero && (
+                  <InfoBox>
+                    <InfoLabel>Gênero</InfoLabel>
+                    <InfoValue>
+                      {etapa.genero === "masculino"
+                        ? "♂️ Masculino"
+                        : "♀️ Feminino"}
+                    </InfoValue>
+                  </InfoBox>
+                )}
+
                 <InfoBox>
                   <InfoLabel>Jogadores</InfoLabel>
                   <InfoValue>{jogadores.length} inscritos</InfoValue>

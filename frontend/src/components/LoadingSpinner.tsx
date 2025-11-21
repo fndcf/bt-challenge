@@ -39,7 +39,7 @@ const SpinnerCircle = styled.div<{ $size: "small" | "medium" | "large" }>`
   border-radius: 50%;
   border-style: solid;
   border-color: #e5e7eb;
-  border-top-color: #667eea;
+  border-top-color: #134e5e;
   animation: ${spin} 0.8s linear infinite;
 
   ${(props) => {

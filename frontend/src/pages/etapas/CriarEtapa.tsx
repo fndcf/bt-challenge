@@ -6,7 +6,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { CriarEtapaDTO } from "../../types/etapa";
-import { NivelJogador } from "../../types/jogador";
+import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 
 // ============== STYLED COMPONENTS ==============
@@ -317,6 +317,7 @@ export const CriarEtapa: React.FC = () => {
     nome: "",
     descricao: "",
     nivel: NivelJogador.INTERMEDIARIO,
+    genero: GeneroJogador.MASCULINO,
     dataInicio: "",
     dataFim: "",
     dataRealizacao: "",
@@ -524,6 +525,23 @@ export const CriarEtapa: React.FC = () => {
             </Field>
 
             <Field>
+              <Label>Gênero da Etapa *</Label>
+              <Select
+                required
+                value={formData.genero}
+                onChange={(e) =>
+                  handleChange("genero", e.target.value as GeneroJogador)
+                }
+              >
+                <option value={GeneroJogador.MASCULINO}>Masculino</option>
+                <option value={GeneroJogador.FEMININO}>Feminino</option>
+              </Select>
+              <HelperText>
+                ⚠️ Apenas jogadores deste gênero poderão se inscrever
+              </HelperText>
+            </Field>
+
+            <Field>
               <Label>Nível da Etapa *</Label>
               <Select
                 required
@@ -537,9 +555,6 @@ export const CriarEtapa: React.FC = () => {
                   ⚡ Intermediário
                 </option>
                 <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
-                <option value={NivelJogador.PROFISSIONAL}>
-                  ⭐ Profissional
-                </option>
               </Select>
               <HelperText>
                 ⚠️ Apenas jogadores deste nível poderão se inscrever

@@ -10,7 +10,7 @@ const PageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   padding: 1rem;
 `;
 
@@ -76,7 +76,7 @@ const HomeButton = styled(Link)`
   align-items: center;
   justify-content: center;
   background: white;
-  color: #667eea;
+  color: #134e5e;
   padding: 0.875rem 2rem;
   border-radius: 0.5rem;
   font-weight: 600;

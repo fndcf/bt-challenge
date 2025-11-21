@@ -147,8 +147,8 @@ Todas as rotas `/admin/*` são protegidas:
 
 ### Cores do Tema
 
-- **Primary:** #667eea (Roxo)
-- **Secondary:** #764ba2 (Roxo Escuro)
+- **Primary:** #134e5e (Roxo)
+- **Secondary:** #71b280 (Roxo Escuro)
 - **Accent 1:** #f093fb (Rosa)
 - **Accent 2:** #4facfe (Azul)
 - **Accent 3:** #43e97b (Verde)
@@ -158,10 +158,10 @@ Todas as rotas `/admin/*` são protegidas:
 
 ```css
 /* Sidebar */
-background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+background: linear-gradient(180deg, #134e5e 0%, #71b280 100%);
 
 /* Welcome Section */
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
 
 /* Help Section */
 background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);

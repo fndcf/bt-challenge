@@ -720,18 +720,20 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                             </TeamRow>
                           </MatchBody>
 
-                          {finished && match.placar?.length > 0 && (
-                            <SetDetails>
-                              {match.placar.map((set) => (
-                                <SetBox key={`${match.id}-set-${set.numero}`}>
-                                  <SetLabel>Set {set.numero}</SetLabel>
-                                  <SetScore>
-                                    {set.gamesDupla1}-{set.gamesDupla2}
-                                  </SetScore>
-                                </SetBox>
-                              ))}
-                            </SetDetails>
-                          )}
+                          {finished &&
+                            match.placar &&
+                            match.placar.length > 0 && (
+                              <SetDetails>
+                                {match.placar.map((set) => (
+                                  <SetBox key={`${match.id}-set-${set.numero}`}>
+                                    <SetLabel>Set {set.numero}</SetLabel>
+                                    <SetScore>
+                                      {set.gamesDupla1}-{set.gamesDupla2}
+                                    </SetScore>
+                                  </SetBox>
+                                ))}
+                              </SetDetails>
+                            )}
                         </MatchCard>
                       );
                     })}

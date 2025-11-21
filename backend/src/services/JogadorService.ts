@@ -48,7 +48,7 @@ export class JogadorService {
         email: dadosValidados.email?.trim().toLowerCase() || undefined,
         telefone: dadosValidados.telefone?.trim() || undefined,
         dataNascimento: dadosValidados.dataNascimento || undefined,
-        genero: dadosValidados.genero || undefined,
+        genero: dadosValidados.genero,
         nivel: dadosValidados.nivel,
         status: dadosValidados.status || StatusJogador.ATIVO,
         observacoes: dadosValidados.observacoes?.trim() || undefined,
@@ -65,6 +65,7 @@ export class JogadorService {
       console.log(`✅ Jogador criado com sucesso:`, {
         id: docRef.id,
         nome: jogadorData.nome,
+        genero: jogadorData.genero,
         arenaId: jogadorData.arenaId,
         nivel: jogadorData.nivel,
       });
@@ -385,7 +386,6 @@ export class JogadorService {
         [NivelJogador.INICIANTE]: 0,
         [NivelJogador.INTERMEDIARIO]: 0,
         [NivelJogador.AVANCADO]: 0,
-        [NivelJogador.PROFISSIONAL]: 0,
       };
 
       snapshot.forEach((doc) => {
@@ -402,7 +402,6 @@ export class JogadorService {
         [NivelJogador.INICIANTE]: 0,
         [NivelJogador.INTERMEDIARIO]: 0,
         [NivelJogador.AVANCADO]: 0,
-        [NivelJogador.PROFISSIONAL]: 0,
       };
     }
   }

@@ -15,7 +15,8 @@ export interface CabecaDeChave {
   arenaId: string;
   jogadorId: string;
   jogadorNome: string;
-  jogadorNivel?: number;
+  jogadorNivel?: string;
+  jogadorGenero?: string;
   ordem: number; // 1 = melhor cabeça, 2 = segundo melhor, etc.
   ativo: boolean;
   motivoDesativacao?: string;
@@ -30,7 +31,8 @@ export interface CriarCabecaDeChaveDTO {
   arenaId: string;
   jogadorId: string;
   jogadorNome: string;
-  jogadorNivel?: number;
+  jogadorNivel?: string;
+  jogadorGenero?: string;
   ordem: number;
 }
 

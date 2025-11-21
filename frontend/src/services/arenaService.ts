@@ -34,6 +34,8 @@ export interface EtapaPublica {
   formato: string;
   arenaId: string;
   totalJogadores?: number;
+  nivel?: string;
+  genero?: string;
 }
 
 /**
@@ -47,6 +49,8 @@ export interface JogadorPublico {
   jogadorId?: string; // ID do jogador
   nivel?: string; // Campo esperado
   jogadorNivel?: string; // ✅ Campo real do backend (ranking)
+  genero?: string; // ✅ ADICIONAR - importante para filtrar/exibir
+  jogadorGenero?: string; // ✅ ADICIONAR - campo real do backend
   ranking?: number; // Campo esperado (pontos)
   pontos?: number; // ✅ Campo real do backend (ranking)
   seed?: number;
@@ -60,12 +64,14 @@ export interface JogadorPublico {
   derrotas?: number;
   saldoGames?: number;
   classificado?: boolean;
+  etapasParticipadas?: number;
 }
 
 export interface EstatisticasAgregadas {
   jogadorId: string;
   jogadorNome: string;
   jogadorNivel?: string;
+  jogadorGenero?: string;
   arenaId?: string;
 
   // Totais
@@ -95,6 +101,7 @@ interface InscricaoBackend {
   jogadorId: string;
   jogadorNome: string;
   jogadorNivel?: string;
+  jogadorGenero?: string;
   status: string;
   seed?: number;
   duplaId?: string | null;
@@ -281,6 +288,8 @@ class ArenaService {
     slug: string,
     params?: {
       status?: string;
+      nivel?: string;
+      genero?: string;
       limite?: number;
       offset?: number;
     }
@@ -290,6 +299,14 @@ class ArenaService {
 
       if (params?.status) {
         queryParams.append("status", params.status);
+      }
+      if (params?.nivel) {
+        // ✅ ADICIONAR
+        queryParams.append("nivel", params.nivel);
+      }
+      if (params?.genero) {
+        // ✅ ADICIONAR
+        queryParams.append("genero", params.genero);
       }
       if (params?.limite) {
         queryParams.append("limite", params.limite.toString());
@@ -365,6 +382,7 @@ class ArenaService {
           id: inscricao.jogadorId || inscricao.id,
           nome: inscricao.jogadorNome,
           nivel: inscricao.jogadorNivel,
+          genero: inscricao.jogadorGenero,
           seed: inscricao.seed || index + 1,
           statusInscricao: inscricao.status,
         })
@@ -382,19 +400,36 @@ class ArenaService {
    * Buscar ranking geral da arena
    * GET /api/public/:arenaSlug/ranking
    *
-   * ✅ ATUALIZADO: Retorna dados como vêm do backend (com jogadorNome, pontos, etc)
+   * ✅ ATUALIZADO: Aceita filtros de gênero e nível
    */
   async getRankingPublico(
     slug: string,
-    limite = 50
+    limite = 50,
+    genero?: string,
+    nivel?: string
   ): Promise<JogadorPublico[]> {
     try {
-      console.log("🔍 Buscando ranking:", slug);
+      console.log("🔍 Buscando ranking:", { slug, limite, genero, nivel });
+
+      // Construir query params
+      const queryParams = new URLSearchParams();
+      queryParams.append("limite", limite.toString());
+
+      if (genero) {
+        queryParams.append("genero", genero);
+      }
+
+      if (nivel) {
+        queryParams.append("nivel", nivel);
+      }
+
+      const url = `${
+        this.publicPath
+      }/${slug}/ranking?${queryParams.toString()}`;
+      console.log("📡 URL:", url);
 
       // Backend retorna array direto com jogadorNome, jogadorNivel, pontos
-      const ranking = await apiClient.get<JogadorPublico[]>(
-        `${this.publicPath}/${slug}/ranking?limite=${limite}`
-      );
+      const ranking = await apiClient.get<JogadorPublico[]>(url);
 
       console.log("✅ Ranking recebido:", ranking.length, "jogadores");
       if (ranking.length > 0) {
@@ -519,15 +554,21 @@ class ArenaService {
       console.error("❌ Erro ao buscar estatísticas agregadas:", error);
       // Retornar valores zerados em caso de erro
       return {
-        totalVitorias: 0,
-        totalDerrotas: 0,
-        totalJogos: 0,
-        totalEtapas: 0,
-        totalPontos: 0,
-        totalSetsVencidos: 0,
-        totalSetsPerdidos: 0,
-        totalGamesVencidos: 0,
-        totalGamesPerdidos: 0,
+        jogadorId: jogadorId,
+        jogadorNome: "",
+        jogadorNivel: undefined,
+        jogadorGenero: undefined,
+        arenaId: undefined,
+        etapasParticipadas: 0,
+        jogos: 0,
+        vitorias: 0,
+        derrotas: 0,
+        pontos: 0,
+        posicaoRanking: 0,
+        setsVencidos: 0,
+        setsPerdidos: 0,
+        gamesVencidos: 0,
+        gamesPerdidos: 0,
         saldoSets: 0,
         saldoGames: 0,
       };

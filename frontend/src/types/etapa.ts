@@ -2,7 +2,7 @@
  * Types para Etapas
  */
 
-import { NivelJogador } from "./jogador";
+import { NivelJogador, GeneroJogador } from "./jogador";
 
 export enum StatusEtapa {
   INSCRICOES_ABERTAS = "inscricoes_abertas",
@@ -27,7 +27,8 @@ export interface Etapa {
   arenaId: string;
   nome: string;
   descricao?: string;
-  nivel: NivelJogador; // ← ADICIONADO: Nível da etapa
+  nivel: NivelJogador;
+  genero: GeneroJogador;
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
@@ -50,7 +51,8 @@ export interface Etapa {
 export interface CriarEtapaDTO {
   nome: string;
   descricao?: string;
-  nivel: NivelJogador; // ← ADICIONADO
+  nivel: NivelJogador;
+  genero: GeneroJogador;
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
@@ -62,7 +64,8 @@ export interface CriarEtapaDTO {
 export interface AtualizarEtapaDTO {
   nome?: string;
   descricao?: string;
-  nivel?: NivelJogador; // ← ADICIONADO
+  nivel?: NivelJogador;
+  genero?: GeneroJogador;
   dataInicio?: string;
   dataFim?: string;
   dataRealizacao?: string;
@@ -82,6 +85,7 @@ export interface Inscricao {
   jogadorId: string;
   jogadorNome: string;
   jogadorNivel: string;
+  jogadorGenero: string;
   status: "confirmada" | "aguardando" | "cancelada";
   duplaId?: string;
   parceiroId?: string;
@@ -164,6 +168,8 @@ export interface Partida {
 
 export interface FiltrosEtapa {
   status?: StatusEtapa;
+  nivel?: NivelJogador;
+  genero?: GeneroJogador;
   ordenarPor?: "dataRealizacao" | "criadoEm";
   ordem?: "asc" | "desc";
   limite?: number;

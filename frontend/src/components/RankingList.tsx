@@ -1,28 +1,33 @@
 /**
- * RankingList - Componente reutilizável de ranking
- * Pode ser usado em qualquer lugar: Dashboard, ArenaPublica, página dedicada
+ * RankingList - Rankings segregados por Gênero e Nível
+ * Versão 2.1 com paginação opcional
  */
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { arenaService, JogadorPublico } from "../services/arenaService";
+import { GeneroJogador, NivelJogador } from "../types/jogador";
 
 // ============== TIPOS ==============
 
 interface RankingListProps {
-  arenaSlug?: string; // Slug da arena
-  limit?: number; // Quantos jogadores mostrar por página (padrão: 10)
-  showPagination?: boolean; // Mostrar paginação? (padrão: true)
-  showHeader?: boolean; // Mostrar header com título? (padrão: true)
-  title?: string; // Título customizado (padrão: "🏅 Ranking de Jogadores")
-  emptyMessage?: string; // Mensagem quando vazio
-  className?: string; // Para estilização externa
+  arenaSlug?: string;
+  limitPorNivel?: number; // Top X quando showPagination=false (padrão: 10)
+  showPagination?: boolean; // Mostrar todos com paginação? (padrão: false)
+  itensPorPagina?: number; // Quantos por página quando showPagination=true (padrão: 20)
+  className?: string;
 }
 
 // ============== STYLED COMPONENTS ==============
 
 const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+`;
+
+const RankingSection = styled.div`
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -37,27 +42,181 @@ const Container = styled.div`
 const Header = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
-
-  @media (max-width: 768px) {
-    margin-bottom: 1rem;
-  }
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
 `;
 
-const Title = styled.h3`
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1f2937;
+const GeneroIcon = styled.div<{ $genero: GeneroJogador }>`
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  font-size: 1.5rem;
+
+  ${(props) =>
+    props.$genero === GeneroJogador.MASCULINO
+      ? `
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  `
+      : `
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+  `}
 
   @media (max-width: 768px) {
-    font-size: 1.125rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.25rem;
   }
 `;
+
+const HeaderContent = styled.div`
+  flex: 1;
+`;
+
+const Title = styled.h2`
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+
+  @media (max-width: 768px) {
+    font-size: 1.25rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+// ============== TABS ==============
+
+const TabsContainer = styled.div`
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+
+  @media (max-width: 768px) {
+    border-bottom: none;
+  }
+`;
+
+const TabsList = styled.div`
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-x: visible;
+  }
+`;
+
+const Tab = styled.button<{ $active: boolean; $genero: GeneroJogador }>`
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  position: relative;
+
+  @media (min-width: 769px) {
+    border-bottom: 3px solid transparent;
+    color: ${(props) => (props.$active ? "#111827" : "#6b7280")};
+
+    &:hover {
+      color: #111827;
+    }
+
+    ${(props) =>
+      props.$active &&
+      (props.$genero === GeneroJogador.MASCULINO
+        ? `border-bottom-color: #3b82f6;`
+        : `border-bottom-color: #ec4899;`)}
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    ${(props) =>
+      props.$active
+        ? props.$genero === GeneroJogador.MASCULINO
+          ? `
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #1e40af;
+      `
+          : `
+        background: #fce7f3;
+        border-color: #ec4899;
+        color: #be185d;
+      `
+        : `
+        background: white;
+        color: #374151;
+      `}
+
+    &:hover {
+      ${(props) => !props.$active && `background: #f9fafb;`}
+    }
+  }
+`;
+
+const TabBadge = styled.span<{ $genero: GeneroJogador }>`
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  ${(props) =>
+    props.$genero === GeneroJogador.MASCULINO
+      ? `
+    background: #dbeafe;
+    color: #1e40af;
+  `
+      : `
+    background: #fce7f3;
+    color: #be185d;
+  `}
+
+  @media (max-width: 768px) {
+    margin-left: auto;
+  }
+`;
+
+// ============== RANKING LIST ==============
 
 const RankingList = styled.div`
   display: flex;
@@ -83,7 +242,6 @@ const RankingItem = styled(Link)`
   @media (max-width: 768px) {
     padding: 0.875rem;
     gap: 0.75rem;
-    flex-wrap: wrap; /* ✅ NOVO: Permite quebra de linha no mobile */
   }
 `;
 
@@ -133,10 +291,6 @@ const RankingPosicao = styled.div<{ $posicao: number }>`
 const RankingInfo = styled.div`
   flex: 1;
   min-width: 0;
-
-  @media (max-width: 768px) {
-    flex: 1 1 100%; /* ✅ NOVO: Ocupa linha inteira no mobile */
-  }
 `;
 
 const RankingNome = styled.div`
@@ -152,38 +306,12 @@ const RankingNome = styled.div`
   }
 `;
 
-const RankingNivel = styled.div`
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-
-  @media (max-width: 768px) {
-    font-size: 0.8125rem;
-  }
-`;
-
-const RankingPontos = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-weight: 600;
-  color: #667eea;
-  font-size: 0.875rem;
-  white-space: nowrap;
-
-  @media (max-width: 768px) {
-    font-size: 0.8125rem;
-  }
-`;
 const RankingStats = styled.div`
   display: flex;
   gap: 1rem;
-  margin-top: 0.5rem;
 
-  @media (min-width: 768px) {
-    margin-top: 0;
-    margin-left: auto;
-    padding-left: 1rem;
+  @media (max-width: 768px) {
+    gap: 0.75rem;
   }
 `;
 
@@ -221,44 +349,7 @@ const StatLabel = styled.div`
   }
 `;
 
-const LoadingContainer = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-`;
-
-const EmptyContainer = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-
-  p {
-    margin: 0 0 1rem 0;
-    font-size: 0.875rem;
-  }
-
-  a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-
-    &:hover {
-      color: #5568d3;
-    }
-  }
-`;
-
-const ErrorContainer = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #dc2626;
-
-  p {
-    margin: 0;
-    font-size: 0.875rem;
-  }
-`;
+// ============== PAGINAÇÃO ==============
 
 const Pagination = styled.div`
   display: flex;
@@ -293,8 +384,8 @@ const PaginationButton = styled.button`
 
   &:hover:not(:disabled) {
     background: #f9fafb;
-    border-color: #667eea;
-    color: #667eea;
+    border-color: #134e5e;
+    color: #134e5e;
   }
 
   &:disabled {
@@ -317,109 +408,199 @@ const PaginationInfo = styled.span`
   }
 `;
 
-// ============== COMPONENTE ==============
+const LoadingContainer = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+`;
 
-const RankingListComponent: React.FC<RankingListProps> = ({
+const EmptyContainer = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+`;
+
+// ============== COMPONENTE INDIVIDUAL ==============
+
+interface RankingPorGeneroProps {
+  genero: GeneroJogador;
+  arenaSlug?: string;
+  limitPorNivel?: number;
+  showPagination?: boolean;
+  itensPorPagina?: number;
+}
+
+const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
+  genero,
   arenaSlug,
-  limit = 10,
-  showPagination = true,
-  showHeader = true,
-  title = "🏅 Ranking de Jogadores",
-  emptyMessage = "Nenhum jogador ranqueado ainda.",
-  className,
+  limitPorNivel = 10,
+  showPagination = false,
+  itensPorPagina = 20,
 }) => {
+  const [nivelAtivo, setNivelAtivo] = useState<NivelJogador>(
+    NivelJogador.INTERMEDIARIO
+  );
   const [ranking, setRanking] = useState<JogadorPublico[]>([]);
+  const [rankingCompleto, setRankingCompleto] = useState<JogadorPublico[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [offset, setOffset] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [contadores, setContadores] = useState<Record<NivelJogador, number>>({
+    [NivelJogador.INICIANTE]: 0,
+    [NivelJogador.INTERMEDIARIO]: 0,
+    [NivelJogador.AVANCADO]: 0,
+  });
 
-  // Carregar ranking
   useEffect(() => {
-    const carregarRanking = async () => {
-      // Se não tem arena slug, apenas não carrega (não mostra erro)
-      if (!arenaSlug) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError("");
-
-        // Se quer paginar, busca limit * 10 (ou um número grande)
-        // Se não quer paginar, busca só o limit
-        const totalParaBuscar = showPagination ? 999 : limit;
-
-        const rankingData = await arenaService.getRankingPublico(
-          arenaSlug,
-          totalParaBuscar
-        );
-
-        const rankingPaginado = showPagination
-          ? rankingData.slice(offset, offset + limit)
-          : rankingData.slice(0, limit);
-
-        setRanking(rankingPaginado);
-        setTotal(rankingData.length);
-      } catch (err: any) {
-        console.error("Erro ao carregar ranking:", err);
-        setError(err.message || "Erro ao carregar ranking");
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    setOffset(0); // Reset offset ao trocar de nível
     carregarRanking();
-  }, [arenaSlug, limit, offset, showPagination]);
+  }, [arenaSlug, genero, nivelAtivo]);
 
-  // Handlers de paginação
+  const carregarRanking = async () => {
+    if (!arenaSlug) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      // Buscar ranking completo filtrado por gênero e nível
+      const rankingData = await arenaService.getRankingPublico(
+        arenaSlug,
+        999, // Buscar todos
+        genero,
+        nivelAtivo
+      );
+
+      setRankingCompleto(rankingData);
+
+      // Se tem paginação, mostra slice; senão mostra limit
+      if (showPagination) {
+        setRanking(rankingData.slice(offset, offset + itensPorPagina));
+      } else {
+        setRanking(rankingData.slice(0, limitPorNivel));
+      }
+
+      // Buscar contadores para os badges
+      const contadoresTemp: Record<NivelJogador, number> = {
+        [NivelJogador.INICIANTE]: 0,
+        [NivelJogador.INTERMEDIARIO]: 0,
+        [NivelJogador.AVANCADO]: 0,
+      };
+
+      for (const nivel of Object.values(NivelJogador)) {
+        const rankingNivel = await arenaService.getRankingPublico(
+          arenaSlug,
+          999,
+          genero,
+          nivel
+        );
+        contadoresTemp[nivel] = rankingNivel.length;
+      }
+
+      setContadores(contadoresTemp);
+    } catch (err: any) {
+      console.error("Erro ao carregar ranking:", err);
+      setError(err.message || "Erro ao carregar ranking");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Atualizar slice quando offset muda
+  useEffect(() => {
+    if (showPagination && rankingCompleto.length > 0) {
+      setRanking(rankingCompleto.slice(offset, offset + itensPorPagina));
+    }
+  }, [offset, rankingCompleto, showPagination, itensPorPagina]);
+
+  const getNivelLabel = (nivel: NivelJogador) => {
+    const labels = {
+      [NivelJogador.INICIANTE]: "🌱 Iniciante",
+      [NivelJogador.INTERMEDIARIO]: "⚡ Intermediário",
+      [NivelJogador.AVANCADO]: "🔥 Avançado",
+    };
+    return labels[nivel];
+  };
+
   const handleAnterior = () => {
     if (offset > 0) {
-      setOffset(offset - limit);
+      setOffset(offset - itensPorPagina);
     }
   };
 
   const handleProxima = () => {
-    setOffset(offset + limit);
+    if (offset + itensPorPagina < rankingCompleto.length) {
+      setOffset(offset + itensPorPagina);
+    }
   };
 
-  const paginaAtual = Math.floor(offset / limit) + 1;
-  const totalPaginas = Math.ceil(total / limit);
-  const temProxima = offset + limit < total;
+  const paginaAtual = Math.floor(offset / itensPorPagina) + 1;
+  const totalPaginas = Math.ceil(rankingCompleto.length / itensPorPagina);
+  const temProxima = offset + itensPorPagina < rankingCompleto.length;
 
   return (
-    <Container className={className}>
+    <RankingSection>
       {/* Header */}
-      {showHeader && (
-        <Header>
-          <Title>{title}</Title>
-        </Header>
-      )}
+      <Header>
+        <GeneroIcon $genero={genero}>
+          {genero === GeneroJogador.MASCULINO ? "♂️" : "♀️"}
+        </GeneroIcon>
+        <HeaderContent>
+          <Title>
+            Ranking{" "}
+            {genero === GeneroJogador.MASCULINO ? "Masculino" : "Feminino"}
+          </Title>
+          <Subtitle>
+            {showPagination
+              ? `${rankingCompleto.length} jogadores - ${itensPorPagina} por página`
+              : `Top ${limitPorNivel} jogadores por nível`}
+          </Subtitle>
+        </HeaderContent>
+      </Header>
 
-      {/* Loading */}
-      {loading && <LoadingContainer>Carregando ranking...</LoadingContainer>}
+      {/* Tabs de Nível */}
+      <TabsContainer>
+        <TabsList>
+          {Object.values(NivelJogador).map((nivel) => (
+            <Tab
+              key={nivel}
+              $active={nivelAtivo === nivel}
+              $genero={genero}
+              onClick={() => setNivelAtivo(nivel)}
+            >
+              <span>{getNivelLabel(nivel)}</span>
+              <TabBadge $genero={genero}>{contadores[nivel]}</TabBadge>
+            </Tab>
+          ))}
+        </TabsList>
+      </TabsContainer>
 
-      {/* Error */}
-      {!loading && error && (
-        <ErrorContainer>
-          <p>{error}</p>
-        </ErrorContainer>
-      )}
+      {/* Conteúdo */}
+      {loading && <LoadingContainer>Carregando...</LoadingContainer>}
 
-      {/* Empty */}
+      {!loading && error && <EmptyContainer>Erro: {error}</EmptyContainer>}
+
       {!loading && !error && ranking.length === 0 && (
         <EmptyContainer>
-          <p>{emptyMessage}</p>
+          Nenhum jogador {genero.toLowerCase()} {nivelAtivo.toLowerCase()}{" "}
+          ranqueado ainda.
         </EmptyContainer>
       )}
 
-      {/* Lista */}
       {!loading && !error && ranking.length > 0 && (
         <>
           <RankingList>
             {ranking.map((jogador, index) => {
-              const posicao = offset + index + 1;
+              // Posição real considerando offset
+              const posicaoReal = offset + index + 1;
 
               return (
                 <RankingItem
@@ -433,35 +614,29 @@ const RankingListComponent: React.FC<RankingListProps> = ({
                   }
                 >
                   {/* Posição */}
-                  <RankingPosicao $posicao={posicao}>
-                    {posicao <= 3 ? (
+                  <RankingPosicao $posicao={posicaoReal}>
+                    {posicaoReal <= 3 ? (
                       <>
-                        {posicao === 1 && "🥇"}
-                        {posicao === 2 && "🥈"}
-                        {posicao === 3 && "🥉"}
+                        {posicaoReal === 1 && "🥇"}
+                        {posicaoReal === 2 && "🥈"}
+                        {posicaoReal === 3 && "🥉"}
                       </>
                     ) : (
-                      posicao
+                      posicaoReal
                     )}
                   </RankingPosicao>
 
-                  {/* Info básica */}
+                  {/* Info */}
                   <RankingInfo>
                     <RankingNome>
                       {jogador.jogadorNome ||
                         jogador.nome ||
-                        `Jogador #${posicao}`}
+                        `Jogador #${posicaoReal}`}
                     </RankingNome>
-                    {(jogador.jogadorNivel || jogador.nivel) && (
-                      <RankingNivel>
-                        Nível: {jogador.jogadorNivel || jogador.nivel}
-                      </RankingNivel>
-                    )}
                   </RankingInfo>
 
-                  {/* ✅ NOVO: Estatísticas detalhadas */}
+                  {/* Stats */}
                   <RankingStats>
-                    {/* Etapas */}
                     {jogador.etapasParticipadas !== undefined && (
                       <StatItem>
                         <StatValue>{jogador.etapasParticipadas}</StatValue>
@@ -469,7 +644,6 @@ const RankingListComponent: React.FC<RankingListProps> = ({
                       </StatItem>
                     )}
 
-                    {/* Vitórias */}
                     {jogador.vitorias !== undefined && (
                       <StatItem>
                         <StatValue style={{ color: "#16a34a" }}>
@@ -479,7 +653,6 @@ const RankingListComponent: React.FC<RankingListProps> = ({
                       </StatItem>
                     )}
 
-                    {/* Derrotas */}
                     {jogador.derrotas !== undefined && (
                       <StatItem>
                         <StatValue style={{ color: "#dc2626" }}>
@@ -489,12 +662,11 @@ const RankingListComponent: React.FC<RankingListProps> = ({
                       </StatItem>
                     )}
 
-                    {/* Pontos */}
                     {(jogador.pontos !== undefined ||
                       jogador.ranking !== undefined) && (
                       <StatItem>
                         <StatValue
-                          style={{ color: "#667eea", fontWeight: 800 }}
+                          style={{ color: "#134e5e", fontWeight: 800 }}
                         >
                           {jogador.pontos || jogador.ranking}
                         </StatValue>
@@ -508,7 +680,7 @@ const RankingListComponent: React.FC<RankingListProps> = ({
           </RankingList>
 
           {/* Paginação */}
-          {showPagination && total > limit && (
+          {showPagination && rankingCompleto.length > itensPorPagina && (
             <Pagination>
               <PaginationButton
                 onClick={handleAnterior}
@@ -526,6 +698,38 @@ const RankingListComponent: React.FC<RankingListProps> = ({
           )}
         </>
       )}
+    </RankingSection>
+  );
+};
+
+// ============== COMPONENTE PRINCIPAL ==============
+
+const RankingListComponent: React.FC<RankingListProps> = ({
+  arenaSlug,
+  limitPorNivel = 10,
+  showPagination = false,
+  itensPorPagina = 20,
+  className,
+}) => {
+  return (
+    <Container className={className}>
+      {/* Ranking Masculino */}
+      <RankingPorGenero
+        genero={GeneroJogador.MASCULINO}
+        arenaSlug={arenaSlug}
+        limitPorNivel={limitPorNivel}
+        showPagination={showPagination}
+        itensPorPagina={itensPorPagina}
+      />
+
+      {/* Ranking Feminino */}
+      <RankingPorGenero
+        genero={GeneroJogador.FEMININO}
+        arenaSlug={arenaSlug}
+        limitPorNivel={limitPorNivel}
+        showPagination={showPagination}
+        itensPorPagina={itensPorPagina}
+      />
     </Container>
   );
 };

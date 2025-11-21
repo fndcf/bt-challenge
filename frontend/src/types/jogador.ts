@@ -6,13 +6,17 @@ export enum NivelJogador {
   INICIANTE = "iniciante",
   INTERMEDIARIO = "intermediario",
   AVANCADO = "avancado",
-  PROFISSIONAL = "profissional",
 }
 
 export enum StatusJogador {
   ATIVO = "ativo",
   INATIVO = "inativo",
   SUSPENSO = "suspenso",
+}
+
+export enum GeneroJogador {
+  MASCULINO = "masculino",
+  FEMININO = "feminino",
 }
 
 export interface Jogador {
@@ -22,7 +26,7 @@ export interface Jogador {
   email?: string;
   telefone?: string;
   dataNascimento?: string;
-  genero?: "masculino" | "feminino" | "outro";
+  genero: GeneroJogador;
   nivel: NivelJogador;
   status: StatusJogador;
   observacoes?: string;
@@ -39,7 +43,7 @@ export interface CriarJogadorDTO {
   email?: string;
   telefone?: string;
   dataNascimento?: string;
-  genero?: "masculino" | "feminino" | "outro";
+  genero: GeneroJogador;
   nivel: NivelJogador;
   status?: StatusJogador;
   observacoes?: string;
@@ -50,7 +54,7 @@ export interface AtualizarJogadorDTO {
   email?: string;
   telefone?: string;
   dataNascimento?: string;
-  genero?: "masculino" | "feminino" | "outro";
+  genero: GeneroJogador;
   nivel?: NivelJogador;
   status?: StatusJogador;
   observacoes?: string;
@@ -59,7 +63,7 @@ export interface AtualizarJogadorDTO {
 export interface FiltrosJogador {
   nivel?: NivelJogador;
   status?: StatusJogador;
-  genero?: "masculino" | "feminino" | "outro";
+  genero?: GeneroJogador;
   busca?: string;
   ordenarPor?: "nome" | "criadoEm" | "pontos" | "vitorias";
   ordem?: "asc" | "desc";

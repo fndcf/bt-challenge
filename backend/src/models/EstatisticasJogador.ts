@@ -21,7 +21,8 @@ export interface EstatisticasJogador {
   // Dados do jogador
   jogadorId: string;
   jogadorNome: string;
-  jogadorNivel?: number;
+  jogadorNivel?: string;
+  jogadorGenero?: string;
 
   // Grupo (pode ser null se ainda não distribuído em grupos)
   grupoId?: string;
@@ -58,7 +59,8 @@ export interface CriarEstatisticasJogadorDTO {
   arenaId: string;
   jogadorId: string;
   jogadorNome: string;
-  jogadorNivel?: number;
+  jogadorNivel?: string;
+  jogadorGenero?: string;
   grupoId?: string;
   grupoNome?: string;
 }

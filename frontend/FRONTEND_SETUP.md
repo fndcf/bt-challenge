@@ -311,8 +311,8 @@ return <div>{isMobile ? <MobileView /> : <DesktopView />}</div>;
 ## 🎨 Estilos
 
 - Todos os componentes têm seus próprios arquivos CSS
-- Cores principais: #667eea (roxo) e #764ba2 (roxo escuro)
-- Gradient padrão: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
+- Cores principais: #134e5e (roxo) e #71b280 (roxo escuro)
+- Gradient padrão: `linear-gradient(135deg, #134e5e 0%, #71b280 100%)`
 
 ## 🔧 Variáveis de Ambiente
 
