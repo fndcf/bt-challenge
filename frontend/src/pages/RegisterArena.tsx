@@ -502,7 +502,7 @@ const RegisterArena: React.FC = () => {
     <PageContainer>
       <Container>
         <Header>
-          <h1>🎾 Registrar Nova Arena</h1>
+          <h1>Registrar Nova Arena</h1>
           <p>Crie sua arena e comece a organizar torneios</p>
         </Header>
 

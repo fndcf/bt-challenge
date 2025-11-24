@@ -5,6 +5,7 @@ import { Etapa, StatusEtapa, FiltrosEtapa } from "../../types/etapa";
 import etapaService from "../../services/etapaService";
 import { EtapaCard } from "../../components/etapas/EtapaCard";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -115,27 +116,6 @@ const StatCard = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-`;
-
-const StatIcon = styled.div<{ $variant: "blue" | "green" | "purple" | "gray" }>`
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  font-size: 1.875rem;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "blue":
-        return `background: #dbeafe;`;
-      case "green":
-        return `background: #dcfce7;`;
-      case "purple":
-        return `background: #f3e8ff;`;
-      case "gray":
-        return `background: #f3f4f6;`;
-      default:
-        return `background: #f3f4f6;`;
-    }
-  }}
 `;
 
 const StatContent = styled.div`
@@ -253,12 +233,6 @@ const EmptyState = styled.div`
   background: white;
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
-`;
-
-const EmptyIcon = styled.span`
-  font-size: 4rem;
-  display: block;
-  margin-bottom: 1rem;
 `;
 
 const EmptyTitle = styled.h3`
@@ -403,7 +377,6 @@ export const ListagemEtapas: React.FC = () => {
           <Subtitle>Gerencie as etapas do torneio</Subtitle>
         </HeaderContent>
         <CreateButton onClick={() => navigate("/admin/etapas/criar")}>
-          <span>➕</span>
           Criar Etapa
         </CreateButton>
       </Header>
@@ -411,7 +384,6 @@ export const ListagemEtapas: React.FC = () => {
       {/* Estatísticas */}
       <StatsGrid>
         <StatCard>
-          <StatIcon $variant="blue">📊</StatIcon>
           <StatContent>
             <StatLabel>Total de Etapas</StatLabel>
             <StatValue>{stats.totalEtapas}</StatValue>
@@ -419,7 +391,6 @@ export const ListagemEtapas: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $variant="green">📝</StatIcon>
           <StatContent>
             <StatLabel>Inscrições Abertas</StatLabel>
             <StatValue>{stats.inscricoesAbertas}</StatValue>
@@ -427,7 +398,6 @@ export const ListagemEtapas: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $variant="purple">🎾</StatIcon>
           <StatContent>
             <StatLabel>Em Andamento</StatLabel>
             <StatValue>{stats.emAndamento}</StatValue>
@@ -435,7 +405,6 @@ export const ListagemEtapas: React.FC = () => {
         </StatCard>
 
         <StatCard>
-          <StatIcon $variant="gray">🏆</StatIcon>
           <StatContent>
             <StatLabel>Finalizadas</StatLabel>
             <StatValue>{stats.finalizadas}</StatValue>
@@ -477,11 +446,9 @@ export const ListagemEtapas: React.FC = () => {
               }
             >
               <option value="">Todos os níveis</option>
-              <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
-              <option value={NivelJogador.INTERMEDIARIO}>
-                ⚡ Intermediário
-              </option>
-              <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+              <option value={NivelJogador.INICIANTE}>Iniciante</option>
+              <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
+              <option value={NivelJogador.AVANCADO}>Avançado</option>
             </Select>
           </FilterGroup>
 
@@ -495,8 +462,8 @@ export const ListagemEtapas: React.FC = () => {
               }
             >
               <option value="">Todos os gêneros</option>
-              <option value={GeneroJogador.MASCULINO}>♂️ Masculino</option>
-              <option value={GeneroJogador.FEMININO}>♀️ Feminino</option>
+              <option value={GeneroJogador.MASCULINO}>Masculino</option>
+              <option value={GeneroJogador.FEMININO}>Feminino</option>
             </Select>
           </FilterGroup>
 
@@ -537,7 +504,6 @@ export const ListagemEtapas: React.FC = () => {
 
       {etapas.length === 0 ? (
         <EmptyState>
-          <EmptyIcon>🎾</EmptyIcon>
           <EmptyTitle>Nenhuma etapa encontrada</EmptyTitle>
           <EmptyText>
             {filtroStatus || filtroNivel || filtroGenero
@@ -546,7 +512,6 @@ export const ListagemEtapas: React.FC = () => {
           </EmptyText>
           {!filtroStatus && (
             <CreateButton onClick={() => navigate("/admin/etapas/criar")}>
-              <span>➕</span>
               Criar Primeira Etapa
             </CreateButton>
           )}
@@ -558,6 +523,7 @@ export const ListagemEtapas: React.FC = () => {
           ))}
         </EtapasGrid>
       )}
+      <Footer></Footer>
     </Container>
   );
 };

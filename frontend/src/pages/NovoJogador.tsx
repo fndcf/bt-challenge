@@ -9,6 +9,7 @@ import {
   CriarJogadorDTO,
   GeneroJogador,
 } from "../types/jogador";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -512,7 +513,7 @@ const NovoJogador: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate("/admin/jogadores");
+    navigate(-1);
   };
 
   return (
@@ -526,7 +527,7 @@ const NovoJogador: React.FC = () => {
       <Form onSubmit={handleSubmit}>
         {/* Card: Informações Básicas */}
         <FormCard>
-          <CardTitle>📋 Informações Básicas</CardTitle>
+          <CardTitle>Informações Básicas</CardTitle>
           <FormGrid>
             <FormGroup $fullWidth>
               <Label htmlFor="nome">
@@ -608,7 +609,7 @@ const NovoJogador: React.FC = () => {
 
         {/* Card: Nível e Status */}
         <FormCard>
-          <CardTitle>🎯 Nível e Status</CardTitle>
+          <CardTitle> Nível e Status</CardTitle>
           <FormGrid>
             <FormGroup>
               <Label htmlFor="nivel">
@@ -621,11 +622,11 @@ const NovoJogador: React.FC = () => {
                 onChange={handleChange}
                 required
               >
-                <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
+                <option value={NivelJogador.INICIANTE}>Iniciante</option>
                 <option value={NivelJogador.INTERMEDIARIO}>
-                  ⚡ Intermediário
+                  Intermediário
                 </option>
-                <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+                <option value={NivelJogador.AVANCADO}>Avançado</option>
               </Select>
               <FormHint>Escolha o nível de habilidade do jogador</FormHint>
             </FormGroup>
@@ -641,9 +642,9 @@ const NovoJogador: React.FC = () => {
                 onChange={handleChange}
                 required
               >
-                <option value={StatusJogador.ATIVO}>✅ Ativo</option>
-                <option value={StatusJogador.INATIVO}>⏸️ Inativo</option>
-                <option value={StatusJogador.SUSPENSO}>🚫 Suspenso</option>
+                <option value={StatusJogador.ATIVO}>Ativo</option>
+                <option value={StatusJogador.INATIVO}>Inativo</option>
+                <option value={StatusJogador.SUSPENSO}>Suspenso</option>
               </Select>
               <FormHint>Status atual do jogador</FormHint>
             </FormGroup>
@@ -652,7 +653,7 @@ const NovoJogador: React.FC = () => {
 
         {/* Card: Observações */}
         <FormCard>
-          <CardTitle>📝 Observações</CardTitle>
+          <CardTitle>Observações</CardTitle>
           <FormGroup $fullWidth>
             <Label htmlFor="observacoes">Observações (Opcional)</Label>
             <Textarea
@@ -697,11 +698,12 @@ const NovoJogador: React.FC = () => {
                 Cadastrando...
               </>
             ) : (
-              <>✅ Cadastrar Jogador</>
+              <>Cadastrar Jogador</>
             )}
           </Button>
         </FormActions>
       </Form>
+      <Footer></Footer>
     </PageContainer>
   );
 };

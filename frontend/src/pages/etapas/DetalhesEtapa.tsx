@@ -10,6 +10,7 @@ import { ChavesEtapa } from "../../components/etapas/ChavesEtapa";
 import { ConfirmacaoPerigosa } from "../../components/ConfirmacaoPerigosa";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import Footer from "@/components/Footer";
 
 // ============== ANIMATIONS ==============
 
@@ -172,7 +173,7 @@ const TabsContainer = styled.div`
 const TabsNav = styled.div`
   border-bottom: 1px solid #e5e7eb;
 
-  /* ⭐ MOBILE: Remove borda */
+  /* MOBILE: Remove borda */
   @media (max-width: 768px) {
     border-bottom: none;
   }
@@ -197,7 +198,7 @@ const TabsList = styled.nav`
     border-radius: 2px;
   }
 
-  /* ⭐ MOBILE: Layout vertical */
+  /* MOBILE: Layout vertical */
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 0.5rem;
@@ -224,7 +225,7 @@ const Tab = styled.button<{ $active: boolean }>`
     border-bottom-color: ${(props) => (props.$active ? "#3b82f6" : "#d1d5db")};
   }
 
-  /* ⭐ MOBILE: Botão full-width com fundo */
+  /* MOBILE: Botão full-width com fundo */
   @media (max-width: 768px) {
     width: 100%;
     padding: 0.875rem 1rem;
@@ -256,7 +257,7 @@ const TabBadge = styled.span`
   background: #dbeafe;
   color: #2563eb;
 
-  /* ⭐ MOBILE: Badge à direita */
+  /* MOBILE: Badge à direita */
   @media (max-width: 768px) {
     margin-left: auto;
     margin-right: 0;
@@ -286,10 +287,6 @@ const CardIconRow = styled.div`
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
-`;
-
-const CardIcon = styled.span`
-  font-size: 1.875rem;
 `;
 
 const CardInfo = styled.div`
@@ -625,31 +622,6 @@ export const DetalhesEtapa: React.FC = () => {
     carregarEtapa();
   }, [id]);
 
-  // ✅ ADICIONAR: Recarregar quando volta para a página
-  useEffect(() => {
-    // Recarregar quando a aba fica visível
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log("🔄 Página visível - recarregando etapa");
-        carregarEtapa();
-      }
-    };
-
-    // Recarregar quando a janela recebe foco
-    const handleFocus = () => {
-      console.log("🔄 Janela com foco - recarregando etapa");
-      carregarEtapa();
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, []);
-
   const carregarEtapa = async () => {
     try {
       setLoading(true);
@@ -710,7 +682,7 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = confirm(
-      `⚠️ ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
+      ` ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
         `Esta ação não pode ser desfeita!`
     );
 
@@ -769,12 +741,12 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = window.confirm(
-      `🎾 Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
+      ` Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
         `Isso criará:\n` +
         `• ${etapa.qtdGrupos} grupos\n` +
         `• ${Math.floor(etapa.totalInscritos / 2)} duplas\n` +
         `• Todos os confrontos da fase de grupos\n\n` +
-        `⚠️ Esta ação não pode ser desfeita!`
+        ` Esta ação não pode ser desfeita!`
     );
 
     if (!confirmar) return;
@@ -784,7 +756,7 @@ export const DetalhesEtapa: React.FC = () => {
       const resultado = await chaveService.gerarChaves(etapa.id);
 
       alert(
-        `✅ Chaves geradas com sucesso!\n\n` +
+        ` Chaves geradas com sucesso!\n\n` +
           `• ${resultado.duplas.length} duplas criadas\n` +
           `• ${resultado.grupos.length} grupos formados\n` +
           `• ${resultado.partidas.length} partidas agendadas`
@@ -804,7 +776,7 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = window.confirm(
-      `📝 Deseja encerrar as inscrições da etapa "${etapa.nome}"?\n\n` +
+      ` Deseja encerrar as inscrições da etapa "${etapa.nome}"?\n\n` +
         `Atualmente há ${etapa.totalInscritos} jogador(es) inscrito(s).\n\n` +
         `Após encerrar, não será mais possível:\n` +
         `• Adicionar novos jogadores\n` +
@@ -818,7 +790,7 @@ export const DetalhesEtapa: React.FC = () => {
       setLoading(true);
       await etapaService.encerrarInscricoes(etapa.id);
       alert(
-        "✅ Inscrições encerradas com sucesso!\n\nAgora você pode gerar as chaves da etapa."
+        " Inscrições encerradas com sucesso!\n\nAgora você pode gerar as chaves da etapa."
       );
       await carregarEtapa();
     } catch (err: any) {
@@ -833,7 +805,7 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = window.confirm(
-      `🔓 Deseja reabrir as inscrições da etapa "${etapa.nome}"?\n\n` +
+      ` Deseja reabrir as inscrições da etapa "${etapa.nome}"?\n\n` +
         `Atualmente há ${etapa.totalInscritos} jogador(es) inscrito(s) ` +
         `de ${etapa.maxJogadores} vaga(s).\n\n` +
         `Após reabrir, você poderá:\n` +
@@ -848,7 +820,7 @@ export const DetalhesEtapa: React.FC = () => {
       setLoading(true);
       await etapaService.reabrirInscricoes(etapa.id);
       alert(
-        "✅ Inscrições reabertas com sucesso!\n\nAgora você pode adicionar ou remover jogadores."
+        " Inscrições reabertas com sucesso!\n\nAgora você pode adicionar ou remover jogadores."
       );
       await carregarEtapa();
     } catch (err: any) {
@@ -868,7 +840,7 @@ export const DetalhesEtapa: React.FC = () => {
       setModalExcluirAberto(false);
 
       alert(
-        "✅ Chaves excluídas com sucesso!\n\n" +
+        " Chaves excluídas com sucesso!\n\n" +
           'A etapa voltou ao status "Inscrições Encerradas".\n' +
           "Você pode gerar as chaves novamente quando quiser."
       );
@@ -941,11 +913,11 @@ export const DetalhesEtapa: React.FC = () => {
 
             {!etapa.chavesGeradas && (
               <>
-                <ActionButton onClick={handleEditar}>✏️ Editar</ActionButton>
+                <ActionButton onClick={handleEditar}> Editar</ActionButton>
 
                 {etapa.totalInscritos === 0 && (
                   <ActionButton $variant="danger" onClick={handleExcluir}>
-                    🗑️ Excluir
+                    Excluir
                   </ActionButton>
                 )}
               </>
@@ -961,14 +933,14 @@ export const DetalhesEtapa: React.FC = () => {
               $active={abaAtiva === "visao-geral"}
               onClick={() => setAbaAtiva("visao-geral")}
             >
-              <span>📊 Visão Geral</span>
+              <span> Visão Geral</span>
             </Tab>
 
             <Tab
               $active={abaAtiva === "inscricoes"}
               onClick={() => setAbaAtiva("inscricoes")}
             >
-              <span>📝 Inscrições</span>
+              <span>Inscrições</span>
               {etapa.totalInscritos > 0 && (
                 <TabBadge>{etapa.totalInscritos}</TabBadge>
               )}
@@ -979,7 +951,7 @@ export const DetalhesEtapa: React.FC = () => {
                 $active={abaAtiva === "chaves"}
                 onClick={() => setAbaAtiva("chaves")}
               >
-                <span>🎯 Grupos & Partidas</span>
+                <span>Grupos & Partidas</span>
               </Tab>
             )}
           </TabsList>
@@ -993,7 +965,6 @@ export const DetalhesEtapa: React.FC = () => {
             {/* Inscrições */}
             <Card>
               <CardIconRow>
-                <CardIcon>👥</CardIcon>
                 <CardInfo>
                   <CardLabel>Inscritos</CardLabel>
                   <CardValue>
@@ -1013,7 +984,6 @@ export const DetalhesEtapa: React.FC = () => {
             {/* Grupos */}
             <Card>
               <CardIconRow>
-                <CardIcon>🎯</CardIcon>
                 <CardInfo>
                   <CardLabel>Grupos</CardLabel>
                   <CardValue>{etapa.qtdGrupos || 0}</CardValue>
@@ -1035,7 +1005,6 @@ export const DetalhesEtapa: React.FC = () => {
             {/* Realização */}
             <Card>
               <CardIconRow>
-                <CardIcon>📅</CardIcon>
                 <CardInfo>
                   <CardLabel>Realização</CardLabel>
                   <CardValue style={{ fontSize: "1.125rem" }}>
@@ -1053,7 +1022,6 @@ export const DetalhesEtapa: React.FC = () => {
                       gap: "0.5rem",
                     }}
                   >
-                    <span>📍</span>
                     <span>{etapa.local}</span>
                   </p>
                 </CardContent>
@@ -1065,7 +1033,7 @@ export const DetalhesEtapa: React.FC = () => {
           <Grid $cols={2}>
             {/* Datas */}
             <Card>
-              <CardTitle>📋 Datas Importantes</CardTitle>
+              <CardTitle>Datas Importantes</CardTitle>
 
               <InfoList>
                 <InfoRow>
@@ -1089,15 +1057,15 @@ export const DetalhesEtapa: React.FC = () => {
 
             {/* Estatísticas */}
             <Card>
-              <CardTitle>📊 Estatísticas</CardTitle>
+              <CardTitle>Estatísticas</CardTitle>
 
               <InfoList>
                 <InfoRow>
                   <InfoLabel>Nível:</InfoLabel>
                   <InfoValue $color="#a855f7">
-                    {etapa.nivel === "iniciante" && "🌱 Iniciante"}
-                    {etapa.nivel === "intermediario" && "⚡ Intermediário"}
-                    {etapa.nivel === "avancado" && "🔥 Avançado"}
+                    {etapa.nivel === "iniciante" && "Iniciante"}
+                    {etapa.nivel === "intermediario" && "Intermediário"}
+                    {etapa.nivel === "avancado" && "Avançado"}
                   </InfoValue>
                 </InfoRow>
 
@@ -1105,9 +1073,7 @@ export const DetalhesEtapa: React.FC = () => {
                 <InfoRow>
                   <InfoLabel>Gênero:</InfoLabel>
                   <InfoValue $color="#3b82f6">
-                    {etapa.genero === "masculino"
-                      ? "♂️ Masculino"
-                      : "♀️ Feminino"}
+                    {etapa.genero === "masculino" ? "Masculino" : "Feminino"}
                   </InfoValue>
                 </InfoRow>
 
@@ -1141,33 +1107,29 @@ export const DetalhesEtapa: React.FC = () => {
           </Grid>
           {/* Ações */}
           <ActionsSection>
-            <CardTitle>⚡ Ações</CardTitle>
+            <CardTitle> Ações</CardTitle>
 
             <ActionsGrid>
               {inscricoesAbertas && (
                 <Button $variant="blue" onClick={handleInscreverJogador}>
-                  <span>➕</span>
                   <span>Inscrever Jogador</span>
                 </Button>
               )}
 
               {podeEncerrarInscricoes && (
                 <Button $variant="orange" onClick={handleEncerrarInscricoes}>
-                  <span>📝</span>
                   <span>Encerrar Inscrições</span>
                 </Button>
               )}
 
               {podeGerarChaves && (
                 <Button $variant="green" onClick={handleGerarChaves}>
-                  <span>🎲</span>
                   <span>Gerar Chaves</span>
                 </Button>
               )}
 
               {podeReabrirInscricoes && (
                 <Button $variant="blue" onClick={handleReabrirInscricoes}>
-                  <span>🔓</span>
                   <span>Reabrir Inscrições</span>
                 </Button>
               )}
@@ -1178,7 +1140,6 @@ export const DetalhesEtapa: React.FC = () => {
                     $variant="purple"
                     onClick={() => setAbaAtiva("chaves")}
                   >
-                    <span>👁️</span>
                     <span>Ver Chaves</span>
                   </Button>
 
@@ -1186,7 +1147,6 @@ export const DetalhesEtapa: React.FC = () => {
                     $variant="red"
                     onClick={() => setModalExcluirAberto(true)}
                   >
-                    <span>🗑️</span>
                     <span>Excluir Chaves</span>
                   </Button>
                 </>
@@ -1196,13 +1156,11 @@ export const DetalhesEtapa: React.FC = () => {
                 $variant="gray"
                 onClick={() => navigate(`/admin/etapas/${etapa.id}/editar`)}
               >
-                <span>✏️</span>
                 <span>Editar Etapa</span>
               </Button>
 
               {!etapa.chavesGeradas && etapa.totalInscritos === 0 && (
                 <Button $variant="red" onClick={handleExcluir}>
-                  <span>🗑️</span>
                   <span>Excluir Etapa</span>
                 </Button>
               )}
@@ -1212,7 +1170,7 @@ export const DetalhesEtapa: React.FC = () => {
             {etapa.totalInscritos > 0 && !etapa.chavesGeradas && (
               <Alert $variant="orange">
                 <p>
-                  ⚠️ <strong>Atenção:</strong> Para excluir esta etapa, você
+                  <strong>Atenção:</strong> Para excluir esta etapa, você
                   precisa cancelar todas as {etapa.totalInscritos}{" "}
                   inscrição(ões) primeiro.
                 </p>
@@ -1222,8 +1180,8 @@ export const DetalhesEtapa: React.FC = () => {
             {etapa.chavesGeradas && (
               <Alert $variant="red">
                 <p>
-                  🔒 <strong>Bloqueado:</strong> Não é possível excluir etapa
-                  após geração de chaves.
+                  <strong>Bloqueado:</strong> Não é possível excluir etapa após
+                  geração de chaves.
                 </p>
               </Alert>
             )}
@@ -1231,8 +1189,8 @@ export const DetalhesEtapa: React.FC = () => {
             {inscricoesAbertas && etapa.totalInscritos < 4 && (
               <Alert $variant="blue">
                 <p>
-                  ℹ️ Você precisa de pelo menos 4 jogadores inscritos (número
-                  par) para encerrar as inscrições.
+                  Você precisa de pelo menos 4 jogadores inscritos (número par)
+                  para encerrar as inscrições.
                 </p>
               </Alert>
             )}
@@ -1242,7 +1200,7 @@ export const DetalhesEtapa: React.FC = () => {
               etapa.totalInscritos % 2 !== 0 && (
                 <Alert $variant="yellow">
                   <p>
-                    ⚠️ <strong>Atenção:</strong> Você tem {etapa.totalInscritos}{" "}
+                    <strong>Atenção:</strong> Você tem {etapa.totalInscritos}{" "}
                     jogadores (número ímpar). É necessário um número PAR de
                     jogadores para formar duplas.
                   </p>
@@ -1252,7 +1210,7 @@ export const DetalhesEtapa: React.FC = () => {
             {inscricoesAbertas && numeroValido && !vagasCompletas && (
               <Alert $variant="yellow">
                 <p>
-                  ⚠️ <strong>Vagas incompletas:</strong> Esta etapa está
+                  <strong>Vagas incompletas:</strong> Esta etapa está
                   configurada para {etapa.maxJogadores} jogadores, mas possui
                   apenas {etapa.totalInscritos} inscrito(s).
                 </p>
@@ -1276,7 +1234,7 @@ export const DetalhesEtapa: React.FC = () => {
             {inscricoesEncerradas && !etapa.chavesGeradas && vagasCompletas && (
               <Alert $variant="green">
                 <p>
-                  ✅ <strong>Pronto!</strong> Inscrições encerradas com{" "}
+                  <strong>Pronto!</strong> Inscrições encerradas com{" "}
                   {etapa.totalInscritos} jogadores (vagas completas). Agora você
                   pode gerar as chaves!
                 </p>
@@ -1288,7 +1246,7 @@ export const DetalhesEtapa: React.FC = () => {
               !vagasCompletas && (
                 <Alert $variant="orange">
                   <p>
-                    ⚠️ <strong>Não é possível gerar chaves:</strong> Esta etapa
+                    <strong>Não é possível gerar chaves:</strong> Esta etapa
                     está configurada para {etapa.maxJogadores} jogadores, mas
                     possui apenas {etapa.totalInscritos} inscrito(s).
                   </p>
@@ -1297,7 +1255,7 @@ export const DetalhesEtapa: React.FC = () => {
                   </p>
                   <ul>
                     <li>
-                      Clique em "🔓 Reabrir Inscrições" e adicione mais{" "}
+                      Clique em "Reabrir Inscrições" e adicione mais{" "}
                       {etapa.maxJogadores - etapa.totalInscritos} jogador(es),
                       OU
                     </li>
@@ -1314,7 +1272,7 @@ export const DetalhesEtapa: React.FC = () => {
       {/* ABA: INSCRIÇÕES */}
       {abaAtiva === "inscricoes" && (
         <Card>
-          <CardTitle>📝 Jogadores Inscritos ({etapa.totalInscritos})</CardTitle>
+          <CardTitle>Jogadores Inscritos ({etapa.totalInscritos})</CardTitle>
 
           {inscricoes.length === 0 ? (
             <InscricoesEmpty>
@@ -1325,7 +1283,7 @@ export const DetalhesEtapa: React.FC = () => {
               </p>
               {etapa.totalInscritos === 0 && inscricoesAbertas && (
                 <Button $variant="blue" onClick={handleInscreverJogador}>
-                  ➕ Inscrever Primeiro Jogador
+                  Inscrever Primeiro Jogador
                 </Button>
               )}
             </InscricoesEmpty>
@@ -1336,10 +1294,10 @@ export const DetalhesEtapa: React.FC = () => {
                   <InscricaoInfo>
                     <InscricaoNome>{inscricao.jogadorNome}</InscricaoNome>
                     <InscricaoNivel>
-                      {inscricao.jogadorNivel === "iniciante" && "🌱 Iniciante"}
+                      {inscricao.jogadorNivel === "iniciante" && "Iniciante"}
                       {inscricao.jogadorNivel === "intermediario" &&
-                        "⚡ Intermediário"}
-                      {inscricao.jogadorNivel === "avancado" && "🔥 Avançado"}
+                        "Intermediário"}
+                      {inscricao.jogadorNivel === "avancado" && "Avançado"}
                     </InscricaoNivel>
                   </InscricaoInfo>
 
@@ -1364,7 +1322,7 @@ export const DetalhesEtapa: React.FC = () => {
           {etapa.chavesGeradas && (
             <Alert $variant="yellow">
               <p>
-                ⚠️ <strong>Atenção:</strong> Não é possível cancelar inscrições
+                <strong>Atenção:</strong> Não é possível cancelar inscrições
                 após a geração de chaves
               </p>
             </Alert>
@@ -1377,7 +1335,6 @@ export const DetalhesEtapa: React.FC = () => {
                 $fullWidth
                 onClick={handleInscreverJogador}
               >
-                <span>➕</span>
                 <span>Inscrever Novo Jogador</span>
               </Button>
             </div>
@@ -1410,12 +1367,13 @@ export const DetalhesEtapa: React.FC = () => {
         isOpen={modalExcluirAberto}
         onClose={() => setModalExcluirAberto(false)}
         onConfirm={handleExcluirChaves}
-        titulo="⚠️ Excluir Chaves?"
-        mensagem={`Você está prestes a EXCLUIR TODAS AS CHAVES da etapa "${etapa?.nome}".\n\nIsso irá remover:\n• Todas as duplas\n• Todos os grupos\n• Todas as partidas\n• Todo o progresso do torneio\n\n⚠️ ESTA AÇÃO NÃO PODE SER DESFEITA!\n\nA etapa voltará ao status "Inscrições Encerradas" e você precisará gerar as chaves novamente do zero.`}
+        titulo=" Excluir Chaves?"
+        mensagem={`Você está prestes a EXCLUIR TODAS AS CHAVES da etapa "${etapa?.nome}".\n\nIsso irá remover:\n• Todas as duplas\n• Todos os grupos\n• Todas as partidas\n• Todo o progresso do torneio\n\n ESTA AÇÃO NÃO PODE SER DESFEITA!\n\nA etapa voltará ao status "Inscrições Encerradas" e você precisará gerar as chaves novamente do zero.`}
         palavraConfirmacao="EXCLUIR"
         textoBotao="Sim, excluir tudo"
         loading={excluindo}
       />
+      <Footer></Footer>
     </Container>
   );
 };

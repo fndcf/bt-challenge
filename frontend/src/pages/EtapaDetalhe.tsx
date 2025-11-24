@@ -434,91 +434,9 @@ const EmptyBox = styled.div`
   color: #9ca3af;
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 40px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-`;
-
 const EmptyText = styled.p`
   font-size: 14px;
   margin: 0;
-`;
-
-const ActionCard = styled(Card)<{ $variant: string }>`
-  ${(props) => {
-    switch (props.$variant) {
-      case "aberta":
-        return `
-          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-          border: 2px solid #86efac;
-        `;
-      case "em_andamento":
-        return `
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          border: 2px solid #93c5fd;
-        `;
-      case "finalizada":
-        return `
-          background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-          border: 2px solid #d1d5db;
-        `;
-      default:
-        return "";
-    }
-  }}
-  text-align: center;
-`;
-
-const ActionIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: 16px;
-`;
-
-const ActionTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 8px 0;
-
-  @media (min-width: 768px) {
-    font-size: 20px;
-  }
-`;
-
-const ActionText = styled.p`
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.6;
-  margin: 0 0 20px 0;
-
-  @media (min-width: 768px) {
-    font-size: 15px;
-  }
-`;
-
-const ActionBtn = styled.a`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #3b82f6;
-  color: white;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
-  }
-
-  @media (min-width: 768px) {
-    font-size: 15px;
-    padding: 14px 28px;
-  }
 `;
 
 const Loading = styled.div`
@@ -680,37 +598,6 @@ const EtapaDetalhes: React.FC = () => {
     }
   };
 
-  const getActionInfo = () => {
-    if (!etapa) return null;
-
-    switch (etapa.status) {
-      case "aberta":
-        return {
-          icon: "✅",
-          title: "Inscrições Abertas!",
-          text: "Entre em contato para garantir sua vaga nesta etapa.",
-        };
-      case "em_andamento":
-        return {
-          icon: "⚡",
-          title: "Etapa em Andamento",
-          text: "As partidas estão acontecendo. Acompanhe os resultados!",
-        };
-      case "finalizada":
-        return {
-          icon: "🏆",
-          title: "Etapa Finalizada",
-          text: "Confira os resultados e campeões desta etapa.",
-        };
-      default:
-        return {
-          icon: "📅",
-          title: "Em Breve",
-          text: "Esta etapa ainda não está disponível.",
-        };
-    }
-  };
-
   if (loading) {
     return (
       <Page>
@@ -741,14 +628,12 @@ const EtapaDetalhes: React.FC = () => {
     );
   }
 
-  const actionInfo = getActionInfo();
-
   return (
     <Page>
       <TopBar>
         <TopBarInner>
           <Breadcrumbs>
-            <BreadLink to={`/arena/${slug}`}>🎾 {arena.nome}</BreadLink>
+            <BreadLink to={`/arena/${slug}`}> {arena.nome}</BreadLink>
             <BreadSep>›</BreadSep>
             <BreadCurrent>{etapa.nome}</BreadCurrent>
           </Breadcrumbs>
@@ -766,16 +651,12 @@ const EtapaDetalhes: React.FC = () => {
                 </Badge>
 
                 {etapa.nivel && (
-                  <NivelBadge $nivel={etapa.nivel}>
-                    {etapa.nivel === "iniciante" && "🌱"}
-                    {etapa.nivel === "intermediario" && "⚡"}
-                    {etapa.nivel === "avancado" && "🔥"}
-                  </NivelBadge>
+                  <NivelBadge $nivel={etapa.nivel}>{etapa.nivel}</NivelBadge>
                 )}
 
                 {etapa.genero && (
                   <GeneroBadge $genero={etapa.genero}>
-                    {etapa.genero === "masculino" ? "♂️" : "♀️"} {etapa.genero}
+                    {etapa.genero}
                   </GeneroBadge>
                 )}
               </BadgeGroup>
@@ -791,7 +672,7 @@ const EtapaDetalhes: React.FC = () => {
             {/* Info */}
             <Card>
               <CardHeader>
-                <CardTitle>📋 Informações da Etapa</CardTitle>
+                <CardTitle>Informações da Etapa</CardTitle>
               </CardHeader>
               <InfoGrid>
                 <InfoBox>
@@ -808,11 +689,7 @@ const EtapaDetalhes: React.FC = () => {
                 {etapa.nivel && (
                   <InfoBox>
                     <InfoLabel>Nível</InfoLabel>
-                    <InfoValue>
-                      {etapa.nivel === "iniciante" && "🌱 Iniciante"}
-                      {etapa.nivel === "intermediario" && "⚡ Intermediário"}
-                      {etapa.nivel === "avancado" && "🔥 Avançado"}
-                    </InfoValue>
+                    <InfoValue>{etapa.nivel}</InfoValue>
                   </InfoBox>
                 )}
 
@@ -820,11 +697,7 @@ const EtapaDetalhes: React.FC = () => {
                 {etapa.genero && (
                   <InfoBox>
                     <InfoLabel>Gênero</InfoLabel>
-                    <InfoValue>
-                      {etapa.genero === "masculino"
-                        ? "♂️ Masculino"
-                        : "♀️ Feminino"}
-                    </InfoValue>
+                    <InfoValue>{etapa.genero}</InfoValue>
                   </InfoBox>
                 )}
 
@@ -839,13 +712,10 @@ const EtapaDetalhes: React.FC = () => {
             {/* Players */}
             <Card>
               <CardHeader>
-                <CardTitle>
-                  👥 Jogadores Inscritos ({jogadores.length})
-                </CardTitle>
+                <CardTitle>Jogadores Inscritos ({jogadores.length})</CardTitle>
               </CardHeader>
               {jogadores.length === 0 ? (
                 <EmptyBox>
-                  <EmptyIcon>👤</EmptyIcon>
                   <EmptyText>Nenhum jogador inscrito</EmptyText>
                 </EmptyBox>
               ) : (
@@ -859,7 +729,7 @@ const EtapaDetalhes: React.FC = () => {
                       <PlayerInfo>
                         <PlayerName>{player.nome}</PlayerName>
                         {player.ranking && (
-                          <PlayerRank>📊 Ranking: #{player.ranking}</PlayerRank>
+                          <PlayerRank>Ranking: #{player.ranking}</PlayerRank>
                         )}
                       </PlayerInfo>
                     </PlayerItem>
@@ -876,28 +746,10 @@ const EtapaDetalhes: React.FC = () => {
           </Main>
 
           <Aside>
-            {/* Action */}
-            {actionInfo && (
-              <ActionCard $variant={etapa.status}>
-                <ActionIcon>{actionInfo.icon}</ActionIcon>
-                <ActionTitle>{actionInfo.title}</ActionTitle>
-                <ActionText>{actionInfo.text}</ActionText>
-                {etapa.status === "aberta" && (
-                  <ActionBtn
-                    href={`mailto:contato@${slug}.com`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    ✉️ Entre em Contato
-                  </ActionBtn>
-                )}
-              </ActionCard>
-            )}
-
             {/* Arena Info */}
             <Card>
               <CardHeader>
-                <CardTitle>🏟️ Arena</CardTitle>
+                <CardTitle>Arena</CardTitle>
               </CardHeader>
               <InfoBox>
                 <InfoLabel>Nome</InfoLabel>

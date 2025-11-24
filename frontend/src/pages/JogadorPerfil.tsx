@@ -8,6 +8,7 @@ import {
   EstatisticasAgregadas,
 } from "../services/arenaService";
 import { Arena } from "../types";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 // (Manter todos os styled components do arquivo original)
@@ -66,8 +67,7 @@ const Breadcrumb = styled.nav`
 
 const HeaderInfo = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
 `;
 
@@ -167,18 +167,6 @@ const ProfileInfo = styled.div`
   }
 `;
 
-const NivelBadge = styled.span`
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: #dbeafe;
-  color: #1e40af;
-  margin-top: 0.75rem;
-`;
-
 const GeneroTag = styled.span<{ $genero: string }>`
   display: inline-flex;
   align-items: center;
@@ -194,6 +182,31 @@ const GeneroTag = styled.span<{ $genero: string }>`
         ? "#dbeafe" // Azul claro
         : "#fce7f3" // Rosa claro
   };
+  color: ${
+    (props) =>
+      props.$genero === "masculino"
+        ? "#1e40af" // Azul escuro
+        : "#9f1239" // Rosa escuro
+  };
+`;
+
+const NivelTag = styled.span<{ $nivel: string; $genero?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  background: ${
+    (props) =>
+      props.$genero === "masculino"
+        ? "#dbeafe" // Azul claro
+        : "#fce7f3" // Rosa claro
+  };
+
   color: ${
     (props) =>
       props.$genero === "masculino"
@@ -235,11 +248,6 @@ const StatCard = styled.div`
   &:hover {
     transform: translateY(-4px);
   }
-`;
-
-const StatIcon = styled.div`
-  font-size: 2.5rem;
-  margin-bottom: 0.75rem;
 `;
 
 const StatValue = styled.div`
@@ -348,11 +356,6 @@ const HistoricoDetalhes = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 1rem;
-`;
-
-const EmptyIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
 `;
 
 const EmptyText = styled.p`
@@ -574,16 +577,15 @@ const JogadorPerfil: React.FC = () => {
   return (
     <PageContainer>
       <Header>
+        <HeaderInfo>
+          <BackButton onClick={() => navigate(-1)}>← Voltar</BackButton>
+        </HeaderInfo>
         <HeaderContent>
           <Breadcrumb>
-            <Link to={`/arena/${slug}`}>🎾 {arena.nome}</Link>
+            <Link to={`/arena/${slug}`}> {arena.nome}</Link>
             <span>›</span>
             <span>{nomeJogador}</span>
           </Breadcrumb>
-
-          <HeaderInfo>
-            <BackButton onClick={() => navigate(-1)}>← Voltar</BackButton>
-          </HeaderInfo>
         </HeaderContent>
       </Header>
 
@@ -597,17 +599,18 @@ const JogadorPerfil: React.FC = () => {
 
             {/* ✅ NOVO: Badges de nível e gênero */}
             <BadgeGroup>
-              {nivelJogador && <NivelBadge>Nível: {nivelJogador}</NivelBadge>}
+              {nivelJogador && (
+                <NivelTag $nivel={nivelJogador} $genero={generoJogador}>
+                  {nivelJogador}
+                </NivelTag>
+              )}
               {generoJogador && (
-                <GeneroTag $genero={generoJogador}>
-                  {generoJogador === "masculino" ? "♂️" : "♀️"} {generoJogador}
-                </GeneroTag>
+                <GeneroTag $genero={generoJogador}>{generoJogador}</GeneroTag>
               )}
             </BadgeGroup>
           </ProfileInfo>
           {/* Melhor Posição */}
           <StatCard>
-            <StatIcon>⭐</StatIcon>
             <StatValue>{posicaoAtual > 0 ? `${posicaoAtual}º` : "-"}</StatValue>
             <StatLabel>Posição no Ranking</StatLabel>
           </StatCard>
@@ -617,31 +620,27 @@ const JogadorPerfil: React.FC = () => {
         <Grid>
           {/* ✅ ATUALIZADO: Vitórias (soma de todas etapas) */}
           <StatCard>
-            <StatIcon>✅</StatIcon>
             <StatValue>{totalVitorias}</StatValue>
             <StatLabel>Vitórias</StatLabel>
           </StatCard>
 
           {/* ✅ NOVO: Card de Derrotas */}
           <StatCard>
-            <StatIcon>❌</StatIcon>
             <StatValue>{totalDerrotas}</StatValue>
             <StatLabel>Derrotas</StatLabel>
           </StatCard>
 
           {/* Etapas Participadas */}
           <StatCard>
-            <StatIcon>🎾</StatIcon>
             <StatValue>{totalEtapas}</StatValue>
             <StatLabel>Etapas Participadas</StatLabel>
           </StatCard>
 
           {/* Histórico */}
           <Card>
-            <CardTitle>📊 Histórico de Participações</CardTitle>
+            <CardTitle>Histórico de Participações</CardTitle>
             {historico.length === 0 ? (
               <EmptyState>
-                <EmptyIcon>📋</EmptyIcon>
                 <EmptyText>Nenhuma participação registrada ainda.</EmptyText>
               </EmptyState>
             ) : (
@@ -658,13 +657,13 @@ const JogadorPerfil: React.FC = () => {
                     <HistoricoDetalhes>
                       {/* ✅ Mostrar vitórias/derrotas DESTA etapa */}
                       {item.vitorias !== undefined && (
-                        <div>✅ Vitórias: {item.vitorias}</div>
+                        <div>Vitórias: {item.vitorias}</div>
                       )}
                       {item.derrotas !== undefined && (
-                        <div>❌ Derrotas: {item.derrotas}</div>
+                        <div>Derrotas: {item.derrotas}</div>
                       )}
                       {item.pontos !== undefined && (
-                        <div>⭐ Pontos: {item.pontos}</div>
+                        <div>Pontos: {item.pontos}</div>
                       )}
                     </HistoricoDetalhes>
                   </HistoricoItem>
@@ -674,6 +673,7 @@ const JogadorPerfil: React.FC = () => {
           </Card>
         </Grid>
       </Container>
+      <Footer></Footer>
     </PageContainer>
   );
 };

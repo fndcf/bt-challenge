@@ -138,11 +138,6 @@ const ContatoItem = styled.div`
   color: #6b7280;
 `;
 
-const ContatoIcon = styled.span`
-  font-size: 1rem;
-  flex-shrink: 0;
-`;
-
 const ContatoTexto = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
@@ -280,17 +275,14 @@ const ActionLink = styled(Link)<{ $variant: "view" | "edit" | "delete" }>`
 const getNivelInfo = (nivel: NivelJogador) => {
   const niveis = {
     [NivelJogador.INICIANTE]: {
-      emoji: "🌱",
       cor: "#4caf50",
       label: "Iniciante",
     },
     [NivelJogador.INTERMEDIARIO]: {
-      emoji: "⚡",
       cor: "#2196f3",
       label: "Intermediário",
     },
     [NivelJogador.AVANCADO]: {
-      emoji: "🔥",
       cor: "#ff9800",
       label: "Avançado",
     },
@@ -301,15 +293,12 @@ const getNivelInfo = (nivel: NivelJogador) => {
 const getStatusBadge = (status: StatusJogador) => {
   const badges = {
     [StatusJogador.ATIVO]: {
-      emoji: "✅",
       label: "Ativo",
     },
     [StatusJogador.INATIVO]: {
-      emoji: "⏸️",
       label: "Inativo",
     },
     [StatusJogador.SUSPENSO]: {
-      emoji: "🚫",
       label: "Suspenso",
     },
   };
@@ -351,13 +340,11 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
           <ContatoSection>
             {jogador.email && (
               <ContatoItem>
-                <ContatoIcon>📧</ContatoIcon>
                 <ContatoTexto>{jogador.email}</ContatoTexto>
               </ContatoItem>
             )}
             {jogador.telefone && (
               <ContatoItem>
-                <ContatoIcon>📱</ContatoIcon>
                 <ContatoTexto>
                   {formatarTelefone(jogador.telefone)}
                 </ContatoTexto>

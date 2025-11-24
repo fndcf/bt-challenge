@@ -39,18 +39,6 @@ const Header = styled.div`
   border-bottom: 1px solid #f3f4f6;
 `;
 
-const IconContainer = styled.div`
-  width: 4rem;
-  height: 4rem;
-  margin: 0 auto 1rem;
-  background: #fee2e2;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-`;
-
 const Title = styled.h2`
   font-size: 1.25rem;
   font-weight: 700;
@@ -153,7 +141,6 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     <Overlay onClick={onCancel}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <Header>
-          <IconContainer>🗑️</IconContainer>
           <Title>{title}</Title>
         </Header>
 
@@ -164,7 +151,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
               <strong>{itemName}</strong>
             </ItemHighlight>
           )}
-          <Warning>⚠️ Esta ação não pode ser desfeita!</Warning>
+          <Warning>Esta ação não pode ser desfeita!</Warning>
         </Body>
 
         <Footer>

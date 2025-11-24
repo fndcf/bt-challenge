@@ -492,7 +492,7 @@ const RecuperarSenha: React.FC = () => {
     <PageContainer>
       <Container>
         <Header>
-          <h1>🔐 Recuperar Senha</h1>
+          <h1>Recuperar Senha</h1>
           <p>Digite seu email para receber instruções de recuperação</p>
         </Header>
 

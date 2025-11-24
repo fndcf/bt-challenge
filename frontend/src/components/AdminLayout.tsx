@@ -54,10 +54,6 @@ const SidebarHeader = styled.div`
   gap: 0.75rem;
 `;
 
-const Logo = styled.div`
-  font-size: 2rem;
-`;
-
 const LogoText = styled.span<{ $show: boolean }>`
   font-size: 1.25rem;
   font-weight: 700;
@@ -93,7 +89,7 @@ const NavLink = styled(Link)<{ $active: boolean; $open: boolean }>`
   }
 
   span:first-child {
-    font-size: 1.5rem;
+    font-size: 1rem;
     width: 24px;
     text-align: center;
   }
@@ -129,7 +125,7 @@ const NavButton = styled.button<{ $open: boolean }>`
   }
 
   span:first-child {
-    font-size: 1.5rem;
+    font-size: 1rem;
     width: 24px;
     text-align: center;
   }
@@ -286,7 +282,7 @@ const AdminLayout: React.FC = () => {
     typeof window !== "undefined" ? window.innerWidth > 768 : true
   );
 
-  // ⭐ ADICIONA classe "admin-area" no body ao montar
+  // ADICIONA classe "admin-area" no body ao montar
   useEffect(() => {
     document.body.classList.add("admin-area");
 
@@ -304,9 +300,9 @@ const AdminLayout: React.FC = () => {
   }, [location.pathname]);
 
   const menuItems = [
-    { path: "/admin", icon: "📊", label: "Dashboard", exact: true },
-    { path: "/admin/jogadores", icon: "👥", label: "Jogadores" },
-    { path: "/admin/etapas", icon: "🏆", label: "Challenges" },
+    { path: "/admin", label: "Dashboard", exact: true },
+    { path: "/admin/jogadores", label: "Jogadores" },
+    { path: "/admin/etapas", label: "Challenges" },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -330,7 +326,6 @@ const AdminLayout: React.FC = () => {
         </ToggleButton>
 
         <SidebarHeader>
-          <Logo>🎾</Logo>
           <LogoText $show={sidebarOpen}>Challenge BT</LogoText>
         </SidebarHeader>
 
@@ -342,7 +337,6 @@ const AdminLayout: React.FC = () => {
               $active={isActive(item.path, item.exact)}
               $open={sidebarOpen}
             >
-              <span>{item.icon}</span>
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -362,20 +356,17 @@ const AdminLayout: React.FC = () => {
               $active={false}
               $open={sidebarOpen}
             >
-              <span>👁️</span>
               <span>Ver Página Pública</span>
             </NavLink>
           )}
 
           <NavButton $open={sidebarOpen} onClick={handleLogout}>
-            <span>🚪</span>
             <span>Sair</span>
           </NavButton>
         </Nav>
 
         <SidebarFooter $open={sidebarOpen}>
           <UserCard $open={sidebarOpen}>
-            <span>👤</span>
             <UserInfo $show={sidebarOpen}>
               <p>{user?.email?.split("@")[0]}</p>
               <small>Administrador</small>

@@ -48,33 +48,6 @@ const Header = styled.div`
   border-bottom: 2px solid #e5e7eb;
 `;
 
-const GeneroIcon = styled.div<{ $genero: GeneroJogador }>`
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-
-  ${(props) =>
-    props.$genero === GeneroJogador.MASCULINO
-      ? `
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  `
-      : `
-    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-  `}
-
-  @media (max-width: 768px) {
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 1.25rem;
-  }
-`;
-
 const HeaderContent = styled.div`
   flex: 1;
 `;
@@ -523,9 +496,9 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
 
   const getNivelLabel = (nivel: NivelJogador) => {
     const labels = {
-      [NivelJogador.INICIANTE]: "🌱 Iniciante",
-      [NivelJogador.INTERMEDIARIO]: "⚡ Intermediário",
-      [NivelJogador.AVANCADO]: "🔥 Avançado",
+      [NivelJogador.INICIANTE]: " Iniciante",
+      [NivelJogador.INTERMEDIARIO]: " Intermediário",
+      [NivelJogador.AVANCADO]: " Avançado",
     };
     return labels[nivel];
   };
@@ -550,9 +523,6 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
     <RankingSection>
       {/* Header */}
       <Header>
-        <GeneroIcon $genero={genero}>
-          {genero === GeneroJogador.MASCULINO ? "♂️" : "♀️"}
-        </GeneroIcon>
         <HeaderContent>
           <Title>
             Ranking{" "}

@@ -14,6 +14,7 @@ import {
 import { Arena } from "../types";
 import JogadorCard from "../components/JogadorCard";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -348,15 +349,6 @@ const EmptyState = styled.div`
   }
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
-
-  @media (min-width: 768px) {
-    font-size: 5rem;
-  }
-`;
-
 const EmptyTitle = styled.h2`
   font-size: 1.5rem;
   font-weight: 700;
@@ -632,13 +624,10 @@ const ListagemJogadores: React.FC = () => {
       {/* Header */}
       <Header>
         <HeaderInfo>
-          <Title>👥 Jogadores</Title>
+          <Title>Jogadores</Title>
           <Subtitle>Gerencie os jogadores da sua arena</Subtitle>
         </HeaderInfo>
-        <NewButton onClick={handleNovoJogador}>
-          <span>➕</span>
-          Novo Jogador
-        </NewButton>
+        <NewButton onClick={handleNovoJogador}>Novo Jogador</NewButton>
       </Header>
 
       {/* Mensagens */}
@@ -661,7 +650,7 @@ const ListagemJogadores: React.FC = () => {
         <FiltersGrid>
           {/* Busca */}
           <FilterItem $fullWidth>
-            <FilterLabel htmlFor="busca">🔍 Buscar</FilterLabel>
+            <FilterLabel htmlFor="busca">Buscar</FilterLabel>
             <Input
               type="text"
               id="busca"
@@ -676,7 +665,7 @@ const ListagemJogadores: React.FC = () => {
 
           {/* Nível */}
           <FilterItem>
-            <FilterLabel htmlFor="nivel">🎯 Nível</FilterLabel>
+            <FilterLabel htmlFor="nivel">Nível</FilterLabel>
             <Select
               id="nivel"
               value={nivelFiltro}
@@ -686,17 +675,15 @@ const ListagemJogadores: React.FC = () => {
               }}
             >
               <option value="">Todos</option>
-              <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
-              <option value={NivelJogador.INTERMEDIARIO}>
-                ⚡ Intermediário
-              </option>
-              <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+              <option value={NivelJogador.INICIANTE}>Iniciante</option>
+              <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
+              <option value={NivelJogador.AVANCADO}>Avançado</option>
             </Select>
           </FilterItem>
 
           {/* Status */}
           <FilterItem>
-            <FilterLabel htmlFor="status">📊 Status</FilterLabel>
+            <FilterLabel htmlFor="status">Status</FilterLabel>
             <Select
               id="status"
               value={statusFiltro}
@@ -706,9 +693,9 @@ const ListagemJogadores: React.FC = () => {
               }}
             >
               <option value="">Todos</option>
-              <option value={StatusJogador.ATIVO}>✅ Ativo</option>
-              <option value={StatusJogador.INATIVO}>⏸️ Inativo</option>
-              <option value={StatusJogador.SUSPENSO}>🚫 Suspenso</option>
+              <option value={StatusJogador.ATIVO}>Ativo</option>
+              <option value={StatusJogador.INATIVO}>Inativo</option>
+              <option value={StatusJogador.SUSPENSO}>Suspenso</option>
             </Select>
           </FilterItem>
 
@@ -732,10 +719,7 @@ const ListagemJogadores: React.FC = () => {
 
         {/* Limpar Filtros */}
         {(busca || nivelFiltro || statusFiltro || generoFiltro) && (
-          <ClearButton onClick={limparFiltros}>
-            <span>🗑️</span>
-            Limpar Filtros
-          </ClearButton>
+          <ClearButton onClick={limparFiltros}>Limpar Filtros</ClearButton>
         )}
       </FiltersContainer>
 
@@ -765,7 +749,6 @@ const ListagemJogadores: React.FC = () => {
               arenaSlug={arena?.slug}
               onEdit={handleEditarJogador}
               onDelete={handleDeletarJogador}
-              // onView removido - agora usa o link automático
             />
           ))}
         </JogadoresGrid>
@@ -774,7 +757,6 @@ const ListagemJogadores: React.FC = () => {
       {/* Empty State */}
       {!loading && jogadores.length === 0 && (
         <EmptyState>
-          <EmptyIcon>🎾</EmptyIcon>
           <EmptyTitle>Nenhum jogador encontrado</EmptyTitle>
           {busca || nivelFiltro || statusFiltro || generoFiltro ? (
             <EmptyText>
@@ -784,7 +766,6 @@ const ListagemJogadores: React.FC = () => {
             <EmptyText>Cadastre o primeiro jogador da sua arena!</EmptyText>
           )}
           <EmptyButton onClick={handleNovoJogador}>
-            <span>➕</span>
             Cadastrar Primeiro Jogador
           </EmptyButton>
         </EmptyState>
@@ -818,6 +799,7 @@ const ListagemJogadores: React.FC = () => {
         onCancel={cancelarDelecao}
         loading={deleteModal.loading}
       />
+      <Footer></Footer>
     </Container>
   );
 };

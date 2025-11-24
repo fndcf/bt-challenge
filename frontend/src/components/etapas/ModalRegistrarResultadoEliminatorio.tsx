@@ -389,8 +389,8 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
       ]);
       alert(
         isEdicao
-          ? "✅ Resultado atualizado com sucesso!"
-          : "✅ Resultado registrado com sucesso!"
+          ? " Resultado atualizado com sucesso!"
+          : " Resultado registrado com sucesso!"
       );
       onSuccess();
     } catch (err: any) {
@@ -413,7 +413,7 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
         <ModalContainer>
           <Header>
             <Title>
-              {isEdicao ? "✏️ Editar Resultado" : "📝 Registrar Resultado"}
+              {isEdicao ? " Editar Resultado" : " Registrar Resultado"}
             </Title>
             <CloseButton onClick={onClose}>✕</CloseButton>
           </Header>
@@ -427,7 +427,7 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
             </InfoBox>
 
             <PlacarSection>
-              <SectionLabel>🎾 Placar do Set</SectionLabel>
+              <SectionLabel>Placar do Set</SectionLabel>
 
               <PlacarGrid>
                 <InputGroup>
@@ -474,7 +474,7 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
 
             {resultado && (
               <ResultBox>
-                <ResultLabel>🏆 Vencedor</ResultLabel>
+                <ResultLabel>Vencedor</ResultLabel>
                 <WinnerName>{resultado.vencedor}</WinnerName>
                 <ResultScore>Placar: {resultado.placar}</ResultScore>
               </ResultBox>
@@ -503,7 +503,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                   </>
                 ) : (
                   <>
-                    <span>{isEdicao ? "✏️" : "✅"}</span>
                     <span>
                       {isEdicao ? "Atualizar Resultado" : "Salvar Resultado"}
                     </span>
@@ -515,8 +514,8 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
 
           <WarningBox>
             <WarningText>
-              ⚠️ <strong>Importante:</strong> O vencedor avançará
-              automaticamente para a próxima fase!
+              <strong>Importante:</strong> O vencedor avançará automaticamente
+              para a próxima fase!
             </WarningText>
           </WarningBox>
         </ModalContainer>

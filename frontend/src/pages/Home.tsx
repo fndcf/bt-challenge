@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
+import Footer from "../components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -301,7 +302,7 @@ const Home: React.FC = () => {
     <Container>
       {/* Hero Section */}
       <Hero>
-        <Title>🎾 Challenge BT</Title>
+        <Title>Challenge BT</Title>
         <Subtitle>
           Sistema de Gerenciamento de Torneios de Beach Tennis
         </Subtitle>
@@ -312,7 +313,7 @@ const Home: React.FC = () => {
             <FeatureIcon>👥</FeatureIcon>
             <FeatureTitle>Gestão de Jogadores</FeatureTitle>
             <FeatureText>
-              Cadastro e organização de jogadores por nível
+              Cadastro e organização de jogadores por gênero e nível
             </FeatureText>
           </FeatureCard>
 
@@ -388,6 +389,7 @@ const Home: React.FC = () => {
           </Step>
         </StepsContainer>
       </InfoSection>
+      <Footer></Footer>
     </Container>
   );
 };

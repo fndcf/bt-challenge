@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useArena } from "../contexts/ArenaContext";
 import { useDocumentTitle } from "../hooks";
 import RankingList from "../components/RankingList";
+import Footer from "@/components/Footer";
 
 // ===========================
 // CONTAINER PRINCIPAL
@@ -134,25 +135,6 @@ const ActionCard = styled(Link)`
 
   @media (max-width: 768px) {
     padding: 1.25rem;
-  }
-`;
-
-const ActionIcon = styled.div<{ $color: string }>`
-  width: 60px;
-  height: 60px;
-  background: ${(props) => props.$color}15;
-  color: ${(props) => props.$color};
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  flex-shrink: 0;
-
-  @media (max-width: 768px) {
-    width: 50px;
-    height: 50px;
-    font-size: 1.75rem;
   }
 `;
 
@@ -283,92 +265,6 @@ const StepContent = styled.div`
 `;
 
 // ===========================
-// HELP BANNER
-// ===========================
-
-const HelpBanner = styled.div`
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 12px;
-  padding: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-  }
-`;
-
-const HelpIcon = styled.div`
-  font-size: 3rem;
-
-  @media (max-width: 768px) {
-    font-size: 2.5rem;
-  }
-`;
-
-const HelpContent = styled.div`
-  flex: 1;
-
-  h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #92400e;
-
-    @media (max-width: 768px) {
-      font-size: 1.125rem;
-    }
-  }
-
-  p {
-    margin: 0;
-    color: #92400e;
-    opacity: 0.8;
-
-    @media (max-width: 768px) {
-      font-size: 0.875rem;
-    }
-  }
-`;
-
-const HelpButtons = styled.div`
-  display: flex;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    flex-direction: column;
-  }
-`;
-
-const HelpButton = styled.a`
-  background: white;
-  color: #92400e;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.875rem;
-  border: 1px solid rgba(146, 64, 14, 0.2);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #fef3c7;
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 768px) {
-    justify-content: center;
-  }
-`;
-
-// ===========================
 // COMPONENTE
 // ===========================
 
@@ -382,24 +278,21 @@ const Dashboard: React.FC = () => {
 
   const actions = [
     {
-      icon: "➕",
       label: "Cadastrar Jogador",
       description: "Adicione novos jogadores à arena",
       link: "/admin/jogadores/novo",
       color: "#134e5e",
     },
     {
-      icon: "🎯",
       label: "Criar Challenge",
       description: "Inicie uma nova etapa de torneio",
       link: "/admin/etapas/criar",
       color: "#f093fb",
     },
     {
-      icon: "📈",
-      label: "Ver Ranking",
-      description: "Confira a classificação completa",
-      link: "/admin/ranking",
+      label: "Página Pública",
+      description: "Link público para jogadores",
+      link: `/arena/${arena?.slug}`,
       color: "#4facfe",
     },
   ];
@@ -409,12 +302,11 @@ const Dashboard: React.FC = () => {
       {/* Welcome Banner (apenas desktop) */}
       <WelcomeBanner>
         <WelcomeText>
-          <h1>Bem-vindo(a), {user?.email?.split("@")[0]}! 👋</h1>
+          <h1>Bem-vindo(a), {user?.email?.split("@")[0]}!</h1>
           <p>Gerencie sua arena e organize torneios incríveis</p>
         </WelcomeText>
         {arena && (
           <ArenaBadge>
-            <span>🏟️</span>
             <div>
               <p>{arena.nome}</p>
               <small>/{arena.slug}</small>
@@ -429,7 +321,6 @@ const Dashboard: React.FC = () => {
         <ActionsGrid>
           {actions.map((action, i) => (
             <ActionCard key={i} to={action.link}>
-              <ActionIcon $color={action.color}>{action.icon}</ActionIcon>
               <ActionContent>
                 <h3>{action.label}</h3>
                 <p>{action.description}</p>
@@ -492,19 +383,7 @@ const Dashboard: React.FC = () => {
           </StepCard>
         </StepsGrid>
       </Section>
-
-      {/* Help Banner */}
-      <HelpBanner>
-        <HelpIcon>💡</HelpIcon>
-        <HelpContent>
-          <h3>Precisa de Ajuda?</h3>
-          <p>Acesse nossa documentação ou entre em contato com o suporte</p>
-        </HelpContent>
-        <HelpButtons>
-          <HelpButton href="#">📚 Documentação</HelpButton>
-          <HelpButton href="#">💬 Suporte</HelpButton>
-        </HelpButtons>
-      </HelpBanner>
+      <Footer></Footer>
     </Container>
   );
 };

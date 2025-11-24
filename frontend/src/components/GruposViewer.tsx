@@ -410,6 +410,8 @@ const VS = styled.span`
   font-weight: 700;
   color: #9ca3af;
   letter-spacing: 0.1em;
+  display: block;
+  text-align: center;
 
   @media (min-width: 768px) {
     font-size: 12px;
@@ -572,12 +574,6 @@ const EmptyBox = styled.div`
   }
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 40px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-`;
-
 const EmptyText = styled.p`
   font-size: 14px;
   margin: 0;
@@ -590,10 +586,9 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
     return (
       <Wrapper>
         <Header>
-          <Title>📊 Fase de Grupos</Title>
+          <Title>Fase de Grupos</Title>
         </Header>
         <EmptyBox>
-          <EmptyIcon>📋</EmptyIcon>
           <EmptyText>Grupos ainda não formados</EmptyText>
         </EmptyBox>
       </Wrapper>
@@ -603,7 +598,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
   return (
     <Wrapper>
       <Header>
-        <Title>📊 Fase de Grupos</Title>
+        <Title>Fase de Grupos</Title>
       </Header>
 
       <GroupsGrid>
@@ -617,7 +612,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
               {/* Standings */}
               {group.duplas?.length > 0 && (
                 <>
-                  <SectionTitle>🏆 Classificação</SectionTitle>
+                  <SectionTitle>Classificação</SectionTitle>
                   <TableWrapper>
                     <Table>
                       <THead>
@@ -675,7 +670,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
               {/* Matches */}
               {group.partidas?.length > 0 && (
                 <>
-                  <SectionTitle>⚔️ Partidas</SectionTitle>
+                  <SectionTitle>Partidas</SectionTitle>
                   <MatchesList>
                     {group.partidas.map((match) => {
                       const finished =
@@ -686,7 +681,6 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                       return (
                         <MatchCard key={match.id} $finished={finished}>
                           <MatchHeader>
-                            <VS>VS</VS>
                             <Status $status={match.status}>
                               {finished
                                 ? "Finalizada"
@@ -707,6 +701,8 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                                 </TeamScore>
                               )}
                             </TeamRow>
+
+                            <VS>VS</VS>
 
                             <TeamRow $winner={winner2}>
                               <TeamNameInMatch>

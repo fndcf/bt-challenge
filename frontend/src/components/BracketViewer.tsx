@@ -350,12 +350,6 @@ const EmptyBox = styled.div`
   }
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-`;
-
 const EmptyText = styled.p`
   font-size: 14px;
   margin: 0 0 4px 0;
@@ -383,10 +377,9 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
     return (
       <Wrapper>
         <Header>
-          <Title>🏆 Chaveamento</Title>
+          <Title>Chaveamento</Title>
         </Header>
         <EmptyBox>
-          <EmptyIcon>🎾</EmptyIcon>
           <EmptyText>Chaves ainda não geradas</EmptyText>
           <EmptyHint>Aguarde a conclusão da fase de grupos</EmptyHint>
         </EmptyBox>
@@ -400,9 +393,8 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
   return (
     <Wrapper>
       <Header>
-        <Title>🏆 Chaveamento Eliminatório</Title>
+        <Title>Chaveamento Eliminatório</Title>
         <Subtitle>
-          <span>👉</span>
           <span>Deslize para ver todas as fases</span>
         </Subtitle>
       </Header>
@@ -422,7 +414,7 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                 if (isBye) {
                   return (
                     <Match key={match.id} $offset={matchIdx % 2 === 1}>
-                      <Team $bye>🏆 {match.jogador1.nome} (BYE)</Team>
+                      <Team $bye>{match.jogador1.nome} (BYE)</Team>
                     </Match>
                   );
                 }

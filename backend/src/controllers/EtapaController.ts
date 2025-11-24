@@ -776,7 +776,7 @@ class EtapaController {
       await EtapaService.encerrarEtapa(id, arenaId);
 
       res.json({
-        message: "Etapa encerrada com sucesso! 🏆",
+        message: "Etapa encerrada com sucesso! ",
       });
     } catch (error: any) {
       console.error("Erro ao encerrar etapa:", error);

@@ -10,6 +10,7 @@ import {
   Jogador,
   GeneroJogador,
 } from "../types/jogador";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -33,37 +34,22 @@ const Header = styled.div`
   margin-bottom: 2rem;
 `;
 
-const HeaderContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-
-  @media (min-width: 640px) {
-    flex-direction: row;
-    align-items: center;
-  }
-`;
-
 const BackButton = styled.button`
+  color: #6b7280;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-bottom: 1rem;
   background: none;
   border: none;
-  color: #2563eb;
-  font-weight: 600;
-  font-size: 0.9375rem;
   cursor: pointer;
-  padding: 0;
+  font-size: 0.875rem;
   transition: color 0.2s;
+  padding: 0;
 
   &:hover {
-    color: #1d4ed8;
+    color: #111827;
   }
-`;
-
-const HeaderInfo = styled.div`
-  flex: 1;
 `;
 
 const Title = styled.h1`
@@ -296,51 +282,6 @@ const ErrorMessage = styled.span`
 const FormHint = styled.small`
   font-size: 0.8125rem;
   color: #6b7280;
-`;
-
-// ============== ESTATÍSTICAS ==============
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 0.5rem;
-`;
-
-const StatIcon = styled.span`
-  font-size: 2rem;
-`;
-
-const StatInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-`;
-
-const StatValue = styled.span`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
-`;
-
-const StatLabel = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 `;
 
 // ============== ACTIONS ==============
@@ -701,14 +642,11 @@ const EditarJogador: React.FC = () => {
   return (
     <Container>
       {/* Header */}
+
       <Header>
-        <HeaderContent>
-          <BackButton onClick={handleCancel}>← Voltar</BackButton>
-          <HeaderInfo>
-            <Title>✏️ Editar Jogador</Title>
-            <Subtitle>Atualize as informações de {jogador.nome}</Subtitle>
-          </HeaderInfo>
-        </HeaderContent>
+        <BackButton onClick={handleCancel}>← Voltar</BackButton>
+        <Title> Editar Jogador</Title>
+        <Subtitle>Cadastre um novo jogador na sua arena</Subtitle>
       </Header>
 
       {/* Mensagens */}
@@ -730,7 +668,7 @@ const EditarJogador: React.FC = () => {
       <Form onSubmit={handleSubmit}>
         {/* Card: Informações Básicas */}
         <FormCard>
-          <CardTitle>📋 Informações Básicas</CardTitle>
+          <CardTitle>Informações Básicas</CardTitle>
 
           <FormGrid>
             {/* Nome */}
@@ -820,7 +758,7 @@ const EditarJogador: React.FC = () => {
 
         {/* Card: Nível e Status */}
         <FormCard>
-          <CardTitle>🎯 Nível e Status</CardTitle>
+          <CardTitle>Nível e Status</CardTitle>
 
           <FormGrid>
             {/* Nível */}
@@ -835,11 +773,11 @@ const EditarJogador: React.FC = () => {
                 onChange={handleChange}
                 required
               >
-                <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
+                <option value={NivelJogador.INICIANTE}>Iniciante</option>
                 <option value={NivelJogador.INTERMEDIARIO}>
-                  ⚡ Intermediário
+                  Intermediário
                 </option>
-                <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+                <option value={NivelJogador.AVANCADO}>Avançado</option>
               </Select>
               <FormHint>Nível de habilidade do jogador</FormHint>
             </FormGroup>
@@ -856,48 +794,18 @@ const EditarJogador: React.FC = () => {
                 onChange={handleChange}
                 required
               >
-                <option value={StatusJogador.ATIVO}>✅ Ativo</option>
-                <option value={StatusJogador.INATIVO}>⏸️ Inativo</option>
-                <option value={StatusJogador.SUSPENSO}>🚫 Suspenso</option>
+                <option value={StatusJogador.ATIVO}>Ativo</option>
+                <option value={StatusJogador.INATIVO}>Inativo</option>
+                <option value={StatusJogador.SUSPENSO}>Suspenso</option>
               </Select>
               <FormHint>Status atual do jogador</FormHint>
             </FormGroup>
           </FormGrid>
         </FormCard>
 
-        {/* Card: Estatísticas (read-only) */}
-        {(jogador.vitorias || jogador.derrotas || jogador.pontos) && (
-          <FormCard>
-            <CardTitle>📊 Estatísticas</CardTitle>
-            <StatsGrid>
-              <StatItem>
-                <StatIcon>🏆</StatIcon>
-                <StatInfo>
-                  <StatValue>{jogador.vitorias || 0}</StatValue>
-                  <StatLabel>Vitórias</StatLabel>
-                </StatInfo>
-              </StatItem>
-              <StatItem>
-                <StatIcon>❌</StatIcon>
-                <StatInfo>
-                  <StatValue>{jogador.derrotas || 0}</StatValue>
-                  <StatLabel>Derrotas</StatLabel>
-                </StatInfo>
-              </StatItem>
-              <StatItem>
-                <StatIcon>⭐</StatIcon>
-                <StatInfo>
-                  <StatValue>{jogador.pontos || 0}</StatValue>
-                  <StatLabel>Pontos</StatLabel>
-                </StatInfo>
-              </StatItem>
-            </StatsGrid>
-          </FormCard>
-        )}
-
         {/* Card: Observações */}
         <FormCard>
-          <CardTitle>📝 Observações</CardTitle>
+          <CardTitle>Observações</CardTitle>
 
           <FormGroup $fullWidth>
             <Label htmlFor="observacoes">Observações (Opcional)</Label>
@@ -928,11 +836,12 @@ const EditarJogador: React.FC = () => {
                 Salvando...
               </>
             ) : (
-              <>✅ Salvar Alterações</>
+              <>Salvar Alterações</>
             )}
           </Button>
         </FormActions>
       </Form>
+      <Footer></Footer>
     </Container>
   );
 };

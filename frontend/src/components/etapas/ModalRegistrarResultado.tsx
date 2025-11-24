@@ -430,8 +430,8 @@ export const ModalRegistrarResultado: React.FC<
       await partidaService.registrarResultado(partida.id, [set]);
       alert(
         isEdicao
-          ? "✅ Resultado atualizado com sucesso!"
-          : "✅ Resultado registrado com sucesso!"
+          ? " Resultado atualizado com sucesso!"
+          : " Resultado registrado com sucesso!"
       );
       onSuccess();
     } catch (err: any) {
@@ -454,7 +454,7 @@ export const ModalRegistrarResultado: React.FC<
         <ModalContainer>
           <Header>
             <Title>
-              {isEdicao ? "✏️ Editar Resultado" : "📝 Registrar Resultado"}
+              {isEdicao ? " Editar Resultado" : "Registrar Resultado"}
             </Title>
             <CloseButton onClick={onClose}>✕</CloseButton>
           </Header>
@@ -469,7 +469,7 @@ export const ModalRegistrarResultado: React.FC<
 
           <Form onSubmit={handleSubmit}>
             <PlacarSection>
-              <PlacarTitle>🎾 Placar</PlacarTitle>
+              <PlacarTitle>Placar</PlacarTitle>
 
               <PlacarGrid>
                 <InputGroup>
@@ -509,7 +509,7 @@ export const ModalRegistrarResultado: React.FC<
             {resultado && (
               <ResultBox>
                 <ResultContent>
-                  <ResultLabel>🏆 Vencedor:</ResultLabel>
+                  <ResultLabel>Vencedor:</ResultLabel>
                   <WinnerName>{resultado.vencedor}</WinnerName>
                   <ResultScore>Placar: {resultado.placar}</ResultScore>
                 </ResultContent>
@@ -543,7 +543,6 @@ export const ModalRegistrarResultado: React.FC<
                   </>
                 ) : (
                   <>
-                    <span>{isEdicao ? "✏️" : "✅"}</span>
                     <span>
                       {isEdicao ? "Atualizar Resultado" : "Salvar Resultado"}
                     </span>
@@ -555,11 +554,11 @@ export const ModalRegistrarResultado: React.FC<
 
           <HintsBox>
             <p>
-              💡 <strong>Placares válidos:</strong> 6-0, 6-1, 6-2, 6-3, 6-4,
-              7-5, 7-6
+              <strong>Placares válidos:</strong> 6-0, 6-1, 6-2, 6-3, 6-4, 7-5,
+              7-6
             </p>
             <p>
-              💡 <strong>Set único:</strong> Vencedor do set vence a partida
+              <strong>Set único:</strong> Vencedor do set vence a partida
             </p>
           </HintsBox>
         </ModalContainer>

@@ -32,7 +32,7 @@ const TabsContainer = styled.div`
   border-bottom: 2px solid #e5e7eb;
   margin-bottom: 2rem;
 
-  /* ⭐ MOBILE: Remove borda */
+  /* MOBILE: Remove borda */
   @media (max-width: 768px) {
     border-bottom: none;
   }
@@ -48,7 +48,7 @@ const TabsList = styled.nav`
     display: none;
   }
 
-  /* ⭐ MOBILE: Layout vertical */
+  /* MOBILE: Layout vertical */
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 0.5rem;
@@ -71,7 +71,7 @@ const Tab = styled.button<{ $isActive: boolean }>`
     color: #2563eb;
   }
 
-  /* ⭐ MOBILE: Botões verticais */
+  /* MOBILE: Botões verticais */
   @media (max-width: 768px) {
     width: 100%;
     padding: 0.875rem 1rem;
@@ -118,7 +118,7 @@ const GruposGrid = styled.div`
   gap: 1.5rem;
   grid-template-columns: 1fr;
 
-  /* ⭐ TABLET: Também 2 colunas (antes era só a partir de 1024px) */
+  /* TABLET: Também 2 colunas (antes era só a partir de 1024px) */
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -211,7 +211,7 @@ const DuplaContent = styled.div`
   flex-direction: column;
   gap: 0.75rem;
 
-  /* ⭐ DESKTOP: Só fica horizontal a partir de 1024px */
+  /* DESKTOP: Só fica horizontal a partir de 1024px */
   @media (min-width: 1025px) {
     align-items: flex-start;
     justify-content: space-between;
@@ -233,15 +233,15 @@ const JogadoresNome = styled.div`
   color: #111827;
   font-size: 0.9375rem;
   margin-bottom: 0.25rem;
-  overflow-wrap: break-word; /* ⭐ MUDOU: break-word → overflow-wrap */
+  overflow-wrap: break-word; /* MUDOU: break-word → overflow-wrap */
   word-wrap: break-word;
-  hyphens: auto; /* ⭐ NOVO: quebra com hífens */
+  hyphens: auto; /* NOVO: quebra com hífens */
 
   @media (min-width: 768px) {
     font-size: 1rem;
   }
 
-  /* ⭐ TABLET: Linha única se couber */
+  /* TABLET: Linha única se couber */
   @media (min-width: 768px) and (max-width: 1023px) {
     white-space: nowrap;
     overflow: hidden;
@@ -249,7 +249,7 @@ const JogadoresNome = styled.div`
     max-width: 100%;
   }
 
-  /* ⭐ DESKTOP: Pode quebrar normalmente */
+  /* DESKTOP: Pode quebrar normalmente */
   @media (min-width: 1024px) {
     white-space: normal;
   }
@@ -266,7 +266,7 @@ const StatsGrid = styled.div`
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 
-  /* ⭐ DESKTOP: Inline só a partir de 1024px */
+  /* DESKTOP: Inline só a partir de 1024px */
   @media (min-width: 1024px) {
     display: flex;
     gap: 1.5rem;
@@ -500,7 +500,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   if (grupos.length === 0) {
     return (
       <Container>
-        <EmptyState>📭 Nenhuma chave gerada ainda</EmptyState>
+        <EmptyState> Nenhuma chave gerada ainda</EmptyState>
       </Container>
     );
   }
@@ -513,13 +513,13 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
             $isActive={abaAtiva === "grupos"}
             onClick={() => setAbaAtiva("grupos")}
           >
-            📊 Fase de Grupos
+            Fase de Grupos
           </Tab>
           <Tab
             $isActive={abaAtiva === "eliminatoria"}
             onClick={() => setAbaAtiva("eliminatoria")}
           >
-            🏆 Eliminatória
+            Eliminatória
           </Tab>
         </TabsList>
       </TabsContainer>
@@ -656,14 +656,14 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                         partidas
                       </span>
                       {grupo.completo && (
-                        <CompletoBadge>✓ Completo</CompletoBadge>
+                        <CompletoBadge> Completo</CompletoBadge>
                       )}
                     </FooterInfo>
 
                     <VerPartidasButton onClick={() => toggleGrupo(grupo.id)}>
                       {grupoSelecionado === grupo.id
-                        ? "🔼 Ocultar Partidas"
-                        : "⚔️ Ver Partidas"}
+                        ? " Ocultar Partidas"
+                        : " Ver Partidas"}
                     </VerPartidasButton>
 
                     {grupoSelecionado === grupo.id && (
@@ -684,7 +684,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           </GruposGrid>
 
           <InfoCard>
-            <h4>ℹ️ Fase de Grupos</h4>
+            <h4> Fase de Grupos</h4>
             <p>
               Cada dupla joga contra todas as outras duplas do seu grupo. As
               duplas com melhor campanha classificam para a próxima fase.

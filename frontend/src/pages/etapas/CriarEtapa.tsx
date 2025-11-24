@@ -8,10 +8,11 @@ import styled from "styled-components";
 import { CriarEtapaDTO } from "../../types/etapa";
 import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
-// ⭐ MESMA estrutura do Dashboard - SEM padding-top
+// MESMA estrutura do Dashboard - SEM padding-top
 const Container = styled.div`
   width: 100%;
   max-width: 1400px;
@@ -446,6 +447,12 @@ export const CriarEtapa: React.FC = () => {
         return;
       }
 
+      if (formData.nome.length < 3) {
+        setError("Nome deve ter no mínimo 3 caracteres");
+        setLoading(false);
+        return;
+      }
+
       const totalDuplas = Math.floor(formData.maxJogadores / 2);
 
       const jogadoresPorGrupoCalculado = Math.ceil(
@@ -482,9 +489,7 @@ export const CriarEtapa: React.FC = () => {
   return (
     <Container>
       <Header>
-        <BackButton onClick={() => navigate("/admin/etapas")}>
-          ← Voltar
-        </BackButton>
+        <BackButton onClick={() => navigate(-1)}>← Voltar</BackButton>
         <Title>Criar Nova Etapa</Title>
         <Subtitle>
           Preencha os dados para criar uma nova etapa do torneio
@@ -537,7 +542,7 @@ export const CriarEtapa: React.FC = () => {
                 <option value={GeneroJogador.FEMININO}>Feminino</option>
               </Select>
               <HelperText>
-                ⚠️ Apenas jogadores deste gênero poderão se inscrever
+                Apenas jogadores deste gênero poderão se inscrever
               </HelperText>
             </Field>
 
@@ -550,14 +555,14 @@ export const CriarEtapa: React.FC = () => {
                   handleChange("nivel", e.target.value as NivelJogador)
                 }
               >
-                <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
+                <option value={NivelJogador.INICIANTE}>Iniciante</option>
                 <option value={NivelJogador.INTERMEDIARIO}>
-                  ⚡ Intermediário
+                  Intermediário
                 </option>
-                <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+                <option value={NivelJogador.AVANCADO}>Avançado</option>
               </Select>
               <HelperText>
-                ⚠️ Apenas jogadores deste nível poderão se inscrever
+                Apenas jogadores deste nível poderão se inscrever
               </HelperText>
             </Field>
 
@@ -655,7 +660,7 @@ export const CriarEtapa: React.FC = () => {
             </Field>
 
             <PreviewCard>
-              <PreviewTitle>📊 Distribuição Automática de Grupos</PreviewTitle>
+              <PreviewTitle>Distribuição Automática de Grupos</PreviewTitle>
 
               {infoGrupos.qtdGrupos > 0 ? (
                 <PreviewContent>
@@ -687,7 +692,7 @@ export const CriarEtapa: React.FC = () => {
           <Button
             type="button"
             $variant="secondary"
-            onClick={() => navigate("/admin/etapas")}
+            onClick={() => navigate(-1)}
           >
             Cancelar
           </Button>
@@ -704,6 +709,7 @@ export const CriarEtapa: React.FC = () => {
           </Button>
         </ButtonsRow>
       </Form>
+      <Footer></Footer>
     </Container>
   );
 };

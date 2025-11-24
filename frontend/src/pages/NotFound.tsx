@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -72,31 +73,6 @@ const ErrorCode = styled.h1`
     }
     50% {
       transform: translateY(-20px);
-    }
-  }
-`;
-
-// ============== EMOJI ==============
-
-const EmojiContainer = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  animation: spin 4s linear infinite;
-
-  @media (min-width: 640px) {
-    font-size: 5rem;
-  }
-
-  @media (min-width: 1024px) {
-    font-size: 6rem;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
     }
   }
 `;
@@ -214,7 +190,6 @@ const NotFound: React.FC = () => {
       <FloatingShape $size={100} $left={80} $top={70} $delay={1.5} />
 
       <ContentContainer>
-        <EmojiContainer>🎾</EmojiContainer>
         <ErrorCode>404</ErrorCode>
         <Title>Página Não Encontrada</Title>
         <Description>
@@ -224,6 +199,7 @@ const NotFound: React.FC = () => {
           <span>←</span>
           Voltar para o Início
         </HomeButton>
+        <Footer></Footer>
       </ContentContainer>
     </PageContainer>
   );

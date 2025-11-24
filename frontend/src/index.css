@@ -28,13 +28,13 @@ body {
   overflow-x: hidden;
 }
 
-/* ⭐ Background APENAS para páginas públicas */
+/* Background APENAS para páginas públicas */
 body:not(.admin-area) {
   background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   min-height: 100vh;
 }
 
-/* ⭐ Background para área administrativa */
+/* Background para área administrativa */
 body.admin-area {
   background: #f5f7fa;
   overflow: hidden;
@@ -131,7 +131,7 @@ code {
    HEADER RESPONSIVO (apenas páginas públicas)
    ============================== */
 
-/* ⭐ Header APENAS para páginas públicas */
+/* Header APENAS para páginas públicas */
 body:not(.admin-area) header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
@@ -171,7 +171,7 @@ body:not(.admin-area) header p {
    MAIN CONTENT (apenas páginas públicas)
    ============================== */
 
-/* ⭐ Main APENAS para páginas públicas */
+/* Main APENAS para páginas públicas */
 body:not(.admin-area) main {
   flex: 1;
   display: flex;

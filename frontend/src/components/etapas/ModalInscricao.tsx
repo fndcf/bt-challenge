@@ -666,11 +666,11 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const getNivelLabel = (nivel: NivelJogador) => {
     switch (nivel) {
       case NivelJogador.INICIANTE:
-        return "🌱 Iniciante";
+        return "Iniciante";
       case NivelJogador.INTERMEDIARIO:
-        return "⚡ Intermediário";
+        return "Intermediário";
       case NivelJogador.AVANCADO:
-        return "🔥 Avançado";
+        return "Avançado";
       default:
         return nivel;
     }
@@ -679,9 +679,9 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const getGeneroLabel = (genero: GeneroJogador) => {
     switch (genero) {
       case GeneroJogador.MASCULINO:
-        return "♂️ Masculino"; // ✅ ADICIONAR
+        return "Masculino"; // ✅ ADICIONAR
       case GeneroJogador.FEMININO:
-        return "♀️ Feminino"; // ✅ ADICIONAR
+        return "Feminino"; // ✅ ADICIONAR
       default:
         return genero;
     }
@@ -724,7 +724,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
           </InfoRow>
 
           <WarningBox>
-            ⚠️ <strong>Atenção:</strong> Apenas jogadores{" "}
+            <strong>Atenção:</strong> Apenas jogadores{" "}
             <strong>{etapaNivel}</strong> que ainda não estão inscritos aparecem
             na lista
           </WarningBox>
@@ -742,7 +742,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
               $active={mostrarFormulario}
               onClick={() => setMostrarFormulario(true)}
             >
-              + Cadastrar Novo
+              Cadastrar Novo
             </Tab>
           </TabsRow>
         </TabsContainer>
@@ -753,7 +753,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="🔍 Buscar jogador por nome ou email..."
+              placeholder="Buscar jogador por nome ou email..."
             />
           </SearchContainer>
         )}
@@ -842,7 +842,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                   onClick={handleCadastrarJogador}
                   disabled={loading || !novoJogador.nome.trim()}
                 >
-                  {loading ? "Cadastrando..." : "✓ Cadastrar Jogador"}
+                  {loading ? "Cadastrando..." : " Cadastrar Jogador"}
                 </Button>
               </FormFields>
             </FormContainer>
@@ -859,12 +859,12 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                   : jogadores.length === 0
                   ? "Nenhum jogador cadastrado neste nível"
                   : jogadoresDisponiveis.length === 0
-                  ? "✅ Todos os jogadores deste nível já estão inscritos!"
+                  ? "Todos os jogadores deste nível já estão inscritos!"
                   : "Nenhum jogador disponível"}
               </EmptyText>
               {!busca && jogadores.length === 0 && (
                 <EmptyLink onClick={() => setMostrarFormulario(true)}>
-                  + Cadastrar primeiro jogador
+                  Cadastrar primeiro jogador
                 </EmptyLink>
               )}
               {jogadoresDisponiveis.length === 0 && jogadores.length > 0 && (

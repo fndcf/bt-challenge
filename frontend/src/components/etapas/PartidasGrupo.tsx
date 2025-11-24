@@ -313,11 +313,11 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
 
   const getStatusLabel = (status: StatusPartida): string => {
     const labels = {
-      [StatusPartida.AGENDADA]: "⏳ Aguardando",
-      [StatusPartida.EM_ANDAMENTO]: "▶️ Em andamento",
-      [StatusPartida.FINALIZADA]: "✅ Finalizada",
-      [StatusPartida.CANCELADA]: "❌ Cancelada",
-      [StatusPartida.WO]: "⚠️ W.O.",
+      [StatusPartida.AGENDADA]: "Aguardando",
+      [StatusPartida.EM_ANDAMENTO]: "Em andamento",
+      [StatusPartida.FINALIZADA]: "Finalizada",
+      [StatusPartida.CANCELADA]: "Cancelada",
+      [StatusPartida.WO]: "W.O.",
     };
     return labels[status] || status;
   };
@@ -345,7 +345,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
   return (
     <Container>
       <Header>
-        <Title>🎾 Partidas - {grupoNome}</Title>
+        <Title>Partidas - {grupoNome}</Title>
         <Counter>
           {partidasFinalizadas} / {partidas.length} finalizadas
         </Counter>
@@ -407,7 +407,6 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
                   $variant="register"
                   onClick={() => setPartidaSelecionada(partida)}
                 >
-                  <span>📝</span>
                   <span>Registrar Resultado</span>
                 </ActionButton>
               </ActionSection>
@@ -421,16 +420,15 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
                   disabled={eliminatoriaExiste}
                   title={
                     eliminatoriaExiste
-                      ? "⚠️ Não é possível editar após gerar a eliminatória. Cancele a eliminatória primeiro."
+                      ? "Não é possível editar após gerar a eliminatória. Cancele a eliminatória primeiro."
                       : "Editar resultado desta partida"
                   }
                 >
-                  <span>{eliminatoriaExiste ? "🔒" : "✏️"}</span>
                   <span>Editar Resultado</span>
                 </ActionButton>
                 {eliminatoriaExiste && (
                   <WarningText>
-                    ⚠️ Para editar, cancele a eliminatória primeiro
+                    Para editar, cancele a eliminatória primeiro
                   </WarningText>
                 )}
               </ActionSection>

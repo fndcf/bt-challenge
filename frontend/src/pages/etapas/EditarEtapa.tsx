@@ -5,6 +5,7 @@ import { Etapa, AtualizarEtapaDTO } from "../../types/etapa";
 import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 import { format } from "date-fns";
+import Footer from "@/components/Footer";
 
 // ============== ANIMATIONS ==============
 
@@ -473,16 +474,14 @@ export const EditarEtapa: React.FC = () => {
 
       {chavesGeradas && (
         <Alert $variant="red">
-          <p>
-            ⚠️ Esta etapa não pode ser editada pois as chaves já foram geradas
-          </p>
+          <p>Esta etapa não pode ser editada pois as chaves já foram geradas</p>
         </Alert>
       )}
 
       {temInscritos && !chavesGeradas && (
         <Alert $variant="yellow">
           <p>
-            ⚠️ Esta etapa já possui inscritos. Algumas alterações são restritas:
+            Esta etapa já possui inscritos. Algumas alterações são restritas:
           </p>
           <ul>
             <li>Não é possível alterar o nível</li>
@@ -541,7 +540,7 @@ export const EditarEtapa: React.FC = () => {
             </Select>
             {temInscritos && (
               <HelperText $variant="warning">
-                ⚠️ Não é possível alterar o gênero pois já existem jogadores
+                Não é possível alterar o gênero pois já existem jogadores
                 inscritos
               </HelperText>
             )}
@@ -559,15 +558,13 @@ export const EditarEtapa: React.FC = () => {
                 handleChange("nivel", e.target.value as NivelJogador)
               }
             >
-              <option value={NivelJogador.INICIANTE}>🌱 Iniciante</option>
-              <option value={NivelJogador.INTERMEDIARIO}>
-                ⚡ Intermediário
-              </option>
-              <option value={NivelJogador.AVANCADO}>🔥 Avançado</option>
+              <option value={NivelJogador.INICIANTE}>Iniciante</option>
+              <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
+              <option value={NivelJogador.AVANCADO}>Avançado</option>
             </Select>
             {temInscritos && (
               <HelperText $variant="warning">
-                ⚠️ Não é possível alterar o nível pois já existem jogadores
+                Não é possível alterar o nível pois já existem jogadores
                 inscritos
               </HelperText>
             )}
@@ -672,17 +669,17 @@ export const EditarEtapa: React.FC = () => {
                     minimoReal % 2 === 0 ? minimoReal : minimoReal + 1;
 
                   if (etapa.totalInscritos < 6) {
-                    return `⚠️ Mínimo de 6 (mínimo absoluto) - sempre número par`;
+                    return ` Mínimo de 6 (mínimo absoluto) - sempre número par`;
                   } else if (etapa.totalInscritos % 2 === 0) {
-                    return `⚠️ Mínimo de ${etapa.totalInscritos} (${etapa.totalInscritos} jogadores já inscritos) - sempre número par`;
+                    return ` Mínimo de ${etapa.totalInscritos} (${etapa.totalInscritos} jogadores já inscritos) - sempre número par`;
                   } else {
-                    return `⚠️ Mínimo de ${minimoAjustado} (${etapa.totalInscritos} inscritos + próximo par é ${minimoAjustado}) - sempre número par`;
+                    return ` Mínimo de ${minimoAjustado} (${etapa.totalInscritos} inscritos + próximo par é ${minimoAjustado}) - sempre número par`;
                   }
                 })()}
               </HelperText>
             ) : (
               <HelperText $variant="info">
-                💡 Use números pares (mínimo 6, máximo 64)
+                Use números pares (mínimo 6, máximo 64)
               </HelperText>
             )}
           </Field>
@@ -706,6 +703,7 @@ export const EditarEtapa: React.FC = () => {
           </Button>
         </ButtonsRow>
       </Form>
+      <Footer></Footer>
     </Container>
   );
 };

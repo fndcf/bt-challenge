@@ -224,15 +224,6 @@ const EmptyStateContent = styled.div`
   text-align: center;
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-
-  @media (min-width: 768px) {
-    font-size: 4rem;
-  }
-`;
-
 const EmptyTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
@@ -699,11 +690,6 @@ const ChampionContent = styled.div`
   text-align: center;
 `;
 
-const ChampionIcon = styled.div`
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-`;
-
 const ChampionName = styled.div`
   font-size: 1.125rem;
   font-weight: 700;
@@ -813,7 +799,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       setLoading(true);
       await chaveService.gerarFaseEliminatoria(etapaId, 2);
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("✅ Fase eliminatória gerada com sucesso!");
+      alert(" Fase eliminatória gerada com sucesso!");
       await carregarConfrontos();
     } catch (err: any) {
       alert(`❌ Erro: ${err.message}`);
@@ -825,7 +811,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   const cancelarEliminatoria = async () => {
     if (
       !confirm(
-        "⚠️ ATENÇÃO!\n\n" +
+        " ATENÇÃO!\n\n" +
           "Cancelar a fase eliminatória irá:\n" +
           "• Excluir TODOS os confrontos eliminatórios\n" +
           "• Excluir TODAS as partidas da eliminatória\n" +
@@ -842,7 +828,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       setLoading(true);
       await chaveService.cancelarFaseEliminatoria(etapaId);
       alert(
-        "✅ Fase eliminatória cancelada!\n\n" +
+        " Fase eliminatória cancelada!\n\n" +
           "Você pode agora:\n" +
           "• Ajustar resultados da fase de grupos\n" +
           "• Gerar a eliminatória novamente"
@@ -858,7 +844,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   const encerrarEtapa = async () => {
     if (
       !confirm(
-        "🏆 Encerrar Etapa?\n\n" +
+        "Encerrar Etapa?\n\n" +
           "Isso irá marcar a etapa como finalizada.\n" +
           "O campeão foi definido!\n\n" +
           "Deseja continuar?"
@@ -870,7 +856,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     try {
       setLoading(true);
       await etapaService.encerrarEtapa(etapaId);
-      alert("✅ Etapa encerrada com sucesso! 🏆");
+      alert("Etapa encerrada com sucesso! ");
       window.location.reload();
     } catch (err: any) {
       alert(`❌ Erro: ${err.message}`);
@@ -891,9 +877,9 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
 
   const getStatusBadge = (status: StatusConfrontoEliminatorio) => {
     const labels = {
-      [StatusConfrontoEliminatorio.BYE]: "🎖️ BYE",
-      [StatusConfrontoEliminatorio.AGENDADA]: "⏳ Aguardando",
-      [StatusConfrontoEliminatorio.FINALIZADA]: "✅ Finalizada",
+      [StatusConfrontoEliminatorio.BYE]: " BYE",
+      [StatusConfrontoEliminatorio.AGENDADA]: " Aguardando",
+      [StatusConfrontoEliminatorio.FINALIZADA]: " Finalizada",
     };
     return <StatusBadge $status={status}>{labels[status]}</StatusBadge>;
   };
@@ -949,13 +935,11 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
     return (
       <EmptyStateCard>
         <EmptyStateContent>
-          <EmptyIcon>🏆</EmptyIcon>
           <EmptyTitle>Fase Eliminatória</EmptyTitle>
 
           {isGrupoUnico ? (
             <>
               <AlertBox $variant="success">
-                <EmptyIcon>🏆</EmptyIcon>
                 <h4>Grupo Único - Sistema Round-Robin</h4>
                 <p>
                   Com apenas 1 grupo, todos os jogadores já se enfrentaram no
@@ -967,7 +951,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                   </InfoText>
                   <InfoText>
                     O <strong>1º colocado</strong> do grupo é automaticamente o{" "}
-                    <strong>CAMPEÃO</strong>! 🥇
+                    <strong>CAMPEÃO</strong>!
                   </InfoText>
                 </InfoBox>
               </AlertBox>
@@ -978,7 +962,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                   {/* ✅ Se etapa já finalizada */}
                   {etapaFinalizada ? (
                     <AlertBox $variant="success">
-                      <h4>🏆 Etapa Finalizada!</h4>
+                      <h4>Etapa Finalizada!</h4>
                       <p>
                         Esta etapa já foi encerrada. O campeão foi definido e os
                         pontos foram atribuídos.
@@ -988,7 +972,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                     /* ✅ Se grupo completo mas etapa não finalizada */
                     <>
                       <AlertBox $variant="warning">
-                        <h4>✅ Grupo Completo!</h4>
+                        <h4>Grupo Completo!</h4>
                         <p>
                           Todas as partidas foram finalizadas. O campeão está
                           definido!
@@ -1007,7 +991,6 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                           onClick={encerrarEtapa}
                           disabled={loading}
                         >
-                          <span>🏁</span>
                           <span>Encerrar Etapa e Atribuir Pontos</span>
                         </Button>
                       </ButtonGroup>
@@ -1018,7 +1001,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                 /* ✅ Grupo ainda não completo */
                 <AlertBox $variant="warning">
                   <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-                    ⏳ Finalize todas as partidas do grupo primeiro
+                    Finalize todas as partidas do grupo primeiro
                   </p>
                   <p style={{ fontSize: "0.875rem", margin: 0 }}>
                     Ainda há {partidasPendentes} partida(s) pendente(s).
@@ -1029,7 +1012,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
               )}
 
               <HintText>
-                💡 Para ter fase eliminatória, configure a etapa com 2 ou mais
+                Para ter fase eliminatória, configure a etapa com 2 ou mais
                 grupos
               </HintText>
             </>
@@ -1037,7 +1020,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
             <>
               <AlertBox $variant="warning">
                 <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-                  ⚠️ Finalize todas as partidas da fase de grupos primeiro
+                  Finalize todas as partidas da fase de grupos primeiro
                 </p>
                 <p style={{ fontSize: "0.875rem", margin: 0 }}>
                   Ainda há {partidasPendentes} partida(s) pendente(s) nos
@@ -1046,7 +1029,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                   Complete todos os jogos para gerar a fase eliminatória.
                 </p>
               </AlertBox>
-              <Button disabled>🔒 Gerar Fase Eliminatória</Button>
+              <Button disabled>Gerar Fase Eliminatória</Button>
             </>
           ) : (
             <>
@@ -1056,14 +1039,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
               </p>
               <ButtonGroup>
                 <Button onClick={gerarEliminatoria} disabled={loading}>
-                  🚀 Gerar Fase Eliminatória
-                </Button>
-                <Button
-                  $variant="gray"
-                  onClick={carregarConfrontos}
-                  disabled={loading}
-                >
-                  🔄 Recarregar
+                  Gerar Fase Eliminatória
                 </Button>
               </ButtonGroup>
             </>
@@ -1086,40 +1062,34 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       </Header>
 
       <ActionsRow>
-        {!finalFinalizada && (
-          <Button
-            $variant="danger"
-            onClick={cancelarEliminatoria}
-            disabled={loading}
-          >
-            <span>🗑️</span>
-            <span>Cancelar Eliminatória</span>
-          </Button>
-        )}
-
+        <Button
+          $variant="danger"
+          onClick={cancelarEliminatoria}
+          disabled={loading || etapaFinalizada}
+        >
+          <span>Cancelar Eliminatória</span>
+        </Button>
         {/* ✅ ATUALIZADO: Botão com estados */}
         {finalFinalizada && (
           <>
+            <Button
+              $variant="warning"
+              onClick={encerrarEtapa}
+              disabled={loading || etapaFinalizada}
+            >
+              <span>
+                {etapaFinalizada ? "Etapa Encerrada " : "Encerrar Etapa "}
+              </span>
+            </Button>
             {etapaFinalizada && (
               <AlertBox $variant="success">
-                <h4>🏆 Etapa Finalizada!</h4>
+                <h4>Etapa Finalizada!</h4>
                 <p>
                   Esta etapa já foi encerrada. O campeão foi definido e os
                   pontos foram atribuídos.
                 </p>
               </AlertBox>
             )}
-
-            <Button
-              $variant="warning"
-              onClick={encerrarEtapa}
-              disabled={loading || etapaFinalizada}
-            >
-              <span>🏁</span>
-              <span>
-                {etapaFinalizada ? "Etapa Encerrada ✅" : "Encerrar Etapa 🏆"}
-              </span>
-            </Button>
           </>
         )}
       </ActionsRow>
@@ -1130,13 +1100,13 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
             $active={visualizacao === "lista"}
             onClick={() => setVisualizacao("lista")}
           >
-            📋 Lista
+            Lista
           </ToggleButton>
           <ToggleButton
             $active={visualizacao === "bracket"}
             onClick={() => setVisualizacao("bracket")}
           >
-            🌳 Bracket
+            Bracket
           </ToggleButton>
         </ToggleGroup>
 
@@ -1151,10 +1121,6 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
             </option>
           ))}
         </Select>
-
-        <Button $variant="gray" onClick={carregarConfrontos} disabled={loading}>
-          🔄 Atualizar
-        </Button>
       </Controls>
 
       {erro && <ErrorBox>❌ {erro}</ErrorBox>}
@@ -1212,7 +1178,7 @@ const VisualizacaoLista: React.FC<{
       {fasesComConfrontos.map(([fase, confrontos]) => (
         <FaseCard key={fase}>
           <FaseHeader>
-            <FaseTitle>📍 {getNomeFase(fase as TipoFase)}</FaseTitle>
+            <FaseTitle>{getNomeFase(fase as TipoFase)}</FaseTitle>
             <FaseStatus>{contarStatus(confrontos)} completos</FaseStatus>
           </FaseHeader>
 
@@ -1232,7 +1198,7 @@ const VisualizacaoLista: React.FC<{
                   <ByeBox>
                     <ByeTeam>{confronto.dupla1Nome}</ByeTeam>
                     <ByeOrigin>({confronto.dupla1Origem})</ByeOrigin>
-                    <ByeLabel>🎖️ Classificado automaticamente (BYE)</ByeLabel>
+                    <ByeLabel>Classificado automaticamente (BYE)</ByeLabel>
                   </ByeBox>
                 ) : (
                   <>
@@ -1291,7 +1257,7 @@ const VisualizacaoLista: React.FC<{
                       StatusConfrontoEliminatorio.FINALIZADA && (
                       <PlacarDetalhado>
                         <PlacarInfo>
-                          <span>🏆 Vencedor:</span>
+                          <span>Vencedor:</span>
                           <span style={{ fontWeight: 700, color: "#16a34a" }}>
                             {confronto.vencedoraNome}
                           </span>
@@ -1319,7 +1285,6 @@ const VisualizacaoLista: React.FC<{
                           $variant="edit"
                           onClick={() => setConfrontoSelecionado(confronto)}
                         >
-                          <span>✏️</span>
                           <span>Editar Resultado</span>
                         </ActionButton>
                       </ActionSection>
@@ -1434,10 +1399,9 @@ const VisualizacaoBracket: React.FC<{
           confrontosPorFase[TipoFase.FINAL][0].status ===
             StatusConfrontoEliminatorio.FINALIZADA && (
             <ChampionBox>
-              <ChampionTitle>🏆 CAMPEÃO</ChampionTitle>
+              <ChampionTitle>CAMPEÃO</ChampionTitle>
               <ChampionCard>
                 <ChampionContent>
-                  <ChampionIcon>🏆</ChampionIcon>
                   <ChampionName>
                     {confrontosPorFase[TipoFase.FINAL][0].vencedoraNome}
                   </ChampionName>

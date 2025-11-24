@@ -427,7 +427,7 @@ const Login: React.FC = () => {
     <PageContainer>
       <LoginContainer>
         <Header>
-          <Logo>🎾 Challenge BT</Logo>
+          <Logo>Challenge BT</Logo>
           <HeaderText>
             Faça login para acessar o painel administrativo
           </HeaderText>

@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -115,6 +116,7 @@ const Unauthorized: React.FC = () => {
         </Description>
         <HomeButton to="/">Voltar para o Início</HomeButton>
       </ErrorContent>
+      <Footer></Footer>
     </PageContainer>
   );
 };

@@ -67,11 +67,6 @@ const Badge = styled.span<{ $status: StatusEtapa }>`
   }}
 `;
 
-const Icon = styled.span`
-  font-size: 0.875rem;
-  line-height: 1;
-`;
-
 // ============== COMPONENTE ==============
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -83,37 +78,30 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       case StatusEtapa.INSCRICOES_ABERTAS:
         return {
           label: "Inscrições Abertas",
-          icon: "📝",
         };
       case StatusEtapa.INSCRICOES_ENCERRADAS:
         return {
           label: "Inscrições Encerradas",
-          icon: "🔒",
         };
       case StatusEtapa.CHAVES_GERADAS:
         return {
           label: "Chaves Geradas",
-          icon: "🎯",
         };
       case StatusEtapa.EM_ANDAMENTO:
         return {
           label: "Em Andamento",
-          icon: "🎾",
         };
       case StatusEtapa.FINALIZADA:
         return {
           label: "Finalizada",
-          icon: "🏆",
         };
       case StatusEtapa.CANCELADA:
         return {
           label: "Cancelada",
-          icon: "❌",
         };
       default:
         return {
           label: status,
-          icon: "❓",
         };
     }
   };
@@ -122,7 +110,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <Badge $status={status} className={className}>
-      <Icon>{config.icon}</Icon>
       {config.label}
     </Badge>
   );

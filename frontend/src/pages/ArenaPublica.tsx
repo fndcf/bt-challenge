@@ -13,6 +13,7 @@ import { Arena } from "../types";
 import RankingList from "../components/RankingList";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -321,15 +322,6 @@ const EmptyState = styled.div`
   }
 `;
 
-const EmptyIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
-
-  @media (min-width: 768px) {
-    font-size: 5rem;
-  }
-`;
-
 const EmptyTitle = styled.h3`
   font-size: 1.5rem;
   font-weight: 700;
@@ -433,25 +425,6 @@ const BackButton = styled(Link)`
 
   &:hover {
     background: #1d4ed8;
-  }
-`;
-
-const Footer = styled.footer`
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  margin-top: 4rem;
-  padding: 2rem 1rem;
-  text-align: center;
-  color: white;
-
-  p {
-    margin: 0;
-    font-size: 0.875rem;
-    opacity: 0.9;
-
-    @media (min-width: 768px) {
-      font-size: 1rem;
-    }
   }
 `;
 
@@ -565,7 +538,7 @@ const ArenaPublica: React.FC = () => {
       <Header>
         <HeaderContent>
           <ArenaInfo>
-            <h1>🎾 {arena.nome}</h1>
+            <h1>{arena.nome}</h1>
             <p>Torneios e Desafios de Beach Tennis</p>
           </ArenaInfo>
           <LoginButton to="/login">Área do Admin</LoginButton>
@@ -581,11 +554,10 @@ const ArenaPublica: React.FC = () => {
           </WelcomeText>
         </WelcomeCard>
 
-        <SectionTitle>🏆 Etapas e Torneios</SectionTitle>
+        <SectionTitle>Etapas e Torneios</SectionTitle>
 
         {etapas.length === 0 ? (
           <EmptyState>
-            <EmptyIcon>📅</EmptyIcon>
             <EmptyTitle>Nenhuma Etapa Disponível</EmptyTitle>
             <EmptyText>
               Não há etapas cadastradas no momento. Fique atento para novos
@@ -607,38 +579,31 @@ const ArenaPublica: React.FC = () => {
 
                 <EtapaInfo>
                   <InfoItem>
-                    📅 <strong>Data:</strong>{" "}
-                    {formatarData(etapa.dataRealizacao)}
+                    <strong>Data:</strong> {formatarData(etapa.dataRealizacao)}
                   </InfoItem>
 
                   {/* ✅ NOVO: Nível */}
                   {etapa.nivel && (
                     <InfoItem>
-                      🎯 <strong>Nível:</strong>{" "}
-                      {etapa.nivel === "iniciante" && "🌱 Iniciante"}
-                      {etapa.nivel === "intermediario" && "⚡ Intermediário"}
-                      {etapa.nivel === "avancado" && "🔥 Avançado"}
+                      <strong>Nível:</strong> {etapa.nivel}
                     </InfoItem>
                   )}
 
                   {/* ✅ NOVO: Gênero */}
                   {etapa.genero && (
                     <InfoItem>
-                      👤 <strong>Gênero:</strong>{" "}
-                      {etapa.genero === "masculino"
-                        ? "♂️ Masculino"
-                        : "♀️ Feminino"}
+                      <strong>Gênero:</strong> {etapa.genero}
                     </InfoItem>
                   )}
 
                   {etapa.totalJogadores !== undefined && (
                     <InfoItem>
-                      👥 <strong>Jogadores:</strong> {etapa.totalJogadores}
+                      <strong>Jogadores:</strong> {etapa.totalJogadores}
                     </InfoItem>
                   )}
 
                   <InfoItem>
-                    🎾 <strong>Formato:</strong> {etapa.formato}
+                    <strong>Formato:</strong> {etapa.formato}
                   </InfoItem>
                 </EtapaInfo>
 
@@ -655,7 +620,7 @@ const ArenaPublica: React.FC = () => {
         )}
 
         {/* ✨ RANKING - Usando componente RankingList */}
-        <SectionTitle>🏅 Ranking Completo</SectionTitle>
+        <SectionTitle>Ranking Completo</SectionTitle>
         <RankingList
           arenaSlug={slug}
           limitPorNivel={10} // Ignorado quando showPagination=true
@@ -664,11 +629,7 @@ const ArenaPublica: React.FC = () => {
         />
       </Container>
 
-      <Footer>
-        <p>
-          © {new Date().getFullYear()} {arena.nome} - Powered by Challenge BT
-        </p>
-      </Footer>
+      <Footer></Footer>
     </PageContainer>
   );
 };

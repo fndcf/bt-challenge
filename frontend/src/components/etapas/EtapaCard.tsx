@@ -74,11 +74,6 @@ const InfoItem = styled.div`
   gap: 0.75rem;
 `;
 
-const IconWrapper = styled.span`
-  font-size: 1.5rem;
-  flex-shrink: 0;
-`;
-
 const InfoContent = styled.div`
   flex: 1;
   min-width: 0;
@@ -231,30 +226,6 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
     return Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100);
   };
 
-  const getNivelIcon = (nivel: NivelJogador) => {
-    switch (nivel) {
-      case NivelJogador.INICIANTE:
-        return "🌱";
-      case NivelJogador.INTERMEDIARIO:
-        return "⚡";
-      case NivelJogador.AVANCADO:
-        return "🔥";
-      default:
-        return "🎯";
-    }
-  };
-
-  const getGeneroIcon = (genero: GeneroJogador) => {
-    switch (genero) {
-      case GeneroJogador.MASCULINO:
-        return "♂️";
-      case GeneroJogador.FEMININO:
-        return "♀️";
-      default:
-        return "👤";
-    }
-  };
-
   const getNivelLabel = (nivel: NivelJogador) => {
     switch (nivel) {
       case NivelJogador.INICIANTE:
@@ -296,7 +267,6 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
       <InfoSection>
         {/* Data */}
         <InfoItem>
-          <IconWrapper>📅</IconWrapper>
           <InfoContent>
             <InfoLabel>Realização</InfoLabel>
             <InfoValue>{formatarData(etapa.dataRealizacao)}</InfoValue>
@@ -305,7 +275,6 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
 
         {/* Nível */}
         <InfoItem>
-          <IconWrapper>{getNivelIcon(etapa.nivel)}</IconWrapper>
           <InfoContent>
             <InfoLabel>Nível</InfoLabel>
             <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
@@ -314,7 +283,6 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
 
         {/* Gênero */}
         <InfoItem>
-          <IconWrapper>{getGeneroIcon(etapa.genero)}</IconWrapper>
           <InfoContent>
             <InfoLabel>Gênero</InfoLabel>
             <InfoValue>{getGeneroLabel(etapa.genero)}</InfoValue>
@@ -324,7 +292,6 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
         {/* Local */}
         {etapa.local && (
           <InfoItem>
-            <IconWrapper>📍</IconWrapper>
             <InfoContent>
               <InfoLabel>Local</InfoLabel>
               <InfoValue>{etapa.local}</InfoValue>
@@ -334,7 +301,6 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
 
         {/* Inscrições */}
         <InfoItem>
-          <IconWrapper>👥</IconWrapper>
           <InscricoesContainer>
             <InscricoesHeader>
               <InfoLabel>Inscritos</InfoLabel>
@@ -354,18 +320,20 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
         <FooterInfo>
           {etapa.qtdGrupos && (
             <FooterItem>
-              <span>🎯</span>
               <span>{etapa.qtdGrupos} grupos</span>
             </FooterItem>
           )}
           <FooterItem>
-            <span>👤</span>
             <span>{etapa.jogadoresPorGrupo} duplas/grupo</span>
           </FooterItem>
         </FooterInfo>
 
         {/* Actions baseado no status */}
-        {etapa.status === StatusEtapa.INSCRICOES_ABERTAS && (
+        {[
+          StatusEtapa.INSCRICOES_ABERTAS,
+          StatusEtapa.FINALIZADA,
+          StatusEtapa.INSCRICOES_ENCERRADAS,
+        ].includes(etapa.status) && (
           <ActionButton
             onClick={(e) => {
               e.stopPropagation();
@@ -389,8 +357,14 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
         )}
 
         {etapa.status === StatusEtapa.FINALIZADA && (
-          <ActionButton $variant="gray" as="div">
-            <span>🏆</span>
+          <ActionButton
+            $variant="gray"
+            as="div"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/admin/etapas/${etapa.id}`);
+            }}
+          >
             <span>Concluída</span>
           </ActionButton>
         )}
