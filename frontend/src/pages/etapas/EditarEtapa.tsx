@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
-import { Etapa, AtualizarEtapaDTO } from "../../types/etapa";
+import {
+  Etapa,
+  AtualizarEtapaDTO,
+  FormatoEtapa,
+  StatusEtapa,
+} from "../../types/etapa";
+import { TipoChaveamentoReiDaPraia } from "../../types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 import { format } from "date-fns";
@@ -95,23 +101,33 @@ const Subtitle = styled.p`
   font-size: 0.9375rem;
 `;
 
-const Alert = styled.div<{ $variant: "red" | "yellow" }>`
+const Alert = styled.div<{ $variant: "red" | "yellow" | "purple" }>`
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
 
-  ${(props) =>
-    props.$variant === "red"
-      ? `
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #991b1b;
-  `
-      : `
-    background: #fefce8;
-    border: 1px solid #fef08a;
-    color: #854d0e;
-  `}
+  ${(props) => {
+    switch (props.$variant) {
+      case "red":
+        return `
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+        `;
+      case "yellow":
+        return `
+          background: #fefce8;
+          border: 1px solid #fef08a;
+          color: #854d0e;
+        `;
+      case "purple":
+        return `
+          background: #faf5ff;
+          border: 1px solid #e9d5ff;
+          color: #6b21a8;
+        `;
+    }
+  }}
 
   p {
     margin: 0;
@@ -242,10 +258,19 @@ const Select = styled.select`
   }
 `;
 
-const HelperText = styled.p<{ $variant?: "warning" | "info" }>`
+const HelperText = styled.p<{ $variant?: "warning" | "info" | "purple" }>`
   font-size: 0.75rem;
   margin: 0.25rem 0 0 0;
-  color: ${(props) => (props.$variant === "warning" ? "#b45309" : "#6b7280")};
+  color: ${(props) => {
+    switch (props.$variant) {
+      case "warning":
+        return "#b45309";
+      case "purple":
+        return "#7c3aed";
+      default:
+        return "#6b7280";
+    }
+  }};
 `;
 
 const GridContainer = styled.div`
@@ -256,6 +281,53 @@ const GridContainer = styled.div`
   @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
   }
+`;
+
+// ✅ NOVO: Grid de 2 colunas
+const GridContainer2 = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+// ✅ NOVO: Card de informação (somente leitura)
+const InfoCard = styled.div<{ $variant?: "purple" | "blue" }>`
+  background: ${(props) =>
+    props.$variant === "purple"
+      ? "linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%)"
+      : "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"};
+  border: 1px solid
+    ${(props) => (props.$variant === "purple" ? "#e9d5ff" : "#bfdbfe")};
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const InfoIcon = styled.span`
+  font-size: 1.5rem;
+`;
+
+const InfoContent = styled.div`
+  flex: 1;
+`;
+
+const InfoLabel = styled.p`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.125rem 0;
+`;
+
+const InfoValue = styled.p<{ $color?: string }>`
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: ${(props) => props.$color || "#111827"};
+  margin: 0;
 `;
 
 const ButtonsRow = styled.div`
@@ -316,6 +388,10 @@ export const EditarEtapa: React.FC = () => {
   const [salvando, setSalvando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const faseEliminatoriaGerada =
+    etapa?.status === StatusEtapa.FASE_ELIMINATORIA ||
+    etapa?.status === StatusEtapa.FINALIZADA;
+
   const [formData, setFormData] = useState<AtualizarEtapaDTO>({
     nome: "",
     descricao: "",
@@ -326,7 +402,11 @@ export const EditarEtapa: React.FC = () => {
     dataRealizacao: "",
     local: "",
     maxJogadores: 16,
+    tipoChaveamento: undefined,
   });
+
+  // ✅ Detectar formato
+  const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
 
   useEffect(() => {
     carregarEtapa();
@@ -361,6 +441,7 @@ export const EditarEtapa: React.FC = () => {
         dataRealizacao: toInputDate(data.dataRealizacao),
         local: data.local || "",
         maxJogadores: data.maxJogadores || 16,
+        tipoChaveamento: data.tipoChaveamento,
       });
     } catch (err: any) {
       console.error("Erro ao carregar etapa:", err);
@@ -377,7 +458,7 @@ export const EditarEtapa: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!id) return;
+    if (!id || !etapa) return;
 
     try {
       setSalvando(true);
@@ -388,17 +469,30 @@ export const EditarEtapa: React.FC = () => {
         return;
       }
 
-      if (formData.maxJogadores < 6) {
-        setError("Número mínimo de jogadores é 6 (3 duplas)");
-        return;
+      // ✅ Validações específicas por formato
+      if (isReiDaPraia) {
+        if (formData.maxJogadores < 8) {
+          setError("Rei da Praia requer mínimo de 8 jogadores");
+          return;
+        }
+
+        if (formData.maxJogadores % 4 !== 0) {
+          setError("Rei da Praia requer número de jogadores múltiplo de 4");
+          return;
+        }
+      } else {
+        if (formData.maxJogadores < 6) {
+          setError("Número mínimo de jogadores é 6 (3 duplas)");
+          return;
+        }
+
+        if (formData.maxJogadores % 2 !== 0) {
+          setError("Número de jogadores deve ser par");
+          return;
+        }
       }
 
-      if (formData.maxJogadores % 2 !== 0) {
-        setError("Número de jogadores deve ser par");
-        return;
-      }
-
-      if (etapa && formData.maxJogadores < etapa.totalInscritos) {
+      if (formData.maxJogadores < etapa.totalInscritos) {
         setError(
           `Não é possível reduzir para ${formData.maxJogadores}. Já existem ${etapa.totalInscritos} jogador(es) inscrito(s).`
         );
@@ -429,6 +523,40 @@ export const EditarEtapa: React.FC = () => {
       setError(err.message || "Erro ao atualizar etapa");
     } finally {
       setSalvando(false);
+    }
+  };
+
+  // ✅ Calcular mínimo de jogadores baseado no formato
+  const calcularMinimoJogadores = () => {
+    if (!etapa) return 6;
+
+    const minimoFormato = isReiDaPraia ? 8 : 6;
+    const minimoInscritos = etapa.totalInscritos;
+    const minimo = Math.max(minimoFormato, minimoInscritos);
+
+    if (isReiDaPraia) {
+      // Arredondar para cima para múltiplo de 4
+      return Math.ceil(minimo / 4) * 4;
+    } else {
+      // Arredondar para cima para número par
+      return minimo % 2 === 0 ? minimo : minimo + 1;
+    }
+  };
+
+  // ✅ Ajustar valor ao perder foco
+  const ajustarValorJogadores = (valor: number) => {
+    const minimo = calcularMinimoJogadores();
+
+    if (valor < minimo) {
+      return minimo;
+    }
+
+    if (isReiDaPraia) {
+      // Arredondar para múltiplo de 4
+      return Math.ceil(valor / 4) * 4;
+    } else {
+      // Arredondar para par
+      return valor % 2 === 0 ? valor : valor + 1;
     }
   };
 
@@ -468,7 +596,7 @@ export const EditarEtapa: React.FC = () => {
           ← Voltar
         </BackButton>
 
-        <Title>Editar Etapa</Title>
+        <Title>{isReiDaPraia ? "👑" : "👥"} Editar Etapa</Title>
         <Subtitle>Atualize as informações da etapa</Subtitle>
       </Header>
 
@@ -484,9 +612,19 @@ export const EditarEtapa: React.FC = () => {
             Esta etapa já possui inscritos. Algumas alterações são restritas:
           </p>
           <ul>
-            <li>Não é possível alterar o nível</li>
+            <li>Não é possível alterar o nível ou gênero</li>
             <li>Não é possível diminuir o número máximo de jogadores</li>
           </ul>
+        </Alert>
+      )}
+
+      {/* ✅ NOVO: Alerta específico para Rei da Praia */}
+      {isReiDaPraia && (
+        <Alert $variant="purple">
+          <p>
+            👑 Esta é uma etapa <strong>Rei da Praia</strong>. O formato e tipo
+            de chaveamento não podem ser alterados após a criação.
+          </p>
         </Alert>
       )}
 
@@ -498,6 +636,62 @@ export const EditarEtapa: React.FC = () => {
         )}
 
         <FieldsContainer>
+          {/* ✅ NOVO: Cards de Formato e Chaveamento (somente leitura) */}
+          <GridContainer2>
+            <InfoCard $variant={isReiDaPraia ? "purple" : "blue"}>
+              <InfoIcon>{isReiDaPraia ? "👑" : "👥"}</InfoIcon>
+              <InfoContent>
+                <InfoLabel>Formato</InfoLabel>
+                <InfoValue $color={isReiDaPraia ? "#7c3aed" : "#2563eb"}>
+                  {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
+                </InfoValue>
+              </InfoContent>
+            </InfoCard>
+
+            {/* Tipo de Chaveamento - Editável até gerar eliminatória */}
+            {isReiDaPraia && (
+              <Field>
+                <Label>
+                  Tipo de Chaveamento <Required>*</Required>
+                </Label>
+                <Select
+                  required
+                  disabled={faseEliminatoriaGerada}
+                  value={formData.tipoChaveamento || ""}
+                  onChange={(e) =>
+                    handleChange(
+                      "tipoChaveamento",
+                      e.target.value as TipoChaveamentoReiDaPraia
+                    )
+                  }
+                >
+                  <option
+                    value={TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES}
+                  >
+                    🏆 Melhores com Melhores
+                  </option>
+                  <option
+                    value={TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING}
+                  >
+                    📊 Pareamento por Ranking
+                  </option>
+                  <option value={TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO}>
+                    🎲 Sorteio Aleatório
+                  </option>
+                </Select>
+                {faseEliminatoriaGerada ? (
+                  <HelperText $variant="warning">
+                    Não é possível alterar após gerar a fase eliminatória
+                  </HelperText>
+                ) : (
+                  <HelperText $variant="purple">
+                    Define como as duplas serão formadas na fase eliminatória
+                  </HelperText>
+                )}
+              </Field>
+            )}
+          </GridContainer2>
+
           <Field>
             <Label>
               Nome da Etapa <Required>*</Required>
@@ -523,52 +717,56 @@ export const EditarEtapa: React.FC = () => {
             />
           </Field>
 
-          <Field>
-            <Label>
-              Gênero da Etapa <Required>*</Required>
-            </Label>
-            <Select
-              required
-              disabled={chavesGeradas || temInscritos}
-              value={formData.genero}
-              onChange={(e) =>
-                handleChange("genero", e.target.value as GeneroJogador)
-              }
-            >
-              <option value={GeneroJogador.MASCULINO}>Masculino</option>
-              <option value={GeneroJogador.FEMININO}>Feminino</option>
-            </Select>
-            {temInscritos && (
-              <HelperText $variant="warning">
-                Não é possível alterar o gênero pois já existem jogadores
-                inscritos
-              </HelperText>
-            )}
-          </Field>
+          <GridContainer2>
+            <Field>
+              <Label>
+                Gênero da Etapa <Required>*</Required>
+              </Label>
+              <Select
+                required
+                disabled={chavesGeradas || temInscritos}
+                value={formData.genero}
+                onChange={(e) =>
+                  handleChange("genero", e.target.value as GeneroJogador)
+                }
+              >
+                <option value={GeneroJogador.MASCULINO}>Masculino</option>
+                <option value={GeneroJogador.FEMININO}>Feminino</option>
+              </Select>
+              {temInscritos && (
+                <HelperText $variant="warning">
+                  Não é possível alterar o gênero pois já existem jogadores
+                  inscritos
+                </HelperText>
+              )}
+            </Field>
 
-          <Field>
-            <Label>
-              Nível da Etapa <Required>*</Required>
-            </Label>
-            <Select
-              required
-              disabled={chavesGeradas || temInscritos}
-              value={formData.nivel}
-              onChange={(e) =>
-                handleChange("nivel", e.target.value as NivelJogador)
-              }
-            >
-              <option value={NivelJogador.INICIANTE}>Iniciante</option>
-              <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
-              <option value={NivelJogador.AVANCADO}>Avançado</option>
-            </Select>
-            {temInscritos && (
-              <HelperText $variant="warning">
-                Não é possível alterar o nível pois já existem jogadores
-                inscritos
-              </HelperText>
-            )}
-          </Field>
+            <Field>
+              <Label>
+                Nível da Etapa <Required>*</Required>
+              </Label>
+              <Select
+                required
+                disabled={chavesGeradas || temInscritos}
+                value={formData.nivel}
+                onChange={(e) =>
+                  handleChange("nivel", e.target.value as NivelJogador)
+                }
+              >
+                <option value={NivelJogador.INICIANTE}>Iniciante</option>
+                <option value={NivelJogador.INTERMEDIARIO}>
+                  Intermediário
+                </option>
+                <option value={NivelJogador.AVANCADO}>Avançado</option>
+              </Select>
+              {temInscritos && (
+                <HelperText $variant="warning">
+                  Não é possível alterar o nível pois já existem jogadores
+                  inscritos
+                </HelperText>
+              )}
+            </Field>
+          </GridContainer2>
 
           <GridContainer>
             <Field>
@@ -629,14 +827,9 @@ export const EditarEtapa: React.FC = () => {
             <Input
               type="number"
               required
-              min={(() => {
-                const minimo = Math.max(
-                  6,
-                  temInscritos ? etapa.totalInscritos : 6
-                );
-                return minimo % 2 === 0 ? minimo : minimo + 1;
-              })()}
+              min={calcularMinimoJogadores()}
               max={64}
+              step={isReiDaPraia ? 4 : 2}
               disabled={chavesGeradas}
               value={formData.maxJogadores || ""}
               onChange={(e) => {
@@ -645,41 +838,32 @@ export const EditarEtapa: React.FC = () => {
                 handleChange("maxJogadores", value);
               }}
               onBlur={(e) => {
-                if (e.target.value === "" || parseInt(e.target.value) < 6) {
-                  const minimo = Math.max(
-                    6,
-                    temInscritos ? etapa.totalInscritos : 6
-                  );
-                  const minimoAjustado = minimo % 2 === 0 ? minimo : minimo + 1;
-                  handleChange("maxJogadores", minimoAjustado);
-                } else {
+                if (e.target.value !== "") {
                   const valor = parseInt(e.target.value);
-                  if (valor % 2 !== 0) {
-                    handleChange("maxJogadores", valor + 1);
-                  }
+                  handleChange("maxJogadores", ajustarValorJogadores(valor));
                 }
               }}
-              placeholder="Ex: 16, 20, 24..."
+              placeholder={
+                isReiDaPraia ? "Ex: 8, 12, 16, 20..." : "Ex: 16, 20, 24..."
+              }
             />
-            {temInscritos ? (
+            {/* ✅ Helper text específico por formato */}
+            {isReiDaPraia ? (
+              <HelperText $variant="purple">
+                {temInscritos
+                  ? `Mínimo de ${calcularMinimoJogadores()} (${
+                      etapa.totalInscritos
+                    } inscritos) - múltiplo de 4`
+                  : "Múltiplo de 4 (mínimo 8, máximo 64)"}
+              </HelperText>
+            ) : temInscritos ? (
               <HelperText $variant="warning">
-                {(() => {
-                  const minimoReal = Math.max(6, etapa.totalInscritos);
-                  const minimoAjustado =
-                    minimoReal % 2 === 0 ? minimoReal : minimoReal + 1;
-
-                  if (etapa.totalInscritos < 6) {
-                    return ` Mínimo de 6 (mínimo absoluto) - sempre número par`;
-                  } else if (etapa.totalInscritos % 2 === 0) {
-                    return ` Mínimo de ${etapa.totalInscritos} (${etapa.totalInscritos} jogadores já inscritos) - sempre número par`;
-                  } else {
-                    return ` Mínimo de ${minimoAjustado} (${etapa.totalInscritos} inscritos + próximo par é ${minimoAjustado}) - sempre número par`;
-                  }
-                })()}
+                Mínimo de {calcularMinimoJogadores()} ({etapa.totalInscritos}{" "}
+                inscritos) - número par
               </HelperText>
             ) : (
               <HelperText $variant="info">
-                Use números pares (mínimo 6, máximo 64)
+                Número par (mínimo 6, máximo 64)
               </HelperText>
             )}
           </Field>
@@ -703,7 +887,7 @@ export const EditarEtapa: React.FC = () => {
           </Button>
         </ButtonsRow>
       </Form>
-      <Footer></Footer>
+      <Footer />
     </Container>
   );
 };

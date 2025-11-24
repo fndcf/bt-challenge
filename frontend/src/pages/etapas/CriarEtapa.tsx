@@ -1,18 +1,19 @@
 /**
- * CriarEtapa - Usando MESMA estrutura do Dashboard
+ * CriarEtapa - VERSÃO ATUALIZADA COM REI DA PRAIA
+ * Suporta criação de etapas nos formatos Dupla Fixa e Rei da Praia
  */
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { CriarEtapaDTO } from "../../types/etapa";
+import { CriarEtapaDTO, FormatoEtapa } from "../../types/etapa";
+import { TipoChaveamentoReiDaPraia } from "../../types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
 import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
 
-// MESMA estrutura do Dashboard - SEM padding-top
 const Container = styled.div`
   width: 100%;
   max-width: 1400px;
@@ -98,10 +99,11 @@ const Form = styled.form`
   gap: 1.5rem;
 `;
 
-const Card = styled.div`
-  background: white;
+const Card = styled.div<{ $variant?: "purple" }>`
+  background: ${(props) => (props.$variant === "purple" ? "#faf5ff" : "white")};
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid
+    ${(props) => (props.$variant === "purple" ? "#e9d5ff" : "#e5e7eb")};
   padding: 1.5rem;
 
   @media (max-width: 768px) {
@@ -109,11 +111,14 @@ const Card = styled.div`
   }
 `;
 
-const CardTitle = styled.h2`
+const CardTitle = styled.h2<{ $variant?: "purple" }>`
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: ${(props) => (props.$variant === "purple" ? "#7c3aed" : "#111827")};
   margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const FieldsContainer = styled.div`
@@ -205,17 +210,19 @@ const GridContainer = styled.div`
   }
 `;
 
-const PreviewCard = styled.div`
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+const PreviewCard = styled.div<{ $variant?: "blue" | "purple" }>`
+  background: ${(props) =>
+    props.$variant === "purple" ? "#f5f3ff" : "#eff6ff"};
+  border: 1px solid
+    ${(props) => (props.$variant === "purple" ? "#c4b5fd" : "#bfdbfe")};
   border-radius: 0.5rem;
   padding: 1rem;
 `;
 
-const PreviewTitle = styled.h3`
+const PreviewTitle = styled.h3<{ $variant?: "blue" | "purple" }>`
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1e40af;
+  color: ${(props) => (props.$variant === "purple" ? "#6d28d9" : "#1e40af")};
   margin: 0 0 0.5rem 0;
 `;
 
@@ -225,12 +232,12 @@ const PreviewContent = styled.div`
   gap: 0.5rem;
 `;
 
-const PreviewRow = styled.div`
+const PreviewRow = styled.div<{ $variant?: "blue" | "purple" }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #1e40af;
+  color: ${(props) => (props.$variant === "purple" ? "#6d28d9" : "#1e40af")};
 
   strong {
     font-weight: 600;
@@ -245,9 +252,9 @@ const PreviewBox = styled.div`
   color: #374151;
 `;
 
-const PreviewNote = styled.p`
+const PreviewNote = styled.p<{ $variant?: "blue" | "purple" }>`
   font-size: 0.75rem;
-  color: #2563eb;
+  color: ${(props) => (props.$variant === "purple" ? "#7c3aed" : "#2563eb")};
   margin: 0;
 `;
 
@@ -301,7 +308,138 @@ const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
   `}
 `;
 
+// ============== Seletor de Formato ==============
+
+const FormatoSelector = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormatoOption = styled.div<{ $selected: boolean; $color: string }>`
+  border: 2px solid ${(props) => (props.$selected ? props.$color : "#e5e7eb")};
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: ${(props) =>
+    props.$selected
+      ? props.$color === "#3b82f6"
+        ? "#eff6ff"
+        : "#f5f3ff"
+      : "white"};
+
+  &:hover {
+    border-color: ${(props) => props.$color};
+  }
+`;
+
+const FormatoHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+`;
+
+const FormatoIcon = styled.span`
+  font-size: 1.5rem;
+`;
+
+const FormatoTitle = styled.h3<{ $selected: boolean }>`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${(props) => (props.$selected ? "#111827" : "#6b7280")};
+  margin: 0;
+`;
+
+const FormatoDescription = styled.p`
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+`;
+
+const FormatoBadge = styled.span<{ $color: string }>`
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: ${(props) => props.$color};
+  background: ${(props) =>
+    props.$color === "#3b82f6" ? "#dbeafe" : "#ede9fe"};
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.5rem;
+`;
+
+// ============== NOVO: Seletor de Tipo de Chaveamento ==============
+
+const ChaveamentoSelector = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const ChaveamentoOption = styled.div<{ $selected: boolean }>`
+  border: 2px solid ${(props) => (props.$selected ? "#7c3aed" : "#e5e7eb")};
+  border-radius: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: ${(props) => (props.$selected ? "#f5f3ff" : "white")};
+
+  &:hover {
+    border-color: #7c3aed;
+    background: #faf5ff;
+  }
+`;
+
+const ChaveamentoHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+`;
+
+const ChaveamentoIcon = styled.span`
+  font-size: 1.25rem;
+`;
+
+const ChaveamentoTitle = styled.h4<{ $selected: boolean }>`
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: ${(props) => (props.$selected ? "#7c3aed" : "#374151")};
+  margin: 0;
+`;
+
+const ChaveamentoDescription = styled.p`
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+  padding-left: 2rem;
+`;
+
+const ChaveamentoExample = styled.div`
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  padding-left: 2rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+  font-family: monospace;
+`;
+
 // ============== COMPONENTE ==============
+
+// Interface estendida para incluir tipoChaveamento
+interface CriarEtapaFormData extends CriarEtapaDTO {
+  tipoChaveamento?: TipoChaveamentoReiDaPraia;
+}
 
 export const CriarEtapa: React.FC = () => {
   const navigate = useNavigate();
@@ -314,11 +452,13 @@ export const CriarEtapa: React.FC = () => {
     dataRealizacao?: string;
   }>({});
 
-  const [formData, setFormData] = useState<CriarEtapaDTO>({
+  const [formData, setFormData] = useState<CriarEtapaFormData>({
     nome: "",
     descricao: "",
     nivel: NivelJogador.INTERMEDIARIO,
     genero: GeneroJogador.MASCULINO,
+    formato: FormatoEtapa.DUPLA_FIXA,
+    tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES, // ✅ NOVO
     dataInicio: "",
     dataFim: "",
     dataRealizacao: "",
@@ -327,17 +467,30 @@ export const CriarEtapa: React.FC = () => {
     jogadoresPorGrupo: 3,
   });
 
-  const calcularDistribuicaoGrupos = () => {
+  // ============== CÁLCULOS DE DISTRIBUIÇÃO ==============
+
+  const calcularDistribuicaoDuplaFixa = () => {
     if (
       !formData.maxJogadores ||
       isNaN(formData.maxJogadores) ||
-      formData.maxJogadores < 6
+      formData.maxJogadores < 4
     ) {
       return {
         qtdGrupos: 0,
         distribuicao: [],
-        descricao: "Informe o número de jogadores (mínimo 6)",
+        descricao: "Informe o número de jogadores (mínimo 4)",
         totalDuplas: 0,
+        valido: false,
+      };
+    }
+
+    if (formData.maxJogadores % 2 !== 0) {
+      return {
+        qtdGrupos: 0,
+        distribuicao: [],
+        descricao: "Número de jogadores deve ser par",
+        totalDuplas: 0,
+        valido: false,
       };
     }
 
@@ -349,6 +502,7 @@ export const CriarEtapa: React.FC = () => {
         distribuicao: [],
         descricao: "Mínimo de 6 jogadores (3 duplas) necessário",
         totalDuplas: 0,
+        valido: false,
       };
     }
 
@@ -358,6 +512,7 @@ export const CriarEtapa: React.FC = () => {
         distribuicao: [5],
         descricao: "Grupo 1: 5 duplas",
         totalDuplas: 5,
+        valido: true,
       };
     }
 
@@ -390,10 +545,63 @@ export const CriarEtapa: React.FC = () => {
       distribuicao,
       descricao: descricaoGrupos,
       totalDuplas,
+      valido: true,
     };
   };
 
-  const infoGrupos = calcularDistribuicaoGrupos();
+  const calcularDistribuicaoReiDaPraia = () => {
+    if (
+      !formData.maxJogadores ||
+      isNaN(formData.maxJogadores) ||
+      formData.maxJogadores < 8
+    ) {
+      return {
+        qtdGrupos: 0,
+        jogadoresPorGrupo: 4,
+        totalJogadores: 0,
+        descricao: "Informe o número de jogadores (mínimo 8)",
+        partidasPorGrupo: 3,
+        valido: false,
+      };
+    }
+
+    if (formData.maxJogadores % 4 !== 0) {
+      return {
+        qtdGrupos: 0,
+        jogadoresPorGrupo: 4,
+        totalJogadores: formData.maxJogadores,
+        descricao: "Número de jogadores deve ser múltiplo de 4",
+        partidasPorGrupo: 3,
+        valido: false,
+      };
+    }
+
+    const qtdGrupos = formData.maxJogadores / 4;
+    const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    const descricaoGrupos = Array.from({ length: qtdGrupos })
+      .map((_, i) => `Grupo ${letras[i]}: 4 jogadores`)
+      .join(" | ");
+
+    return {
+      qtdGrupos,
+      jogadoresPorGrupo: 4,
+      totalJogadores: formData.maxJogadores,
+      descricao: descricaoGrupos,
+      partidasPorGrupo: 3,
+      valido: true,
+    };
+  };
+
+  const infoDuplaFixa = calcularDistribuicaoDuplaFixa();
+  const infoReiDaPraia = calcularDistribuicaoReiDaPraia();
+
+  const infoAtual =
+    formData.formato === FormatoEtapa.REI_DA_PRAIA
+      ? infoReiDaPraia
+      : infoDuplaFixa;
+
+  // ============== VALIDAÇÕES ==============
 
   const validarDatas = () => {
     const erros: typeof errosDatas = {};
@@ -428,6 +636,25 @@ export const CriarEtapa: React.FC = () => {
     }
   }, [formData.dataInicio, formData.dataFim, formData.dataRealizacao]);
 
+  useEffect(() => {
+    if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+      if (formData.maxJogadores < 8) {
+        handleChange("maxJogadores", 8);
+      } else if (formData.maxJogadores % 4 !== 0) {
+        const ajustado = Math.ceil(formData.maxJogadores / 4) * 4;
+        handleChange("maxJogadores", ajustado);
+      }
+    } else {
+      if (formData.maxJogadores < 4) {
+        handleChange("maxJogadores", 6);
+      } else if (formData.maxJogadores % 2 !== 0) {
+        handleChange("maxJogadores", formData.maxJogadores + 1);
+      }
+    }
+  }, [formData.formato]);
+
+  // ============== SUBMIT ==============
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -441,10 +668,28 @@ export const CriarEtapa: React.FC = () => {
         return;
       }
 
-      if (formData.maxJogadores < 6) {
-        setError("Mínimo de 6 jogadores necessário");
-        setLoading(false);
-        return;
+      if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+        if (formData.maxJogadores < 8) {
+          setError("Rei da Praia necessita de no mínimo 8 jogadores");
+          setLoading(false);
+          return;
+        }
+        if (formData.maxJogadores % 4 !== 0) {
+          setError("Rei da Praia: número de jogadores deve ser múltiplo de 4");
+          setLoading(false);
+          return;
+        }
+      } else {
+        if (formData.maxJogadores < 4) {
+          setError("Mínimo de 4 jogadores necessário");
+          setLoading(false);
+          return;
+        }
+        if (formData.maxJogadores % 2 !== 0) {
+          setError("Número de jogadores deve ser par");
+          setLoading(false);
+          return;
+        }
       }
 
       if (formData.nome.length < 3) {
@@ -453,13 +698,18 @@ export const CriarEtapa: React.FC = () => {
         return;
       }
 
-      const totalDuplas = Math.floor(formData.maxJogadores / 2);
+      let jogadoresPorGrupoCalculado = 3;
 
-      const jogadoresPorGrupoCalculado = Math.ceil(
-        totalDuplas / infoGrupos.qtdGrupos
-      );
+      if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+        jogadoresPorGrupoCalculado = 4;
+      } else {
+        const totalDuplas = Math.floor(formData.maxJogadores / 2);
+        jogadoresPorGrupoCalculado = Math.ceil(
+          totalDuplas / infoDuplaFixa.qtdGrupos
+        );
+      }
 
-      const dadosFormatados: CriarEtapaDTO = {
+      const dadosFormatados: any = {
         ...formData,
         dataInicio: formData.dataInicio
           ? new Date(formData.dataInicio + "T00:00:00").toISOString()
@@ -473,6 +723,16 @@ export const CriarEtapa: React.FC = () => {
         jogadoresPorGrupo: jogadoresPorGrupoCalculado,
       };
 
+      // ✅ Incluir tipoChaveamento apenas se for Rei da Praia
+      if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+        dadosFormatados.tipoChaveamento = formData.tipoChaveamento;
+      } else {
+        delete dadosFormatados.tipoChaveamento;
+      }
+
+      console.log("📤 Dados enviados:", dadosFormatados);
+      console.log("📤 Formato:", dadosFormatados.formato);
+
       await etapaService.criar(dadosFormatados);
       navigate("/admin/etapas");
     } catch (err: any) {
@@ -482,9 +742,11 @@ export const CriarEtapa: React.FC = () => {
     }
   };
 
-  const handleChange = (field: keyof CriarEtapaDTO, value: any) => {
+  const handleChange = (field: keyof CriarEtapaFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  // ============== RENDER ==============
 
   return (
     <Container>
@@ -504,6 +766,170 @@ export const CriarEtapa: React.FC = () => {
       )}
 
       <Form onSubmit={handleSubmit}>
+        {/* Card de Formato */}
+        <Card>
+          <CardTitle>Formato do Torneio</CardTitle>
+
+          <FormatoSelector>
+            <FormatoOption
+              $selected={formData.formato === FormatoEtapa.DUPLA_FIXA}
+              $color="#3b82f6"
+              onClick={() => handleChange("formato", FormatoEtapa.DUPLA_FIXA)}
+            >
+              <FormatoHeader>
+                <FormatoIcon>👥</FormatoIcon>
+                <FormatoTitle
+                  $selected={formData.formato === FormatoEtapa.DUPLA_FIXA}
+                >
+                  Dupla Fixa
+                </FormatoTitle>
+              </FormatoHeader>
+              <FormatoDescription>
+                Jogadores formam duplas antes do torneio. As duplas jogam juntas
+                em todas as partidas.
+              </FormatoDescription>
+              <FormatoBadge $color="#3b82f6">Tradicional</FormatoBadge>
+            </FormatoOption>
+
+            <FormatoOption
+              $selected={formData.formato === FormatoEtapa.REI_DA_PRAIA}
+              $color="#7c3aed"
+              onClick={() => handleChange("formato", FormatoEtapa.REI_DA_PRAIA)}
+            >
+              <FormatoHeader>
+                <FormatoIcon>👑</FormatoIcon>
+                <FormatoTitle
+                  $selected={formData.formato === FormatoEtapa.REI_DA_PRAIA}
+                >
+                  Rei da Praia
+                </FormatoTitle>
+              </FormatoHeader>
+              <FormatoDescription>
+                4 jogadores por grupo. Duplas são formadas a cada partida em
+                combinações diferentes.
+              </FormatoDescription>
+              <FormatoBadge $color="#7c3aed">Individual</FormatoBadge>
+            </FormatoOption>
+          </FormatoSelector>
+        </Card>
+
+        {/* ✅ NOVO: Card de Tipo de Chaveamento (apenas Rei da Praia) */}
+        {formData.formato === FormatoEtapa.REI_DA_PRAIA && (
+          <Card $variant="purple">
+            <CardTitle $variant="purple">
+              👑 Chaveamento da Fase Eliminatória
+            </CardTitle>
+            <HelperText style={{ marginBottom: "1rem" }}>
+              Escolha como as duplas serão formadas na fase eliminatória, após a
+              fase de grupos
+            </HelperText>
+
+            <ChaveamentoSelector>
+              {/* Opção 1: Melhores com Melhores */}
+              <ChaveamentoOption
+                $selected={
+                  formData.tipoChaveamento ===
+                  TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+                }
+                onClick={() =>
+                  handleChange(
+                    "tipoChaveamento",
+                    TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+                  )
+                }
+              >
+                <ChaveamentoHeader>
+                  <ChaveamentoIcon>🏆</ChaveamentoIcon>
+                  <ChaveamentoTitle
+                    $selected={
+                      formData.tipoChaveamento ===
+                      TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+                    }
+                  >
+                    Melhores com Melhores
+                  </ChaveamentoTitle>
+                </ChaveamentoHeader>
+                <ChaveamentoDescription>
+                  Os melhores classificados formam dupla entre si, e os piores
+                  entre si. Cria duplas de níveis extremos (muito fortes ou
+                  fracas).
+                </ChaveamentoDescription>
+                <ChaveamentoExample>
+                  Ex: 1º melhor + 2º melhor vs 3º melhor + 4º melhor
+                </ChaveamentoExample>
+              </ChaveamentoOption>
+
+              {/* Opção 2: Pareamento por Ranking */}
+              <ChaveamentoOption
+                $selected={
+                  formData.tipoChaveamento ===
+                  TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+                }
+                onClick={() =>
+                  handleChange(
+                    "tipoChaveamento",
+                    TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+                  )
+                }
+              >
+                <ChaveamentoHeader>
+                  <ChaveamentoIcon>📊</ChaveamentoIcon>
+                  <ChaveamentoTitle
+                    $selected={
+                      formData.tipoChaveamento ===
+                      TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+                    }
+                  >
+                    Pareamento por Ranking
+                  </ChaveamentoTitle>
+                </ChaveamentoHeader>
+                <ChaveamentoDescription>
+                  Cada 1º lugar forma dupla com o 2º lugar correspondente no
+                  ranking. Cria duplas mais equilibradas, valorizando o
+                  desempenho.
+                </ChaveamentoDescription>
+                <ChaveamentoExample>
+                  Ex: 1º melhor 1º lugar + 1º melhor 2º lugar = Seed 1
+                </ChaveamentoExample>
+              </ChaveamentoOption>
+
+              {/* Opção 3: Sorteio Aleatório */}
+              <ChaveamentoOption
+                $selected={
+                  formData.tipoChaveamento ===
+                  TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
+                }
+                onClick={() =>
+                  handleChange(
+                    "tipoChaveamento",
+                    TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
+                  )
+                }
+              >
+                <ChaveamentoHeader>
+                  <ChaveamentoIcon>🎲</ChaveamentoIcon>
+                  <ChaveamentoTitle
+                    $selected={
+                      formData.tipoChaveamento ===
+                      TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
+                    }
+                  >
+                    Sorteio Aleatório
+                  </ChaveamentoTitle>
+                </ChaveamentoHeader>
+                <ChaveamentoDescription>
+                  As duplas são formadas aleatoriamente entre os classificados.
+                  Protege contra jogadores do mesmo grupo formarem dupla.
+                </ChaveamentoDescription>
+                <ChaveamentoExample>
+                  Ex: Sorteio protegido - jogadores do mesmo grupo não podem
+                  formar dupla
+                </ChaveamentoExample>
+              </ChaveamentoOption>
+            </ChaveamentoSelector>
+          </Card>
+        )}
+
         <Card>
           <CardTitle>Informações Básicas</CardTitle>
 
@@ -635,8 +1061,11 @@ export const CriarEtapa: React.FC = () => {
               <Input
                 type="number"
                 required
-                min="6"
+                min={formData.formato === FormatoEtapa.REI_DA_PRAIA ? "8" : "4"}
                 max="64"
+                step={
+                  formData.formato === FormatoEtapa.REI_DA_PRAIA ? "4" : "2"
+                }
                 value={formData.maxJogadores || ""}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -647,44 +1076,109 @@ export const CriarEtapa: React.FC = () => {
                 }}
                 onBlur={(e) => {
                   const valor = parseInt(e.target.value);
-                  if (isNaN(valor) || valor < 6) {
-                    handleChange("maxJogadores", 6);
-                  } else if (valor % 2 !== 0) {
-                    handleChange("maxJogadores", valor + 1);
+
+                  if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+                    if (isNaN(valor) || valor < 8) {
+                      handleChange("maxJogadores", 8);
+                    } else if (valor % 4 !== 0) {
+                      handleChange("maxJogadores", Math.ceil(valor / 4) * 4);
+                    }
+                  } else {
+                    if (isNaN(valor) || valor < 4) {
+                      handleChange("maxJogadores", 6);
+                    } else if (valor % 2 !== 0) {
+                      handleChange("maxJogadores", valor + 1);
+                    }
                   }
                 }}
               />
               <HelperText>
-                Deve ser um número par (mínimo 6, máximo 64)
+                {formData.formato === FormatoEtapa.REI_DA_PRAIA
+                  ? "Deve ser múltiplo de 4 (mínimo 8, máximo 64)"
+                  : "Deve ser um número par (mínimo 4, máximo 64)"}
               </HelperText>
             </Field>
 
-            <PreviewCard>
-              <PreviewTitle>Distribuição Automática de Grupos</PreviewTitle>
+            {/* Preview baseado no formato */}
+            {formData.formato === FormatoEtapa.REI_DA_PRAIA ? (
+              <PreviewCard $variant="purple">
+                <PreviewTitle $variant="purple">
+                  👑 Distribuição Rei da Praia
+                </PreviewTitle>
 
-              {infoGrupos.qtdGrupos > 0 ? (
-                <PreviewContent>
-                  <PreviewRow>
-                    <span>
-                      <strong>{infoGrupos.totalDuplas}</strong> duplas
-                    </span>
-                    <span>→</span>
-                    <span>
-                      <strong>{infoGrupos.qtdGrupos}</strong>{" "}
-                      {infoGrupos.qtdGrupos === 1 ? "grupo" : "grupos"}
-                    </span>
+                {infoReiDaPraia.valido ? (
+                  <PreviewContent>
+                    <PreviewRow $variant="purple">
+                      <span>
+                        <strong>{infoReiDaPraia.totalJogadores}</strong>{" "}
+                        jogadores
+                      </span>
+                      <span>→</span>
+                      <span>
+                        <strong>{infoReiDaPraia.qtdGrupos}</strong>{" "}
+                        {infoReiDaPraia.qtdGrupos === 1 ? "grupo" : "grupos"}
+                      </span>
+                    </PreviewRow>
+
+                    <PreviewBox>{infoReiDaPraia.descricao}</PreviewBox>
+
+                    <PreviewNote $variant="purple">
+                      ✓ Cada grupo tem 4 jogadores e 3 partidas (todas as
+                      combinações)
+                    </PreviewNote>
+                    <PreviewNote $variant="purple">
+                      ✓ Estatísticas individuais calculadas por jogador
+                    </PreviewNote>
+                    <PreviewNote $variant="purple">
+                      ✓ Chaveamento eliminatório:{" "}
+                      {formData.tipoChaveamento ===
+                      TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+                        ? "Melhores com Melhores"
+                        : formData.tipoChaveamento ===
+                          TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+                        ? "Pareamento por Ranking"
+                        : "Sorteio Aleatório"}
+                    </PreviewNote>
+                  </PreviewContent>
+                ) : (
+                  <PreviewRow $variant="purple">
+                    {infoReiDaPraia.descricao}
                   </PreviewRow>
+                )}
+              </PreviewCard>
+            ) : (
+              <PreviewCard $variant="blue">
+                <PreviewTitle $variant="blue">
+                  👥 Distribuição Automática de Grupos
+                </PreviewTitle>
 
-                  <PreviewBox>{infoGrupos.descricao}</PreviewBox>
+                {infoDuplaFixa.valido ? (
+                  <PreviewContent>
+                    <PreviewRow $variant="blue">
+                      <span>
+                        <strong>{infoDuplaFixa.totalDuplas}</strong> duplas
+                      </span>
+                      <span>→</span>
+                      <span>
+                        <strong>{infoDuplaFixa.qtdGrupos}</strong>{" "}
+                        {infoDuplaFixa.qtdGrupos === 1 ? "grupo" : "grupos"}
+                      </span>
+                    </PreviewRow>
 
-                  <PreviewNote>
-                    ✓ Grupos criados automaticamente com 3 duplas cada (mínimo)
-                  </PreviewNote>
-                </PreviewContent>
-              ) : (
-                <PreviewRow>{infoGrupos.descricao}</PreviewRow>
-              )}
-            </PreviewCard>
+                    <PreviewBox>{infoDuplaFixa.descricao}</PreviewBox>
+
+                    <PreviewNote $variant="blue">
+                      ✓ Grupos criados automaticamente com 3 duplas cada
+                      (mínimo)
+                    </PreviewNote>
+                  </PreviewContent>
+                ) : (
+                  <PreviewRow $variant="blue">
+                    {infoDuplaFixa.descricao}
+                  </PreviewRow>
+                )}
+              </PreviewCard>
+            )}
           </FieldsContainer>
         </Card>
 
@@ -700,16 +1194,14 @@ export const CriarEtapa: React.FC = () => {
             type="submit"
             $variant="primary"
             disabled={
-              loading ||
-              infoGrupos.qtdGrupos === 0 ||
-              Object.keys(errosDatas).length > 0
+              loading || !infoAtual.valido || Object.keys(errosDatas).length > 0
             }
           >
             {loading ? "Criando..." : "Criar Etapa"}
           </Button>
         </ButtonsRow>
       </Form>
-      <Footer></Footer>
+      <Footer />
     </Container>
   );
 };

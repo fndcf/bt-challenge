@@ -1,7 +1,7 @@
 import { NivelJogador } from "./jogador";
 
 /**
- * Dupla de jogadores
+ * Dupla de jogadores - VERSÃO ATUALIZADA
  */
 export interface Dupla {
   id: string;
@@ -10,9 +10,11 @@ export interface Dupla {
   jogador1Id: string;
   jogador1Nome: string;
   jogador1Nivel: NivelJogador;
+  jogador1Genero?: string; // ✅ ADICIONADO
   jogador2Id: string;
   jogador2Nome: string;
   jogador2Nivel: NivelJogador;
+  jogador2Genero?: string; // ✅ ADICIONADO
   grupoId: string;
   grupoNome: string;
   jogos: number;
@@ -69,7 +71,7 @@ export enum FaseEtapa {
   GRUPOS = "grupos",
   OITAVAS = "oitavas",
   QUARTAS = "quartas",
-  SEMI = "semi",
+  SEMIFINAL = "semifinal", // ✅ CORRIGIDO (estava "semi")
   FINAL = "final",
   TERCEIRO_LUGAR = "terceiro_lugar",
 }
@@ -92,6 +94,7 @@ export interface Partida {
   id: string;
   etapaId: string;
   arenaId: string;
+  tipo?: "dupla_fixa" | "eliminatoria"; // ✅ ADICIONADO
   fase: FaseEtapa;
   grupoId?: string;
   grupoNome?: string;

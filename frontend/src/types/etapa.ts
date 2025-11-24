@@ -1,13 +1,15 @@
 /**
- * Types para Etapas
+ * Types para Etapas - VERSÃO ATUALIZADA COM REI DA PRAIA
  */
 
+import { ConfrontoEliminatorio } from "./chave";
 import { NivelJogador, GeneroJogador } from "./jogador";
 
 export enum StatusEtapa {
   INSCRICOES_ABERTAS = "inscricoes_abertas",
   INSCRICOES_ENCERRADAS = "inscricoes_encerradas",
   CHAVES_GERADAS = "chaves_geradas",
+  FASE_ELIMINATORIA = "fase_eliminatoria", // ✅ NOVO
   EM_ANDAMENTO = "em_andamento",
   FINALIZADA = "finalizada",
   CANCELADA = "cancelada",
@@ -21,20 +23,35 @@ export enum FaseEtapa {
   FINAL = "final",
 }
 
+// ✅ NOVO: Formato da etapa
+export enum FormatoEtapa {
+  DUPLA_FIXA = "dupla_fixa",
+  REI_DA_PRAIA = "rei_da_praia",
+}
+
+// ✅ NOVO: Tipo de chaveamento para Rei da Praia
+export enum TipoChaveamentoReiDaPraia {
+  MELHORES_COM_MELHORES = "melhores_com_melhores",
+  PAREAMENTO_POR_RANKING = "pareamento_por_ranking",
+  SORTEIO_ALEATORIO = "sorteio_aleatorio",
+}
+
 export interface Etapa {
   id: string;
-  slug?: string; // Opcional por enquanto
+  slug?: string;
   arenaId: string;
   nome: string;
   descricao?: string;
   nivel: NivelJogador;
   genero: GeneroJogador;
+  formato: FormatoEtapa;
+  tipoChaveamento?: TipoChaveamentoReiDaPraia;
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
   local?: string;
   maxJogadores: number;
-  jogadoresPorGrupo: number;
+  jogadoresPorGrupo: number; // Não usado em Rei da Praia (sempre 4)
   qtdGrupos?: number;
   status: StatusEtapa;
   faseAtual: FaseEtapa;
@@ -53,12 +70,14 @@ export interface CriarEtapaDTO {
   descricao?: string;
   nivel: NivelJogador;
   genero: GeneroJogador;
+  formato: FormatoEtapa; // ✅ NOVO
+  tipoChaveamento?: TipoChaveamentoReiDaPraia;
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
   local?: string;
   maxJogadores: number;
-  jogadoresPorGrupo: number;
+  jogadoresPorGrupo?: number; // Opcional porque Rei da Praia não usa
 }
 
 export interface AtualizarEtapaDTO {
@@ -66,6 +85,8 @@ export interface AtualizarEtapaDTO {
   descricao?: string;
   nivel?: NivelJogador;
   genero?: GeneroJogador;
+  formato?: FormatoEtapa; // ✅ NOVO
+  tipoChaveamento?: TipoChaveamentoReiDaPraia;
   dataInicio?: string;
   dataFim?: string;
   dataRealizacao?: string;
@@ -104,9 +125,11 @@ export interface Dupla {
   jogador1Id: string;
   jogador1Nome: string;
   jogador1Nivel: string;
+  jogador1Genero?: string; // ✅ Adicionado
   jogador2Id: string;
   jogador2Nome: string;
   jogador2Nivel: string;
+  jogador2Genero?: string; // ✅ Adicionado
   grupoId: string;
   grupoNome: string;
   jogos: number;
@@ -146,6 +169,7 @@ export interface Partida {
   id: string;
   etapaId: string;
   arenaId: string;
+  tipo?: "dupla_fixa" | "eliminatoria"; // ✅ NOVO
   fase: FaseEtapa;
   grupoId?: string;
   grupoNome?: string;
@@ -158,18 +182,84 @@ export interface Partida {
   status: "agendada" | "em_andamento" | "finalizada" | "cancelada";
   setsDupla1: number;
   setsDupla2: number;
-  placar: string[];
+  placar: any[];
   vencedoraId?: string;
   vencedoraNome?: string;
+  vencedores?: string[]; // ✅ NOVO: Array de IDs dos vencedores (Rei da Praia)
+  vencedoresNomes?: string; // ✅ NOVO: Nomes dos vencedores
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;
+}
+
+// ✅ NOVO: Partida específica do Rei da Praia
+export interface PartidaReiDaPraia {
+  id: string;
+  etapaId: string;
+  arenaId: string;
+  fase: FaseEtapa;
+  grupoId: string;
+  grupoNome: string;
+  // Dupla 1 (formada na hora)
+  jogador1AId: string;
+  jogador1ANome: string;
+  jogador1BId: string;
+  jogador1BNome: string;
+  dupla1Nome: string; // Ex: "João & Maria"
+  // Dupla 2 (formada na hora)
+  jogador2AId: string;
+  jogador2ANome: string;
+  jogador2BId: string;
+  jogador2BNome: string;
+  dupla2Nome: string; // Ex: "Pedro & Ana"
+  status: "agendada" | "em_andamento" | "finalizada" | "cancelada";
+  setsDupla1: number;
+  setsDupla2: number;
+  placar?: Array<{
+    numero: number;
+    gamesDupla1: number;
+    gamesDupla2: number;
+    vencedorId: string;
+  }>;
+  vencedores?: string[]; // IDs dos 2 jogadores vencedores
+  vencedoresNomes?: string; // Ex: "João & Maria"
+  criadoEm: string;
+  atualizadoEm: string;
+  finalizadoEm?: string;
+}
+
+// ✅ NOVO: Estatísticas individuais do jogador na etapa
+export interface EstatisticasJogador {
+  id: string;
+  etapaId: string;
+  arenaId: string;
+  jogadorId: string;
+  jogadorNome: string;
+  jogadorNivel: string;
+  jogadorGenero: string;
+  grupoId?: string;
+  grupoNome?: string;
+  jogos: number;
+  vitorias: number;
+  derrotas: number;
+  pontos: number; // 3 por vitória
+  setsVencidos: number;
+  setsPerdidos: number;
+  saldoSets: number;
+  gamesVencidos: number;
+  gamesPerdidos: number;
+  saldoGames: number;
+  posicaoGrupo?: number;
+  classificado: boolean; // Se passou para eliminatória
+  criadoEm: string;
+  atualizadoEm: string;
 }
 
 export interface FiltrosEtapa {
   status?: StatusEtapa;
   nivel?: NivelJogador;
   genero?: GeneroJogador;
+  formato: FormatoEtapa; // ✅ NOVO
   ordenarPor?: "dataRealizacao" | "criadoEm";
   ordem?: "asc" | "desc";
   limite?: number;
@@ -192,8 +282,24 @@ export interface EstatisticasEtapa {
   totalParticipacoes: number;
 }
 
+// ✅ ATUALIZADO: Resultado da geração de chaves
 export interface ResultadoGeracaoChaves {
-  duplas: Dupla[];
+  duplas?: Dupla[]; // Opcional (só Dupla Fixa)
+  jogadores?: EstatisticasJogador[]; // ✅ NOVO: Só Rei da Praia
   grupos: Grupo[];
-  partidas: Partida[];
+  partidas: Partida[] | PartidaReiDaPraia[]; // Pode ser um ou outro
+}
+
+// ✅ NOVO: Resultado da geração de eliminatória no Rei da Praia
+export interface ResultadoGeracaoEliminatoriaReiDaPraia {
+  duplas: Dupla[]; // Duplas FIXAS formadas a partir dos classificados
+  confrontos: ConfrontoEliminatorio[];
+}
+
+// ✅ NOVO: DTO para gerar eliminatória Rei da Praia
+export interface GerarEliminatoriaReiDaPraiaDTO {
+  etapaId: string;
+  arenaId: string;
+  classificadosPorGrupo: number; // Ex: 2 (top 2 de cada grupo)
+  tipoChaveamento: TipoChaveamentoReiDaPraia;
 }

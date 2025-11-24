@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { Etapa, StatusEtapa } from "../../types/etapa";
+import { Etapa, StatusEtapa, FormatoEtapa } from "../../types/etapa";
+import { TipoChaveamentoReiDaPraia } from "../../types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import { StatusBadge } from "./StatusBadge";
 import { format } from "date-fns";
@@ -61,6 +62,37 @@ const Description = styled.p`
   overflow: hidden;
 `;
 
+// ✅ NOVO: Badges do header
+const HeaderBadges = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+`;
+
+// ✅ NOVO: Badge de formato
+const FormatoBadge = styled.span<{ $formato: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  ${(props) =>
+    props.$formato === "rei_da_praia"
+      ? `
+    background: #ede9fe;
+    color: #7c3aed;
+  `
+      : `
+    background: #dbeafe;
+    color: #2563eb;
+  `}
+`;
+
 const InfoSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -85,10 +117,10 @@ const InfoLabel = styled.p`
   margin: 0 0 0.125rem 0;
 `;
 
-const InfoValue = styled.p`
+const InfoValue = styled.p<{ $color?: string }>`
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  color: ${(props) => props.$color || "#111827"};
   margin: 0;
 
   @media (min-width: 768px) {
@@ -191,10 +223,28 @@ const ActionButton = styled.button<{ $variant?: "blue" | "purple" | "gray" }>`
   }
 `;
 
+// ============== HELPERS ==============
+
+const getChaveamentoLabel = (tipo: TipoChaveamentoReiDaPraia): string => {
+  switch (tipo) {
+    case TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES:
+      return "🏆 Melhores c/ Melhores";
+    case TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING:
+      return "📊 Por Ranking";
+    case TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO:
+      return "🎲 Sorteio";
+    default:
+      return "";
+  }
+};
+
 // ============== COMPONENTE ==============
 
 export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
   const navigate = useNavigate();
+
+  // ✅ Detectar formato
+  const isReiDaPraia = etapa.formato === FormatoEtapa.REI_DA_PRAIA;
 
   const handleClick = () => {
     navigate(`/admin/etapas/${etapa.id}`);
@@ -257,10 +307,20 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
       {/* Header */}
       <Header>
         <HeaderContent>
-          <Title>{etapa.nome}</Title>
+          <Title>
+            {isReiDaPraia ? "👑 " : "👥 "}
+            {etapa.nome}
+          </Title>
           {etapa.descricao && <Description>{etapa.descricao}</Description>}
         </HeaderContent>
-        <StatusBadge status={etapa.status} />
+
+        {/* ✅ Badges empilhados */}
+        <HeaderBadges>
+          <StatusBadge status={etapa.status} />
+          <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
+            {isReiDaPraia ? "👑 Rei da Praia" : "👥 Dupla Fixa"}
+          </FormatoBadge>
+        </HeaderBadges>
       </Header>
 
       {/* Info Principal */}
@@ -272,6 +332,18 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
             <InfoValue>{formatarData(etapa.dataRealizacao)}</InfoValue>
           </InfoContent>
         </InfoItem>
+
+        {/* ✅ Tipo de Chaveamento (apenas Rei da Praia) */}
+        {isReiDaPraia && etapa.tipoChaveamento && (
+          <InfoItem>
+            <InfoContent>
+              <InfoLabel>Chaveamento</InfoLabel>
+              <InfoValue $color="#7c3aed">
+                {getChaveamentoLabel(etapa.tipoChaveamento)}
+              </InfoValue>
+            </InfoContent>
+          </InfoItem>
+        )}
 
         {/* Nível */}
         <InfoItem>
@@ -318,14 +390,28 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
       {/* Footer */}
       <Footer>
         <FooterInfo>
-          {etapa.qtdGrupos && (
-            <FooterItem>
-              <span>{etapa.qtdGrupos} grupos</span>
-            </FooterItem>
+          {/* ✅ Info adaptada por formato */}
+          {isReiDaPraia ? (
+            <>
+              <FooterItem>
+                <span>{Math.floor(etapa.totalInscritos / 4) || 0} grupos</span>
+              </FooterItem>
+              <FooterItem>
+                <span>4 jogadores/grupo</span>
+              </FooterItem>
+            </>
+          ) : (
+            <>
+              {etapa.qtdGrupos && (
+                <FooterItem>
+                  <span>{etapa.qtdGrupos} grupos</span>
+                </FooterItem>
+              )}
+              <FooterItem>
+                <span>{etapa.jogadoresPorGrupo} duplas/grupo</span>
+              </FooterItem>
+            </>
           )}
-          <FooterItem>
-            <span>{etapa.jogadoresPorGrupo} duplas/grupo</span>
-          </FooterItem>
         </FooterInfo>
 
         {/* Actions baseado no status */}
@@ -349,10 +435,22 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
             $variant="purple"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/admin/etapas/${etapa.id}/chaves`);
+              navigate(`/admin/etapas/${etapa.id}`);
             }}
           >
-            Ver chaves →
+            {isReiDaPraia ? "Ver grupos →" : "Ver chaves →"}
+          </ActionButton>
+        )}
+
+        {etapa.status === StatusEtapa.FASE_ELIMINATORIA && (
+          <ActionButton
+            $variant="purple"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/admin/etapas/${etapa.id}`);
+            }}
+          >
+            Ver eliminatória →
           </ActionButton>
         )}
 

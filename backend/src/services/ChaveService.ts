@@ -1171,6 +1171,27 @@ export class ChaveService {
       });
       await partidasBatch.commit();
 
+      // ============== NOVO: EXCLUIR PARTIDAS REI DA PRAIA ==============
+      console.log("🗑️ Excluindo partidas Rei da Praia...");
+
+      const partidasReiDaPraiaSnapshot = await db
+        .collection("partidas_rei_da_praia")
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (!partidasReiDaPraiaSnapshot.empty) {
+        const partidasReiDaPraiaBatch = db.batch();
+        partidasReiDaPraiaSnapshot.docs.forEach((doc) => {
+          partidasReiDaPraiaBatch.delete(doc.ref);
+        });
+        await partidasReiDaPraiaBatch.commit();
+        console.log(
+          `   ✅ ${partidasReiDaPraiaSnapshot.size} partidas Rei da Praia excluídas`
+        );
+      }
+      // ==================================================================
+
       // ============== NOVO: EXCLUIR FASE ELIMINATÓRIA ==============
       console.log("🗑️ Excluindo confrontos eliminatórios...");
 

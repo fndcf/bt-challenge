@@ -484,6 +484,23 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
+      // ✅ NOVO: Verificar formato da etapa
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        res.status(404).json({ error: "Etapa não encontrada" });
+        return;
+      }
+
+      // ✅ NOVO: Bloquear se for Rei da Praia
+      if (etapa.formato === "rei_da_praia") {
+        res.status(400).json({
+          success: false,
+          error:
+            "Esta etapa é do formato Rei da Praia. Use a rota /rei-da-praia/gerar-chaves",
+        });
+        return;
+      }
+
       const resultado = await chaveService.gerarChaves(id, arenaId);
 
       res.json({

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import {
@@ -17,6 +17,8 @@ import BracketViewer from "../components/BracketViewer";
 import GruposViewer from "../components/GruposViewer";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { GeneroJogador, NivelJogador } from "@/types/jogador";
+import { FormatoEtapa } from "@/types/etapa";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -218,17 +220,15 @@ const BadgeGroup = styled.div`
   margin-top: 8px;
 `;
 
-const BackBtn = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+const BackButton = styled.button`
   background: #f3f4f6;
   color: #374151;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
   font-weight: 600;
-  text-decoration: none;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 
@@ -237,8 +237,8 @@ const BackBtn = styled(Link)`
   }
 
   @media (min-width: 768px) {
-    font-size: 14px;
-    padding: 10px 20px;
+    font-size: 0.9375rem;
+    padding: 0.875rem 2rem;
   }
 `;
 
@@ -510,6 +510,7 @@ const ErrorBtn = styled(Link)`
 
 const EtapaDetalhes: React.FC = () => {
   const { slug, etapaId } = useParams<{ slug: string; etapaId: string }>();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [arena, setArena] = useState<Arena | null>(null);
@@ -517,6 +518,41 @@ const EtapaDetalhes: React.FC = () => {
   const [jogadores, setJogadores] = useState<JogadorPublico[]>([]);
   const [chaves, setChaves] = useState<any>(null);
   const [grupos, setGrupos] = useState<any[]>([]);
+
+  const getFormatoLabel = (formato: FormatoEtapa | string) => {
+    switch (formato) {
+      case FormatoEtapa.DUPLA_FIXA:
+        return "Dupla Fixa";
+      case FormatoEtapa.REI_DA_PRAIA:
+        return "Rei da Praia";
+      default:
+        return formato;
+    }
+  };
+
+  const getNivelLabel = (nivel: NivelJogador | string) => {
+    switch (nivel) {
+      case NivelJogador.INICIANTE:
+        return "Iniciante";
+      case NivelJogador.INTERMEDIARIO:
+        return "Intermediário";
+      case NivelJogador.AVANCADO:
+        return "Avançado";
+      default:
+        return nivel;
+    }
+  };
+
+  const getGeneroLabel = (genero: GeneroJogador | string) => {
+    switch (genero) {
+      case GeneroJogador.FEMININO:
+        return "Feminino";
+      case GeneroJogador.MASCULINO:
+        return "Masculino";
+      default:
+        return genero;
+    }
+  };
 
   useDocumentTitle(
     etapa ? `${etapa.nome} - ${arena?.nome}` : "Detalhes da Etapa"
@@ -661,7 +697,7 @@ const EtapaDetalhes: React.FC = () => {
                 )}
               </BadgeGroup>
             </TitleArea>
-            <BackBtn to={`/arena/${slug}`}>← Voltar</BackBtn>
+            <BackButton onClick={() => navigate(-1)}>← Voltar</BackButton>
           </HeaderRow>
         </TopBarInner>
       </TopBar>
@@ -682,14 +718,14 @@ const EtapaDetalhes: React.FC = () => {
 
                 <InfoBox>
                   <InfoLabel>Formato</InfoLabel>
-                  <InfoValue>{etapa.formato}</InfoValue>
+                  <InfoValue>{getFormatoLabel(etapa.formato)}</InfoValue>
                 </InfoBox>
 
                 {/* ✅ NOVO: Nível */}
                 {etapa.nivel && (
                   <InfoBox>
                     <InfoLabel>Nível</InfoLabel>
-                    <InfoValue>{etapa.nivel}</InfoValue>
+                    <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
                   </InfoBox>
                 )}
 
@@ -697,7 +733,7 @@ const EtapaDetalhes: React.FC = () => {
                 {etapa.genero && (
                   <InfoBox>
                     <InfoLabel>Gênero</InfoLabel>
-                    <InfoValue>{etapa.genero}</InfoValue>
+                    <InfoValue>{getGeneroLabel(etapa.genero)}</InfoValue>
                   </InfoBox>
                 )}
 

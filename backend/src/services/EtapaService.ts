@@ -71,6 +71,8 @@ export class EtapaService {
         descricao: dadosValidados.descricao?.trim() || undefined,
         nivel: dadosValidados.nivel, // ← ADICIONADO
         genero: dadosValidados.genero,
+        formato: dadosValidados.formato,
+        tipoChaveamento: dadosValidados.tipoChaveamento || undefined,
         dataInicio: Timestamp.fromDate(dataInicio),
         dataFim: Timestamp.fromDate(dataFim),
         dataRealizacao: Timestamp.fromDate(dataRealizacao),

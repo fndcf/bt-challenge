@@ -30,6 +30,18 @@ export class EstatisticasJogadorService {
         jogadorGenero: dto.jogadorGenero,
         grupoId: dto.grupoId,
         grupoNome: dto.grupoNome,
+        // ✅ Estatísticas Rei da Praia (fase de grupos)
+        jogosGrupo: 0,
+        vitoriasGrupo: 0,
+        derrotasGrupo: 0,
+        pontosGrupo: 0,
+        setsVencidosGrupo: 0,
+        setsPerdidosGrupo: 0,
+        saldoSetsGrupo: 0,
+        gamesVencidosGrupo: 0,
+        gamesPerdidosGrupo: 0,
+        saldoGamesGrupo: 0,
+        // ✅ Estatísticas Dupla Fixa
         jogos: 0,
         vitorias: 0,
         derrotas: 0,
@@ -169,6 +181,205 @@ export class EstatisticasJogadorService {
         .update(estatisticasRevertidas);
     } catch (error) {
       console.error("Erro ao reverter estatísticas:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualizar estatísticas após partida da FASE DE GRUPOS
+   * Atualiza tanto os campos de grupo quanto os totais
+   */
+  async atualizarAposPartidaGrupo(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    try {
+      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
+
+      if (!estatisticas) {
+        console.warn(`Estatísticas não encontradas: jogador ${jogadorId}`);
+        return;
+      }
+
+      const novasEstatisticas = {
+        // ✅ Estatísticas de GRUPO
+        jogosGrupo: (estatisticas.jogosGrupo || 0) + 1,
+        vitoriasGrupo: (estatisticas.vitoriasGrupo || 0) + (dto.venceu ? 1 : 0),
+        derrotasGrupo: (estatisticas.derrotasGrupo || 0) + (dto.venceu ? 0 : 1),
+        pontosGrupo: (estatisticas.pontosGrupo || 0) + (dto.venceu ? 3 : 0),
+        setsVencidosGrupo:
+          (estatisticas.setsVencidosGrupo || 0) + dto.setsVencidos,
+        setsPerdidosGrupo:
+          (estatisticas.setsPerdidosGrupo || 0) + dto.setsPerdidos,
+        saldoSetsGrupo:
+          (estatisticas.saldoSetsGrupo || 0) +
+          (dto.setsVencidos - dto.setsPerdidos),
+        gamesVencidosGrupo:
+          (estatisticas.gamesVencidosGrupo || 0) + dto.gamesVencidos,
+        gamesPerdidosGrupo:
+          (estatisticas.gamesPerdidosGrupo || 0) + dto.gamesPerdidos,
+        saldoGamesGrupo:
+          (estatisticas.saldoGamesGrupo || 0) +
+          (dto.gamesVencidos - dto.gamesPerdidos),
+
+        // ✅ Estatísticas TOTAIS (também atualiza)
+        jogos: estatisticas.jogos + 1,
+        vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
+        derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
+        setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
+        setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
+        saldoSets:
+          estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
+        gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
+        gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
+        saldoGames:
+          estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
+
+        atualizadoEm: Timestamp.now(),
+      };
+
+      await db
+        .collection(this.collection)
+        .doc(estatisticas.id)
+        .update(novasEstatisticas);
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar estatísticas após partida de grupo:",
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Reverter estatísticas após edição de resultado da FASE DE GRUPOS
+   */
+  async reverterAposPartidaGrupo(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    try {
+      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
+
+      if (!estatisticas) {
+        console.warn(`Estatísticas não encontradas: jogador ${jogadorId}`);
+        return;
+      }
+
+      const estatisticasRevertidas = {
+        // ✅ Estatísticas de GRUPO
+        jogosGrupo: Math.max(0, (estatisticas.jogosGrupo || 0) - 1),
+        vitoriasGrupo: Math.max(
+          0,
+          (estatisticas.vitoriasGrupo || 0) - (dto.venceu ? 1 : 0)
+        ),
+        derrotasGrupo: Math.max(
+          0,
+          (estatisticas.derrotasGrupo || 0) - (dto.venceu ? 0 : 1)
+        ),
+        pontosGrupo: Math.max(
+          0,
+          (estatisticas.pontosGrupo || 0) - (dto.venceu ? 3 : 0)
+        ),
+        setsVencidosGrupo: Math.max(
+          0,
+          (estatisticas.setsVencidosGrupo || 0) - dto.setsVencidos
+        ),
+        setsPerdidosGrupo: Math.max(
+          0,
+          (estatisticas.setsPerdidosGrupo || 0) - dto.setsPerdidos
+        ),
+        saldoSetsGrupo:
+          (estatisticas.saldoSetsGrupo || 0) -
+          (dto.setsVencidos - dto.setsPerdidos),
+        gamesVencidosGrupo: Math.max(
+          0,
+          (estatisticas.gamesVencidosGrupo || 0) - dto.gamesVencidos
+        ),
+        gamesPerdidosGrupo: Math.max(
+          0,
+          (estatisticas.gamesPerdidosGrupo || 0) - dto.gamesPerdidos
+        ),
+        saldoGamesGrupo:
+          (estatisticas.saldoGamesGrupo || 0) -
+          (dto.gamesVencidos - dto.gamesPerdidos),
+
+        // ✅ Estatísticas TOTAIS
+        jogos: Math.max(0, estatisticas.jogos - 1),
+        vitorias: Math.max(0, estatisticas.vitorias - (dto.venceu ? 1 : 0)),
+        derrotas: Math.max(0, estatisticas.derrotas - (dto.venceu ? 0 : 1)),
+        setsVencidos: Math.max(0, estatisticas.setsVencidos - dto.setsVencidos),
+        setsPerdidos: Math.max(0, estatisticas.setsPerdidos - dto.setsPerdidos),
+        saldoSets:
+          estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
+        gamesVencidos: Math.max(
+          0,
+          estatisticas.gamesVencidos - dto.gamesVencidos
+        ),
+        gamesPerdidos: Math.max(
+          0,
+          estatisticas.gamesPerdidos - dto.gamesPerdidos
+        ),
+        saldoGames:
+          estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
+
+        atualizadoEm: Timestamp.now(),
+      };
+
+      await db
+        .collection(this.collection)
+        .doc(estatisticas.id)
+        .update(estatisticasRevertidas);
+    } catch (error) {
+      console.error("Erro ao reverter estatísticas:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualizar estatísticas após partida da ELIMINATÓRIA
+   * Atualiza APENAS os totais (não os de grupo)
+   */
+  async atualizarAposPartidaEliminatoria(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    try {
+      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
+
+      if (!estatisticas) {
+        console.warn(`Estatísticas não encontradas: jogador ${jogadorId}`);
+        return;
+      }
+
+      // ✅ Apenas estatísticas TOTAIS (não mexe nos de grupo)
+      const novasEstatisticas = {
+        jogos: estatisticas.jogos + 1,
+        vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
+        derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
+        setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
+        setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
+        saldoSets:
+          estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
+        gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
+        gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
+        saldoGames:
+          estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
+        atualizadoEm: Timestamp.now(),
+      };
+
+      await db
+        .collection(this.collection)
+        .doc(estatisticas.id)
+        .update(novasEstatisticas);
+    } catch (error) {
+      console.error(
+        "Erro ao atualizar estatísticas após partida eliminatória:",
+        error
+      );
       throw error;
     }
   }
@@ -542,6 +753,55 @@ export class EstatisticasJogadorService {
       return ranking.slice(0, limite);
     } catch (error) {
       console.error("Erro ao buscar ranking global agregado:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reverter estatísticas após partida da ELIMINATÓRIA
+   * Reverte APENAS os totais (não mexe nos de grupo)
+   */
+  async reverterAposPartidaEliminatoria(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    try {
+      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
+
+      if (!estatisticas) {
+        console.warn(`Estatísticas não encontradas: jogador ${jogadorId}`);
+        return;
+      }
+
+      // ✅ Apenas estatísticas TOTAIS (não mexe nos de grupo)
+      const estatisticasRevertidas = {
+        jogos: Math.max(0, estatisticas.jogos - 1),
+        vitorias: Math.max(0, estatisticas.vitorias - (dto.venceu ? 1 : 0)),
+        derrotas: Math.max(0, estatisticas.derrotas - (dto.venceu ? 0 : 1)),
+        setsVencidos: Math.max(0, estatisticas.setsVencidos - dto.setsVencidos),
+        setsPerdidos: Math.max(0, estatisticas.setsPerdidos - dto.setsPerdidos),
+        saldoSets:
+          estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
+        gamesVencidos: Math.max(
+          0,
+          estatisticas.gamesVencidos - dto.gamesVencidos
+        ),
+        gamesPerdidos: Math.max(
+          0,
+          estatisticas.gamesPerdidos - dto.gamesPerdidos
+        ),
+        saldoGames:
+          estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
+        atualizadoEm: Timestamp.now(),
+      };
+
+      await db
+        .collection(this.collection)
+        .doc(estatisticas.id)
+        .update(estatisticasRevertidas);
+    } catch (error) {
+      console.error("Erro ao reverter estatísticas eliminatória:", error);
       throw error;
     }
   }

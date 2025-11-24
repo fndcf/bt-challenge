@@ -1,6 +1,6 @@
 /**
  * GruposViewer - DESIGN MODERNO DO ZERO
- * Layout limpo + Responsividade perfeita
+ * ✅ Suporta Dupla Fixa e Rei da Praia
  */
 
 import React from "react";
@@ -21,10 +21,27 @@ interface Dupla {
   classificada: boolean;
 }
 
+// ✅ NOVO: Interface para jogador individual (Rei da Praia)
+interface JogadorIndividual {
+  id: string;
+  jogadorId: string;
+  jogadorNome: string;
+  jogadorNivel?: string;
+  posicaoGrupo?: number;
+  jogosGrupo: number;
+  vitoriasGrupo: number;
+  derrotasGrupo: number;
+  pontosGrupo: number;
+  saldoGamesGrupo: number;
+  gamesVencidosGrupo: number;
+  gamesPerdidosGrupo: number;
+  classificado: boolean;
+}
+
 interface Partida {
   id: string;
-  dupla1Id: string;
-  dupla2Id: string;
+  dupla1Id?: string;
+  dupla2Id?: string;
   dupla1Nome: string;
   dupla2Nome: string;
   status: string;
@@ -37,16 +54,21 @@ interface Partida {
   }>;
   vencedoraId?: string;
   vencedoraNome?: string;
+  vencedores?: string[];
+  vencedoresNomes?: string;
 }
 
 interface Grupo {
   id: string;
   nome: string;
   ordem: number;
-  totalDuplas: number;
+  totalDuplas?: number;
+  totalJogadores?: number;
   completo: boolean;
-  duplas: Dupla[];
+  duplas?: Dupla[];
+  jogadores?: JogadorIndividual[];
   partidas: Partida[];
+  formato?: "dupla_fixa" | "rei_da_praia";
 }
 
 interface GruposViewerProps {
@@ -80,10 +102,34 @@ const Title = styled.h2`
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
   @media (min-width: 768px) {
     font-size: 20px;
   }
+`;
+
+// ✅ NOVO: Badge de formato
+const FormatoBadge = styled.span<{ $formato: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+
+  ${(props) =>
+    props.$formato === "rei_da_praia"
+      ? `
+    background: #ede9fe;
+    color: #7c3aed;
+  `
+      : `
+    background: #dbeafe;
+    color: #2563eb;
+  `}
 `;
 
 const GroupsGrid = styled.div`
@@ -108,8 +154,11 @@ const GroupCard = styled.div`
   }
 `;
 
-const GroupHeader = styled.div`
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+const GroupHeader = styled.div<{ $formato?: string }>`
+  background: ${(props) =>
+    props.$formato === "rei_da_praia"
+      ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
+      : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"};
   padding: 12px 16px;
   text-align: center;
 
@@ -177,7 +226,7 @@ const TableWrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 480px;
+  min-width: 400px;
   border-collapse: collapse;
   font-size: 13px;
 
@@ -187,7 +236,7 @@ const Table = styled.table`
 
   @media (min-width: 1024px) {
     min-width: 100%;
-    font-size: 13px; /* Menor em desktop com 2 colunas */
+    font-size: 13px;
   }
 `;
 
@@ -220,7 +269,7 @@ const Th = styled.th`
   }
 
   @media (min-width: 1024px) {
-    padding: 10px 6px; /* Mais compacto em desktop 2 cols */
+    padding: 10px 6px;
     font-size: 11px;
 
     &:first-child {
@@ -271,7 +320,7 @@ const Td = styled.td`
   }
 
   @media (min-width: 1024px) {
-    padding: 12px 6px; /* Mais compacto em desktop 2 cols */
+    padding: 12px 6px;
 
     &:first-child {
       padding-left: 10px;
@@ -311,7 +360,7 @@ const Position = styled.div<{ $qualified?: boolean }>`
   }
 
   @media (min-width: 1024px) {
-    width: 26px; /* Menor em desktop 2 cols */
+    width: 26px;
     height: 26px;
     font-size: 12px;
   }
@@ -330,7 +379,7 @@ const TeamName = styled.div`
   }
 
   @media (min-width: 1024px) {
-    max-width: 140px; /* Mais compacto para caber 2 cols */
+    max-width: 140px;
   }
 `;
 
@@ -367,7 +416,7 @@ const StatBadge = styled.span<{ $type?: "positive" | "negative" | "neutral" }>`
   }
 
   @media (min-width: 1024px) {
-    font-size: 11px; /* Menor em desktop 2 cols */
+    font-size: 11px;
     padding: 3px 7px;
   }
 `;
@@ -595,22 +644,98 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
     );
   }
 
+  // ✅ Detectar formato pelo primeiro grupo
+  const formato =
+    grupos[0]?.formato ||
+    (grupos[0]?.jogadores?.length ? "rei_da_praia" : "dupla_fixa");
+  const isReiDaPraia = formato === "rei_da_praia";
+
   return (
     <Wrapper>
       <Header>
-        <Title>Fase de Grupos</Title>
+        <Title>
+          {isReiDaPraia ? "👑" : "👥"} Fase de Grupos
+          <FormatoBadge $formato={formato}>
+            {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
+          </FormatoBadge>
+        </Title>
       </Header>
 
       <GroupsGrid>
         {grupos.map((group) => (
           <GroupCard key={group.id}>
-            <GroupHeader>
+            <GroupHeader $formato={formato}>
               <GroupName>{group.nome}</GroupName>
             </GroupHeader>
 
             <GroupContent>
-              {/* Standings */}
-              {group.duplas?.length > 0 && (
+              {/* ✅ CLASSIFICAÇÃO REI DA PRAIA - Jogadores individuais */}
+              {isReiDaPraia &&
+                group.jogadores &&
+                group.jogadores.length > 0 && (
+                  <>
+                    <SectionTitle>Classificação</SectionTitle>
+                    <TableWrapper>
+                      <Table>
+                        <THead>
+                          <tr>
+                            <Th>#</Th>
+                            <Th>Jogador</Th>
+                            <Th>J</Th>
+                            <Th>V</Th>
+                            <Th>D</Th>
+                            <Th>Pts</Th>
+                            <Th>SG</Th>
+                          </tr>
+                        </THead>
+                        <TBody>
+                          {group.jogadores.map((jogador, index) => (
+                            <Tr
+                              key={jogador.id}
+                              $qualified={jogador.classificado}
+                            >
+                              <Td>
+                                <Position $qualified={jogador.classificado}>
+                                  {jogador.posicaoGrupo || index + 1}
+                                </Position>
+                              </Td>
+                              <Td>
+                                <TeamName>{jogador.jogadorNome}</TeamName>
+                              </Td>
+                              <Td>{jogador.jogosGrupo || 0}</Td>
+                              <Td>{jogador.vitoriasGrupo || 0}</Td>
+                              <Td>{jogador.derrotasGrupo || 0}</Td>
+                              <Td>
+                                <StatBadge>
+                                  {jogador.pontosGrupo || 0}
+                                </StatBadge>
+                              </Td>
+                              <Td>
+                                <StatBadge
+                                  $type={
+                                    (jogador.saldoGamesGrupo || 0) > 0
+                                      ? "positive"
+                                      : (jogador.saldoGamesGrupo || 0) < 0
+                                      ? "negative"
+                                      : "neutral"
+                                  }
+                                >
+                                  {(jogador.saldoGamesGrupo || 0) > 0
+                                    ? "+"
+                                    : ""}
+                                  {jogador.saldoGamesGrupo || 0}
+                                </StatBadge>
+                              </Td>
+                            </Tr>
+                          ))}
+                        </TBody>
+                      </Table>
+                    </TableWrapper>
+                  </>
+                )}
+
+              {/* ✅ CLASSIFICAÇÃO DUPLA FIXA - Manter código existente */}
+              {!isReiDaPraia && group.duplas && group.duplas.length > 0 && (
                 <>
                   <SectionTitle>Classificação</SectionTitle>
                   <TableWrapper>
@@ -667,24 +792,30 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                 </>
               )}
 
-              {/* Matches */}
+              {/* ✅ PARTIDAS - Adaptar por formato */}
               {group.partidas?.length > 0 && (
                 <>
                   <SectionTitle>Partidas</SectionTitle>
                   <MatchesList>
                     {group.partidas.map((match) => {
                       const finished =
-                        match.status.toUpperCase() === "FINALIZADA";
-                      const winner1 = match.vencedoraNome === match.dupla1Nome;
-                      const winner2 = match.vencedoraNome === match.dupla2Nome;
+                        match.status?.toUpperCase() === "FINALIZADA";
+
+                      // ✅ Detectar vencedor por formato
+                      const winner1 = isReiDaPraia
+                        ? match.vencedoresNomes === match.dupla1Nome
+                        : match.vencedoraNome === match.dupla1Nome;
+                      const winner2 = isReiDaPraia
+                        ? match.vencedoresNomes === match.dupla2Nome
+                        : match.vencedoraNome === match.dupla2Nome;
 
                       return (
                         <MatchCard key={match.id} $finished={finished}>
                           <MatchHeader>
-                            <Status $status={match.status}>
+                            <Status $status={match.status || "agendada"}>
                               {finished
                                 ? "Finalizada"
-                                : match.status.toUpperCase() === "EM_ANDAMENTO"
+                                : match.status?.toUpperCase() === "EM_ANDAMENTO"
                                 ? "Ao vivo"
                                 : "Agendada"}
                             </Status>
@@ -720,9 +851,13 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                             match.placar &&
                             match.placar.length > 0 && (
                               <SetDetails>
-                                {match.placar.map((set) => (
-                                  <SetBox key={`${match.id}-set-${set.numero}`}>
-                                    <SetLabel>Set {set.numero}</SetLabel>
+                                {match.placar.map((set, idx) => (
+                                  <SetBox
+                                    key={`${match.id}-set-${set.numero || idx}`}
+                                  >
+                                    <SetLabel>
+                                      Set {set.numero || idx + 1}
+                                    </SetLabel>
                                     <SetScore>
                                       {set.gamesDupla1}-{set.gamesDupla2}
                                     </SetScore>

@@ -189,6 +189,44 @@ class ChaveService {
       throw new Error(appError.message);
     }
   }
+
+  /**
+   * ✅ NOVO: Detectar formato da etapa e buscar dados corretos
+   */
+  async buscarDadosEtapa(
+    etapaId: string,
+    formato: string
+  ): Promise<{
+    duplas?: any[];
+    jogadores?: any[];
+    grupos: any[];
+    partidas: any[];
+  }> {
+    try {
+      if (formato === "rei_da_praia") {
+        // Buscar dados do Rei da Praia
+        const [jogadores, grupos, partidas] = await Promise.all([
+          apiClient.get(`${this.baseURL}/${etapaId}/rei-da-praia/jogadores`),
+          apiClient.get(`${this.baseURL}/${etapaId}/rei-da-praia/grupos`),
+          apiClient.get(`${this.baseURL}/${etapaId}/rei-da-praia/partidas`),
+        ]);
+
+        return { jogadores, grupos, partidas };
+      } else {
+        // Buscar dados da Dupla Fixa (formato tradicional)
+        const [duplas, grupos, partidas] = await Promise.all([
+          this.buscarDuplas(etapaId),
+          this.buscarGrupos(etapaId),
+          this.buscarPartidas(etapaId),
+        ]);
+
+        return { duplas, grupos, partidas };
+      }
+    } catch (error) {
+      const appError = handleError(error, "ChaveService.buscarDadosEtapa");
+      throw new Error(appError.message);
+    }
+  }
 }
 
 export default new ChaveService();

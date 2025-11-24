@@ -14,6 +14,8 @@ import RankingList from "../components/RankingList";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import Footer from "@/components/Footer";
+import { FormatoEtapa } from "@/types/etapa";
+import { GeneroJogador, NivelJogador } from "@/types/jogador";
 
 // ============== STYLED COMPONENTS ==============
 
@@ -437,6 +439,41 @@ const ArenaPublica: React.FC = () => {
   const [arena, setArena] = useState<Arena | null>(null);
   const [etapas, setEtapas] = useState<EtapaPublica[]>([]);
 
+  const getFormatoLabel = (formato: FormatoEtapa | string) => {
+    switch (formato) {
+      case FormatoEtapa.DUPLA_FIXA:
+        return "Dupla Fixa";
+      case FormatoEtapa.REI_DA_PRAIA:
+        return "Rei da Praia";
+      default:
+        return formato;
+    }
+  };
+
+  const getNivelLabel = (nivel: NivelJogador | string) => {
+    switch (nivel) {
+      case NivelJogador.INICIANTE:
+        return "Iniciante";
+      case NivelJogador.INTERMEDIARIO:
+        return "Intermediário";
+      case NivelJogador.AVANCADO:
+        return "Avançado";
+      default:
+        return nivel;
+    }
+  };
+
+  const getGeneroLabel = (genero: GeneroJogador | string) => {
+    switch (genero) {
+      case GeneroJogador.FEMININO:
+        return "Feminino";
+      case GeneroJogador.MASCULINO:
+        return "Masculino";
+      default:
+        return genero;
+    }
+  };
+
   useDocumentTitle(arena ? arena.nome : "Arena");
 
   useEffect(() => {
@@ -585,14 +622,14 @@ const ArenaPublica: React.FC = () => {
                   {/* ✅ NOVO: Nível */}
                   {etapa.nivel && (
                     <InfoItem>
-                      <strong>Nível:</strong> {etapa.nivel}
+                      <strong>Nível:</strong> {getNivelLabel(etapa.nivel)}
                     </InfoItem>
                   )}
 
                   {/* ✅ NOVO: Gênero */}
                   {etapa.genero && (
                     <InfoItem>
-                      <strong>Gênero:</strong> {etapa.genero}
+                      <strong>Gênero:</strong> {getGeneroLabel(etapa.genero)}
                     </InfoItem>
                   )}
 
@@ -603,7 +640,7 @@ const ArenaPublica: React.FC = () => {
                   )}
 
                   <InfoItem>
-                    <strong>Formato:</strong> {etapa.formato}
+                    <strong>Formato:</strong> {getFormatoLabel(etapa.formato)}
                   </InfoItem>
                 </EtapaInfo>
 

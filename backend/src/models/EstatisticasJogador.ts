@@ -28,6 +28,18 @@ export interface EstatisticasJogador {
   grupoId?: string;
   grupoNome?: string;
 
+  // ✅ ESTATÍSTICAS DE GRUPO (classificação para rei da praia)
+  jogosGrupo: number;
+  vitoriasGrupo: number;
+  derrotasGrupo: number;
+  pontosGrupo: number; // 3 pontos por vitória
+  setsVencidosGrupo: number;
+  setsPerdidosGrupo: number;
+  saldoSetsGrupo: number;
+  gamesVencidosGrupo: number;
+  gamesPerdidosGrupo: number;
+  saldoGamesGrupo: number;
+
   // Estatísticas individuais
   jogos: number; // Total de partidas jogadas
   vitorias: number; // Total de vitórias

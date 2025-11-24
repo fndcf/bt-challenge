@@ -38,8 +38,9 @@ class EtapaService {
       const params = new URLSearchParams();
 
       if (filtros?.status) params.append("status", filtros.status);
-      if (filtros?.nivel) params.append("nivel", filtros.nivel); // ✅ ADICIONAR
+      if (filtros?.nivel) params.append("nivel", filtros.nivel);
       if (filtros?.genero) params.append("genero", filtros.genero);
+      if (filtros?.formato) params.append("formato", filtros.formato); // ✅ NOVO
       if (filtros?.ordenarPor) params.append("ordenarPor", filtros.ordenarPor);
       if (filtros?.ordem) params.append("ordem", filtros.ordem);
       if (filtros?.limite) params.append("limite", filtros.limite.toString());

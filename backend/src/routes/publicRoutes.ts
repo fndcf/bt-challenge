@@ -147,6 +147,7 @@ router.get(
 /**
  * Buscar grupos de uma etapa
  * GET /api/public/:arenaSlug/etapas/:etapaId/grupos
+ * ✅ ATUALIZADO: Suporta Dupla Fixa e Rei da Praia
  */
 router.get(
   "/:arenaSlug/etapas/:etapaId/grupos",
@@ -159,113 +160,214 @@ router.get(
       // Buscar arena
       const arena = await arenaService.getArenaBySlug(arenaSlug);
 
+      // ✅ Buscar etapa para saber o formato
+      const etapa = await etapaService.buscarPorId(etapaId, arena.id);
+      if (!etapa) {
+        return res.status(404).json({
+          success: false,
+          error: "Etapa não encontrada",
+        });
+      }
+
+      const isReiDaPraia = etapa.formato === "rei_da_praia";
+      console.log(
+        "📋 Formato da etapa:",
+        etapa.formato,
+        "| Rei da Praia:",
+        isReiDaPraia
+      );
+
       // Buscar grupos usando ChaveService
       const grupos = await chaveService.buscarGrupos(etapaId, arena.id);
 
       console.log("📊 Grupos encontrados:", grupos.length);
 
-      // Buscar duplas de cada grupo
-      const gruposComDuplas = await Promise.all(
+      // Processar cada grupo de acordo com o formato
+      const gruposProcessados = await Promise.all(
         grupos.map(async (grupo) => {
           console.log("🎯 Processando grupo:", grupo.id, grupo.nome);
 
-          // Buscar duplas do grupo
-          const duplasSnapshot = await db
-            .collection("duplas")
-            .where("grupoId", "==", grupo.id)
-            .orderBy("posicaoGrupo", "asc")
-            .get();
+          if (isReiDaPraia) {
+            // ========================================
+            // ✅ REI DA PRAIA: Jogadores individuais
+            // ========================================
 
-          const duplas = duplasSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              jogador1Nome: data.jogador1Nome,
-              jogador2Nome: data.jogador2Nome,
-              posicaoGrupo: data.posicaoGrupo,
-              vitorias: data.vitorias || 0,
-              derrotas: data.derrotas || 0,
-              pontos: data.pontos || 0,
-              saldoGames: data.saldoGames || 0,
-              jogos: data.jogos || 0,
-              classificada: data.classificada || false,
-            };
-          });
+            // Buscar jogadores do grupo (estatísticas individuais)
+            const jogadoresSnapshot = await db
+              .collection("estatisticas_jogador")
+              .where("grupoId", "==", grupo.id)
+              .where("etapaId", "==", etapaId)
+              .get();
 
-          console.log("👥 Duplas do grupo:", duplas.length);
+            const jogadores = jogadoresSnapshot.docs
+              .map((doc) => {
+                const data = doc.data();
+                return {
+                  id: doc.id,
+                  jogadorId: data.jogadorId,
+                  jogadorNome: data.jogadorNome,
+                  jogadorNivel: data.jogadorNivel,
+                  posicaoGrupo: data.posicaoGrupo || 0,
+                  jogosGrupo: data.jogosGrupo || 0,
+                  vitoriasGrupo: data.vitoriasGrupo || 0,
+                  derrotasGrupo: data.derrotasGrupo || 0,
+                  pontosGrupo: data.pontosGrupo || 0,
+                  gamesVencidosGrupo: data.gamesVencidosGrupo || 0,
+                  gamesPerdidosGrupo: data.gamesPerdidosGrupo || 0,
+                  saldoGamesGrupo: data.saldoGamesGrupo || 0,
+                  setsVencidosGrupo: data.setsVencidosGrupo || 0,
+                  setsPerdidosGrupo: data.setsPerdidosGrupo || 0,
+                  saldoSetsGrupo: data.saldoSetsGrupo || 0,
+                  classificado: data.classificado || false,
+                };
+              })
+              .sort((a, b) => {
+                // Ordenar por posição ou pontos
+                if (a.posicaoGrupo && b.posicaoGrupo) {
+                  return a.posicaoGrupo - b.posicaoGrupo;
+                }
+                if (a.pontosGrupo !== b.pontosGrupo) {
+                  return b.pontosGrupo - a.pontosGrupo;
+                }
+                return b.saldoGamesGrupo - a.saldoGamesGrupo;
+              });
 
-          // Buscar partidas do grupo
-          const partidasSnapshot = await db
-            .collection("partidas")
-            .where("grupoId", "==", grupo.id)
-            .orderBy("criadoEm", "asc")
-            .get();
+            console.log("👤 Jogadores do grupo:", jogadores.length);
 
-          console.log("⚔️ Partidas do grupo:", partidasSnapshot.docs.length);
+            // Buscar partidas do Rei da Praia
+            const partidasSnapshot = await db
+              .collection("partidas_rei_da_praia")
+              .where("grupoId", "==", grupo.id)
+              .where("etapaId", "==", etapaId)
+              .orderBy("criadoEm", "asc")
+              .get();
 
-          const partidas = partidasSnapshot.docs.map((doc) => {
-            const data = doc.data();
+            console.log(
+              "⚔️ Partidas Rei da Praia do grupo:",
+              partidasSnapshot.docs.length
+            );
 
-            // O placar detalhado está no campo "placar"
-            // É um array de objetos: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }, ...]
-            const placarDetalhado = data.placar || [];
+            const partidas = partidasSnapshot.docs.map((doc) => {
+              const data = doc.data();
+              const placarDetalhado = data.placar || [];
 
-            console.log("📈 Partida:", {
-              id: doc.id,
-              dupla1: data.dupla1Nome,
-              dupla2: data.dupla2Nome,
-              status: data.status,
-              temPlacar: !!data.placar,
-              placar: data.placar,
-              tipoPlacar: typeof data.placar,
-              isArray: Array.isArray(data.placar),
-              length: data.placar?.length,
+              return {
+                id: doc.id,
+                dupla1Nome: data.dupla1Nome,
+                dupla2Nome: data.dupla2Nome,
+                status: data.status,
+                setsDupla1: data.setsDupla1 || 0,
+                setsDupla2: data.setsDupla2 || 0,
+                placar: placarDetalhado,
+                vencedores: data.vencedores || [],
+                vencedoresNomes: data.vencedoresNomes,
+                criadoEm: data.criadoEm,
+              };
+            });
+
+            console.log("✅ Grupo Rei da Praia processado:", {
+              nome: grupo.nome,
+              qtdJogadores: jogadores.length,
+              qtdPartidas: partidas.length,
             });
 
             return {
-              id: doc.id,
-              dupla1Id: data.dupla1Id,
-              dupla2Id: data.dupla2Id,
-              dupla1Nome: data.dupla1Nome,
-              dupla2Nome: data.dupla2Nome,
-              status: data.status,
-              setsDupla1: data.setsDupla1 || 0,
-              setsDupla2: data.setsDupla2 || 0,
-              placar: placarDetalhado, // Array com placar de cada set
-              vencedoraId: data.vencedoraId,
-              vencedoraNome: data.vencedoraNome,
-              criadoEm: data.criadoEm,
+              id: grupo.id,
+              nome: grupo.nome,
+              ordem: grupo.ordem,
+              totalJogadores: jogadores.length,
+              completo: grupo.completo || false,
+              jogadores, // ✅ Jogadores individuais
+              partidas,
+              formato: "rei_da_praia",
             };
-          });
+          } else {
+            // ========================================
+            // ✅ DUPLA FIXA: Código original
+            // ========================================
 
-          console.log("✅ Grupo processado:", {
-            nome: grupo.nome,
-            qtdDuplas: duplas.length,
-            qtdPartidas: partidas.length,
-            partidasComPlacar: partidas.filter(
-              (p) => p.placar && p.placar.length > 0
-            ).length,
-          });
+            // Buscar duplas do grupo
+            const duplasSnapshot = await db
+              .collection("duplas")
+              .where("grupoId", "==", grupo.id)
+              .orderBy("posicaoGrupo", "asc")
+              .get();
 
-          return {
-            id: grupo.id,
-            nome: grupo.nome,
-            ordem: grupo.ordem,
-            totalDuplas: grupo.totalDuplas,
-            completo: grupo.completo || false,
-            duplas,
-            partidas,
-          };
+            const duplas = duplasSnapshot.docs.map((doc) => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                jogador1Nome: data.jogador1Nome,
+                jogador2Nome: data.jogador2Nome,
+                posicaoGrupo: data.posicaoGrupo,
+                vitorias: data.vitorias || 0,
+                derrotas: data.derrotas || 0,
+                pontos: data.pontos || 0,
+                saldoGames: data.saldoGames || 0,
+                jogos: data.jogos || 0,
+                classificada: data.classificada || false,
+              };
+            });
+
+            console.log("👥 Duplas do grupo:", duplas.length);
+
+            // Buscar partidas do grupo
+            const partidasSnapshot = await db
+              .collection("partidas")
+              .where("grupoId", "==", grupo.id)
+              .orderBy("criadoEm", "asc")
+              .get();
+
+            console.log("⚔️ Partidas do grupo:", partidasSnapshot.docs.length);
+
+            const partidas = partidasSnapshot.docs.map((doc) => {
+              const data = doc.data();
+              const placarDetalhado = data.placar || [];
+
+              return {
+                id: doc.id,
+                dupla1Id: data.dupla1Id,
+                dupla2Id: data.dupla2Id,
+                dupla1Nome: data.dupla1Nome,
+                dupla2Nome: data.dupla2Nome,
+                status: data.status,
+                setsDupla1: data.setsDupla1 || 0,
+                setsDupla2: data.setsDupla2 || 0,
+                placar: placarDetalhado,
+                vencedoraId: data.vencedoraId,
+                vencedoraNome: data.vencedoraNome,
+                criadoEm: data.criadoEm,
+              };
+            });
+
+            console.log("✅ Grupo Dupla Fixa processado:", {
+              nome: grupo.nome,
+              qtdDuplas: duplas.length,
+              qtdPartidas: partidas.length,
+            });
+
+            return {
+              id: grupo.id,
+              nome: grupo.nome,
+              ordem: grupo.ordem,
+              totalDuplas: grupo.totalDuplas,
+              completo: grupo.completo || false,
+              duplas,
+              partidas,
+              formato: "dupla_fixa",
+            };
+          }
         })
       );
 
       console.log("🎉 Resposta final:", {
-        qtdGrupos: gruposComDuplas.length,
+        qtdGrupos: gruposProcessados.length,
+        formato: isReiDaPraia ? "rei_da_praia" : "dupla_fixa",
       });
 
       res.json({
         success: true,
-        data: gruposComDuplas,
+        data: gruposProcessados,
       });
     } catch (error: any) {
       console.error("❌ ERRO GERAL:", error);

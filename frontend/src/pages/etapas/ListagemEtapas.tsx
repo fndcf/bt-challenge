@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { Etapa, StatusEtapa, FiltrosEtapa } from "../../types/etapa";
+import {
+  Etapa,
+  StatusEtapa,
+  FiltrosEtapa,
+  FormatoEtapa,
+} from "../../types/etapa";
 import etapaService from "../../services/etapaService";
 import { EtapaCard } from "../../components/etapas/EtapaCard";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
@@ -104,14 +109,33 @@ const StatsGrid = styled.div`
   }
 
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 `;
 
-const StatCard = styled.div`
-  background: white;
+const StatCard = styled.div<{ $variant?: "purple" | "blue" }>`
+  background: ${(props) => {
+    switch (props.$variant) {
+      case "purple":
+        return "linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%)";
+      case "blue":
+        return "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)";
+      default:
+        return "white";
+    }
+  }};
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid
+    ${(props) => {
+      switch (props.$variant) {
+        case "purple":
+          return "#e9d5ff";
+        case "blue":
+          return "#bfdbfe";
+        default:
+          return "#e5e7eb";
+      }
+    }};
   padding: 1.5rem;
   display: flex;
   align-items: center;
@@ -122,16 +146,16 @@ const StatContent = styled.div`
   flex: 1;
 `;
 
-const StatLabel = styled.p`
+const StatLabel = styled.p<{ $color?: string }>`
   font-size: 0.875rem;
-  color: #6b7280;
+  color: ${(props) => props.$color || "#6b7280"};
   margin: 0 0 0.25rem 0;
 `;
 
-const StatValue = styled.p`
+const StatValue = styled.p<{ $color?: string }>`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: ${(props) => props.$color || "#111827"};
   margin: 0;
 
   @media (min-width: 768px) {
@@ -196,7 +220,7 @@ const Select = styled.select`
   }
 
   @media (min-width: 768px) {
-    min-width: 200px;
+    min-width: 180px;
   }
 `;
 
@@ -303,8 +327,9 @@ export const ListagemEtapas: React.FC = () => {
 
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState<StatusEtapa | "">("");
-  const [filtroNivel, setFiltroNivel] = useState<NivelJogador | "">(""); // ✅ NOVO
-  const [filtroGenero, setFiltroGenero] = useState<GeneroJogador | "">(""); // ✅ NOVO
+  const [filtroNivel, setFiltroNivel] = useState<NivelJogador | "">("");
+  const [filtroGenero, setFiltroGenero] = useState<GeneroJogador | "">("");
+  const [filtroFormato, setFiltroFormato] = useState<FormatoEtapa | "">(""); // ✅ NOVO
   const [ordenacao, setOrdenacao] = useState<"dataRealizacao" | "criadoEm">(
     "dataRealizacao"
   );
@@ -315,11 +340,13 @@ export const ListagemEtapas: React.FC = () => {
     inscricoesAbertas: 0,
     emAndamento: 0,
     finalizadas: 0,
+    reiDaPraia: 0, // ✅ NOVO
+    duplaFixa: 0, // ✅ NOVO
   });
 
   useEffect(() => {
     carregarDados();
-  }, [filtroStatus, filtroNivel, filtroGenero, ordenacao]);
+  }, [filtroStatus, filtroNivel, filtroGenero, filtroFormato, ordenacao]);
 
   const carregarDados = async () => {
     try {
@@ -330,13 +357,13 @@ export const ListagemEtapas: React.FC = () => {
         ordenarPor: ordenacao,
         ordem: "desc",
         limite: 50,
+        formato: FormatoEtapa.DUPLA_FIXA,
       };
 
       if (filtroStatus) {
         filtros.status = filtroStatus;
       }
 
-      // ✅ ADICIONAR filtros de nível e gênero
       if (filtroNivel) {
         filtros.nivel = filtroNivel;
       }
@@ -345,19 +372,51 @@ export const ListagemEtapas: React.FC = () => {
         filtros.genero = filtroGenero;
       }
 
+      // ✅ NOVO: Filtro de formato
+      if (filtroFormato) {
+        filtros.formato = filtroFormato;
+      }
+
       const [resultado, estatisticas] = await Promise.all([
         etapaService.listar(filtros),
         etapaService.obterEstatisticas(),
       ]);
 
       setEtapas(resultado.etapas);
-      setStats(estatisticas);
+
+      // ✅ Calcular estatísticas por formato
+      const reiDaPraiaCount = resultado.etapas.filter(
+        (e) => e.formato === FormatoEtapa.REI_DA_PRAIA
+      ).length;
+
+      setStats({
+        ...estatisticas,
+        reiDaPraia: reiDaPraiaCount,
+        duplaFixa: resultado.etapas.length - reiDaPraiaCount,
+      });
     } catch (err: any) {
       console.error("Erro ao carregar etapas:", err);
       setError(err.response?.data?.error || "Erro ao carregar etapas");
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ Verificar se há algum filtro ativo
+  const temFiltrosAtivos =
+    filtroStatus ||
+    filtroNivel ||
+    filtroGenero ||
+    filtroFormato ||
+    ordenacao !== "dataRealizacao";
+
+  // ✅ Limpar todos os filtros
+  const limparFiltros = () => {
+    setFiltroStatus("");
+    setFiltroNivel("");
+    setFiltroGenero("");
+    setFiltroFormato("");
+    setOrdenacao("dataRealizacao");
   };
 
   if (loading) {
@@ -404,10 +463,19 @@ export const ListagemEtapas: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        <StatCard>
+        {/* ✅ NOVO: Card Rei da Praia */}
+        <StatCard $variant="purple">
           <StatContent>
-            <StatLabel>Finalizadas</StatLabel>
-            <StatValue>{stats.finalizadas}</StatValue>
+            <StatLabel $color="#7c3aed">👑 Rei da Praia</StatLabel>
+            <StatValue $color="#7c3aed">{stats.reiDaPraia}</StatValue>
+          </StatContent>
+        </StatCard>
+
+        {/* ✅ NOVO: Card Dupla Fixa */}
+        <StatCard $variant="blue">
+          <StatContent>
+            <StatLabel $color="#2563eb">👥 Dupla Fixa</StatLabel>
+            <StatValue $color="#2563eb">{stats.duplaFixa}</StatValue>
           </StatContent>
         </StatCard>
       </StatsGrid>
@@ -416,7 +484,7 @@ export const ListagemEtapas: React.FC = () => {
       <FiltersCard>
         <FiltersContent>
           <FilterGroup>
-            <FilterLabel>Filtrar por:</FilterLabel>
+            <FilterLabel>Status:</FilterLabel>
             <Select
               value={filtroStatus}
               onChange={(e) =>
@@ -431,12 +499,29 @@ export const ListagemEtapas: React.FC = () => {
                 Inscrições Encerradas
               </option>
               <option value={StatusEtapa.CHAVES_GERADAS}>Chaves Geradas</option>
+              <option value={StatusEtapa.FASE_ELIMINATORIA}>
+                Fase Eliminatória
+              </option>
               <option value={StatusEtapa.EM_ANDAMENTO}>Em Andamento</option>
               <option value={StatusEtapa.FINALIZADA}>Finalizadas</option>
             </Select>
           </FilterGroup>
 
-          {/* ✅ NOVO: Filtro de Nível */}
+          {/* ✅ NOVO: Filtro de Formato */}
+          <FilterGroup>
+            <FilterLabel>Formato:</FilterLabel>
+            <Select
+              value={filtroFormato}
+              onChange={(e) =>
+                setFiltroFormato(e.target.value as FormatoEtapa | "")
+              }
+            >
+              <option value="">Todos os formatos</option>
+              <option value={FormatoEtapa.DUPLA_FIXA}>👥 Dupla Fixa</option>
+              <option value={FormatoEtapa.REI_DA_PRAIA}>👑 Rei da Praia</option>
+            </Select>
+          </FilterGroup>
+
           <FilterGroup>
             <FilterLabel>Nível:</FilterLabel>
             <Select
@@ -452,7 +537,6 @@ export const ListagemEtapas: React.FC = () => {
             </Select>
           </FilterGroup>
 
-          {/* ✅ NOVO: Filtro de Gênero */}
           <FilterGroup>
             <FilterLabel>Gênero:</FilterLabel>
             <Select
@@ -468,7 +552,7 @@ export const ListagemEtapas: React.FC = () => {
           </FilterGroup>
 
           <FilterGroup>
-            <FilterLabel>Ordenar por:</FilterLabel>
+            <FilterLabel>Ordenar:</FilterLabel>
             <Select
               value={ordenacao}
               onChange={(e) =>
@@ -480,21 +564,8 @@ export const ListagemEtapas: React.FC = () => {
             </Select>
           </FilterGroup>
 
-          {/* ✅ ATUALIZAR condição do botão limpar */}
-          {(filtroStatus ||
-            filtroNivel ||
-            filtroGenero ||
-            ordenacao !== "dataRealizacao") && (
-            <ClearButton
-              onClick={() => {
-                setFiltroStatus("");
-                setFiltroNivel(""); // ✅ ADICIONAR
-                setFiltroGenero(""); // ✅ ADICIONAR
-                setOrdenacao("dataRealizacao");
-              }}
-            >
-              Limpar filtros
-            </ClearButton>
+          {temFiltrosAtivos && (
+            <ClearButton onClick={limparFiltros}>Limpar filtros</ClearButton>
           )}
         </FiltersContent>
       </FiltersCard>
@@ -506,11 +577,11 @@ export const ListagemEtapas: React.FC = () => {
         <EmptyState>
           <EmptyTitle>Nenhuma etapa encontrada</EmptyTitle>
           <EmptyText>
-            {filtroStatus || filtroNivel || filtroGenero
-              ? "Não há etapas com esse status."
+            {temFiltrosAtivos
+              ? "Não há etapas com os filtros selecionados."
               : "Comece criando sua primeira etapa!"}
           </EmptyText>
-          {!filtroStatus && (
+          {!temFiltrosAtivos && (
             <CreateButton onClick={() => navigate("/admin/etapas/criar")}>
               Criar Primeira Etapa
             </CreateButton>
@@ -523,7 +594,7 @@ export const ListagemEtapas: React.FC = () => {
           ))}
         </EtapasGrid>
       )}
-      <Footer></Footer>
+      <Footer />
     </Container>
   );
 };

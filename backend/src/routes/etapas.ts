@@ -328,7 +328,298 @@ router.post("/:id/encerrar", (req, res) =>
   etapaController.encerrarEtapa(req, res)
 );
 
-// =========================================================================
+// =============================================================
+
+// ==================== ROTAS REI DA PRAIA ====================
+
+/**
+ * @route   POST /api/etapas/:id/rei-da-praia/gerar-chaves
+ * @desc    Gerar chaves no formato Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.post("/:id/rei-da-praia/gerar-chaves", async (req: AuthRequest, res) => {
+  try {
+    const { id: etapaId } = req.params;
+    const { arenaId } = req.user!;
+
+    console.log("📥 Gerando chaves Rei da Praia:", { etapaId, arenaId });
+
+    const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
+      .default;
+
+    const resultado = await reiDaPraiaService.gerarChaves(etapaId, arenaId);
+
+    res.status(200).json({
+      data: {
+        message: "Chaves Rei da Praia geradas com sucesso",
+        jogadores: resultado.jogadores.length,
+        grupos: resultado.grupos.length,
+        partidas: resultado.partidas.length,
+      },
+    });
+  } catch (error: any) {
+    console.error("❌ Erro ao gerar chaves Rei da Praia:", error);
+    res.status(500).json({
+      error: error.message || "Erro ao gerar chaves Rei da Praia",
+    });
+  }
+});
+
+/**
+ * @route   GET /api/etapas/:id/rei-da-praia/grupos
+ * @desc    Buscar grupos da etapa Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.get("/:id/rei-da-praia/grupos", async (req: AuthRequest, res) => {
+  try {
+    const { id: etapaId } = req.params;
+    const { arenaId } = req.user!;
+
+    console.log("📥 Buscando grupos Rei da Praia:", { etapaId, arenaId });
+
+    const { db } = await import("../config/firebase");
+
+    const snapshot = await db
+      .collection("grupos")
+      .where("etapaId", "==", etapaId)
+      .where("arenaId", "==", arenaId)
+      .orderBy("ordem", "asc")
+      .get();
+
+    const grupos = snapshot.docs.map((doc) => ({
+      ...doc.data(),
+      id: doc.id, // ✅ COLOCAR DEPOIS para sobrescrever o campo vazio
+    }));
+
+    console.log(`✅ ${grupos.length} grupos encontrados`);
+
+    res.status(200).json({
+      data: grupos,
+    });
+  } catch (error: any) {
+    console.error("❌ Erro ao buscar grupos:", error);
+    res.status(500).json({
+      error: error.message || "Erro ao buscar grupos",
+    });
+  }
+});
+
+/**
+ * @route   GET /api/etapas/:id/rei-da-praia/confrontos
+ * @desc    Buscar confrontos eliminatórios Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.get("/:id/rei-da-praia/confrontos", async (req: AuthRequest, res) => {
+  try {
+    const { id: etapaId } = req.params;
+    const { arenaId } = req.user!;
+
+    console.log("📥 Buscando confrontos Rei da Praia:", { etapaId, arenaId });
+
+    const { db } = await import("../config/firebase");
+
+    const snapshot = await db
+      .collection("confrontos_eliminatorios")
+      .where("etapaId", "==", etapaId)
+      .where("arenaId", "==", arenaId)
+      .orderBy("ordem", "asc")
+      .get();
+
+    const confrontos = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    console.log(`✅ ${confrontos.length} confrontos encontrados`);
+
+    res.status(200).json({
+      data: confrontos,
+    });
+  } catch (error: any) {
+    console.error("❌ Erro ao buscar confrontos:", error);
+    res.status(500).json({
+      error: error.message || "Erro ao buscar confrontos",
+    });
+  }
+});
+
+/**
+ * @route   GET /api/etapas/:id/rei-da-praia/jogadores
+ * @desc    Buscar jogadores/estatísticas da etapa Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.get("/:id/rei-da-praia/jogadores", async (req: AuthRequest, res) => {
+  try {
+    const { id: etapaId } = req.params;
+    const { arenaId } = req.user!;
+
+    console.log("📥 Buscando jogadores Rei da Praia:", { etapaId, arenaId });
+
+    const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
+      .default;
+
+    const jogadores = await reiDaPraiaService.buscarJogadores(etapaId, arenaId);
+
+    res.status(200).json({
+      data: jogadores,
+    });
+  } catch (error: any) {
+    console.error("❌ Erro ao buscar jogadores:", error);
+    res.status(500).json({
+      error: error.message || "Erro ao buscar jogadores",
+    });
+  }
+});
+
+/**
+ * @route   GET /api/etapas/:id/rei-da-praia/partidas
+ * @desc    Buscar partidas da etapa Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.get("/:id/rei-da-praia/partidas", async (req: AuthRequest, res) => {
+  try {
+    const { id: etapaId } = req.params;
+    const { arenaId } = req.user!;
+
+    console.log("📥 Buscando partidas Rei da Praia:", { etapaId, arenaId });
+
+    const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
+      .default;
+
+    const partidas = await reiDaPraiaService.buscarPartidas(etapaId, arenaId);
+
+    res.status(200).json({
+      data: partidas,
+    });
+  } catch (error: any) {
+    console.error("❌ Erro ao buscar partidas:", error);
+    res.status(500).json({
+      error: error.message || "Erro ao buscar partidas",
+    });
+  }
+});
+
+/**
+ * @route   POST /api/etapas/:id/rei-da-praia/partidas/:partidaId/resultado
+ * @desc    Registrar resultado de partida Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.post(
+  "/:id/rei-da-praia/partidas/:partidaId/resultado",
+  async (req: AuthRequest, res) => {
+    try {
+      const { partidaId } = req.params;
+      const { arenaId } = req.user!;
+      const { placar } = req.body;
+
+      console.log("📥 Registrando resultado Rei da Praia:", {
+        partidaId,
+        arenaId,
+        placar,
+      });
+
+      const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
+        .default;
+
+      await reiDaPraiaService.registrarResultadoPartida(
+        partidaId,
+        arenaId,
+        placar
+      );
+
+      res.status(200).json({
+        data: {
+          message: "Resultado registrado com sucesso",
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Erro ao registrar resultado:", error);
+      res.status(500).json({
+        error: error.message || "Erro ao registrar resultado",
+      });
+    }
+  }
+);
+
+/**
+ * @route   POST /api/etapas/:id/rei-da-praia/gerar-eliminatoria
+ * @desc    Gerar fase eliminatória Rei da Praia
+ * @access  Private (Admin da arena)
+ */
+router.post(
+  "/:id/rei-da-praia/gerar-eliminatoria",
+  async (req: AuthRequest, res) => {
+    try {
+      const { id: etapaId } = req.params;
+      const { arenaId } = req.user!;
+      const {
+        classificadosPorGrupo = 2,
+        tipoChaveamento = "melhores_com_melhores",
+      } = req.body;
+
+      console.log("📥 Gerando eliminatória Rei da Praia:", {
+        etapaId,
+        arenaId,
+        classificadosPorGrupo,
+        tipoChaveamento,
+      });
+
+      const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
+        .default;
+
+      const resultado = await reiDaPraiaService.gerarFaseEliminatoria(
+        etapaId,
+        arenaId,
+        classificadosPorGrupo,
+        tipoChaveamento
+      );
+
+      res.status(200).json({
+        data: {
+          message: "Fase eliminatória gerada com sucesso",
+          duplas: resultado.duplas.length,
+          confrontos: resultado.confrontos.length,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Erro ao gerar eliminatória:", error);
+      res.status(500).json({
+        error: error.message || "Erro ao gerar fase eliminatória",
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/etapas/:id/rei-da-praia/cancelar-eliminatoria
+ * Cancela a fase eliminatória do Rei da Praia
+ */
+router.post(
+  "/:id/rei-da-praia/cancelar-eliminatoria",
+  async (req: AuthRequest, res) => {
+    try {
+      const { id: etapaId } = req.params;
+      const { arenaId } = req.user!;
+
+      const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
+        .default;
+      await reiDaPraiaService.cancelarFaseEliminatoria(etapaId, arenaId);
+
+      res.status(200).json({
+        data: {
+          message: "Fase eliminatória cancelada com sucesso",
+        },
+      });
+    } catch (error: any) {
+      console.error("Erro ao cancelar eliminatória:", error);
+      res
+        .status(400)
+        .json({ error: error.message || "Erro ao cancelar eliminatória" });
+    }
+  }
+);
+
+// =============================================================
 
 // ===== ROTAS GENÉRICAS /:id (DEVEM VIR POR ÚLTIMO) =====
 

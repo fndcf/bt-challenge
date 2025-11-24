@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
-import { Etapa, Inscricao, StatusEtapa } from "../../types/etapa";
+import { Etapa, Inscricao, StatusEtapa, FormatoEtapa } from "../../types/etapa";
+import { TipoChaveamentoReiDaPraia } from "../../types/reiDaPraia";
 import etapaService from "../../services/etapaService";
 import chaveService from "../../services/chaveService";
+import reiDaPraiaService from "../../services/reiDaPraiaService"; // ✅ NOVO
 import { StatusBadge } from "../../components/etapas/StatusBadge";
 import { ModalInscricao } from "../../components/etapas/ModalInscricao";
 import { ChavesEtapa } from "../../components/etapas/ChavesEtapa";
+import { ChavesReiDaPraia } from "../../components/etapas/ChavesReiDaPraia"; // ✅ NOVO - Criar depois
 import { ConfirmacaoPerigosa } from "../../components/ConfirmacaoPerigosa";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -115,6 +118,9 @@ const Title = styled.h1`
   font-weight: 700;
   color: #111827;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 
   @media (max-width: 768px) {
     font-size: 1.5rem;
@@ -166,6 +172,28 @@ const ActionButton = styled.button<{ $variant?: "primary" | "danger" }>`
   `}
 `;
 
+// ✅ NOVO: Badge de formato
+const FormatoBadge = styled.span<{ $formato: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  ${(props) =>
+    props.$formato === "rei_da_praia"
+      ? `
+    background: #ede9fe;
+    color: #7c3aed;
+  `
+      : `
+    background: #dbeafe;
+    color: #2563eb;
+  `}
+`;
+
 const TabsContainer = styled.div`
   margin-bottom: 1.5rem;
 `;
@@ -173,7 +201,6 @@ const TabsContainer = styled.div`
 const TabsNav = styled.div`
   border-bottom: 1px solid #e5e7eb;
 
-  /* MOBILE: Remove borda */
   @media (max-width: 768px) {
     border-bottom: none;
   }
@@ -198,7 +225,6 @@ const TabsList = styled.nav`
     border-radius: 2px;
   }
 
-  /* MOBILE: Layout vertical */
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 0.5rem;
@@ -225,7 +251,6 @@ const Tab = styled.button<{ $active: boolean }>`
     border-bottom-color: ${(props) => (props.$active ? "#3b82f6" : "#d1d5db")};
   }
 
-  /* MOBILE: Botão full-width com fundo */
   @media (max-width: 768px) {
     width: 100%;
     padding: 0.875rem 1rem;
@@ -257,7 +282,6 @@ const TabBadge = styled.span`
   background: #dbeafe;
   color: #2563eb;
 
-  /* MOBILE: Badge à direita */
   @media (max-width: 768px) {
     margin-left: auto;
     margin-right: 0;
@@ -275,10 +299,11 @@ const Grid = styled.div<{ $cols?: number }>`
   }
 `;
 
-const Card = styled.div`
-  background: white;
+const Card = styled.div<{ $variant?: "purple" }>`
+  background: ${(props) => (props.$variant === "purple" ? "#faf5ff" : "white")};
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid
+    ${(props) => (props.$variant === "purple" ? "#e9d5ff" : "#e5e7eb")};
   padding: 1.5rem;
 `;
 
@@ -350,10 +375,10 @@ const CardContent = styled.div`
   }
 `;
 
-const CardTitle = styled.h2`
+const CardTitle = styled.h2<{ $variant?: "purple" }>`
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: ${(props) => (props.$variant === "purple" ? "#7c3aed" : "#111827")};
   margin: 0 0 1rem 0;
 `;
 
@@ -466,7 +491,7 @@ const Button = styled.button<{
 `;
 
 const Alert = styled.div<{
-  $variant: "orange" | "red" | "blue" | "yellow" | "green";
+  $variant: "orange" | "red" | "blue" | "yellow" | "green" | "purple";
 }>`
   margin-top: 1rem;
   border-radius: 0.5rem;
@@ -504,6 +529,12 @@ const Alert = styled.div<{
           background: #f0fdf4;
           border: 1px solid #bbf7d0;
           color: #166534;
+        `;
+      case "purple":
+        return `
+          background: #faf5ff;
+          border: 1px solid #e9d5ff;
+          color: #6b21a8;
         `;
     }
   }}
@@ -600,9 +631,68 @@ const CancelButton = styled.button`
   }
 `;
 
+const SelectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+`;
+
+const SelectionActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const Checkbox = styled.input.attrs({ type: "checkbox" })`
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #6b7280;
+  user-select: none;
+`;
+
+const InscricaoCardSelectable = styled(InscricaoCard)<{ $selected?: boolean }>`
+  border: 2px solid ${(props) => (props.$selected ? "#3b82f6" : "#e5e7eb")};
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+// ============== HELPERS ==============
+
 /**
- * Página de detalhes da etapa
+ * Obter nome do tipo de chaveamento
  */
+const getNomeChaveamento = (tipo: TipoChaveamentoReiDaPraia): string => {
+  switch (tipo) {
+    case TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES:
+      return "🏆 Melhores com Melhores";
+    case TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING:
+      return "📊 Pareamento por Ranking";
+    case TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO:
+      return "🎲 Sorteio Aleatório";
+    default:
+      return "Não definido";
+  }
+};
+
+// ============== COMPONENTE ==============
+
 export const DetalhesEtapa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -617,6 +707,13 @@ export const DetalhesEtapa: React.FC = () => {
   const [abaAtiva, setAbaAtiva] = useState<
     "visao-geral" | "inscricoes" | "chaves"
   >("visao-geral");
+
+  const [jogadoresSelecionados, setJogadoresSelecionados] = useState<
+    Set<string>
+  >(new Set());
+
+  // ✅ Detectar formato
+  const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
 
   useEffect(() => {
     carregarEtapa();
@@ -682,7 +779,7 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = confirm(
-      ` ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
+      `⚠️ ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
         `Esta ação não pode ser desfeita!`
     );
 
@@ -702,18 +799,15 @@ export const DetalhesEtapa: React.FC = () => {
 
   const formatarData = (data: any) => {
     try {
-      // Se for um Timestamp do Firebase
       if (data && typeof data === "object" && "_seconds" in data) {
         const date = new Date(data._seconds * 1000);
         return format(date, "dd/MM/yyyy", { locale: ptBR });
       }
 
-      // Se for string ISO
       if (typeof data === "string") {
         return format(new Date(data), "dd/MM/yyyy", { locale: ptBR });
       }
 
-      // Se for Date
       if (data instanceof Date) {
         return format(data, "dd/MM/yyyy", { locale: ptBR });
       }
@@ -734,33 +828,57 @@ export const DetalhesEtapa: React.FC = () => {
   };
 
   const handleInscricaoSuccess = async () => {
-    await carregarEtapa(); // Recarregar dados após inscrição
+    await carregarEtapa();
   };
 
+  // ✅ ATUALIZADO: Gerar chaves baseado no formato
   const handleGerarChaves = async () => {
     if (!etapa) return;
 
-    const confirmar = window.confirm(
-      ` Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
-        `Isso criará:\n` +
-        `• ${etapa.qtdGrupos} grupos\n` +
+    const formatoNome = isReiDaPraia ? "Rei da Praia" : "Dupla Fixa";
+    const detalhes = isReiDaPraia
+      ? `• ${etapa.totalInscritos / 4} grupos de 4 jogadores\n` +
+        `• ${(etapa.totalInscritos / 4) * 3} partidas na fase de grupos\n` +
+        `• Estatísticas individuais por jogador`
+      : `• ${etapa.qtdGrupos} grupos\n` +
         `• ${Math.floor(etapa.totalInscritos / 2)} duplas\n` +
-        `• Todos os confrontos da fase de grupos\n\n` +
-        ` Esta ação não pode ser desfeita!`
+        `• Todos os confrontos da fase de grupos`;
+
+    const confirmar = window.confirm(
+      `🎾 Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
+        `Formato: ${formatoNome}\n\n` +
+        `Isso criará:\n${detalhes}\n\n` +
+        `⚠️ Esta ação não pode ser desfeita!`
     );
 
     if (!confirmar) return;
 
     try {
       setLoading(true);
-      const resultado = await chaveService.gerarChaves(etapa.id);
 
-      alert(
-        ` Chaves geradas com sucesso!\n\n` +
-          `• ${resultado.duplas.length} duplas criadas\n` +
-          `• ${resultado.grupos.length} grupos formados\n` +
-          `• ${resultado.partidas.length} partidas agendadas`
-      );
+      let resultado;
+
+      if (isReiDaPraia) {
+        // ✅ Usar service do Rei da Praia
+        resultado = await reiDaPraiaService.gerarChaves(etapa.id);
+
+        alert(
+          `✅ Chaves Rei da Praia geradas com sucesso!\n\n` +
+            `• ${resultado.jogadores.length} jogadores distribuídos\n` +
+            `• ${resultado.grupos.length} grupos formados\n` +
+            `• ${resultado.partidas.length} partidas agendadas`
+        );
+      } else {
+        // Usar service tradicional
+        resultado = await chaveService.gerarChaves(etapa.id);
+
+        alert(
+          `✅ Chaves geradas com sucesso!\n\n` +
+            `• ${resultado.duplas.length} duplas criadas\n` +
+            `• ${resultado.grupos.length} grupos formados\n` +
+            `• ${resultado.partidas.length} partidas agendadas`
+        );
+      }
 
       await carregarEtapa();
       setAbaAtiva("chaves");
@@ -776,7 +894,7 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = window.confirm(
-      ` Deseja encerrar as inscrições da etapa "${etapa.nome}"?\n\n` +
+      `🔒 Deseja encerrar as inscrições da etapa "${etapa.nome}"?\n\n` +
         `Atualmente há ${etapa.totalInscritos} jogador(es) inscrito(s).\n\n` +
         `Após encerrar, não será mais possível:\n` +
         `• Adicionar novos jogadores\n` +
@@ -790,7 +908,7 @@ export const DetalhesEtapa: React.FC = () => {
       setLoading(true);
       await etapaService.encerrarInscricoes(etapa.id);
       alert(
-        " Inscrições encerradas com sucesso!\n\nAgora você pode gerar as chaves da etapa."
+        "✅ Inscrições encerradas com sucesso!\n\nAgora você pode gerar as chaves da etapa."
       );
       await carregarEtapa();
     } catch (err: any) {
@@ -805,7 +923,7 @@ export const DetalhesEtapa: React.FC = () => {
     if (!etapa) return;
 
     const confirmar = window.confirm(
-      ` Deseja reabrir as inscrições da etapa "${etapa.nome}"?\n\n` +
+      `🔓 Deseja reabrir as inscrições da etapa "${etapa.nome}"?\n\n` +
         `Atualmente há ${etapa.totalInscritos} jogador(es) inscrito(s) ` +
         `de ${etapa.maxJogadores} vaga(s).\n\n` +
         `Após reabrir, você poderá:\n` +
@@ -820,7 +938,7 @@ export const DetalhesEtapa: React.FC = () => {
       setLoading(true);
       await etapaService.reabrirInscricoes(etapa.id);
       alert(
-        " Inscrições reabertas com sucesso!\n\nAgora você pode adicionar ou remover jogadores."
+        "✅ Inscrições reabertas com sucesso!\n\nAgora você pode adicionar ou remover jogadores."
       );
       await carregarEtapa();
     } catch (err: any) {
@@ -840,7 +958,7 @@ export const DetalhesEtapa: React.FC = () => {
       setModalExcluirAberto(false);
 
       alert(
-        " Chaves excluídas com sucesso!\n\n" +
+        "✅ Chaves excluídas com sucesso!\n\n" +
           'A etapa voltou ao status "Inscrições Encerradas".\n' +
           "Você pode gerar as chaves novamente quando quiser."
       );
@@ -884,16 +1002,72 @@ export const DetalhesEtapa: React.FC = () => {
   const inscricoesEncerradas =
     etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS;
   const vagasCompletas = etapa.totalInscritos === etapa.maxJogadores;
-  const numeroValido =
-    etapa.totalInscritos >= 4 && etapa.totalInscritos % 2 === 0;
+
+  // ✅ VALIDAÇÕES ESPECÍFICAS POR FORMATO
+  const numeroValido = isReiDaPraia
+    ? etapa.totalInscritos >= 8 && etapa.totalInscritos % 4 === 0
+    : etapa.totalInscritos >= 4 && etapa.totalInscritos % 2 === 0;
+
   const podeGerarChaves =
     inscricoesEncerradas &&
     vagasCompletas &&
     numeroValido &&
     !etapa.chavesGeradas;
+
   const podeEncerrarInscricoes = inscricoesAbertas && numeroValido;
   const podeReabrirInscricoes =
     inscricoesEncerradas && !etapa.chavesGeradas && !vagasCompletas;
+
+  const toggleSelecionarJogador = (inscricaoId: string) => {
+    setJogadoresSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(inscricaoId)) {
+        novo.delete(inscricaoId);
+      } else {
+        novo.add(inscricaoId);
+      }
+      return novo;
+    });
+  };
+
+  const selecionarTodos = () => {
+    if (jogadoresSelecionados.size === inscricoes.length) {
+      setJogadoresSelecionados(new Set());
+    } else {
+      setJogadoresSelecionados(new Set(inscricoes.map((i) => i.id)));
+    }
+  };
+
+  const handleExcluirSelecionados = async () => {
+    if (jogadoresSelecionados.size === 0) return;
+
+    const confirmacao = confirm(
+      `Deseja excluir ${jogadoresSelecionados.size} inscrição(ões)?`
+    );
+
+    if (!confirmacao) return;
+
+    try {
+      setLoading(true);
+
+      // ✅ SEQUENCIAL ao invés de paralelo
+      for (const inscricaoId of Array.from(jogadoresSelecionados)) {
+        const inscricao = inscricoes.find((i) => i.id === inscricaoId);
+        await etapaService.cancelarInscricao(etapa!.id, inscricaoId);
+        console.log(`✅ Excluído: ${inscricao?.jogadorNome}`);
+      }
+
+      alert(`${jogadoresSelecionados.size} inscrição(ões) cancelada(s)!`);
+
+      setJogadoresSelecionados(new Set());
+      await carregarEtapa(); // Recarrega tudo
+    } catch (error: any) {
+      console.error("Erro:", error);
+      alert(error.message || "Erro ao cancelar inscrições");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container>
@@ -904,20 +1078,27 @@ export const DetalhesEtapa: React.FC = () => {
 
         <HeaderRow>
           <HeaderContent>
-            <Title>{etapa.nome}</Title>
+            <Title>
+              {isReiDaPraia ? "👑" : "👥"} {etapa.nome}
+            </Title>
             {etapa.descricao && <Subtitle>{etapa.descricao}</Subtitle>}
           </HeaderContent>
 
           <HeaderActions>
+            {/* ✅ Badge de formato */}
+            <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
+              {isReiDaPraia ? "👑 Rei da Praia" : "👥 Dupla Fixa"}
+            </FormatoBadge>
+
             <StatusBadge status={etapa.status} />
 
             {!etapa.chavesGeradas && (
               <>
-                <ActionButton onClick={handleEditar}> Editar</ActionButton>
+                <ActionButton onClick={handleEditar}>✏️ Editar</ActionButton>
 
                 {etapa.totalInscritos === 0 && (
                   <ActionButton $variant="danger" onClick={handleExcluir}>
-                    Excluir
+                    🗑️ Excluir
                   </ActionButton>
                 )}
               </>
@@ -933,14 +1114,14 @@ export const DetalhesEtapa: React.FC = () => {
               $active={abaAtiva === "visao-geral"}
               onClick={() => setAbaAtiva("visao-geral")}
             >
-              <span> Visão Geral</span>
+              <span>📊 Visão Geral</span>
             </Tab>
 
             <Tab
               $active={abaAtiva === "inscricoes"}
               onClick={() => setAbaAtiva("inscricoes")}
             >
-              <span>Inscrições</span>
+              <span>👤 Inscrições</span>
               {etapa.totalInscritos > 0 && (
                 <TabBadge>{etapa.totalInscritos}</TabBadge>
               )}
@@ -951,12 +1132,17 @@ export const DetalhesEtapa: React.FC = () => {
                 $active={abaAtiva === "chaves"}
                 onClick={() => setAbaAtiva("chaves")}
               >
-                <span>Grupos & Partidas</span>
+                <span>
+                  {isReiDaPraia
+                    ? "👑 Grupos & Partidas"
+                    : "🎾 Grupos & Partidas"}
+                </span>
               </Tab>
             )}
           </TabsList>
         </TabsNav>
       </TabsContainer>
+
       {/* ABA: VISÃO GERAL */}
       {abaAtiva === "visao-geral" && (
         <>
@@ -981,17 +1167,30 @@ export const DetalhesEtapa: React.FC = () => {
               </ProgressBar>
             </Card>
 
-            {/* Grupos */}
+            {/* ✅ Card adaptado por formato */}
             <Card>
               <CardIconRow>
                 <CardInfo>
-                  <CardLabel>Grupos</CardLabel>
-                  <CardValue>{etapa.qtdGrupos || 0}</CardValue>
+                  <CardLabel>
+                    {isReiDaPraia ? "Grupos de 4" : "Grupos"}
+                  </CardLabel>
+                  <CardValue>
+                    {isReiDaPraia
+                      ? etapa.totalInscritos / 4 || 0
+                      : etapa.qtdGrupos || 0}
+                  </CardValue>
                 </CardInfo>
               </CardIconRow>
 
               <CardContent>
-                <p>• {etapa.jogadoresPorGrupo} duplas por grupo</p>
+                {isReiDaPraia ? (
+                  <>
+                    <p>• 4 jogadores por grupo</p>
+                    <p>• 3 partidas por grupo</p>
+                  </>
+                ) : (
+                  <p>• {etapa.jogadoresPorGrupo} duplas por grupo</p>
+                )}
                 {etapa.chavesGeradas ? (
                   <p style={{ color: "#22c55e", fontWeight: 500 }}>
                     ✓ Chaves geradas
@@ -1022,7 +1221,7 @@ export const DetalhesEtapa: React.FC = () => {
                       gap: "0.5rem",
                     }}
                   >
-                    <span>{etapa.local}</span>
+                    <span>📍 {etapa.local}</span>
                   </p>
                 </CardContent>
               )}
@@ -1033,7 +1232,7 @@ export const DetalhesEtapa: React.FC = () => {
           <Grid $cols={2}>
             {/* Datas */}
             <Card>
-              <CardTitle>Datas Importantes</CardTitle>
+              <CardTitle>📅 Datas Importantes</CardTitle>
 
               <InfoList>
                 <InfoRow>
@@ -1057,9 +1256,27 @@ export const DetalhesEtapa: React.FC = () => {
 
             {/* Estatísticas */}
             <Card>
-              <CardTitle>Estatísticas</CardTitle>
+              <CardTitle>📊 Estatísticas</CardTitle>
 
               <InfoList>
+                {/* ✅ Formato */}
+                <InfoRow>
+                  <InfoLabel>Formato:</InfoLabel>
+                  <InfoValue $color={isReiDaPraia ? "#7c3aed" : "#3b82f6"}>
+                    {isReiDaPraia ? "👑 Rei da Praia" : "👥 Dupla Fixa"}
+                  </InfoValue>
+                </InfoRow>
+
+                {/* ✅ Tipo de chaveamento (apenas Rei da Praia) */}
+                {isReiDaPraia && (etapa as any).tipoChaveamento && (
+                  <InfoRow>
+                    <InfoLabel>Chaveamento:</InfoLabel>
+                    <InfoValue $color="#7c3aed">
+                      {getNomeChaveamento((etapa as any).tipoChaveamento)}
+                    </InfoValue>
+                  </InfoRow>
+                )}
+
                 <InfoRow>
                   <InfoLabel>Nível:</InfoLabel>
                   <InfoValue $color="#a855f7">
@@ -1069,17 +1286,25 @@ export const DetalhesEtapa: React.FC = () => {
                   </InfoValue>
                 </InfoRow>
 
-                {/* ✅ ADICIONAR: Gênero */}
                 <InfoRow>
                   <InfoLabel>Gênero:</InfoLabel>
                   <InfoValue $color="#3b82f6">
-                    {etapa.genero === "masculino" ? "Masculino" : "Feminino"}
+                    {etapa.genero === "masculino"
+                      ? "♂️ Masculino"
+                      : "♀️ Feminino"}
                   </InfoValue>
                 </InfoRow>
 
+                {/* ✅ Estatística adaptada */}
                 <InfoRow>
-                  <InfoLabel>Total de duplas:</InfoLabel>
-                  <InfoValue>{Math.floor(etapa.totalInscritos / 2)}</InfoValue>
+                  <InfoLabel>
+                    {isReiDaPraia ? "Total de jogadores:" : "Total de duplas:"}
+                  </InfoLabel>
+                  <InfoValue>
+                    {isReiDaPraia
+                      ? etapa.totalInscritos
+                      : Math.floor(etapa.totalInscritos / 2)}
+                  </InfoValue>
                 </InfoRow>
 
                 <InfoRow>
@@ -1105,32 +1330,38 @@ export const DetalhesEtapa: React.FC = () => {
               </InfoList>
             </Card>
           </Grid>
+
           {/* Ações */}
           <ActionsSection>
-            <CardTitle> Ações</CardTitle>
+            <CardTitle>⚡ Ações</CardTitle>
 
             <ActionsGrid>
               {inscricoesAbertas && (
                 <Button $variant="blue" onClick={handleInscreverJogador}>
-                  <span>Inscrever Jogador</span>
+                  <span>➕ Inscrever Jogador</span>
                 </Button>
               )}
 
               {podeEncerrarInscricoes && (
                 <Button $variant="orange" onClick={handleEncerrarInscricoes}>
-                  <span>Encerrar Inscrições</span>
+                  <span>🔒 Encerrar Inscrições</span>
                 </Button>
               )}
 
               {podeGerarChaves && (
-                <Button $variant="green" onClick={handleGerarChaves}>
-                  <span>Gerar Chaves</span>
+                <Button
+                  $variant={isReiDaPraia ? "purple" : "green"}
+                  onClick={handleGerarChaves}
+                >
+                  <span>
+                    {isReiDaPraia ? "👑 Gerar Chaves" : "🎾 Gerar Chaves"}
+                  </span>
                 </Button>
               )}
 
               {podeReabrirInscricoes && (
                 <Button $variant="blue" onClick={handleReabrirInscricoes}>
-                  <span>Reabrir Inscrições</span>
+                  <span>🔓 Reabrir Inscrições</span>
                 </Button>
               )}
 
@@ -1140,14 +1371,14 @@ export const DetalhesEtapa: React.FC = () => {
                     $variant="purple"
                     onClick={() => setAbaAtiva("chaves")}
                   >
-                    <span>Ver Chaves</span>
+                    <span>👁️ Ver Chaves</span>
                   </Button>
 
                   <Button
                     $variant="red"
                     onClick={() => setModalExcluirAberto(true)}
                   >
-                    <span>Excluir Chaves</span>
+                    <span>🗑️ Excluir Chaves</span>
                   </Button>
                 </>
               )}
@@ -1156,17 +1387,17 @@ export const DetalhesEtapa: React.FC = () => {
                 $variant="gray"
                 onClick={() => navigate(`/admin/etapas/${etapa.id}/editar`)}
               >
-                <span>Editar Etapa</span>
+                <span>✏️ Editar Etapa</span>
               </Button>
 
               {!etapa.chavesGeradas && etapa.totalInscritos === 0 && (
                 <Button $variant="red" onClick={handleExcluir}>
-                  <span>Excluir Etapa</span>
+                  <span>🗑️ Excluir Etapa</span>
                 </Button>
               )}
             </ActionsGrid>
 
-            {/* Alertas */}
+            {/* ✅ Alertas adaptados por formato */}
             {etapa.totalInscritos > 0 && !etapa.chavesGeradas && (
               <Alert $variant="orange">
                 <p>
@@ -1186,7 +1417,36 @@ export const DetalhesEtapa: React.FC = () => {
               </Alert>
             )}
 
-            {inscricoesAbertas && etapa.totalInscritos < 4 && (
+            {/* ✅ Alertas específicos por formato */}
+            {inscricoesAbertas && isReiDaPraia && etapa.totalInscritos < 8 && (
+              <Alert $variant="purple">
+                <p>
+                  <strong>👑 Rei da Praia:</strong> Você precisa de pelo menos 8
+                  jogadores inscritos (múltiplo de 4) para encerrar as
+                  inscrições.
+                </p>
+              </Alert>
+            )}
+
+            {inscricoesAbertas &&
+              isReiDaPraia &&
+              etapa.totalInscritos >= 8 &&
+              etapa.totalInscritos % 4 !== 0 && (
+                <Alert $variant="purple">
+                  <p>
+                    <strong>👑 Rei da Praia:</strong> Você tem{" "}
+                    {etapa.totalInscritos} jogadores. O número deve ser múltiplo
+                    de 4 para formar grupos completos.
+                  </p>
+                  <p>
+                    Próximos valores válidos:{" "}
+                    {Math.floor(etapa.totalInscritos / 4) * 4} ou{" "}
+                    {Math.ceil(etapa.totalInscritos / 4) * 4}
+                  </p>
+                </Alert>
+              )}
+
+            {inscricoesAbertas && !isReiDaPraia && etapa.totalInscritos < 4 && (
               <Alert $variant="blue">
                 <p>
                   Você precisa de pelo menos 4 jogadores inscritos (número par)
@@ -1196,6 +1456,7 @@ export const DetalhesEtapa: React.FC = () => {
             )}
 
             {inscricoesAbertas &&
+              !isReiDaPraia &&
               etapa.totalInscritos >= 4 &&
               etapa.totalInscritos % 2 !== 0 && (
                 <Alert $variant="yellow">
@@ -1234,7 +1495,7 @@ export const DetalhesEtapa: React.FC = () => {
             {inscricoesEncerradas && !etapa.chavesGeradas && vagasCompletas && (
               <Alert $variant="green">
                 <p>
-                  <strong>Pronto!</strong> Inscrições encerradas com{" "}
+                  <strong>✅ Pronto!</strong> Inscrições encerradas com{" "}
                   {etapa.totalInscritos} jogadores (vagas completas). Agora você
                   pode gerar as chaves!
                 </p>
@@ -1269,10 +1530,11 @@ export const DetalhesEtapa: React.FC = () => {
           </ActionsSection>
         </>
       )}
+
       {/* ABA: INSCRIÇÕES */}
       {abaAtiva === "inscricoes" && (
         <Card>
-          <CardTitle>Jogadores Inscritos ({etapa.totalInscritos})</CardTitle>
+          <CardTitle>👤 Jogadores Inscritos ({etapa.totalInscritos})</CardTitle>
 
           {inscricoes.length === 0 ? (
             <InscricoesEmpty>
@@ -1283,40 +1545,93 @@ export const DetalhesEtapa: React.FC = () => {
               </p>
               {etapa.totalInscritos === 0 && inscricoesAbertas && (
                 <Button $variant="blue" onClick={handleInscreverJogador}>
-                  Inscrever Primeiro Jogador
+                  ➕ Inscrever Primeiro Jogador
                 </Button>
               )}
             </InscricoesEmpty>
           ) : (
-            <InscricoesGrid>
-              {inscricoes.map((inscricao) => (
-                <InscricaoCard key={inscricao.id}>
-                  <InscricaoInfo>
-                    <InscricaoNome>{inscricao.jogadorNome}</InscricaoNome>
-                    <InscricaoNivel>
-                      {inscricao.jogadorNivel === "iniciante" && "Iniciante"}
-                      {inscricao.jogadorNivel === "intermediario" &&
-                        "Intermediário"}
-                      {inscricao.jogadorNivel === "avancado" && "Avançado"}
-                    </InscricaoNivel>
-                  </InscricaoInfo>
+            <>
+              {!etapa.chavesGeradas && (
+                <SelectionHeader>
+                  <CheckboxLabel>
+                    <Checkbox
+                      checked={jogadoresSelecionados.size === inscricoes.length}
+                      onChange={selecionarTodos}
+                    />
+                    <span>
+                      {jogadoresSelecionados.size === 0
+                        ? "Selecionar Todos"
+                        : `${jogadoresSelecionados.size} selecionado(s)`}
+                    </span>
+                  </CheckboxLabel>
 
-                  {!etapa.chavesGeradas && (
-                    <CancelButton
-                      onClick={() =>
-                        handleCancelarInscricao(
-                          inscricao.id,
-                          inscricao.jogadorNome
-                        )
-                      }
-                      title="Cancelar inscrição"
-                    >
-                      ✕
-                    </CancelButton>
+                  {jogadoresSelecionados.size > 0 && (
+                    <SelectionActions>
+                      <Button
+                        $variant="red"
+                        onClick={handleExcluirSelecionados}
+                        disabled={loading}
+                      >
+                        🗑️ Excluir {jogadoresSelecionados.size}
+                      </Button>
+                      <Button
+                        $variant="gray"
+                        onClick={() => setJogadoresSelecionados(new Set())}
+                      >
+                        Limpar
+                      </Button>
+                    </SelectionActions>
                   )}
-                </InscricaoCard>
-              ))}
-            </InscricoesGrid>
+                </SelectionHeader>
+              )}
+
+              <InscricoesGrid>
+                {inscricoes.map((inscricao) => (
+                  <InscricaoCardSelectable
+                    key={inscricao.id}
+                    $selected={jogadoresSelecionados.has(inscricao.id)}
+                    onClick={() =>
+                      !etapa.chavesGeradas &&
+                      toggleSelecionarJogador(inscricao.id)
+                    }
+                  >
+                    {!etapa.chavesGeradas && (
+                      <Checkbox
+                        checked={jogadoresSelecionados.has(inscricao.id)}
+                        onChange={() => toggleSelecionarJogador(inscricao.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+
+                    <InscricaoInfo>
+                      <InscricaoNome>{inscricao.jogadorNome}</InscricaoNome>
+                      <InscricaoNivel>
+                        {inscricao.jogadorNivel === "iniciante" &&
+                          "🟢 Iniciante"}
+                        {inscricao.jogadorNivel === "intermediario" &&
+                          "🟡 Intermediário"}
+                        {inscricao.jogadorNivel === "avancado" && "🔴 Avançado"}
+                      </InscricaoNivel>
+                    </InscricaoInfo>
+
+                    {!etapa.chavesGeradas && (
+                      <CancelButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancelarInscricao(
+                            inscricao.id,
+                            inscricao.jogadorNome
+                          );
+                        }}
+                        title="Cancelar inscrição"
+                      >
+                        ✕
+                      </CancelButton>
+                    )}
+                  </InscricaoCardSelectable>
+                ))}
+              </InscricoesGrid>
+            </>
           )}
 
           {etapa.chavesGeradas && (
@@ -1335,17 +1650,27 @@ export const DetalhesEtapa: React.FC = () => {
                 $fullWidth
                 onClick={handleInscreverJogador}
               >
-                <span>Inscrever Novo Jogador</span>
+                ➕ Inscrever Novo Jogador
               </Button>
             </div>
           )}
         </Card>
       )}
 
-      {/* ABA: CHAVES */}
+      {/* ✅ ABA: CHAVES - Adaptar por formato */}
       {abaAtiva === "chaves" && etapa.chavesGeradas && (
         <Card>
-          <ChavesEtapa etapaId={etapa.id} arenaId={etapa.arenaId} />
+          {isReiDaPraia ? (
+            // ✅ Componente específico Rei da Praia (criar depois)
+            <ChavesReiDaPraia
+              etapaId={etapa.id}
+              arenaId={etapa.arenaId}
+              tipoChaveamento={etapa.tipoChaveamento}
+            />
+          ) : (
+            // Componente tradicional Dupla Fixa
+            <ChavesEtapa etapaId={etapa.id} arenaId={etapa.arenaId} />
+          )}
         </Card>
       )}
 
@@ -1367,13 +1692,24 @@ export const DetalhesEtapa: React.FC = () => {
         isOpen={modalExcluirAberto}
         onClose={() => setModalExcluirAberto(false)}
         onConfirm={handleExcluirChaves}
-        titulo=" Excluir Chaves?"
-        mensagem={`Você está prestes a EXCLUIR TODAS AS CHAVES da etapa "${etapa?.nome}".\n\nIsso irá remover:\n• Todas as duplas\n• Todos os grupos\n• Todas as partidas\n• Todo o progresso do torneio\n\n ESTA AÇÃO NÃO PODE SER DESFEITA!\n\nA etapa voltará ao status "Inscrições Encerradas" e você precisará gerar as chaves novamente do zero.`}
+        titulo="🗑️ Excluir Chaves?"
+        mensagem={
+          `Você está prestes a EXCLUIR TODAS AS CHAVES da etapa "${etapa?.nome}".\n\n` +
+          `Isso irá remover:\n` +
+          (isReiDaPraia
+            ? `• Todas as estatísticas individuais\n`
+            : `• Todas as duplas\n`) +
+          `• Todos os grupos\n` +
+          `• Todas as partidas\n` +
+          `• Todo o progresso do torneio\n\n` +
+          `⚠️ ESTA AÇÃO NÃO PODE SER DESFEITA!\n\n` +
+          `A etapa voltará ao status "Inscrições Encerradas" e você precisará gerar as chaves novamente do zero.`
+        }
         palavraConfirmacao="EXCLUIR"
         textoBotao="Sim, excluir tudo"
         loading={excluindo}
       />
-      <Footer></Footer>
+      <Footer />
     </Container>
   );
 };

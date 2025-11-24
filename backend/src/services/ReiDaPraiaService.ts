@@ -1,10 +1,9 @@
 /**
- * ReiDaPraiaService.ts - VERSÃO ATUALIZADA
+ * ReiDaPraiaService.ts - VERSÃO CORRIGIDA
  *
- * MUDANÇAS:
- * - Usa EstatisticasJogadorService compartilhado
- * - Collection: "estatisticas_jogador" (não "jogadores_individuais")
- * - Compatível com Dupla Fixa
+ * CORREÇÕES:
+ * - ✅ Lógica "Melhores com Melhores" corrigida para número ímpar de grupos
+ * - ✅ Forma duplas: FORTES (melhores 1º), EQUILIBRADAS (meio), FRACAS (piores 2º)
  */
 
 import { db } from "../config/firebase";
@@ -160,12 +159,15 @@ export class ReiDaPraiaService {
         gruposComCabecas.push(grupo);
       }
 
-      // 5. Distribuir jogadores normais
+      // 5. Distribuir jogadores normais (round-robin até completar 4 por grupo)
       let indexNormal = 0;
 
-      for (let posicao = 1; posicao < 4; posicao++) {
+      while (indexNormal < normaisEmbaralhados.length) {
         for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
-          if (indexNormal < normaisEmbaralhados.length) {
+          if (
+            gruposComCabecas[grupoIndex].length < 4 &&
+            indexNormal < normaisEmbaralhados.length
+          ) {
             gruposComCabecas[grupoIndex].push(normaisEmbaralhados[indexNormal]);
             indexNormal++;
           }
@@ -287,7 +289,9 @@ export class ReiDaPraiaService {
         const grupoComId = { ...grupo, id: docRef.id };
         grupos.push(grupoComId);
 
-        // ✅ ATUALIZAR grupoId nas estatísticas
+        await docRef.update({ id: docRef.id });
+
+        // Atualizar grupoId nas estatísticas
         for (const jogador of jogadoresGrupo) {
           await estatisticasJogadorService.atualizarGrupo(
             jogador.jogadorId,
@@ -338,6 +342,9 @@ export class ReiDaPraiaService {
           const docRef = await db
             .collection(this.collectionPartidas)
             .add(partida);
+
+          await docRef.update({ id: docRef.id });
+
           const partidaComId = { ...partida, id: docRef.id };
           todasPartidas.push(partidaComId);
         }
@@ -538,6 +545,44 @@ export class ReiDaPraiaService {
   }
 
   /**
+   * Atualizar estatísticas - ✅ USA EstatisticasJogadorService
+   */
+  private async atualizarEstatisticasJogadores(
+    partida: PartidaReiDaPraia,
+    vencedoresIds: string[],
+    setsDupla1: number,
+    setsDupla2: number,
+    gamesDupla1: number,
+    gamesDupla2: number
+  ): Promise<void> {
+    const jogadoresIds = [
+      partida.jogador1AId,
+      partida.jogador1BId,
+      partida.jogador2AId,
+      partida.jogador2BId,
+    ];
+
+    for (const jogadorId of jogadoresIds) {
+      const venceu = vencedoresIds.includes(jogadorId);
+      const naDupla1 = [partida.jogador1AId, partida.jogador1BId].includes(
+        jogadorId
+      );
+
+      await estatisticasJogadorService.atualizarAposPartidaGrupo(
+        jogadorId,
+        partida.etapaId,
+        {
+          venceu,
+          setsVencidos: naDupla1 ? setsDupla1 : setsDupla2,
+          setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
+          gamesVencidos: naDupla1 ? gamesDupla1 : gamesDupla2,
+          gamesPerdidos: naDupla1 ? gamesDupla2 : gamesDupla1,
+        }
+      );
+    }
+  }
+
+  /**
    * Reverter estatísticas - ✅ USA EstatisticasJogadorService
    */
   private async reverterEstatisticasJogadores(
@@ -563,7 +608,7 @@ export class ReiDaPraiaService {
         jogadorId
       );
 
-      await estatisticasJogadorService.reverterAposPartida(
+      await estatisticasJogadorService.reverterAposPartidaGrupo(
         jogadorId,
         partida.etapaId,
         {
@@ -572,44 +617,6 @@ export class ReiDaPraiaService {
           setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
           gamesVencidos: naDupla1 ? set.gamesDupla1 : set.gamesDupla2,
           gamesPerdidos: naDupla1 ? set.gamesDupla2 : set.gamesDupla1,
-        }
-      );
-    }
-  }
-
-  /**
-   * Atualizar estatísticas - ✅ USA EstatisticasJogadorService
-   */
-  private async atualizarEstatisticasJogadores(
-    partida: PartidaReiDaPraia,
-    vencedoresIds: string[],
-    setsDupla1: number,
-    setsDupla2: number,
-    gamesDupla1: number,
-    gamesDupla2: number
-  ): Promise<void> {
-    const jogadoresIds = [
-      partida.jogador1AId,
-      partida.jogador1BId,
-      partida.jogador2AId,
-      partida.jogador2BId,
-    ];
-
-    for (const jogadorId of jogadoresIds) {
-      const venceu = vencedoresIds.includes(jogadorId);
-      const naDupla1 = [partida.jogador1AId, partida.jogador1BId].includes(
-        jogadorId
-      );
-
-      await estatisticasJogadorService.atualizarAposPartida(
-        jogadorId,
-        partida.etapaId,
-        {
-          venceu,
-          setsVencidos: naDupla1 ? setsDupla1 : setsDupla2,
-          setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
-          gamesVencidos: naDupla1 ? gamesDupla1 : gamesDupla2,
-          gamesPerdidos: naDupla1 ? gamesDupla2 : gamesDupla1,
         }
       );
     }
@@ -662,7 +669,6 @@ export class ReiDaPraiaService {
     return arr;
   }
 
-  // ✅ Buscar dados usa EstatisticasJogadorService
   async buscarJogadores(
     etapaId: string,
     arenaId: string
@@ -689,11 +695,6 @@ export class ReiDaPraiaService {
 
   /**
    * Gerar fase eliminatória com duplas fixas formadas a partir dos classificados
-   *
-   * @param etapaId - ID da etapa
-   * @param arenaId - ID da arena
-   * @param classificadosPorGrupo - Quantos jogadores classificam por grupo (padrão: 2)
-   * @param tipoChaveamento - Tipo de chaveamento (padrão: MELHORES_COM_MELHORES)
    */
   async gerarFaseEliminatoria(
     etapaId: string,
@@ -830,15 +831,18 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * OPÇÃO 1: Melhores com Melhores
+   * ✅ OPÇÃO 1 CORRIGIDA: Melhores com Melhores
    *
-   * Lógica: Agrupa os MELHORES juntos
-   * - 1º melhor 1º + 2º melhor 1º (dupla forte)
-   * - 3º melhor 1º + 4º melhor 1º (dupla fraca)
-   * - 1º melhor 2º + 2º melhor 2º (dupla forte)
-   * - 3º melhor 2º + 4º melhor 2º (dupla fraca)
+   * Lógica: Agrupa os MELHORES juntos e os PIORES juntos
    *
-   * Confronto: Forte vs Fraco
+   * Com 3 grupos (ou ímpar):
+   * - Duplas FORTES: melhores 1º lugares entre si
+   * - Duplas EQUILIBRADAS: piores 1º + melhores 2º
+   * - Duplas FRACAS: piores 2º lugares entre si
+   *
+   * Com 4 grupos (ou par):
+   * - Duplas FORTES: metade superior dos 1º entre si
+   * - Duplas FRACAS: metade inferior dos 2º entre si
    */
   private async formarDuplasMelhoresComMelhores(
     etapaId: string,
@@ -849,7 +853,6 @@ export class ReiDaPraiaService {
   ): Promise<Dupla[]> {
     console.log("      🏆 OPÇÃO 1: Melhores com Melhores");
 
-    // Separar 1º lugares e 2º lugares
     const primeiros: EstatisticasJogador[] = [];
     const segundos: EstatisticasJogador[] = [];
 
@@ -861,13 +864,9 @@ export class ReiDaPraiaService {
       }
     }
 
-    // Ordenar por desempenho (critérios de desempate)
     const ordenar = (a: EstatisticasJogador, b: EstatisticasJogador) => {
-      // 1. Vitórias
       if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
-      // 2. Saldo de games
       if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
-      // 3. Sorteio
       return Math.random() - 0.5;
     };
 
@@ -893,12 +892,16 @@ export class ReiDaPraiaService {
     });
 
     const duplas: Dupla[] = [];
-    const metade = Math.floor(totalGrupos / 2);
+    const primeirosUsados = new Set<number>();
+    const segundosUsados = new Set<number>();
 
-    // Formar duplas: melhores 1º + melhores 1º
-    for (let i = 0; i < metade; i++) {
+    // 1. DUPLAS FORTES
+    console.log("      💪 Formando duplas FORTES (melhores 1º entre si):");
+    const numParesFortes = Math.floor(totalGrupos / 2);
+
+    for (let i = 0; i < numParesFortes * 2; i += 2) {
       const jogador1 = primeiros[i];
-      const jogador2 = primeiros[i + metade];
+      const jogador2 = primeiros[i + 1];
 
       const dupla = await this.criarDupla(
         etapaId,
@@ -907,20 +910,24 @@ export class ReiDaPraiaService {
         jogador2,
         duplas.length + 1
       );
-
       duplas.push(dupla);
+      primeirosUsados.add(i);
+      primeirosUsados.add(i + 1);
 
       console.log(
-        `         Dupla ${duplas.length}: ${jogador1.jogadorNome} (${
-          i + 1
-        }º melhor 1º) + ${jogador2.jogadorNome} (${i + metade + 1}º melhor 1º)`
+        `         Dupla ${duplas.length} (FORTE): ${jogador1.jogadorNome} + ${jogador2.jogadorNome}`
       );
     }
 
-    // Formar duplas: melhores 2º + melhores 2º
-    for (let i = 0; i < metade; i++) {
+    // 2. DUPLAS FRACAS
+    console.log("      👥 Formando duplas FRACAS (piores 2º entre si):");
+    const numParesFracos = Math.floor(totalGrupos / 2);
+    const inicio2Piores = totalGrupos - numParesFracos * 2;
+
+    for (let i = inicio2Piores; i < totalGrupos - 1; i += 2) {
+      // ✅ MUDANÇA AQUI: -1
       const jogador1 = segundos[i];
-      const jogador2 = segundos[i + metade];
+      const jogador2 = segundos[i + 1];
 
       const dupla = await this.criarDupla(
         etapaId,
@@ -929,21 +936,56 @@ export class ReiDaPraiaService {
         jogador2,
         duplas.length + 1
       );
-
       duplas.push(dupla);
+      segundosUsados.add(i);
+      segundosUsados.add(i + 1);
 
       console.log(
-        `         Dupla ${duplas.length}: ${jogador1.jogadorNome} (${
-          i + 1
-        }º melhor 2º) + ${jogador2.jogadorNome} (${i + metade + 1}º melhor 2º)`
+        `         Dupla ${duplas.length} (FRACA): ${jogador1.jogadorNome} + ${jogador2.jogadorNome}`
       );
     }
 
-    console.log("      ⚔️ Confrontos esperados:");
+    // 3. DUPLAS EQUILIBRADAS
     console.log(
-      `         Semi 1: Dupla 1 (elite 1º) vs Dupla ${duplas.length} (piores 2º)`
+      "      ⚖️ Formando duplas EQUILIBRADAS (piores 1º + melhores 2º):"
     );
-    console.log(`         Semi 2: Dupla 2 (piores 1º) vs Dupla 3 (elite 2º)`);
+    const primeirosRestantes = primeiros.filter(
+      (_, idx) => !primeirosUsados.has(idx)
+    );
+    const segundosRestantes = segundos.filter(
+      (_, idx) => !segundosUsados.has(idx)
+    );
+
+    for (
+      let i = 0;
+      i < Math.min(primeirosRestantes.length, segundosRestantes.length);
+      i++
+    ) {
+      const jogador1 = primeirosRestantes[i];
+      const jogador2 = segundosRestantes[i];
+
+      const dupla = await this.criarDupla(
+        etapaId,
+        arenaId,
+        jogador1,
+        jogador2,
+        duplas.length + 1
+      );
+      duplas.push(dupla);
+
+      console.log(
+        `         Dupla ${duplas.length} (EQUILIBRADA): ${jogador1.jogadorNome} + ${jogador2.jogadorNome}`
+      );
+    }
+
+    // VALIDAÇÃO
+    if (duplas.length !== totalGrupos) {
+      throw new Error(
+        `Erro: formou ${duplas.length} duplas para ${totalGrupos} grupos!`
+      );
+    }
+
+    console.log(`      ✅ ${duplas.length} duplas formadas corretamente!`);
 
     return duplas;
   }
@@ -982,11 +1024,8 @@ export class ReiDaPraiaService {
 
     // Ordenar por desempenho (critérios de desempate)
     const ordenar = (a: EstatisticasJogador, b: EstatisticasJogador) => {
-      // 1. Vitórias
       if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
-      // 2. Saldo de games
       if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
-      // 3. Sorteio
       return Math.random() - 0.5;
     };
 
@@ -1015,8 +1054,8 @@ export class ReiDaPraiaService {
 
     // Parear: i-ésimo melhor 1º + i-ésimo melhor 2º
     for (let i = 0; i < totalGrupos; i++) {
-      const jogador1 = primeiros[i]; // i-ésimo melhor 1º lugar
-      const jogador2 = segundos[i]; // i-ésimo melhor 2º lugar
+      const jogador1 = primeiros[i];
+      const jogador2 = segundos[i];
 
       const dupla = await this.criarDupla(
         etapaId,
@@ -1155,7 +1194,7 @@ export class ReiDaPraiaService {
       jogador2Genero: jogador2.jogadorGenero
         ? String(jogador2.jogadorGenero)
         : "",
-      grupoId: "", // Sem grupo na fase eliminatória
+      grupoId: "",
       grupoNome: "Eliminatória",
       jogos: 0,
       vitorias: 0,
@@ -1168,7 +1207,7 @@ export class ReiDaPraiaService {
       gamesPerdidos: 0,
       saldoGames: 0,
       posicaoGrupo: 0,
-      classificada: true, // Já estão na eliminatória
+      classificada: true,
       criadoEm: Timestamp.now(),
       atualizadoEm: Timestamp.now(),
     };
@@ -1195,7 +1234,9 @@ export class ReiDaPraiaService {
     const proximaPotencia = Math.pow(2, Math.ceil(Math.log2(totalDuplas)));
     const byes = proximaPotencia - totalDuplas;
 
-    console.log(`      🎲 BYEs: ${byes}`);
+    console.log(`      🎲 Total de duplas: ${totalDuplas}`);
+    console.log(`      🎲 Próxima potência de 2: ${proximaPotencia}`);
+    console.log(`      🎲 BYEs necessários: ${byes}`);
 
     let ordem = 1;
 
@@ -1226,6 +1267,8 @@ export class ReiDaPraiaService {
       await docRef.update({ id: docRef.id });
 
       confrontos.push(confronto);
+
+      console.log(`         BYE: Dupla ${i + 1} avança automaticamente`);
     }
 
     // Gerar confrontos reais (seed i vs seed n-i)
@@ -1262,6 +1305,12 @@ export class ReiDaPraiaService {
       await docRef.update({ id: docRef.id });
 
       confrontos.push(confronto);
+
+      console.log(
+        `         Confronto ${ordem - 1}: Dupla ${seed1Index + 1} vs Dupla ${
+          seed2Index + 1
+        }`
+      );
     }
 
     console.log(`      ✅ ${confrontos.length} confrontos gerados`);
@@ -1277,6 +1326,229 @@ export class ReiDaPraiaService {
     if (totalDuplas > 4) return TipoFase.QUARTAS;
     if (totalDuplas > 2) return TipoFase.SEMIFINAL;
     return TipoFase.FINAL;
+  }
+
+  /**
+   * Cancelar/Excluir fase eliminatória do Rei da Praia
+   */
+  async cancelarFaseEliminatoria(
+    etapaId: string,
+    arenaId: string
+  ): Promise<void> {
+    try {
+      console.log("🗑️ Cancelando fase eliminatória Rei da Praia...");
+
+      const etapa = await etapaService.buscarPorId(etapaId, arenaId);
+      if (!etapa) {
+        throw new Error("Etapa não encontrada");
+      }
+
+      if (etapa.formato !== "rei_da_praia") {
+        throw new Error("Esta etapa não é do formato Rei da Praia");
+      }
+
+      const confrontosSnapshot = await db
+        .collection("confrontos_eliminatorios")
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (confrontosSnapshot.empty) {
+        throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
+      }
+
+      console.log(
+        `   📊 ${confrontosSnapshot.size} confrontos eliminatórios encontrados`
+      );
+
+      // Reverter estatísticas das partidas eliminatórias
+      console.log("🔄 Buscando partidas eliminatórias...");
+
+      const partidasSnapshot = await db
+        .collection("partidas")
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+        .where("tipo", "==", "eliminatoria")
+        .get();
+
+      if (!partidasSnapshot.empty) {
+        console.log(
+          `   📊 ${partidasSnapshot.size} partidas eliminatórias encontradas`
+        );
+
+        for (const partidaDoc of partidasSnapshot.docs) {
+          const partida = {
+            id: partidaDoc.id,
+            ...partidaDoc.data(),
+          } as any;
+
+          if (
+            partida.status === StatusPartida.FINALIZADA &&
+            partida.placar &&
+            partida.placar.length > 0
+          ) {
+            console.log(`   ↩️ Revertendo partida ${partida.id}...`);
+
+            const dupla1Doc = await db
+              .collection("duplas")
+              .doc(partida.dupla1Id)
+              .get();
+            const dupla2Doc = await db
+              .collection("duplas")
+              .doc(partida.dupla2Id)
+              .get();
+
+            if (dupla1Doc.exists && dupla2Doc.exists) {
+              const dupla1 = { id: dupla1Doc.id, ...dupla1Doc.data() } as Dupla;
+              const dupla2 = { id: dupla2Doc.id, ...dupla2Doc.data() } as Dupla;
+
+              let setsDupla1 = 0;
+              let setsDupla2 = 0;
+              let gamesVencidosDupla1 = 0;
+              let gamesPerdidosDupla1 = 0;
+              let gamesVencidosDupla2 = 0;
+              let gamesPerdidosDupla2 = 0;
+
+              partida.placar.forEach((set: any) => {
+                if (set.gamesDupla1 > set.gamesDupla2) {
+                  setsDupla1++;
+                } else {
+                  setsDupla2++;
+                }
+                gamesVencidosDupla1 += set.gamesDupla1;
+                gamesPerdidosDupla1 += set.gamesDupla2;
+                gamesVencidosDupla2 += set.gamesDupla2;
+                gamesPerdidosDupla2 += set.gamesDupla1;
+              });
+
+              const dupla1Venceu = partida.vencedoraId === dupla1.id;
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla1.jogador1Id,
+                etapaId,
+                {
+                  venceu: dupla1Venceu,
+                  setsVencidos: setsDupla1,
+                  setsPerdidos: setsDupla2,
+                  gamesVencidos: gamesVencidosDupla1,
+                  gamesPerdidos: gamesPerdidosDupla1,
+                }
+              );
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla1.jogador2Id,
+                etapaId,
+                {
+                  venceu: dupla1Venceu,
+                  setsVencidos: setsDupla1,
+                  setsPerdidos: setsDupla2,
+                  gamesVencidos: gamesVencidosDupla1,
+                  gamesPerdidos: gamesPerdidosDupla1,
+                }
+              );
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla2.jogador1Id,
+                etapaId,
+                {
+                  venceu: !dupla1Venceu,
+                  setsVencidos: setsDupla2,
+                  setsPerdidos: setsDupla1,
+                  gamesVencidos: gamesVencidosDupla2,
+                  gamesPerdidos: gamesPerdidosDupla2,
+                }
+              );
+
+              await estatisticasJogadorService.reverterAposPartida(
+                dupla2.jogador2Id,
+                etapaId,
+                {
+                  venceu: !dupla1Venceu,
+                  setsVencidos: setsDupla2,
+                  setsPerdidos: setsDupla1,
+                  gamesVencidos: gamesVencidosDupla2,
+                  gamesPerdidos: gamesPerdidosDupla2,
+                }
+              );
+
+              console.log(`      ✅ Estatísticas de 4 jogadores revertidas`);
+            }
+          }
+        }
+
+        console.log("   ✅ Estatísticas individuais revertidas!");
+
+        const partidasBatch = db.batch();
+        partidasSnapshot.docs.forEach((doc) => {
+          partidasBatch.delete(doc.ref);
+        });
+        await partidasBatch.commit();
+        console.log(
+          `   ✅ ${partidasSnapshot.size} partidas eliminatórias excluídas`
+        );
+      }
+
+      const confrontosBatch = db.batch();
+      confrontosSnapshot.docs.forEach((doc) => {
+        confrontosBatch.delete(doc.ref);
+      });
+      await confrontosBatch.commit();
+      console.log(
+        `   ✅ ${confrontosSnapshot.size} confrontos eliminatórios excluídos`
+      );
+
+      console.log("🗑️ Excluindo duplas da eliminatória...");
+
+      const duplasSnapshot = await db
+        .collection("duplas")
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (!duplasSnapshot.empty) {
+        const duplasBatch = db.batch();
+        duplasSnapshot.docs.forEach((doc) => {
+          duplasBatch.delete(doc.ref);
+        });
+        await duplasBatch.commit();
+        console.log(`   ✅ ${duplasSnapshot.size} duplas excluídas`);
+      }
+
+      console.log("📊 Desmarcando jogadores como classificados...");
+
+      const estatisticasSnapshot = await db
+        .collection("estatisticas_jogador")
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+        .get();
+
+      if (!estatisticasSnapshot.empty) {
+        const estatisticasBatch = db.batch();
+        estatisticasSnapshot.docs.forEach((doc) => {
+          estatisticasBatch.update(doc.ref, {
+            classificado: false,
+            atualizadoEm: Timestamp.now(),
+          });
+        });
+        await estatisticasBatch.commit();
+        console.log(
+          `   ✅ ${estatisticasSnapshot.size} jogadores desmarcados como classificados`
+        );
+      }
+
+      await db.collection("etapas").doc(etapaId).update({
+        status: StatusEtapa.CHAVES_GERADAS,
+        atualizadoEm: Timestamp.now(),
+      });
+
+      console.log("✅ Fase eliminatória cancelada com sucesso!");
+      console.log(
+        "💡 Você pode agora ajustar os resultados da fase de grupos e gerar a eliminatória novamente."
+      );
+    } catch (error: any) {
+      console.error("Erro ao cancelar fase eliminatória:", error);
+      throw error;
+    }
   }
 }
 
