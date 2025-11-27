@@ -203,11 +203,6 @@ class ReiDaPraiaService {
     }
   ): Promise<ResultadoEliminatoriaReiDaPraia> {
     try {
-      // ✅ ADICIONAR LOG AQUI
-      console.log("📡 [SERVICE] Enviando requisição:", {
-        url: `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/gerar-eliminatoria`,
-        data,
-      });
       const response = await apiClient.post<ResultadoEliminatoriaReiDaPraia>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/gerar-eliminatoria`,
         data

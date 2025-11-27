@@ -559,25 +559,8 @@ router.post(
         tipoChaveamento = "melhores_com_melhores",
       } = req.body;
 
-      // ✅ ADICIONAR LOG AQUI
-      console.log("📥 [BACKEND CONTROLLER] Recebeu:", {
-        etapaId,
-        arenaId,
-        body: req.body, // Ver todo o body
-        classificadosPorGrupo,
-        tipoChaveamento,
-      });
-
       const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
         .default;
-
-      // ✅ ADICIONAR LOG AQUI TAMBÉM
-      console.log("🎯 [BACKEND CONTROLLER] Chamando service com:", {
-        etapaId,
-        arenaId,
-        classificadosPorGrupo,
-        tipoChaveamento,
-      });
 
       const resultado = await reiDaPraiaService.gerarFaseEliminatoria(
         etapaId,

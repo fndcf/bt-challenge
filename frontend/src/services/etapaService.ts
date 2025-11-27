@@ -63,7 +63,6 @@ class EtapaService {
 
       return await apiClient.get<ListagemEtapas>(url);
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao listar etapas - retornando lista vazia", {
         erro: error.message,
       });
@@ -203,7 +202,6 @@ class EtapaService {
         `${this.baseURL}/${etapaId}/inscricoes`
       );
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao listar inscrições - retornando lista vazia", {
         etapaId,
         erro: error.message,
@@ -305,7 +303,6 @@ class EtapaService {
     try {
       return await apiClient.get<EstatisticasEtapa>(`${this.baseURL}/stats`);
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao obter estatísticas - retornando valores padrão", {
         erro: error.message,
       });

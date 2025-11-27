@@ -170,7 +170,6 @@ class ArenaService {
       const arena = await apiClient.get<Arena>(`${this.basePath}/slug/${slug}`);
       return arena;
     } catch (error) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao buscar arena por slug - retornando null", { slug });
       return null;
     }
@@ -184,7 +183,6 @@ class ArenaService {
       const arena = await apiClient.get<Arena>(`${this.basePath}/${id}`);
       return arena;
     } catch (error) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao buscar arena por ID - retornando null", { id });
       return null;
     }
@@ -198,7 +196,6 @@ class ArenaService {
       const arena = await apiClient.get<Arena>(`${this.basePath}/me`);
       return arena;
     } catch (error) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao buscar minha arena - retornando null");
       return null;
     }
@@ -214,7 +211,6 @@ class ArenaService {
       );
       return response.arenas;
     } catch (error) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao listar arenas - retornando lista vazia");
       return [];
     }
@@ -266,7 +262,6 @@ class ArenaService {
       }>(`${this.basePath}/check-slug/${slug}`);
       return response.available;
     } catch (error) {
-      // ✅ CONVERTER console.error para logger.warn
       logger.warn("Erro ao verificar slug - retornando false", { slug });
       return false;
     }
@@ -420,7 +415,6 @@ class ArenaService {
       );
       return estatisticas;
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.error
       logger.error("Erro ao buscar estatísticas públicas", { slug }, error);
       return null;
     }
@@ -460,7 +454,6 @@ class ArenaService {
       const response = await apiClient.get<JogadoresResponse>(url);
       return response;
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.error
       logger.error("Erro ao buscar jogadores públicos", { slug }, error);
       return { jogadores: [], total: 0 };
     }
@@ -480,7 +473,6 @@ class ArenaService {
       );
       return jogador;
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.error
       logger.error(
         "Erro ao buscar jogador público",
         { slug, jogadorId },
@@ -501,7 +493,6 @@ class ArenaService {
       );
       return historico;
     } catch (error: any) {
-      // ✅ CONVERTER console.error para logger.error
       logger.error(
         "Erro ao buscar histórico do jogador",
         { slug, jogadorId },

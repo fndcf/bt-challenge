@@ -774,14 +774,6 @@ export class ReiDaPraiaService {
     duplas: Dupla[];
     confrontos: ConfrontoEliminatorio[];
   }> {
-    // ✅ ADICIONAR LOG AQUI (NO TOPO DA FUNÇÃO)
-    console.log("⚙️ [BACKEND SERVICE] gerarFaseEliminatoria chamada com:", {
-      etapaId,
-      arenaId,
-      classificadosPorGrupo,
-      tipoChaveamento,
-      tipoDoTipoChaveamento: typeof tipoChaveamento, // Ver o tipo
-    });
     try {
       const gruposSnapshot = await db
         .collection(this.collectionGrupos)

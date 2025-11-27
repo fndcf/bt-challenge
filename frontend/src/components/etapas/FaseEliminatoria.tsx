@@ -757,11 +757,8 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
         const etapa = await etapaService.buscarPorId(etapaId);
         if (etapa) {
           setEtapaFinalizada(etapa.status === "finalizada");
-          console.log("📊 Status da etapa:", etapa.status);
         }
-      } catch (error) {
-        console.error("Erro ao verificar status da etapa:", error);
-      }
+      } catch (error) {}
     };
 
     verificarStatusEtapa();

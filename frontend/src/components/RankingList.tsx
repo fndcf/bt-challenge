@@ -480,7 +480,6 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
 
       setContadores(contadoresTemp);
     } catch (err: any) {
-      console.error("Erro ao carregar ranking:", err);
       setError(err.message || "Erro ao carregar ranking");
     } finally {
       setLoading(false);

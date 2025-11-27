@@ -911,14 +911,6 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
     const tipoChaveamento =
       etapaTipoChaveamento || TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES;
 
-    // ✅ ADICIONAR LOG AQUI
-    console.log("🔍 [FRONTEND] Valores antes de enviar:", {
-      etapaId,
-      classificadosPorGrupo,
-      tipoChaveamento,
-      etapaTipoChaveamento, // Ver se tem valor
-    });
-
     const chaveamentoInfo = getNomeChaveamento(tipoChaveamento);
 
     if (
@@ -934,12 +926,6 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
 
     try {
       setLoading(true);
-
-      // ✅ ADICIONAR LOG AQUI TAMBÉM
-      console.log("🚀 [FRONTEND] Chamando service com:", {
-        classificadosPorGrupo,
-        tipoChaveamento,
-      });
 
       await reiDaPraiaService.gerarEliminatoria(etapaId, {
         classificadosPorGrupo,

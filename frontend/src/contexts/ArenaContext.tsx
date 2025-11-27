@@ -55,7 +55,6 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
 
       setArena(arenaData);
     } catch (err: any) {
-      // ✅ CONVERTER console.error para logger.error
       logger.error("Erro ao carregar arena por slug", { slug }, err);
       setError(err.message || "Erro ao carregar arena");
       setArena(null);
@@ -82,7 +81,6 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
 
       setArena(arenaData);
     } catch (err: any) {
-      // ✅ CONVERTER console.error para logger.error
       logger.error("Erro ao carregar arena do admin", {}, err);
       setError(err.message || "Erro ao carregar arena");
       setArena(null);
