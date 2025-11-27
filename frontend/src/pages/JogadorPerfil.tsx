@@ -306,19 +306,19 @@ const HistoricoList = styled.div`
 `;
 
 const HistoricoItem = styled(Link)`
-  display: block; // ✅ NOVO
+  display: block;
   padding: 1.5rem;
   background: #f9fafb;
   border-radius: 0.75rem;
   border-left: 4px solid #2563eb;
-  transition: all 0.2s; // ✅ MUDOU de background para all
-  text-decoration: none; // ✅ NOVO
-  cursor: pointer; // ✅ NOVO
+  transition: all 0.2s;
+  text-decoration: none;
+  cursor: pointer;
 
   &:hover {
     background: #f3f4f6;
-    transform: translateY(-2px); // ✅ NOVO: Efeito de hover
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); // ✅ NOVO
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -490,8 +490,6 @@ const JogadorPerfil: React.FC = () => {
         setLoading(true);
         setError("");
 
-        console.log("🔍 Buscando dados do jogador:", { slug, jogadorId });
-
         // Buscar arena
         const arenaData = await arenaService.getArenaPublica(slug);
         setArena(arenaData);
@@ -506,12 +504,11 @@ const JogadorPerfil: React.FC = () => {
         }
         setJogador(jogadorData);
 
-        // ✅ NOVO: Buscar estatísticas agregadas
+        //  Buscar estatísticas agregadas
         const statsData = await arenaService.getEstatisticasAgregadas(
           slug,
           jogadorId
         );
-        console.log("📊 Estatísticas agregadas:", statsData);
         setEstatisticas(statsData);
 
         // Buscar histórico
@@ -519,10 +516,8 @@ const JogadorPerfil: React.FC = () => {
           slug,
           jogadorId
         );
-        console.log("📜 Histórico:", historicoData);
         setHistorico(historicoData || []);
       } catch (err: any) {
-        console.error("❌ Erro ao carregar perfil:", err);
         setError(err.message || "Erro ao carregar perfil do jogador");
       } finally {
         setLoading(false);
@@ -597,7 +592,7 @@ const JogadorPerfil: React.FC = () => {
             <h1>{nomeJogador}</h1>
             <p>Jogador da {arena.nome}</p>
 
-            {/* ✅ NOVO: Badges de nível e gênero */}
+            {/*  Badges de nível e gênero */}
             <BadgeGroup>
               {nivelJogador && (
                 <NivelTag $nivel={nivelJogador} $genero={generoJogador}>
@@ -618,13 +613,13 @@ const JogadorPerfil: React.FC = () => {
 
         {/* Estatísticas */}
         <Grid>
-          {/* ✅ ATUALIZADO: Vitórias (soma de todas etapas) */}
+          {/*  Vitórias (soma de todas etapas) */}
           <StatCard>
             <StatValue>{totalVitorias}</StatValue>
             <StatLabel>Vitórias</StatLabel>
           </StatCard>
 
-          {/* ✅ NOVO: Card de Derrotas */}
+          {/*  Card de Derrotas */}
           <StatCard>
             <StatValue>{totalDerrotas}</StatValue>
             <StatLabel>Derrotas</StatLabel>

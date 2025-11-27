@@ -29,13 +29,11 @@ export enum FaseEtapa {
   FINAL = "final",
 }
 
-// ✅ NOVO: Formato da etapa
 export enum FormatoEtapa {
   DUPLA_FIXA = "dupla_fixa",
   REI_DA_PRAIA = "rei_da_praia",
 }
 
-// ✅ NOVO: Tipo de chaveamento para Rei da Praia
 export enum TipoChaveamentoReiDaPraia {
   MELHORES_COM_MELHORES = "melhores_com_melhores",
   PAREAMENTO_POR_RANKING = "pareamento_por_ranking",
@@ -52,9 +50,9 @@ export interface Etapa {
   // Informações básicas
   nome: string; // "Etapa 1 - Novembro 2025"
   descricao?: string;
-  nivel: NivelJogador; // ← ADICIONADO: Nível da etapa
+  nivel: NivelJogador;
   genero: GeneroJogador;
-  formato: FormatoEtapa; // ✅ NOVO
+  formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   dataInicio: Timestamp | string; // Início das inscrições
   dataFim: Timestamp | string; // Fim das inscrições
@@ -100,7 +98,7 @@ export const CriarEtapaSchema = z.object({
   genero: z.enum(GeneroJogador, {
     message: "Gênero é obrigatório (masculino ou feminino)",
   }),
-  formato: z.nativeEnum(FormatoEtapa).default(FormatoEtapa.DUPLA_FIXA), // ✅ NOVO
+  formato: z.nativeEnum(FormatoEtapa).default(FormatoEtapa.DUPLA_FIXA),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),
   dataInicio: z.string().datetime().or(z.date()),
   dataFim: z.string().datetime().or(z.date()),
@@ -122,9 +120,9 @@ export type CriarEtapaDTO = z.infer<typeof CriarEtapaSchema>;
 export const AtualizarEtapaSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
   descricao: z.string().max(500).optional(),
-  nivel: z.nativeEnum(NivelJogador).optional(), // ← ADICIONADO
+  nivel: z.nativeEnum(NivelJogador).optional(),
   genero: z.enum(GeneroJogador).optional(),
-  formato: z.nativeEnum(FormatoEtapa).optional(), // ✅ NOVO
+  formato: z.nativeEnum(FormatoEtapa).optional(),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),
   dataInicio: z.string().datetime().or(z.date()).optional(),
   dataFim: z.string().datetime().or(z.date()).optional(),

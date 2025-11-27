@@ -12,7 +12,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import reiDaPraiaService from "../../services/reiDaPraiaService";
 import { PartidaReiDaPraia } from "../../types/reiDaPraia";
-import { ModalRegistrarResultadoReiDaPraia } from "./ModalRegistrarResultadoReiDaPraia";
+import { ModalRegistrarResultadoReiDaPraia } from "./ModalRegistrarResultadoReiDaPraia"; // Criar depois
 
 interface PartidasGrupoReiDaPraiaProps {
   etapaId: string;

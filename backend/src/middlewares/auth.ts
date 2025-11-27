@@ -20,7 +20,7 @@ export interface AuthRequest extends Request {
  */
 export const requireAuth = async (
   req: AuthRequest,
-  _res: Response, // ✅ ADICIONADO: Parâmetro res
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -75,7 +75,7 @@ export const requireAuth = async (
  */
 export const optionalAuth = async (
   req: AuthRequest,
-  _res: Response, // ✅ ADICIONADO: Parâmetro res
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -138,7 +138,7 @@ export const requireRole = (allowedRoles: string[]) => {
  */
 export const requireArenaAccess = (
   req: AuthRequest,
-  _res: Response, // ✅ ADICIONADO: Parâmetro res
+  _res: Response,
   next: NextFunction
 ): void => {
   if (!req.user) {

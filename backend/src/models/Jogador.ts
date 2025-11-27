@@ -76,13 +76,11 @@ export const CriarJogadorSchema = z.object({
     .default(GeneroJogador.MASCULINO),
 
   nivel: z.nativeEnum(NivelJogador, {
-    // ✅ CORRIGIDO: Usar apenas message, não errorMap
     message: "Nível inválido",
   }),
 
   status: z
     .nativeEnum(StatusJogador, {
-      // ✅ CORRIGIDO: Usar apenas message, não errorMap
       message: "Status inválido",
     })
     .default(StatusJogador.ATIVO),

@@ -375,7 +375,7 @@ const FormatoBadge = styled.span<{ $color: string }>`
   margin-top: 0.5rem;
 `;
 
-// ============== NOVO: Seletor de Tipo de Chaveamento ==============
+// ==============  Seletor de Tipo de Chaveamento ==============
 
 const ChaveamentoSelector = styled.div`
   display: flex;
@@ -458,7 +458,7 @@ export const CriarEtapa: React.FC = () => {
     nivel: NivelJogador.INTERMEDIARIO,
     genero: GeneroJogador.MASCULINO,
     formato: FormatoEtapa.DUPLA_FIXA,
-    tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES, // ✅ NOVO
+    tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES,
     dataInicio: "",
     dataFim: "",
     dataRealizacao: "",
@@ -730,13 +730,9 @@ export const CriarEtapa: React.FC = () => {
         delete dadosFormatados.tipoChaveamento;
       }
 
-      console.log("📤 Dados enviados:", dadosFormatados);
-      console.log("📤 Formato:", dadosFormatados.formato);
-
       await etapaService.criar(dadosFormatados);
       navigate("/admin/etapas");
     } catch (err: any) {
-      console.error("Erro ao criar etapa:", err);
       setError(err.message || "Erro ao criar etapa");
       setLoading(false);
     }
@@ -813,7 +809,7 @@ export const CriarEtapa: React.FC = () => {
           </FormatoSelector>
         </Card>
 
-        {/* ✅ NOVO: Card de Tipo de Chaveamento (apenas Rei da Praia) */}
+        {/*  Card de Tipo de Chaveamento (apenas Rei da Praia) */}
         {formData.formato === FormatoEtapa.REI_DA_PRAIA && (
           <Card $variant="purple">
             <CardTitle $variant="purple">

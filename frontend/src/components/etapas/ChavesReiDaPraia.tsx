@@ -273,13 +273,20 @@ const JogadorMeta = styled.div`
   flex-wrap: wrap;
 `;
 
-const NivelBadge = styled.span<{ $nivel: string }>`
+const NivelBadge = styled.span<{ $nivel?: string }>`
   font-size: 0.75rem;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   font-weight: 500;
 
   ${(props) => {
+    if (!props.$nivel) {
+      return `
+        background: #f3f4f6;
+        color: #6b7280;
+      `;
+    }
+
     switch (props.$nivel) {
       case "iniciante":
         return `
@@ -556,7 +563,11 @@ const CombinacaoNumero = styled.span`
 
 // ============== HELPERS ==============
 
-const getNivelLabel = (nivel: string): string => {
+const getNivelLabel = (nivel?: string): string => {
+  if (!nivel) {
+    return "Não informado";
+  }
+
   switch (nivel) {
     case "iniciante":
       return "Iniciante";
@@ -587,30 +598,6 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   useEffect(() => {
     carregarChaves();
   }, [etapaId, abaAtiva]);
-
-  // ✅ ADICIONE ISSO PARA DEBUG
-  useEffect(() => {
-    if (jogadores.length > 0) {
-      console.log(
-        "🔍 Debug jogadores:",
-        jogadores.map((j) => ({
-          id: j.id,
-          jogadorId: j.jogadorId,
-          nome: j.jogadorNome,
-          grupoId: j.grupoId,
-        }))
-      );
-    }
-    if (grupos.length > 0) {
-      console.log(
-        "🔍 Debug grupos:",
-        grupos.map((g) => ({
-          id: g.id,
-          nome: g.nome,
-        }))
-      );
-    }
-  }, [jogadores, grupos]);
 
   const carregarChaves = async () => {
     try {
@@ -703,13 +690,13 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           </Header>
 
           <GruposGrid>
-            {grupos.map((grupo, grupoIndex) => {
+            {grupos.map((grupo) => {
               const jogadoresDoGrupo = jogadores.filter(
                 (j) => j.grupoId === grupo.id
               );
 
               return (
-                <GrupoCard key={grupo.id || `grupo-${grupoIndex}`}>
+                <GrupoCard key={grupo.id}>
                   <GrupoHeader>
                     <GrupoNome>
                       <span>👑</span>
@@ -734,40 +721,23 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                           }
 
                           // 2. Pontos (3 por vitória)
-                          if ((a.pontosGrupo || 0) !== (b.pontosGrupo || 0)) {
-                            // ✅ NOVO
-                            return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+                          if (a.pontosGrupo !== b.pontosGrupo) {
+                            return b.pontosGrupo - a.pontosGrupo;
                           }
 
                           // 3. Saldo de games
-                          if (
-                            (a.saldoGamesGrupo || 0) !==
-                            (b.saldoGamesGrupo || 0)
-                          ) {
-                            return (
-                              (b.saldoGamesGrupo || 0) -
-                              (a.saldoGamesGrupo || 0)
-                            );
+                          if (a.saldoGamesGrupo !== b.saldoGamesGrupo) {
+                            return b.saldoGamesGrupo - a.saldoGamesGrupo;
                           }
 
                           // 4. Games vencidos
-                          if (
-                            (a.gamesVencidosGrupo || 0) !==
-                            (b.gamesVencidosGrupo || 0)
-                          ) {
-                            return (
-                              (b.gamesVencidosGrupo || 0) -
-                              (a.gamesVencidosGrupo || 0)
-                            );
+                          if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
+                            return b.gamesVencidosGrupo - a.gamesVencidosGrupo;
                           }
 
                           // 5. Saldo de sets
-                          if (
-                            (a.saldoSetsGrupo || 0) !== (b.saldoSetsGrupo || 0)
-                          ) {
-                            return (
-                              (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0)
-                            );
+                          if (a.saldoSetsGrupo !== b.saldoSetsGrupo) {
+                            return b.saldoSetsGrupo - a.saldoSetsGrupo;
                           }
 
                           // 6. Alfabético
@@ -791,9 +761,11 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                               <JogadorInfo>
                                 <JogadorNome>{jogador.jogadorNome}</JogadorNome>
                                 <JogadorMeta>
-                                  <NivelBadge $nivel={jogador.jogadorNivel}>
-                                    {getNivelLabel(jogador.jogadorNivel)}
-                                  </NivelBadge>
+                                  {jogador.jogadorNivel && (
+                                    <NivelBadge $nivel={jogador.jogadorNivel}>
+                                      {getNivelLabel(jogador.jogadorNivel)}
+                                    </NivelBadge>
+                                  )}
                                   {jogador.classificado && (
                                     <ClassificadoBadge>
                                       ✓ Classificado
@@ -807,29 +779,29 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                                   <StatItem>
                                     <StatLabel>PTS</StatLabel>
                                     <StatValue $variant="primary">
-                                      {jogador.pontosGrupo || 0}
+                                      {jogador.pontosGrupo}
                                     </StatValue>
                                   </StatItem>
 
                                   <StatItem>
                                     <StatLabel>V-D</StatLabel>
                                     <StatValue>
-                                      {jogador.vitoriasGrupo || 0}-
-                                      {jogador.derrotasGrupo || 0}
+                                      {jogador.vitoriasGrupo}-
+                                      {jogador.derrotasGrupo}
                                     </StatValue>
                                   </StatItem>
 
                                   <StatItem>
                                     <StatLabel>GF</StatLabel>
                                     <StatValue>
-                                      {jogador.gamesVencidosGrupo || 0}
+                                      {jogador.gamesVencidosGrupo}
                                     </StatValue>
                                   </StatItem>
 
                                   <StatItem>
                                     <StatLabel>GC</StatLabel>
                                     <StatValue>
-                                      {jogador.gamesPerdidosGrupo || 0}
+                                      {jogador.gamesPerdidosGrupo}
                                     </StatValue>
                                   </StatItem>
 
@@ -837,17 +809,15 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                                     <StatLabel>SG</StatLabel>
                                     <StatValue
                                       $variant={
-                                        (jogador.saldoGamesGrupo || 0) > 0
+                                        jogador.saldoGamesGrupo > 0
                                           ? "success"
-                                          : (jogador.saldoGamesGrupo || 0) < 0
+                                          : jogador.saldoGamesGrupo < 0
                                           ? "error"
                                           : "neutral"
                                       }
                                     >
-                                      {(jogador.saldoGamesGrupo || 0) > 0
-                                        ? "+"
-                                        : ""}
-                                      {jogador.saldoGamesGrupo || 0}
+                                      {jogador.saldoGamesGrupo > 0 ? "+" : ""}
+                                      {jogador.saldoGamesGrupo}
                                     </StatValue>
                                   </StatItem>
                                 </StatsGrid>

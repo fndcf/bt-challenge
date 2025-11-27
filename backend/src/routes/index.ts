@@ -4,6 +4,7 @@ import jogadorRoutes from "./jogadores";
 import etapaRoutes from "./etapas";
 import partidaRoutes from "./partidas";
 import publicRoutes from "./publicRoutes";
+import cabecaDeChaveRoutes from "./cabecaDeChaveRoutes";
 
 const router = Router();
 
@@ -13,7 +14,6 @@ const router = Router();
  * @access  Public
  */
 router.get("/", (_req: Request, res: Response) => {
-  // ✅ CORRIGIDO: _req
   res.json({
     message: "Challenge BT API",
     version: "1.0.0",
@@ -23,6 +23,7 @@ router.get("/", (_req: Request, res: Response) => {
       jogadores: "/api/jogadores",
       etapas: "/api/etapas",
       partidas: "/api/partidas",
+      cabecasDeChave: "/api/arenas/:arenaId/cabecas-de-chave",
     },
   });
 });
@@ -33,7 +34,6 @@ router.get("/", (_req: Request, res: Response) => {
  * @access  Public
  */
 router.get("/health", (_req: Request, res: Response) => {
-  // ✅ CORRIGIDO: _req
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -48,6 +48,7 @@ router.use("/jogadores", jogadorRoutes);
 router.use("/etapas", etapaRoutes);
 router.use("/partidas", partidaRoutes);
 router.use("/public", publicRoutes);
+router.use(cabecaDeChaveRoutes);
 
 /**
  * @route   * (404)

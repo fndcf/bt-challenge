@@ -8,14 +8,15 @@ import { Arena, ArenaType } from "../domain/Arena";
 import { auth, db } from "../config/firebase";
 import { COLLECTIONS } from "../config/firestore";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
-import { generateUniqueSlug } from "../utils/slugify"; // ✅ IMPORTAR
+import { generateUniqueSlug } from "../utils/slugify";
+import logger from "../utils/logger";
 
 /**
  * Dados para criar uma arena
  */
 export interface CreateArenaDTO {
   nome: string;
-  slug?: string; // ✅ AGORA É OPCIONAL
+  slug?: string;
   adminEmail: string;
   adminPassword: string;
 }
@@ -36,18 +37,17 @@ export class ArenaService {
     message: string;
   }> {
     try {
-      // ✅ GERAR SLUG AUTOMATICAMENTE SE NÃO FOR FORNECIDO
+      // Gerar slug automaticamente se não for fornecido
       let slug = data.slug;
 
       if (!slug) {
-        console.log(`🔄 Gerando slug automaticamente para: "${data.nome}"`);
+        logger.info("Gerando slug automaticamente", { nome: data.nome });
         slug = await generateUniqueSlug(data.nome, (s) =>
           this.arenaRepository.exists(s)
         );
-        console.log(`✅ Slug gerado: "${slug}"`);
+        logger.info("Slug gerado", { slug, nome: data.nome });
       } else {
         // Se slug foi fornecido manualmente, validar
-        console.log(`🔍 Validando slug fornecido: "${slug}"`);
         this.validateSlug(slug);
 
         const slugExists = await this.arenaRepository.exists(slug);
@@ -56,7 +56,7 @@ export class ArenaService {
         }
       }
 
-      // Validar outros dados (agora slug é garantido)
+      // Validar outros dados
       this.validateArenaData({ ...data, slug });
 
       // 1. Criar usuário no Firebase Authentication
@@ -69,9 +69,9 @@ export class ArenaService {
       try {
         // 2. Criar arena no Firestore
         const arenaData: ArenaType = {
-          id: "", // Será preenchido pelo repositório
+          id: "",
           nome: data.nome,
-          slug: slug, // ✅ Usar slug gerado ou fornecido
+          slug: slug,
           adminEmail: data.adminEmail,
           adminUid: userRecord.uid,
           ativa: true,
@@ -94,9 +94,18 @@ export class ArenaService {
         try {
           await auth.generateEmailVerificationLink(data.adminEmail);
         } catch (error) {
-          console.warn("Erro ao gerar link de verificação:", error);
-          // Não falha se não conseguir enviar email
+          logger.warn("Falha ao gerar link de verificação", {
+            email: data.adminEmail,
+          });
         }
+
+        logger.info("Arena criada com sucesso", {
+          arenaId: arena.id,
+          nome: arena.nome,
+          slug: arena.slug,
+          adminEmail: data.adminEmail,
+          adminUid: userRecord.uid,
+        });
 
         return {
           arena,
@@ -106,7 +115,16 @@ export class ArenaService {
           }" criada com sucesso! Acesse: ${arena.getPublicUrl()}`,
         };
       } catch (error) {
-        // Se falhar ao criar arena, deletar usuário do Auth
+        // Rollback: deletar usuário do Auth
+        logger.error(
+          "Erro ao criar arena, fazendo rollback",
+          {
+            adminEmail: data.adminEmail,
+            adminUid: userRecord.uid,
+          },
+          error as Error
+        );
+
         await auth.deleteUser(userRecord.uid);
         throw error;
       }
@@ -197,7 +215,15 @@ export class ArenaService {
       ...updateData
     } = data as any;
 
-    return await this.arenaRepository.update(id, updateData);
+    const updatedArena = await this.arenaRepository.update(id, updateData);
+
+    logger.info("Arena atualizada", {
+      arenaId: id,
+      adminUid,
+      camposAtualizados: Object.keys(updateData),
+    });
+
+    return updatedArena;
   }
 
   /**
@@ -214,6 +240,12 @@ export class ArenaService {
     }
 
     await this.arenaRepository.delete(id);
+
+    logger.info("Arena desativada", {
+      arenaId: id,
+      nome: arena.nome,
+      adminUid,
+    });
   }
 
   /**
@@ -234,7 +266,6 @@ export class ArenaService {
       );
     }
 
-    // ✅ Slug agora é opcional, só valida se fornecido
     if (data.slug) {
       this.validateSlug(data.slug);
     }
@@ -275,7 +306,7 @@ export class ArenaService {
       "contact",
       "privacy",
       "terms",
-      "public", // ✅ ADICIONAR esse também
+      "public",
     ];
 
     if (reservedSlugs.includes(slug)) {

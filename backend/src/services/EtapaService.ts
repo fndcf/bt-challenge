@@ -1,3 +1,8 @@
+/**
+ * EtapaService.ts
+ * Service para gerenciar etapas
+ */
+
 import { db } from "../config/firebase";
 import {
   Etapa,
@@ -17,10 +22,8 @@ import { Inscricao, StatusInscricao } from "../models/Inscricao";
 import { Timestamp } from "firebase-admin/firestore";
 import jogadorService from "./JogadorService";
 import { Dupla } from "../models/Dupla";
+import logger from "../utils/logger";
 
-/**
- * Service para gerenciar etapas
- */
 export class EtapaService {
   private collectionEtapas = "etapas";
   private collectionInscricoes = "inscricoes";
@@ -34,7 +37,6 @@ export class EtapaService {
     data: CriarEtapaDTO
   ): Promise<Etapa> {
     try {
-      // Validar dados
       const dadosValidados = CriarEtapaSchema.parse(data);
 
       // Validar datas
@@ -52,14 +54,12 @@ export class EtapaService {
         );
       }
 
-      // Validar maxJogadores (deve ser par)
       if (dadosValidados.maxJogadores % 2 !== 0) {
         throw new Error("Número máximo de jogadores deve ser par");
       }
 
       const agora = Timestamp.now();
 
-      // Calcular quantidade de grupos
       const totalDuplas = dadosValidados.maxJogadores / 2;
       const qtdGrupos = Math.ceil(
         totalDuplas / dadosValidados.jogadoresPorGrupo
@@ -69,7 +69,7 @@ export class EtapaService {
         arenaId,
         nome: dadosValidados.nome.trim(),
         descricao: dadosValidados.descricao?.trim() || undefined,
-        nivel: dadosValidados.nivel, // ← ADICIONADO
+        nivel: dadosValidados.nivel,
         genero: dadosValidados.genero,
         formato: dadosValidados.formato,
         tipoChaveamento: dadosValidados.tipoChaveamento || undefined,
@@ -94,12 +94,32 @@ export class EtapaService {
 
       const docRef = await db.collection(this.collectionEtapas).add(etapaData);
 
-      return {
+      const novaEtapa = {
         id: docRef.id,
         ...etapaData,
       } as Etapa;
+
+      logger.info("Etapa criada", {
+        etapaId: novaEtapa.id,
+        nome: novaEtapa.nome,
+        nivel: novaEtapa.nivel,
+        genero: novaEtapa.genero,
+        formato: novaEtapa.formato,
+        maxJogadores: novaEtapa.maxJogadores,
+        qtdGrupos,
+        arenaId,
+      });
+
+      return novaEtapa;
     } catch (error: any) {
-      console.error("Erro ao criar etapa:", error);
+      logger.error(
+        "Erro ao criar etapa",
+        {
+          arenaId,
+          nome: data.nome,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -108,27 +128,45 @@ export class EtapaService {
    * Buscar etapa por ID
    */
   async buscarPorId(id: string, arenaId: string): Promise<Etapa | null> {
-    try {
-      const doc = await db.collection(this.collectionEtapas).doc(id).get();
+    const doc = await db.collection(this.collectionEtapas).doc(id).get();
 
-      if (!doc.exists) {
-        return null;
-      }
-
-      const data = doc.data();
-
-      if (data?.arenaId !== arenaId) {
-        return null;
-      }
-
-      return {
-        id: doc.id,
-        ...data,
-      } as Etapa;
-    } catch (error) {
-      console.error("Erro ao buscar etapa:", error);
-      throw new Error("Falha ao buscar etapa");
+    if (!doc.exists) {
+      return null;
     }
+
+    const data = doc.data();
+
+    if (data?.arenaId !== arenaId) {
+      return null;
+    }
+
+    return {
+      id: doc.id,
+      ...data,
+    } as Etapa;
+  }
+
+  /**
+   * Buscar uma inscrição específica
+   */
+  async buscarInscricao(
+    etapaId: string,
+    arenaId: string,
+    inscricaoId: string
+  ): Promise<Inscricao | null> {
+    const doc = await db.collection("inscricoes").doc(inscricaoId).get();
+
+    if (!doc.exists) {
+      return null;
+    }
+
+    const inscricao = { id: doc.id, ...doc.data() } as Inscricao;
+
+    if (inscricao.etapaId !== etapaId || inscricao.arenaId !== arenaId) {
+      return null;
+    }
+
+    return inscricao;
   }
 
   /**
@@ -142,23 +180,19 @@ export class EtapaService {
     try {
       const dadosValidados = InscreverJogadorSchema.parse(data);
 
-      // Buscar etapa
       const etapa = await this.buscarPorId(etapaId, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
 
-      // Verificar se inscrições estão abertas
       if (etapa.status !== StatusEtapa.INSCRICOES_ABERTAS) {
         throw new Error("Inscrições não estão abertas para esta etapa");
       }
 
-      // Verificar se atingiu limite
       if (etapa.totalInscritos >= etapa.maxJogadores) {
         throw new Error("Etapa atingiu o número máximo de jogadores");
       }
 
-      // Verificar se jogador existe
       const jogador = await jogadorService.buscarPorId(
         dadosValidados.jogadorId,
         arenaId
@@ -167,7 +201,6 @@ export class EtapaService {
         throw new Error("Jogador não encontrado");
       }
 
-      // VALIDAÇÃO CRÍTICA: Verificar se o nível do jogador é compatível com a etapa
       if (jogador.nivel !== etapa.nivel) {
         throw new Error(
           `Este jogador não pode se inscrever nesta etapa. ` +
@@ -175,7 +208,6 @@ export class EtapaService {
         );
       }
 
-      // ✅ NOVA VALIDAÇÃO: GÊNERO
       if (jogador.genero !== etapa.genero) {
         throw new Error(
           `Este jogador não pode se inscrever nesta etapa. ` +
@@ -183,14 +215,12 @@ export class EtapaService {
         );
       }
 
-      // Verificar se jogador já está inscrito
       if (etapa.jogadoresInscritos.includes(dadosValidados.jogadorId)) {
         throw new Error("Jogador já está inscrito nesta etapa");
       }
 
       const agora = Timestamp.now();
 
-      // Criar inscrição
       const inscricaoData = {
         etapaId,
         arenaId,
@@ -213,7 +243,6 @@ export class EtapaService {
         .collection(this.collectionInscricoes)
         .add(inscricaoData);
 
-      // Atualizar etapa
       await db
         .collection(this.collectionEtapas)
         .doc(etapaId)
@@ -226,12 +255,30 @@ export class EtapaService {
           atualizadoEm: agora,
         });
 
-      return {
+      const novaInscricao = {
         id: inscricaoRef.id,
         ...inscricaoData,
       } as Inscricao;
+
+      logger.info("Jogador inscrito na etapa", {
+        inscricaoId: novaInscricao.id,
+        etapaId,
+        jogadorId: dadosValidados.jogadorId,
+        jogadorNome: jogador.nome,
+        totalInscritos: etapa.totalInscritos + 1,
+        maxJogadores: etapa.maxJogadores,
+      });
+
+      return novaInscricao;
     } catch (error: any) {
-      console.error("Erro ao inscrever jogador:", error);
+      logger.error(
+        "Erro ao inscrever jogador",
+        {
+          etapaId,
+          jogadorId: data.jogadorId,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -245,11 +292,6 @@ export class EtapaService {
     arenaId: string
   ): Promise<void> {
     try {
-      console.log(
-        `🔄 Cancelando inscrição ${inscricaoId} da etapa ${etapaId}...`
-      );
-
-      // Buscar inscrição
       const inscricaoDoc = await db
         .collection(this.collectionInscricoes)
         .doc(inscricaoId)
@@ -260,24 +302,16 @@ export class EtapaService {
       }
 
       const inscricao = inscricaoDoc.data() as Inscricao;
-      console.log(`📋 Inscrição atual:`, {
-        id: inscricaoDoc.id,
-        jogadorId: inscricao.jogadorId,
-        jogadorNome: inscricao.jogadorNome,
-        status: inscricao.status,
-      });
 
       if (inscricao.arenaId !== arenaId || inscricao.etapaId !== etapaId) {
         throw new Error("Inscrição não encontrada");
       }
 
-      // Buscar etapa
       const etapa = await this.buscarPorId(etapaId, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
 
-      // Verificar se chaves já foram geradas
       if (etapa.chavesGeradas) {
         throw new Error(
           "Não é possível cancelar inscrição após geração de chaves"
@@ -286,21 +320,16 @@ export class EtapaService {
 
       const agora = Timestamp.now();
 
-      // Cancelar inscrição
-      console.log(`💾 Atualizando status para CANCELADA...`);
       await db.collection(this.collectionInscricoes).doc(inscricaoId).update({
         status: StatusInscricao.CANCELADA,
         canceladoEm: agora,
         atualizadoEm: agora,
       });
-      console.log(`✅ Status atualizado para CANCELADA`);
 
-      // Atualizar etapa
       const jogadoresAtualizados = etapa.jogadoresInscritos.filter(
         (id) => id !== inscricao.jogadorId
       );
 
-      console.log(`📊 Atualizando contadores da etapa...`);
       await db
         .collection(this.collectionEtapas)
         .doc(etapaId)
@@ -309,9 +338,23 @@ export class EtapaService {
           jogadoresInscritos: jogadoresAtualizados,
           atualizadoEm: agora,
         });
-      console.log(`✅ Inscrição cancelada com sucesso!`);
+
+      logger.info("Inscrição cancelada", {
+        inscricaoId,
+        etapaId,
+        jogadorId: inscricao.jogadorId,
+        jogadorNome: inscricao.jogadorNome,
+        totalInscritos: etapa.totalInscritos - 1,
+      });
     } catch (error: any) {
-      console.error("❌ Erro ao cancelar inscrição:", error);
+      logger.error(
+        "Erro ao cancelar inscrição",
+        {
+          inscricaoId,
+          etapaId,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -323,77 +366,63 @@ export class EtapaService {
     etapaId: string,
     arenaId: string
   ): Promise<Inscricao[]> {
-    try {
-      const snapshot = await db
-        .collection(this.collectionInscricoes)
-        .where("etapaId", "==", etapaId)
-        .where("arenaId", "==", arenaId)
-        .where("status", "==", StatusInscricao.CONFIRMADA)
-        .get();
+    const snapshot = await db
+      .collection(this.collectionInscricoes)
+      .where("etapaId", "==", etapaId)
+      .where("arenaId", "==", arenaId)
+      .where("status", "==", StatusInscricao.CONFIRMADA)
+      .get();
 
-      const inscricoes = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Inscricao[];
-
-      return inscricoes;
-    } catch (error) {
-      console.error("Erro ao listar inscrições:", error);
-      throw new Error("Falha ao listar inscrições");
-    }
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Inscricao[];
   }
 
   /**
    * Listar etapas com filtros
    */
   async listar(filtros: FiltrosEtapa): Promise<ListagemEtapas> {
-    try {
-      const snapshot = await db
-        .collection(this.collectionEtapas)
-        .where("arenaId", "==", filtros.arenaId)
-        .get();
+    const snapshot = await db
+      .collection(this.collectionEtapas)
+      .where("arenaId", "==", filtros.arenaId)
+      .get();
 
-      let etapas = snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Etapa[];
+    let etapas = snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Etapa[];
 
-      // Filtros client-side
-      if (filtros.status) {
-        etapas = etapas.filter((e) => e.status === filtros.status);
-      }
-
-      // Ordenar
-      if (filtros.ordenarPor === "dataRealizacao") {
-        etapas.sort((a, b) => {
-          const dataA = (a.dataRealizacao as Timestamp).toDate().getTime();
-          const dataB = (b.dataRealizacao as Timestamp).toDate().getTime();
-          return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
-        });
-      } else {
-        etapas.sort((a, b) => {
-          const dataA = (a.criadoEm as Timestamp).toDate().getTime();
-          const dataB = (b.criadoEm as Timestamp).toDate().getTime();
-          return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
-        });
-      }
-
-      const total = etapas.length;
-      const limite = filtros.limite || 20;
-      const offset = filtros.offset || 0;
-      etapas = etapas.slice(offset, offset + limite);
-
-      return {
-        etapas,
-        total,
-        limite,
-        offset,
-        temMais: offset + limite < total,
-      };
-    } catch (error) {
-      console.error("Erro ao listar etapas:", error);
-      throw new Error("Falha ao listar etapas");
+    if (filtros.status) {
+      etapas = etapas.filter((e) => e.status === filtros.status);
     }
+
+    if (filtros.ordenarPor === "dataRealizacao") {
+      etapas.sort((a, b) => {
+        const dataA = (a.dataRealizacao as Timestamp).toDate().getTime();
+        const dataB = (b.dataRealizacao as Timestamp).toDate().getTime();
+        return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
+      });
+    } else {
+      etapas.sort((a, b) => {
+        const dataA = (a.criadoEm as Timestamp).toDate().getTime();
+        const dataB = (b.criadoEm as Timestamp).toDate().getTime();
+        return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
+      });
+    }
+
+    const total = etapas.length;
+    const limite = filtros.limite || 20;
+    const offset = filtros.offset || 0;
+    etapas = etapas.slice(offset, offset + limite);
+
+    return {
+      etapas,
+      total,
+      limite,
+      offset,
+      temMais: offset + limite < total,
+    };
   }
 
   /**
@@ -412,27 +441,23 @@ export class EtapaService {
         throw new Error("Etapa não encontrada");
       }
 
-      // VALIDAÇÕES: Não pode editar certas coisas após ter inscritos ou chaves geradas
       if (etapa.chavesGeradas) {
         throw new Error("Não é possível editar etapa após geração de chaves");
       }
 
       if (etapa.totalInscritos > 0) {
-        // Se tem inscritos, não pode mudar o nível
         if (dadosValidados.nivel && dadosValidados.nivel !== etapa.nivel) {
           throw new Error(
             "Não é possível alterar o nível da etapa após ter inscritos"
           );
         }
 
-        // ✅ NOVA VALIDAÇÃO: Não pode mudar gênero
         if (dadosValidados.genero && dadosValidados.genero !== etapa.genero) {
           throw new Error(
             "Não é possível alterar o gênero da etapa após ter inscritos"
           );
         }
 
-        // Se tem inscritos, não pode diminuir maxJogadores
         if (
           dadosValidados.maxJogadores &&
           dadosValidados.maxJogadores < etapa.totalInscritos
@@ -449,43 +474,28 @@ export class EtapaService {
         atualizadoEm: Timestamp.now(),
       };
 
-      // ✅ CORRIGIDO: Recalcular grupos e distribuição
       if (
         dadosValidados.maxJogadores &&
         dadosValidados.maxJogadores !== etapa.maxJogadores
       ) {
         const totalDuplas = dadosValidados.maxJogadores / 2;
-
-        // Lógica: tentar manter ~3 duplas por grupo
         let jogadoresPorGrupo = 3;
         let qtdGrupos = Math.ceil(totalDuplas / jogadoresPorGrupo);
 
-        // Se resultou em apenas 1 grupo e tem mais de 4 duplas, dividir
         if (qtdGrupos === 1 && totalDuplas > 5) {
           qtdGrupos = 2;
         }
 
-        // Se resultou em grupos muito pequenos (< 3), consolidar
         if (totalDuplas / qtdGrupos < 3 && qtdGrupos > 1) {
           qtdGrupos = Math.max(1, Math.floor(totalDuplas / 3));
         }
 
-        // ✅ CRÍTICO: SEMPRE recalcular jogadoresPorGrupo baseado no qtdGrupos final
         jogadoresPorGrupo = Math.ceil(totalDuplas / qtdGrupos);
-
-        console.log(`🔢 Recalculando distribuição:`, {
-          maxJogadores: dadosValidados.maxJogadores,
-          totalDuplas,
-          qtdGrupos,
-          jogadoresPorGrupo,
-          distribuicao: `${qtdGrupos} grupos de ~${jogadoresPorGrupo} duplas`,
-        });
 
         dadosAtualizacao.qtdGrupos = qtdGrupos;
         dadosAtualizacao.jogadoresPorGrupo = jogadoresPorGrupo;
       }
 
-      // Converter datas se fornecidas
       if (dadosValidados.dataInicio) {
         dadosAtualizacao.dataInicio = Timestamp.fromDate(
           new Date(dadosValidados.dataInicio)
@@ -502,14 +512,12 @@ export class EtapaService {
         );
       }
 
-      // Limpar valores undefined
       Object.keys(dadosAtualizacao).forEach((key) => {
         if (dadosAtualizacao[key] === undefined) {
           delete dadosAtualizacao[key];
         }
       });
 
-      console.log(`✏️ Atualizando etapa ${id}...`);
       await db
         .collection(this.collectionEtapas)
         .doc(id)
@@ -520,10 +528,24 @@ export class EtapaService {
         throw new Error("Erro ao recuperar etapa atualizada");
       }
 
-      console.log(`✅ Etapa ${id} atualizada com sucesso`);
+      logger.info("Etapa atualizada", {
+        etapaId: id,
+        arenaId,
+        camposAtualizados: Object.keys(dadosAtualizacao).filter(
+          (k) => k !== "atualizadoEm"
+        ),
+      });
+
       return etapaAtualizada;
     } catch (error: any) {
-      console.error("❌ Erro ao atualizar etapa:", error);
+      logger.error(
+        "Erro ao atualizar etapa",
+        {
+          etapaId: id,
+          arenaId,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -533,14 +555,11 @@ export class EtapaService {
    */
   async deletar(id: string, arenaId: string): Promise<void> {
     try {
-      console.log(`🗑️ Tentando deletar etapa ${id}...`);
-
       const etapa = await this.buscarPorId(id, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
 
-      // VALIDAÇÃO CRÍTICA: Não pode deletar se tem inscritos
       if (etapa.totalInscritos > 0) {
         throw new Error(
           `Não é possível excluir esta etapa pois ela possui ${etapa.totalInscritos} jogador(es) inscrito(s). ` +
@@ -548,16 +567,33 @@ export class EtapaService {
         );
       }
 
-      // VALIDAÇÃO: Não pode deletar se chaves já foram geradas
       if (etapa.chavesGeradas) {
         throw new Error("Não é possível excluir etapa após geração de chaves");
       }
 
-      // Deletar a etapa
+      const cabecasSnapshot = await db
+        .collection("cabecas_de_chave")
+        .where("arenaId", "==", arenaId)
+        .where("etapaId", "==", id)
+        .get();
+
+      if (!cabecasSnapshot.empty) {
+        const batch = db.batch();
+        cabecasSnapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+
       await db.collection(this.collectionEtapas).doc(id).delete();
-      console.log(`✅ Etapa ${id} deletada com sucesso`);
+
+      logger.info("Etapa deletada", {
+        etapaId: id,
+        nome: etapa.nome,
+        arenaId,
+        cabecasRemovidas: cabecasSnapshot.size,
+      });
     } catch (error: any) {
-      console.error("❌ Erro ao deletar etapa:", error);
       if (
         error.message.includes("não encontrada") ||
         error.message.includes("possui") ||
@@ -565,6 +601,14 @@ export class EtapaService {
       ) {
         throw error;
       }
+      logger.error(
+        "Erro ao deletar etapa",
+        {
+          etapaId: id,
+          arenaId,
+        },
+        error
+      );
       throw new Error("Falha ao deletar etapa");
     }
   }
@@ -593,9 +637,23 @@ export class EtapaService {
         throw new Error("Erro ao recuperar etapa");
       }
 
+      logger.info("Inscrições encerradas", {
+        etapaId: id,
+        nome: etapa.nome,
+        totalInscritos: etapa.totalInscritos,
+        arenaId,
+      });
+
       return etapaAtualizada;
     } catch (error: any) {
-      console.error("Erro ao encerrar inscrições:", error);
+      logger.error(
+        "Erro ao encerrar inscrições",
+        {
+          etapaId: id,
+          arenaId,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -628,9 +686,22 @@ export class EtapaService {
         throw new Error("Erro ao recuperar etapa");
       }
 
+      logger.info("Inscrições reabertas", {
+        etapaId: id,
+        nome: etapa.nome,
+        arenaId,
+      });
+
       return etapaAtualizada;
     } catch (error: any) {
-      console.error("Erro ao reabrir inscrições:", error);
+      logger.error(
+        "Erro ao reabrir inscrições",
+        {
+          etapaId: id,
+          arenaId,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -678,7 +749,6 @@ export class EtapaService {
         totalParticipacoes,
       };
     } catch (error) {
-      console.error("Erro ao obter estatísticas:", error);
       return {
         totalEtapas: 0,
         inscricoesAbertas: 0,
@@ -691,26 +761,19 @@ export class EtapaService {
 
   /**
    * Encerrar etapa e atribuir pontos
-   * Suporta 2 cenários:
-   * 1. GRUPO ÚNICO (sem eliminatória) - pontos pela classificação do grupo
-   * 2. COM ELIMINATÓRIA - pontos pelas fases eliminatórias
+   * MÉTODO CRÍTICO - Distribui pontos finais
    */
   async encerrarEtapa(id: string, arenaId: string): Promise<void> {
     try {
-      console.log(`🏁 Encerrando etapa ${id}...`);
-
-      // Buscar etapa
       const etapa = await this.buscarPorId(id, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
 
-      // Verificar se já está finalizada
       if (etapa.status === StatusEtapa.FINALIZADA) {
         throw new Error("Etapa já está finalizada");
       }
 
-      // Buscar configuração de pontos
       const configDoc = await db.collection("config").doc("global").get();
       const pontuacao = configDoc.data()?.pontuacaoColocacao || {
         campeao: 100,
@@ -721,7 +784,6 @@ export class EtapaService {
         participacao: 10,
       };
 
-      // ============== VERIFICAR NÚMERO DE GRUPOS ==============
       const gruposSnapshot = await db
         .collection("grupos")
         .where("etapaId", "==", id)
@@ -737,24 +799,16 @@ export class EtapaService {
         ...doc.data(),
       }));
 
-      console.log(`📊 Total de grupos: ${grupos.length}`);
-
-      // ============== CENÁRIO 1: GRUPO ÚNICO ==============
+      // CENÁRIO 1: GRUPO ÚNICO
       if (grupos.length === 1) {
-        console.log(
-          "🏆 GRUPO ÚNICO - Atribuindo pontos pela classificação do grupo"
-        );
-
         const grupo = grupos[0] as any;
 
-        // Verificar se grupo está completo
         if (!grupo.completo) {
           throw new Error(
             "Não é possível encerrar a etapa. O grupo ainda possui partidas pendentes."
           );
         }
 
-        // Buscar duplas ordenadas por posição
         const duplasSnapshot = await db
           .collection("duplas")
           .where("grupoId", "==", grupo.id)
@@ -766,13 +820,10 @@ export class EtapaService {
           ...doc.data(),
         })) as Dupla[];
 
-        console.log(`👥 ${duplas.length} duplas no grupo`);
-
         if (duplas.length === 0) {
           throw new Error("Nenhuma dupla encontrada no grupo");
         }
 
-        // Definir colocações e pontos
         const tabelaColocacoes = [
           { colocacao: "campeao", pontos: pontuacao.campeao },
           { colocacao: "vice", pontos: pontuacao.vice },
@@ -781,27 +832,20 @@ export class EtapaService {
           { colocacao: "participacao", pontos: pontuacao.participacao },
         ];
 
-        // Atribuir pontos a cada dupla
         for (let i = 0; i < duplas.length; i++) {
           const dupla = duplas[i];
           const { colocacao, pontos } =
             tabelaColocacoes[i] ||
             tabelaColocacoes[tabelaColocacoes.length - 1];
 
-          console.log(
-            `   📍 ${i + 1}º lugar: ${dupla.jogador1Nome} & ${
-              dupla.jogador2Nome
-            } - ${colocacao} (${pontos} pts)`
-          );
-
           await this.atribuirPontosParaDupla(dupla.id, id, pontos, colocacao);
         }
 
-        // Atualizar etapa
         const campeao = duplas[0] as any;
         if (!campeao) {
           throw new Error("Nenhum campeão encontrado");
         }
+
         await db
           .collection("etapas")
           .doc(id)
@@ -813,17 +857,18 @@ export class EtapaService {
             atualizadoEm: Timestamp.now(),
           });
 
-        console.log("✅ Etapa encerrada com sucesso (grupo único)!");
-        console.log(
-          `🏆 Campeão: ${campeao.jogador1Nome} & ${campeao.jogador2Nome}`
-        );
+        logger.info("Etapa encerrada (grupo único)", {
+          etapaId: id,
+          nome: etapa.nome,
+          campeaoNome: `${campeao.jogador1Nome} & ${campeao.jogador2Nome}`,
+          totalDuplas: duplas.length,
+          arenaId,
+        });
+
         return;
       }
 
-      // ============== CENÁRIO 2: COM ELIMINATÓRIA ==============
-      console.log("🏆 COM ELIMINATÓRIA - Atribuindo pontos pelas fases");
-
-      // Buscar final
+      // CENÁRIO 2: COM ELIMINATÓRIA
       const confrontosSnapshot = await db
         .collection("confrontos_eliminatorios")
         .where("etapaId", "==", id)
@@ -842,9 +887,7 @@ export class EtapaService {
         throw new Error("A final ainda não foi finalizada");
       }
 
-      console.log("🏆 Atribuindo pontos de colocação...");
-
-      // 1. CAMPEÃO (vencedor da final) = 100 pontos
+      // Campeão
       const campeaoDuplaId = confrontoFinal.vencedoraId;
       await this.atribuirPontosParaDupla(
         campeaoDuplaId,
@@ -853,7 +896,7 @@ export class EtapaService {
         "campeao"
       );
 
-      // 2. VICE (perdedor da final) = 70 pontos
+      // Vice
       const viceDuplaId =
         confrontoFinal.dupla1Id === campeaoDuplaId
           ? confrontoFinal.dupla2Id
@@ -865,7 +908,7 @@ export class EtapaService {
         "vice"
       );
 
-      // 3. SEMIFINALISTAS (perdedores das semis) = 50 pontos
+      // Semifinalistas
       const semisSnapshot = await db
         .collection("confrontos_eliminatorios")
         .where("etapaId", "==", id)
@@ -888,7 +931,7 @@ export class EtapaService {
         );
       }
 
-      // 4. QUARTAS (perdedores das quartas) = 30 pontos
+      // Quartas
       const quartasSnapshot = await db
         .collection("confrontos_eliminatorios")
         .where("etapaId", "==", id)
@@ -911,7 +954,7 @@ export class EtapaService {
         );
       }
 
-      // 5. OITAVAS (perdedores das oitavas) = 20 pontos
+      // Oitavas
       const oitavasSnapshot = await db
         .collection("confrontos_eliminatorios")
         .where("etapaId", "==", id)
@@ -934,7 +977,7 @@ export class EtapaService {
         );
       }
 
-      // 6. PARTICIPAÇÃO (não classificados para eliminatória) = 10 pontos
+      // Participação
       const duplasSnapshot = await db
         .collection("duplas")
         .where("etapaId", "==", id)
@@ -951,7 +994,6 @@ export class EtapaService {
         );
       }
 
-      // Atualizar etapa para finalizada
       await db.collection("etapas").doc(id).update({
         status: StatusEtapa.FINALIZADA,
         dataFinalizacao: Timestamp.now(),
@@ -960,10 +1002,22 @@ export class EtapaService {
         atualizadoEm: Timestamp.now(),
       });
 
-      console.log("✅ Etapa encerrada com sucesso (com eliminatória)!");
-      console.log(`🏆 Campeão: ${confrontoFinal.vencedoraNome}`);
+      logger.info("Etapa encerrada (com eliminatória)", {
+        etapaId: id,
+        nome: etapa.nome,
+        campeaoNome: confrontoFinal.vencedoraNome,
+        totalGrupos: grupos.length,
+        arenaId,
+      });
     } catch (error: any) {
-      console.error("Erro ao encerrar etapa:", error);
+      logger.error(
+        "Erro ao encerrar etapa",
+        {
+          etapaId: id,
+          arenaId,
+        },
+        error
+      );
       throw error;
     }
   }
@@ -978,21 +1032,25 @@ export class EtapaService {
     colocacao: string
   ): Promise<void> {
     try {
-      // Buscar dupla
       const duplaDoc = await db.collection("duplas").doc(duplaId).get();
       if (!duplaDoc.exists) {
-        console.warn(`Dupla ${duplaId} não encontrada`);
+        logger.warn("Dupla não encontrada para atribuir pontos", {
+          duplaId,
+          etapaId,
+        });
         return;
       }
 
       const dupla = duplaDoc.data();
 
       if (!dupla) {
-        console.warn(`Dados da dupla ${duplaId} não encontrados`);
+        logger.warn("Dados da dupla não encontrados", {
+          duplaId,
+          etapaId,
+        });
         return;
       }
 
-      // Atribuir pontos para jogador 1
       await this.atribuirPontosParaJogador(
         dupla.jogador1Id,
         etapaId,
@@ -1000,7 +1058,6 @@ export class EtapaService {
         colocacao
       );
 
-      // Atribuir pontos para jogador 2
       await this.atribuirPontosParaJogador(
         dupla.jogador2Id,
         etapaId,
@@ -1008,11 +1065,22 @@ export class EtapaService {
         colocacao
       );
 
-      console.log(
-        `   ✅ ${pontos} pts (${colocacao}): ${dupla.jogador1Nome} & ${dupla.jogador2Nome}`
-      );
+      logger.info("Pontos atribuídos para dupla", {
+        duplaId,
+        etapaId,
+        jogadores: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+        pontos,
+        colocacao,
+      });
     } catch (error) {
-      console.error(`Erro ao atribuir pontos para dupla ${duplaId}:`, error);
+      logger.error(
+        "Erro ao atribuir pontos para dupla",
+        {
+          duplaId,
+          etapaId,
+        },
+        error as Error
+      );
     }
   }
 
@@ -1026,7 +1094,6 @@ export class EtapaService {
     colocacao: string
   ): Promise<void> {
     try {
-      // Buscar estatísticas do jogador nesta etapa
       const snapshot = await db
         .collection("estatisticas_jogador")
         .where("jogadorId", "==", jogadorId)
@@ -1035,24 +1102,28 @@ export class EtapaService {
         .get();
 
       if (snapshot.empty) {
-        console.warn(
-          `Estatísticas não encontradas para jogador ${jogadorId} na etapa ${etapaId}`
-        );
+        logger.warn("Estatísticas não encontradas para atribuir pontos", {
+          jogadorId,
+          etapaId,
+        });
         return;
       }
 
       const estatisticasDoc = snapshot.docs[0];
 
-      // Atualizar pontos e colocação
       await estatisticasDoc.ref.update({
         pontos: pontos,
         colocacao: colocacao,
         atualizadoEm: Timestamp.now(),
       });
     } catch (error) {
-      console.error(
-        `Erro ao atribuir pontos para jogador ${jogadorId}:`,
-        error
+      logger.error(
+        "Erro ao atribuir pontos para jogador",
+        {
+          jogadorId,
+          etapaId,
+        },
+        error as Error
       );
     }
   }

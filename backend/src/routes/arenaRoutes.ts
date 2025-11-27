@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { arenaController } from "../controllers/ArenaController";
-import { requireAuth } from "../middlewares/auth"; // ✅ REMOVIDO: optionalAuth (não usado)
+import { requireAuth } from "../middlewares/auth";
 import { body } from "express-validator";
 import { runValidations, isValidSlug } from "../middlewares/validation";
 
@@ -81,7 +81,7 @@ router.get("/", arenaController.list.bind(arenaController));
  */
 router.get(
   "/me",
-  requireAuth, // ✅ CORRETO: Middleware com assinatura completa
+  requireAuth,
   arenaController.getMyArena.bind(arenaController)
 );
 
@@ -116,7 +116,7 @@ router.get("/slug/:slug", arenaController.getBySlug.bind(arenaController));
  */
 router.put(
   "/:id",
-  requireAuth, // ✅ CORRETO: Middleware com assinatura completa
+  requireAuth,
   runValidations(updateArenaValidation),
   arenaController.update.bind(arenaController)
 );
@@ -128,7 +128,7 @@ router.put(
  */
 router.delete(
   "/:id",
-  requireAuth, // ✅ CORRETO: Middleware com assinatura completa
+  requireAuth,
   arenaController.deactivate.bind(arenaController)
 );
 

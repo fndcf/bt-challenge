@@ -496,7 +496,6 @@ const ArenaPublica: React.FC = () => {
         const etapasData = await arenaService.getEtapasPublicas(slug);
         setEtapas(etapasData);
       } catch (err: any) {
-        console.error("Erro ao carregar arena:", err);
         setError(err.message || "Erro ao carregar informações da arena");
       } finally {
         setLoading(false);
@@ -619,14 +618,14 @@ const ArenaPublica: React.FC = () => {
                     <strong>Data:</strong> {formatarData(etapa.dataRealizacao)}
                   </InfoItem>
 
-                  {/* ✅ NOVO: Nível */}
+                  {/*  Nível */}
                   {etapa.nivel && (
                     <InfoItem>
                       <strong>Nível:</strong> {getNivelLabel(etapa.nivel)}
                     </InfoItem>
                   )}
 
-                  {/* ✅ NOVO: Gênero */}
+                  {/*  Gênero */}
                   {etapa.genero && (
                     <InfoItem>
                       <strong>Gênero:</strong> {getGeneroLabel(etapa.genero)}

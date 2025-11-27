@@ -28,7 +28,7 @@ export interface EstatisticasJogador {
   grupoId?: string;
   grupoNome?: string;
 
-  // ✅ ESTATÍSTICAS DE GRUPO (classificação para rei da praia)
+  //  ESTATÍSTICAS DE GRUPO (classificação para rei da praia)
   jogosGrupo: number;
   vitoriasGrupo: number;
   derrotasGrupo: number;

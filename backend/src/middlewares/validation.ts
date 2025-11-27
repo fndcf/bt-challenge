@@ -6,7 +6,6 @@ import { ValidationError } from "../utils/errors";
  * Middleware para processar resultados da validação
  */
 export const validate = (req: Request, _res: Response, next: NextFunction) => {
-  // ✅ CORRIGIDO: _res
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -54,7 +53,6 @@ export const isEvenNumber = (value: any) => {
  * Validação customizada para verificar se atende o mínimo de jogadores
  */
 export const meetsMinimumPlayers = (value: any, _meta: any) => {
-  // ✅ CORRIGIDO: { req } renomeado para _meta
   const num = parseInt(value);
   if (isNaN(num)) {
     throw new Error("Deve ser um número");
@@ -119,7 +117,7 @@ export const sanitizeData = (data: any): any => {
  */
 export const sanitizeRequest = (
   req: Request,
-  _res: Response, // ✅ CORRIGIDO: _res (não usado mas necessário na assinatura)
+  _res: Response,
   next: NextFunction
 ) => {
   if (req.body) {

@@ -5,15 +5,16 @@ import { Etapa, Inscricao, StatusEtapa, FormatoEtapa } from "../../types/etapa";
 import { TipoChaveamentoReiDaPraia } from "../../types/reiDaPraia";
 import etapaService from "../../services/etapaService";
 import chaveService from "../../services/chaveService";
-import reiDaPraiaService from "../../services/reiDaPraiaService"; // ✅ NOVO
+import reiDaPraiaService from "../../services/reiDaPraiaService";
 import { StatusBadge } from "../../components/etapas/StatusBadge";
 import { ModalInscricao } from "../../components/etapas/ModalInscricao";
 import { ChavesEtapa } from "../../components/etapas/ChavesEtapa";
-import { ChavesReiDaPraia } from "../../components/etapas/ChavesReiDaPraia"; // ✅ NOVO - Criar depois
+import { ChavesReiDaPraia } from "../../components/etapas/ChavesReiDaPraia";
 import { ConfirmacaoPerigosa } from "../../components/ConfirmacaoPerigosa";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Footer from "@/components/Footer";
+import { GerenciarCabecasDeChave } from "@/components/etapas/GerenciarCabecasDeChave";
 
 // ============== ANIMATIONS ==============
 
@@ -172,7 +173,7 @@ const ActionButton = styled.button<{ $variant?: "primary" | "danger" }>`
   `}
 `;
 
-// ✅ NOVO: Badge de formato
+//  Badge de formato
 const FormatoBadge = styled.span<{ $formato: string }>`
   display: inline-flex;
   align-items: center;
@@ -631,46 +632,95 @@ const CancelButton = styled.button`
   }
 `;
 
-const SelectionHeader = styled.div`
+const SelectionBar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 1rem;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
 `;
 
-const SelectionActions = styled.div`
+const SelectionInfo = styled.div`
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 1rem;
 `;
 
-const Checkbox = styled.input.attrs({ type: "checkbox" })`
-  width: 18px;
-  height: 18px;
+const SelectionCount = styled.span`
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+`;
+
+const SelectAllButton = styled.button`
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
 `;
 
-const CheckboxLabel = styled.label`
+const DeleteSelectedButton = styled.button<{ disabled?: boolean }>`
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  background: ${(props) => (props.disabled ? "#d1d5db" : "#dc2626")};
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  border: none;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+
+  &:hover {
+    background: ${(props) => (props.disabled ? "#d1d5db" : "#b91c1c")};
+  }
+`;
+
+const CheckboxWrapper = styled.label`
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  font-size: 0.9rem;
-  color: #6b7280;
   user-select: none;
 `;
 
-const InscricaoCardSelectable = styled(InscricaoCard)<{ $selected?: boolean }>`
-  border: 2px solid ${(props) => (props.$selected ? "#3b82f6" : "#e5e7eb")};
+const Checkbox = styled.input.attrs({ type: "checkbox" })`
+  width: 1.125rem;
+  height: 1.125rem;
   cursor: pointer;
+  accent-color: #3b82f6;
+`;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
+const InscricaoCardSelectable = styled(InscricaoCard)<{ $selected?: boolean }>`
+  ${(props) =>
+    props.$selected &&
+    `
+    background: #eff6ff;
+    border-color: #3b82f6;
+  `}
+`;
+
+const InscricaoCardContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
 `;
 
 // ============== HELPERS ==============
@@ -733,7 +783,6 @@ export const DetalhesEtapa: React.FC = () => {
       setEtapa(data);
       await carregarInscricoes(id);
     } catch (err: any) {
-      console.error("Erro ao carregar etapa:", err);
       setError(err.message || "Erro ao carregar etapa");
     } finally {
       setLoading(false);
@@ -745,7 +794,6 @@ export const DetalhesEtapa: React.FC = () => {
       const data = await etapaService.listarInscricoes(etapaId);
       setInscricoes(data);
     } catch (err: any) {
-      console.error("Erro ao carregar inscrições:", err);
       setInscricoes([]);
     }
   };
@@ -765,7 +813,6 @@ export const DetalhesEtapa: React.FC = () => {
       await carregarEtapa();
       alert("Inscrição cancelada com sucesso!");
     } catch (err: any) {
-      console.error("Erro ao cancelar inscrição:", err);
       alert(err.message || "Erro ao cancelar inscrição");
     }
   };
@@ -791,7 +838,6 @@ export const DetalhesEtapa: React.FC = () => {
       alert("Etapa excluída com sucesso!");
       navigate("/admin/etapas");
     } catch (err: any) {
-      console.error("Erro ao excluir etapa:", err);
       alert(err.message || "Erro ao excluir etapa");
       setLoading(false);
     }
@@ -831,7 +877,7 @@ export const DetalhesEtapa: React.FC = () => {
     await carregarEtapa();
   };
 
-  // ✅ ATUALIZADO: Gerar chaves baseado no formato
+  //  Gerar chaves baseado no formato
   const handleGerarChaves = async () => {
     if (!etapa) return;
 
@@ -883,7 +929,6 @@ export const DetalhesEtapa: React.FC = () => {
       await carregarEtapa();
       setAbaAtiva("chaves");
     } catch (err: any) {
-      console.error("Erro ao gerar chaves:", err);
       alert(err.message || "Erro ao gerar chaves");
     } finally {
       setLoading(false);
@@ -912,7 +957,6 @@ export const DetalhesEtapa: React.FC = () => {
       );
       await carregarEtapa();
     } catch (err: any) {
-      console.error("Erro ao encerrar inscrições:", err);
       alert(err.message || "Erro ao encerrar inscrições");
     } finally {
       setLoading(false);
@@ -942,7 +986,6 @@ export const DetalhesEtapa: React.FC = () => {
       );
       await carregarEtapa();
     } catch (err: any) {
-      console.error("Erro ao reabrir inscrições:", err);
       alert(err.message || "Erro ao reabrir inscrições");
     } finally {
       setLoading(false);
@@ -966,7 +1009,6 @@ export const DetalhesEtapa: React.FC = () => {
       await carregarEtapa();
       setAbaAtiva("visao-geral");
     } catch (err: any) {
-      console.error("Erro ao excluir chaves:", err);
       alert(err.message || "Erro ao excluir chaves");
     } finally {
       setExcluindo(false);
@@ -1052,9 +1094,7 @@ export const DetalhesEtapa: React.FC = () => {
 
       // ✅ SEQUENCIAL ao invés de paralelo
       for (const inscricaoId of Array.from(jogadoresSelecionados)) {
-        const inscricao = inscricoes.find((i) => i.id === inscricaoId);
         await etapaService.cancelarInscricao(etapa!.id, inscricaoId);
-        console.log(`✅ Excluído: ${inscricao?.jogadorNome}`);
       }
 
       alert(`${jogadoresSelecionados.size} inscrição(ões) cancelada(s)!`);
@@ -1062,7 +1102,6 @@ export const DetalhesEtapa: React.FC = () => {
       setJogadoresSelecionados(new Set());
       await carregarEtapa(); // Recarrega tudo
     } catch (error: any) {
-      console.error("Erro:", error);
       alert(error.message || "Erro ao cancelar inscrições");
     } finally {
       setLoading(false);
@@ -1531,7 +1570,6 @@ export const DetalhesEtapa: React.FC = () => {
         </>
       )}
 
-      {/* ABA: INSCRIÇÕES */}
       {abaAtiva === "inscricoes" && (
         <Card>
           <CardTitle>👤 Jogadores Inscritos ({etapa.totalInscritos})</CardTitle>
@@ -1551,78 +1589,76 @@ export const DetalhesEtapa: React.FC = () => {
             </InscricoesEmpty>
           ) : (
             <>
+              {/* ✅ Barra de Seleção Múltipla */}
               {!etapa.chavesGeradas && (
-                <SelectionHeader>
-                  <CheckboxLabel>
-                    <Checkbox
-                      checked={jogadoresSelecionados.size === inscricoes.length}
-                      onChange={selecionarTodos}
-                    />
-                    <span>
-                      {jogadoresSelecionados.size === 0
-                        ? "Selecionar Todos"
-                        : `${jogadoresSelecionados.size} selecionado(s)`}
-                    </span>
-                  </CheckboxLabel>
+                <SelectionBar>
+                  <SelectionInfo>
+                    <SelectAllButton onClick={selecionarTodos}>
+                      {jogadoresSelecionados.size === inscricoes.length
+                        ? "✓ Desmarcar Todos"
+                        : "☐ Selecionar Todos"}
+                    </SelectAllButton>
 
-                  {jogadoresSelecionados.size > 0 && (
-                    <SelectionActions>
-                      <Button
-                        $variant="red"
-                        onClick={handleExcluirSelecionados}
-                        disabled={loading}
-                      >
-                        🗑️ Excluir {jogadoresSelecionados.size}
-                      </Button>
-                      <Button
-                        $variant="gray"
-                        onClick={() => setJogadoresSelecionados(new Set())}
-                      >
-                        Limpar
-                      </Button>
-                    </SelectionActions>
-                  )}
-                </SelectionHeader>
+                    {jogadoresSelecionados.size > 0 && (
+                      <SelectionCount>
+                        {jogadoresSelecionados.size} selecionado(s)
+                      </SelectionCount>
+                    )}
+                  </SelectionInfo>
+
+                  <DeleteSelectedButton
+                    onClick={handleExcluirSelecionados}
+                    disabled={jogadoresSelecionados.size === 0}
+                  >
+                    <span>🗑️</span>
+                    <span>Excluir Selecionados</span>
+                  </DeleteSelectedButton>
+                </SelectionBar>
               )}
 
+              {/* ✅ Grid de Inscrições com Checkboxes */}
               <InscricoesGrid>
                 {inscricoes.map((inscricao) => (
                   <InscricaoCardSelectable
                     key={inscricao.id}
                     $selected={jogadoresSelecionados.has(inscricao.id)}
-                    onClick={() =>
-                      !etapa.chavesGeradas &&
-                      toggleSelecionarJogador(inscricao.id)
-                    }
                   >
-                    {!etapa.chavesGeradas && (
-                      <Checkbox
-                        checked={jogadoresSelecionados.has(inscricao.id)}
-                        onChange={() => toggleSelecionarJogador(inscricao.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
+                    <InscricaoCardContent>
+                      {/* ✅ Checkbox (apenas se chaves não foram geradas) */}
+                      {!etapa.chavesGeradas && (
+                        <CheckboxWrapper>
+                          <Checkbox
+                            checked={jogadoresSelecionados.has(inscricao.id)}
+                            onChange={() =>
+                              toggleSelecionarJogador(inscricao.id)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </CheckboxWrapper>
+                      )}
 
-                    <InscricaoInfo>
-                      <InscricaoNome>{inscricao.jogadorNome}</InscricaoNome>
-                      <InscricaoNivel>
-                        {inscricao.jogadorNivel === "iniciante" &&
-                          "🟢 Iniciante"}
-                        {inscricao.jogadorNivel === "intermediario" &&
-                          "🟡 Intermediário"}
-                        {inscricao.jogadorNivel === "avancado" && "🔴 Avançado"}
-                      </InscricaoNivel>
-                    </InscricaoInfo>
+                      <InscricaoInfo>
+                        <InscricaoNome>{inscricao.jogadorNome}</InscricaoNome>
+                        <InscricaoNivel>
+                          {inscricao.jogadorNivel === "iniciante" &&
+                            "🟢 Iniciante"}
+                          {inscricao.jogadorNivel === "intermediario" &&
+                            "🟡 Intermediário"}
+                          {inscricao.jogadorNivel === "avancado" &&
+                            "🔴 Avançado"}
+                        </InscricaoNivel>
+                      </InscricaoInfo>
+                    </InscricaoCardContent>
 
+                    {/* ✅ Botão individual de cancelar */}
                     {!etapa.chavesGeradas && (
                       <CancelButton
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() =>
                           handleCancelarInscricao(
                             inscricao.id,
                             inscricao.jogadorNome
-                          );
-                        }}
+                          )
+                        }
                         title="Cancelar inscrição"
                       >
                         ✕
@@ -1631,6 +1667,20 @@ export const DetalhesEtapa: React.FC = () => {
                   </InscricaoCardSelectable>
                 ))}
               </InscricoesGrid>
+
+              {/* ✅ Componente GerenciarCabecasDeChave INLINE */}
+              {inscricoes.length > 0 && (
+                <GerenciarCabecasDeChave
+                  arenaId={etapa.arenaId}
+                  etapaId={etapa.id}
+                  inscricoes={inscricoes}
+                  formato={etapa.formato}
+                  totalInscritos={etapa.totalInscritos}
+                  qtdGrupos={etapa.qtdGrupos}
+                  onUpdate={carregarEtapa}
+                  readOnly={etapa.chavesGeradas}
+                />
+              )}
             </>
           )}
 
@@ -1650,7 +1700,7 @@ export const DetalhesEtapa: React.FC = () => {
                 $fullWidth
                 onClick={handleInscreverJogador}
               >
-                ➕ Inscrever Novo Jogador
+                <span>➕ Inscrever Novo Jogador</span>
               </Button>
             </div>
           )}

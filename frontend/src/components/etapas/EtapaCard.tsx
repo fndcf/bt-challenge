@@ -62,7 +62,6 @@ const Description = styled.p`
   overflow: hidden;
 `;
 
-// ✅ NOVO: Badges do header
 const HeaderBadges = styled.div`
   display: flex;
   flex-direction: column;
@@ -70,7 +69,6 @@ const HeaderBadges = styled.div`
   gap: 0.5rem;
 `;
 
-// ✅ NOVO: Badge de formato
 const FormatoBadge = styled.span<{ $formato: string }>`
   display: inline-flex;
   align-items: center;
@@ -243,7 +241,6 @@ const getChaveamentoLabel = (tipo: TipoChaveamentoReiDaPraia): string => {
 export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
   const navigate = useNavigate();
 
-  // ✅ Detectar formato
   const isReiDaPraia = etapa.formato === FormatoEtapa.REI_DA_PRAIA;
 
   const handleClick = () => {
@@ -314,7 +311,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           {etapa.descricao && <Description>{etapa.descricao}</Description>}
         </HeaderContent>
 
-        {/* ✅ Badges empilhados */}
+        {/*  Badges empilhados */}
         <HeaderBadges>
           <StatusBadge status={etapa.status} />
           <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
@@ -333,7 +330,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           </InfoContent>
         </InfoItem>
 
-        {/* ✅ Tipo de Chaveamento (apenas Rei da Praia) */}
+        {/*  Tipo de Chaveamento (apenas Rei da Praia) */}
         {isReiDaPraia && etapa.tipoChaveamento && (
           <InfoItem>
             <InfoContent>
@@ -390,7 +387,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
       {/* Footer */}
       <Footer>
         <FooterInfo>
-          {/* ✅ Info adaptada por formato */}
+          {/*  Info adaptada por formato */}
           {isReiDaPraia ? (
             <>
               <FooterItem>

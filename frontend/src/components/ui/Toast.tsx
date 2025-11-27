@@ -3,13 +3,19 @@
  * Sistema de notificações toast com contexto e hook
  */
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import styled, { keyframes } from 'styled-components';
-import { theme } from '../../styles/theme';
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+import styled, { keyframes } from "styled-components";
+import { theme } from "../../styles/theme";
 
-export type ToastType = 'info' | 'success' | 'warning' | 'error';
-export type ToastPosition = 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+export type ToastType = "info" | "success" | "warning" | "error";
+export type ToastPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
 
 interface Toast {
   id: string;
@@ -58,21 +64,21 @@ const ToastContainer = styled.div<{ $position: ToastPosition }>`
   pointer-events: none;
 
   ${({ $position }) => {
-    const [vertical, horizontal] = $position.split('-');
-    
-    let styles = '';
-    
+    const [vertical, horizontal] = $position.split("-");
+
+    let styles = "";
+
     // Vertical positioning
-    if (vertical === 'top') {
+    if (vertical === "top") {
       styles += `top: ${theme.spacing[4]};`;
     } else {
       styles += `bottom: ${theme.spacing[4]};`;
     }
-    
+
     // Horizontal positioning
-    if (horizontal === 'left') {
+    if (horizontal === "left") {
       styles += `left: ${theme.spacing[4]};`;
-    } else if (horizontal === 'right') {
+    } else if (horizontal === "right") {
       styles += `right: ${theme.spacing[4]};`;
     } else {
       styles += `
@@ -80,7 +86,7 @@ const ToastContainer = styled.div<{ $position: ToastPosition }>`
         transform: translateX(-50%);
       `;
     }
-    
+
     return styles;
   }}
 
@@ -100,27 +106,27 @@ const ToastItem = styled.div<{ $type: ToastType; $isExiting: boolean }>`
   border-radius: ${theme.borderRadius.lg};
   box-shadow: ${theme.shadows.lg};
   pointer-events: auto;
-  animation: ${({ $isExiting }) => $isExiting ? slideOutRight : slideInRight} 
+  animation: ${({ $isExiting }) => ($isExiting ? slideOutRight : slideInRight)}
     ${theme.transitions.base} ${theme.easing.easeOut};
 
   ${({ $type }) => {
     switch ($type) {
-      case 'success':
+      case "success":
         return `
           background: ${theme.colors.success[500]};
           color: ${theme.colors.white};
         `;
-      case 'warning':
+      case "warning":
         return `
           background: ${theme.colors.warning[500]};
           color: ${theme.colors.white};
         `;
-      case 'error':
+      case "error":
         return `
           background: ${theme.colors.error[500]};
           color: ${theme.colors.white};
         `;
-      case 'info':
+      case "info":
       default:
         return `
           background: ${theme.colors.info[500]};
@@ -170,29 +176,69 @@ const ToastCloseButton = styled.button`
 
 const getToastIcon = (type: ToastType) => {
   switch (type) {
-    case 'success':
+    case "success":
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 13l4 4L19 7"
+          />
         </svg>
       );
-    case 'warning':
+    case "warning":
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
         </svg>
       );
-    case 'error':
+    case "error":
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       );
-    case 'info':
+    case "info":
     default:
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       );
   }
@@ -206,33 +252,36 @@ interface ToastProviderProps {
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({
   children,
-  position = 'top-right',
+  position = "top-right",
   defaultDuration = 5000,
 }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [exitingToasts, setExitingToasts] = useState<Set<string>>(new Set());
 
-  const showToast = useCallback((
-    message: string,
-    type: ToastType = 'info',
-    duration: number = defaultDuration
-  ) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    const newToast: Toast = { id, type, message, duration };
+  const showToast = useCallback(
+    (
+      message: string,
+      type: ToastType = "info",
+      duration: number = defaultDuration
+    ) => {
+      const id = Math.random().toString(36).substring(2, 9);
+      const newToast: Toast = { id, type, message, duration };
 
-    setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => [...prev, newToast]);
 
-    // Auto remove after duration
-    if (duration > 0) {
-      setTimeout(() => {
-        hideToast(id);
-      }, duration);
-    }
-  }, [defaultDuration]);
+      // Auto remove after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          hideToast(id);
+        }, duration);
+      }
+    },
+    [defaultDuration]
+  );
 
   const hideToast = useCallback((id: string) => {
     setExitingToasts((prev) => new Set([...prev, id]));
-    
+
     // Remove after animation
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -247,26 +296,37 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
-      {toasts.length > 0 && createPortal(
-        <ToastContainer $position={position}>
-          {toasts.map((toast) => (
-            <ToastItem
-              key={toast.id}
-              $type={toast.type}
-              $isExiting={exitingToasts.has(toast.id)}
-            >
-              <ToastIcon>{getToastIcon(toast.type)}</ToastIcon>
-              <ToastMessage>{toast.message}</ToastMessage>
-              <ToastCloseButton onClick={() => hideToast(toast.id)}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </ToastCloseButton>
-            </ToastItem>
-          ))}
-        </ToastContainer>,
-        document.body
-      )}
+      {toasts.length > 0 &&
+        createPortal(
+          <ToastContainer $position={position}>
+            {toasts.map((toast) => (
+              <ToastItem
+                key={toast.id}
+                $type={toast.type}
+                $isExiting={exitingToasts.has(toast.id)}
+              >
+                <ToastIcon>{getToastIcon(toast.type)}</ToastIcon>
+                <ToastMessage>{toast.message}</ToastMessage>
+                <ToastCloseButton onClick={() => hideToast(toast.id)}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </ToastCloseButton>
+              </ToastItem>
+            ))}
+          </ToastContainer>,
+          document.body
+        )}
     </ToastContext.Provider>
   );
 };
@@ -277,7 +337,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 export const useToast = (): ToastContextValue => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast deve ser usado dentro de ToastProvider');
+    throw new Error("useToast deve ser usado dentro de ToastProvider");
   }
   return context;
 };

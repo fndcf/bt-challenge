@@ -679,9 +679,9 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const getGeneroLabel = (genero: GeneroJogador) => {
     switch (genero) {
       case GeneroJogador.MASCULINO:
-        return "Masculino"; // ✅ ADICIONAR
+        return "Masculino";
       case GeneroJogador.FEMININO:
-        return "Feminino"; // ✅ ADICIONAR
+        return "Feminino";
       default:
         return genero;
     }

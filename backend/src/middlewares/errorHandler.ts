@@ -1,6 +1,12 @@
+/**
+ * Error Handler Middleware
+ * backend/src/middlewares/errorHandler.ts
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { AppError, ValidationError } from "../utils/errors";
 import { ResponseHelper } from "../utils/responseHelper";
+import logger from "../utils/logger";
 
 /**
  * Middleware global de tratamento de erros
@@ -12,14 +18,19 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  // Log do erro (em produção, usar um serviço de logging como Winston ou Sentry)
-  console.error("❌ Erro capturado:", {
-    name: err.name,
-    message: err.message,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-    path: req.path,
-    method: req.method,
-  });
+  // Log estruturado do erro
+  logger.error(
+    "Erro capturado no handler global",
+    {
+      name: err.name,
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      path: req.path,
+      method: req.method,
+      statusCode: err instanceof AppError ? err.statusCode : 500,
+    },
+    err
+  );
 
   // Se for um erro operacional conhecido (AppError)
   if (err instanceof AppError) {

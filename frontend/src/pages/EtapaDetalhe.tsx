@@ -588,7 +588,6 @@ const EtapaDetalhes: React.FC = () => {
         const chavesData = await arenaService.getChavesEtapa(slug, etapaId);
         setChaves(chavesData);
       } catch (err: any) {
-        console.error("Erro ao carregar etapa:", err);
         setError(err.message || "Erro ao carregar detalhes da etapa");
       } finally {
         setLoading(false);
@@ -680,7 +679,7 @@ const EtapaDetalhes: React.FC = () => {
                 #{etapa.numero} {etapa.nome}
               </PageTitle>
 
-              {/* ✅ NOVO: Badges de status, nível e gênero */}
+              {/*  Badges de status, nível e gênero */}
               <BadgeGroup>
                 <Badge $variant={etapa.status}>
                   {getStatusLabel(etapa.status)}
@@ -721,7 +720,7 @@ const EtapaDetalhes: React.FC = () => {
                   <InfoValue>{getFormatoLabel(etapa.formato)}</InfoValue>
                 </InfoBox>
 
-                {/* ✅ NOVO: Nível */}
+                {/*  Nível */}
                 {etapa.nivel && (
                   <InfoBox>
                     <InfoLabel>Nível</InfoLabel>
@@ -729,7 +728,7 @@ const EtapaDetalhes: React.FC = () => {
                   </InfoBox>
                 )}
 
-                {/* ✅ NOVO: Gênero */}
+                {/*  Gênero */}
                 {etapa.genero && (
                   <InfoBox>
                     <InfoLabel>Gênero</InfoLabel>

@@ -1,9 +1,10 @@
 /**
- * Error Handler
+ * Error Handler - COM LOGGER
  * Tratamento centralizado de erros da aplicação
  */
 
-import { AxiosError } from 'axios';
+import { AxiosError } from "axios";
+import logger from "./logger"; // ← IMPORTAR LOGGER
 
 export interface AppError {
   message: string;
@@ -24,7 +25,7 @@ export class ApplicationError extends Error {
 
   constructor(error: AppError) {
     super(error.message);
-    this.name = 'ApplicationError';
+    this.name = "ApplicationError";
     this.code = error.code;
     this.status = error.status;
     this.field = error.field;
@@ -37,44 +38,44 @@ export class ApplicationError extends Error {
  */
 const errorMessages: Record<string, string> = {
   // Erros de autenticação
-  'auth/user-not-found': 'Usuário não encontrado',
-  'auth/wrong-password': 'Senha incorreta',
-  'auth/email-already-in-use': 'Email já está em uso',
-  'auth/weak-password': 'Senha muito fraca. Use no mínimo 6 caracteres',
-  'auth/invalid-email': 'Email inválido',
-  'auth/user-disabled': 'Usuário desabilitado',
-  'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde',
-  'auth/network-request-failed': 'Erro de conexão. Verifique sua internet',
-  'auth/invalid-credential': 'Email ou senha incorretos',
-  'auth/requires-recent-login': 'Por segurança, faça login novamente',
+  "auth/user-not-found": "Usuário não encontrado",
+  "auth/wrong-password": "Senha incorreta",
+  "auth/email-already-in-use": "Email já está em uso",
+  "auth/weak-password": "Senha muito fraca. Use no mínimo 6 caracteres",
+  "auth/invalid-email": "Email inválido",
+  "auth/user-disabled": "Usuário desabilitado",
+  "auth/too-many-requests": "Muitas tentativas. Tente novamente mais tarde",
+  "auth/network-request-failed": "Erro de conexão. Verifique sua internet",
+  "auth/invalid-credential": "Email ou senha incorretos",
+  "auth/requires-recent-login": "Por segurança, faça login novamente",
 
   // Erros de validação
-  'validation/required-field': 'Campo obrigatório',
-  'validation/invalid-email': 'Email inválido',
-  'validation/invalid-phone': 'Telefone inválido',
-  'validation/invalid-date': 'Data inválida',
-  'validation/min-length': 'Mínimo de caracteres não atingido',
-  'validation/max-length': 'Máximo de caracteres excedido',
+  "validation/required-field": "Campo obrigatório",
+  "validation/invalid-email": "Email inválido",
+  "validation/invalid-phone": "Telefone inválido",
+  "validation/invalid-date": "Data inválida",
+  "validation/min-length": "Mínimo de caracteres não atingido",
+  "validation/max-length": "Máximo de caracteres excedido",
 
   // Erros de negócio
-  'business/inscricoes-encerradas': 'Inscrições encerradas',
-  'business/vagas-esgotadas': 'Vagas esgotadas',
-  'business/jogador-ja-inscrito': 'Jogador já está inscrito',
-  'business/chaves-ja-geradas': 'Chaves já foram geradas',
-  'business/etapa-nao-encontrada': 'Etapa não encontrada',
-  'business/jogador-nao-encontrado': 'Jogador não encontrado',
+  "business/inscricoes-encerradas": "Inscrições encerradas",
+  "business/vagas-esgotadas": "Vagas esgotadas",
+  "business/jogador-ja-inscrito": "Jogador já está inscrito",
+  "business/chaves-ja-geradas": "Chaves já foram geradas",
+  "business/etapa-nao-encontrada": "Etapa não encontrada",
+  "business/jogador-nao-encontrado": "Jogador não encontrado",
 
   // Erros HTTP genéricos
-  400: 'Requisição inválida',
-  401: 'Não autorizado. Faça login novamente',
-  403: 'Acesso negado',
-  404: 'Recurso não encontrado',
-  409: 'Conflito de dados',
-  422: 'Dados inválidos',
-  429: 'Muitas requisições. Aguarde um momento',
-  500: 'Erro interno do servidor',
-  502: 'Servidor indisponível',
-  503: 'Serviço temporariamente indisponível',
+  400: "Requisição inválida",
+  401: "Não autorizado. Faça login novamente",
+  403: "Acesso negado",
+  404: "Recurso não encontrado",
+  409: "Conflito de dados",
+  422: "Dados inválidos",
+  429: "Muitas requisições. Aguarde um momento",
+  500: "Erro interno do servidor",
+  502: "Servidor indisponível",
+  503: "Serviço temporariamente indisponível",
 };
 
 /**
@@ -94,7 +95,7 @@ export const getErrorMessage = (error: any): string => {
   // Erro do Axios
   if (error?.isAxiosError) {
     const axiosError = error as AxiosError<any>;
-    
+
     // Mensagem do backend
     if (axiosError.response?.data?.error) {
       return axiosError.response.data.error;
@@ -102,12 +103,12 @@ export const getErrorMessage = (error: any): string => {
 
     // Status HTTP
     if (axiosError.response?.status) {
-      return errorMessages[axiosError.response.status] || 'Erro na requisição';
+      return errorMessages[axiosError.response.status] || "Erro na requisição";
     }
 
     // Erro de rede
-    if (axiosError.message === 'Network Error') {
-      return 'Erro de conexão. Verifique sua internet';
+    if (axiosError.message === "Network Error") {
+      return "Erro de conexão. Verifique sua internet";
     }
   }
 
@@ -116,7 +117,7 @@ export const getErrorMessage = (error: any): string => {
     return error.message;
   }
 
-  return 'Erro desconhecido. Tente novamente';
+  return "Erro desconhecido. Tente novamente";
 };
 
 /**
@@ -126,20 +127,23 @@ export const logError = (error: any, context?: string) => {
   const errorInfo = {
     message: getErrorMessage(error),
     context,
-    timestamp: new Date().toISOString(),
-    error: error instanceof Error ? {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    } : error,
+    error:
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+          }
+        : error,
   };
 
-  console.error('🚨 Error:', errorInfo);
-
-  // TODO: Enviar para serviço de monitoramento (Sentry, LogRocket, etc)
-  // if (import.meta.env.PROD) {
-  //   Sentry.captureException(error, { contexts: { custom: errorInfo } });
-  // }
+  logger.error(
+    errorInfo.message,
+    {
+      context: errorInfo.context,
+      errorDetails: errorInfo.error,
+    },
+    error instanceof Error ? error : undefined
+  );
 };
 
 /**
@@ -178,7 +182,7 @@ export const handleError = (error: any, context?: string): AppError => {
  * Verifica se é erro de autenticação
  */
 export const isAuthError = (error: any): boolean => {
-  if (error?.code?.startsWith('auth/')) return true;
+  if (error?.code?.startsWith("auth/")) return true;
   if (error?.status === 401) return true;
   if (error?.isAxiosError && error?.response?.status === 401) return true;
   return false;
@@ -188,7 +192,7 @@ export const isAuthError = (error: any): boolean => {
  * Verifica se é erro de validação
  */
 export const isValidationError = (error: any): boolean => {
-  if (error?.code?.startsWith('validation/')) return true;
+  if (error?.code?.startsWith("validation/")) return true;
   if (error?.status === 422) return true;
   return false;
 };
@@ -197,7 +201,7 @@ export const isValidationError = (error: any): boolean => {
  * Verifica se é erro de rede
  */
 export const isNetworkError = (error: any): boolean => {
-  if (error?.message === 'Network Error') return true;
-  if (error?.code === 'ECONNABORTED') return true;
+  if (error?.message === "Network Error") return true;
+  if (error?.code === "ECONNABORTED") return true;
   return false;
 };

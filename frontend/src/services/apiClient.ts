@@ -5,6 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 import { ApiResponse } from "../types";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 /**
  * Cliente HTTP configurado para a API
@@ -63,6 +64,11 @@ class ApiClient {
 
       // Token expirado - fazer logout
       if (status === 401) {
+        logger.warn("Unauthorized access - redirecting to login", {
+          url: error.config?.url,
+          method: error.config?.method?.toUpperCase(),
+        });
+
         localStorage.removeItem("authToken");
         window.location.href = "/login";
       }
@@ -71,12 +77,17 @@ class ApiClient {
       const errorMessage = data?.error || "Erro na requisição";
       return Promise.reject(new Error(errorMessage));
     } else if (error.request) {
-      // Erro sem resposta (problema de rede)
+      logger.error("Network error - no response from server", {
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        message: error.message,
+      });
+
       return Promise.reject(
         new Error("Erro de conexão. Verifique sua internet")
       );
     } else {
-      // Erro ao configurar requisição
+      // Erro ao configurar requisição (raro)
       return Promise.reject(new Error("Erro ao processar requisição"));
     }
   }

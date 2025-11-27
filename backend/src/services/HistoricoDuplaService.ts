@@ -1,6 +1,5 @@
 /**
  * HistoricoDuplaService.ts
- *
  * Service para rastrear histórico de duplas formadas
  * Essencial para lógica de Dupla Fixa com cabeças de chave
  */
@@ -13,6 +12,7 @@ import {
   EstatisticasCombinacoes,
 } from "../models/HistoricoDupla";
 import cabecaDeChaveService from "./CabecaDeChaveService";
+import logger from "../utils/logger";
 
 export class HistoricoDuplaService {
   private collection = "historico_duplas";
@@ -43,7 +43,6 @@ export class HistoricoDuplaService {
       );
 
       if (existente) {
-        console.log(`Dupla já registrada: ${chaveNormalizada}`);
         return existente;
       }
 
@@ -62,12 +61,31 @@ export class HistoricoDuplaService {
 
       const docRef = await db.collection(this.collection).add(historico);
 
-      return {
+      const novoHistorico = {
         id: docRef.id,
         ...historico,
       };
+
+      logger.info("Histórico de dupla registrado", {
+        historicoId: novoHistorico.id,
+        etapaId: dto.etapaId,
+        etapaNome: dto.etapaNome,
+        jogador1: dto.jogador1Nome,
+        jogador2: dto.jogador2Nome,
+        ambosForamCabecas: dto.ambosForamCabecas,
+      });
+
+      return novoHistorico;
     } catch (error) {
-      console.error("Erro ao registrar histórico de dupla:", error);
+      logger.error(
+        "Erro ao registrar histórico de dupla",
+        {
+          etapaId: dto.etapaId,
+          jogador1Id: dto.jogador1Id,
+          jogador2Id: dto.jogador2Id,
+        },
+        error as Error
+      );
       throw error;
     }
   }
@@ -97,7 +115,6 @@ export class HistoricoDuplaService {
         ...doc.data(),
       } as HistoricoDupla;
     } catch (error) {
-      console.error("Erro ao buscar dupla por chave:", error);
       return null;
     }
   }
@@ -123,7 +140,6 @@ export class HistoricoDuplaService {
 
       return !snapshot.empty;
     } catch (error) {
-      console.error("Erro ao verificar se dupla já foi formada:", error);
       return false;
     }
   }
@@ -148,7 +164,6 @@ export class HistoricoDuplaService {
 
       return combinacoes;
     } catch (error) {
-      console.error("Erro ao obter combinações realizadas:", error);
       return new Set();
     }
   }
@@ -157,58 +172,54 @@ export class HistoricoDuplaService {
    * Calcular estatísticas de combinações
    */
   async calcularEstatisticas(
-    arenaId: string
+    arenaId: string,
+    etapaId: string
   ): Promise<EstatisticasCombinacoes> {
-    try {
-      // Buscar cabeças de chave ativas
-      const cabecas = await cabecaDeChaveService.listarAtivas(arenaId);
-      const totalCabecas = cabecas.length;
+    // Buscar cabeças de chave ativas
+    const cabecas = await cabecaDeChaveService.listarAtivas(arenaId, etapaId);
+    const totalCabecas = cabecas.length;
 
-      // Calcular combinações possíveis: C(n,2) = n! / (2! * (n-2)!)
-      const combinacoesPossiveis =
-        totalCabecas >= 2 ? (totalCabecas * (totalCabecas - 1)) / 2 : 0;
+    // Calcular combinações possíveis: C(n,2) = n! / (2! * (n-2)!)
+    const combinacoesPossiveis =
+      totalCabecas >= 2 ? (totalCabecas * (totalCabecas - 1)) / 2 : 0;
 
-      // Buscar combinações já realizadas
-      const combinacoesRealizadasSet = await this.obterCombinacoesRealizadas(
-        arenaId
-      );
-      const combinacoesRealizadas = combinacoesRealizadasSet.size;
+    // Buscar combinações já realizadas
+    const combinacoesRealizadasSet = await this.obterCombinacoesRealizadas(
+      arenaId
+    );
+    const combinacoesRealizadas = combinacoesRealizadasSet.size;
 
-      // Calcular combinações restantes
-      const combinacoesRestantes = Math.max(
-        0,
-        combinacoesPossiveis - combinacoesRealizadas
-      );
+    // Calcular combinações restantes
+    const combinacoesRestantes = Math.max(
+      0,
+      combinacoesPossiveis - combinacoesRealizadas
+    );
 
-      // Todas foram feitas?
-      const todasCombinacoesFeitas = combinacoesRestantes === 0;
+    // Todas foram feitas?
+    const todasCombinacoesFeitas = combinacoesRestantes === 0;
 
-      // Gerar lista de combinações disponíveis
-      const cabecasIds = cabecas.map((c) => c.jogadorId);
-      const combinacoesDisponiveis: string[][] = [];
+    // Gerar lista de combinações disponíveis
+    const cabecasIds = cabecas.map((c) => c.jogadorId);
+    const combinacoesDisponiveis: string[][] = [];
 
-      for (let i = 0; i < cabecasIds.length; i++) {
-        for (let j = i + 1; j < cabecasIds.length; j++) {
-          const chave = this.normalizarChave(cabecasIds[i], cabecasIds[j]);
+    for (let i = 0; i < cabecasIds.length; i++) {
+      for (let j = i + 1; j < cabecasIds.length; j++) {
+        const chave = this.normalizarChave(cabecasIds[i], cabecasIds[j]);
 
-          if (!combinacoesRealizadasSet.has(chave)) {
-            combinacoesDisponiveis.push([cabecasIds[i], cabecasIds[j]]);
-          }
+        if (!combinacoesRealizadasSet.has(chave)) {
+          combinacoesDisponiveis.push([cabecasIds[i], cabecasIds[j]]);
         }
       }
-
-      return {
-        totalCabecas,
-        combinacoesPossiveis,
-        combinacoesRealizadas,
-        combinacoesRestantes,
-        todasCombinacoesFeitas,
-        combinacoesDisponiveis,
-      };
-    } catch (error) {
-      console.error("Erro ao calcular estatísticas:", error);
-      throw error;
     }
+
+    return {
+      totalCabecas,
+      combinacoesPossiveis,
+      combinacoesRealizadas,
+      combinacoesRestantes,
+      todasCombinacoesFeitas,
+      combinacoesDisponiveis,
+    };
   }
 
   /**
@@ -247,8 +258,50 @@ export class HistoricoDuplaService {
         (a, b) => b.criadoEm.toMillis() - a.criadoEm.toMillis()
       );
     } catch (error) {
-      console.error("Erro ao listar histórico do jogador:", error);
       return [];
+    }
+  }
+
+  /**
+   * Limpar histórico de uma etapa específica
+   */
+  async limparDaEtapa(arenaId: string, etapaId: string): Promise<void> {
+    try {
+      const snapshot = await db
+        .collection("historico_duplas")
+        .where("arenaId", "==", arenaId)
+        .where("etapaId", "==", etapaId)
+        .get();
+
+      if (snapshot.empty) {
+        logger.info("Nenhum histórico de duplas para limpar", {
+          arenaId,
+          etapaId,
+        });
+        return;
+      }
+
+      const batch = db.batch();
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      logger.info("Histórico de duplas removido", {
+        arenaId,
+        etapaId,
+        quantidadeRemovida: snapshot.size,
+      });
+    } catch (error) {
+      logger.error(
+        "Erro ao limpar histórico de duplas da etapa",
+        {
+          arenaId,
+          etapaId,
+        },
+        error as Error
+      );
+      throw error;
     }
   }
 
@@ -271,9 +324,20 @@ export class HistoricoDuplaService {
 
       await batch.commit();
 
-      console.log(`Histórico da etapa ${etapaId} limpo com sucesso`);
+      logger.info("Histórico de etapa limpo", {
+        arenaId,
+        etapaId,
+        quantidadeRemovida: snapshot.size,
+      });
     } catch (error) {
-      console.error("Erro ao limpar histórico da etapa:", error);
+      logger.error(
+        "Erro ao limpar histórico da etapa",
+        {
+          arenaId,
+          etapaId,
+        },
+        error as Error
+      );
       throw error;
     }
   }

@@ -238,12 +238,12 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
             />
             {inputValue && !isConfirmacaoCorreta && (
               <ValidationMessage $isValid={false}>
-                ❌ Texto incorreto
+                Texto incorreto
               </ValidationMessage>
             )}
             {isConfirmacaoCorreta && (
               <ValidationMessage $isValid={true}>
-                ✅ Texto correto
+                Texto correto
               </ValidationMessage>
             )}
           </InputSection>

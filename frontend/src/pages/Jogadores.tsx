@@ -494,17 +494,13 @@ const ListagemJogadores: React.FC = () => {
         const arenaData = await arenaService.getMyArena();
         setArena(arenaData);
       } catch (error) {
-        console.error("Erro ao carregar arena:", error);
-
         // Opção 2: Fallback - pegar do localStorage se tiver
         const arenaLocalStorage = localStorage.getItem("arena");
         if (arenaLocalStorage) {
           try {
             const arenaParsed = JSON.parse(arenaLocalStorage);
             setArena(arenaParsed);
-          } catch (e) {
-            console.error("Erro ao parsear arena do localStorage:", e);
-          }
+          } catch (e) {}
         }
       }
     };

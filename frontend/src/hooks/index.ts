@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import logger from "../utils/logger";
 
 /**
  * Hook para gerenciar loading state
@@ -137,7 +138,11 @@ export const useLocalStorage = <T>(key: string, initialValue: T) => {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Erro ao ler localStorage key "${key}":`, error);
+      logger.error(
+        `Erro ao ler localStorage key "${key}"`,
+        { key },
+        error as Error
+      );
       return initialValue;
     }
   });
@@ -149,7 +154,11 @@ export const useLocalStorage = <T>(key: string, initialValue: T) => {
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      console.error(`Erro ao salvar localStorage key "${key}":`, error);
+      logger.error(
+        `Erro ao salvar localStorage key "${key}"`,
+        { key },
+        error as Error
+      );
     }
   };
 
@@ -158,7 +167,11 @@ export const useLocalStorage = <T>(key: string, initialValue: T) => {
       window.localStorage.removeItem(key);
       setStoredValue(initialValue);
     } catch (error) {
-      console.error(`Erro ao remover localStorage key "${key}":`, error);
+      logger.error(
+        `Erro ao remover localStorage key "${key}"`,
+        { key },
+        error as Error
+      );
     }
   };
 
@@ -178,7 +191,11 @@ export const useClipboard = () => {
       setTimeout(() => setCopied(false), 2000);
       return true;
     } catch (error) {
-      console.error("Erro ao copiar:", error);
+      logger.error(
+        "Erro ao copiar para clipboard",
+        { textLength: text.length },
+        error as Error
+      );
       setCopied(false);
       return false;
     }

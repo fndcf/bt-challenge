@@ -5,10 +5,10 @@ import { Jogador, NivelJogador, StatusJogador } from "../types/jogador";
 
 interface JogadorCardProps {
   jogador: Jogador;
-  arenaSlug?: string; // ✅ Adicionar slug da arena
+  arenaSlug?: string;
   onEdit?: (jogador: Jogador) => void;
   onDelete?: (jogador: Jogador) => void;
-  onView?: (jogador: Jogador) => void; // Mantém para compatibilidade
+  onView?: (jogador: Jogador) => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -160,7 +160,7 @@ const Footer = styled.div`
   gap: 0.5rem;
 `;
 
-// ✅ Botão que pode ser Link ou Button
+//  Botão que pode ser Link ou Button
 const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
   flex: 1;
   padding: 0.5rem 0.5rem;
@@ -215,7 +215,6 @@ const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
   }}
 `;
 
-// ✅ Link estilizado igual ao botão
 const ActionLink = styled(Link)<{ $variant: "view" | "edit" | "delete" }>`
   flex: 1;
   padding: 0.5rem 0.5rem;
@@ -361,7 +360,7 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
       </Body>
 
       <Footer>
-        {/* ✅ Botão Ver vai para perfil público */}
+        {/*  Botão Ver vai para perfil público */}
         {arenaSlug && (
           <ActionLink
             $variant="view"

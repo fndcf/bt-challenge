@@ -283,7 +283,7 @@ const GridContainer = styled.div`
   }
 `;
 
-// ✅ NOVO: Grid de 2 colunas
+//  Grid de 2 colunas
 const GridContainer2 = styled.div`
   display: grid;
   grid-template-columns: 1fr;
@@ -294,7 +294,7 @@ const GridContainer2 = styled.div`
   }
 `;
 
-// ✅ NOVO: Card de informação (somente leitura)
+//  Card de informação (somente leitura)
 const InfoCard = styled.div<{ $variant?: "purple" | "blue" }>`
   background: ${(props) =>
     props.$variant === "purple"
@@ -444,7 +444,6 @@ export const EditarEtapa: React.FC = () => {
         tipoChaveamento: data.tipoChaveamento,
       });
     } catch (err: any) {
-      console.error("Erro ao carregar etapa:", err);
       setError(err.message || "Erro ao carregar etapa");
     } finally {
       setLoading(false);
@@ -519,7 +518,6 @@ export const EditarEtapa: React.FC = () => {
       alert("Etapa atualizada com sucesso!");
       navigate(`/admin/etapas/${id}`);
     } catch (err: any) {
-      console.error("Erro ao atualizar etapa:", err);
       setError(err.message || "Erro ao atualizar etapa");
     } finally {
       setSalvando(false);
@@ -618,7 +616,7 @@ export const EditarEtapa: React.FC = () => {
         </Alert>
       )}
 
-      {/* ✅ NOVO: Alerta específico para Rei da Praia */}
+      {/*  Alerta específico para Rei da Praia */}
       {isReiDaPraia && (
         <Alert $variant="purple">
           <p>
@@ -636,7 +634,7 @@ export const EditarEtapa: React.FC = () => {
         )}
 
         <FieldsContainer>
-          {/* ✅ NOVO: Cards de Formato e Chaveamento (somente leitura) */}
+          {/*  Cards de Formato e Chaveamento (somente leitura) */}
           <GridContainer2>
             <InfoCard $variant={isReiDaPraia ? "purple" : "blue"}>
               <InfoIcon>{isReiDaPraia ? "👑" : "👥"}</InfoIcon>

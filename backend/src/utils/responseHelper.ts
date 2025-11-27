@@ -8,7 +8,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
-  details?: any; // ✅ ADICIONADO: Para erros de validação detalhados
+  details?: any;
 }
 
 /**
@@ -58,12 +58,12 @@ export class ResponseHelper {
   static badRequest(
     res: Response,
     error: string,
-    details?: any // ✅ ADICIONADO: Detalhes opcionais
+    details?: any
   ): Response<ApiResponse> {
     return res.status(400).json({
       success: false,
       error,
-      ...(details && { details }), // ✅ Só inclui se houver
+      ...(details && { details }),
     });
   }
 
@@ -122,12 +122,12 @@ export class ResponseHelper {
   static internalError(
     res: Response,
     error = "Erro interno do servidor",
-    details?: any // ✅ ADICIONADO: Detalhes opcionais (apenas em dev)
+    details?: any
   ): Response<ApiResponse> {
     return res.status(500).json({
       success: false,
       error,
-      ...(process.env.NODE_ENV === "development" && details && { details }), // ✅ Só mostra em dev
+      ...(process.env.NODE_ENV === "development" && details && { details }),
     });
   }
 
@@ -137,12 +137,12 @@ export class ResponseHelper {
   static validationError(
     res: Response,
     error: string,
-    details?: any // ✅ Campo para detalhes da validação
+    details?: any
   ): Response<ApiResponse> {
     return res.status(422).json({
       success: false,
       error,
-      details, // ✅ CORRIGIDO: Agora existe na interface
+      details,
     });
   }
 }

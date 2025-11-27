@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { User, AuthState } from "../types";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 interface AuthContextType extends AuthState {
   login: (
@@ -50,8 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return {
       uid: firebaseUser.uid,
       email: firebaseUser.email || "",
-      role: "admin", // Por padrão, todos os usuários autenticados são admins de arena
-      // arenaId será buscado do backend depois
+      role: "admin",
     };
   };
 
@@ -83,14 +83,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Buscar dados adicionais do backend (arenaId, role)
-      // TODO: Implementar chamada ao backend para buscar dados completos
       const token = await userCredential.user.getIdToken();
       localStorage.setItem("authToken", token);
 
       setUser(convertFirebaseUser(userCredential.user));
+
+      logger.info("Login realizado com sucesso", {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        rememberMe,
+      });
     } catch (err: any) {
       const errorMessage = getAuthErrorMessage(err.code);
       setError(errorMessage);
+
+      logger.error(
+        "Falha no login",
+        {
+          email,
+          errorCode: err.code,
+        },
+        err
+      );
+
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
@@ -103,12 +118,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       setError(null);
+
+      //  Capturar uid antes de fazer logout
+      const uid = user?.uid;
+      const email = user?.email;
+
       await signOut(auth);
       localStorage.removeItem("authToken");
       setUser(null);
+
+      logger.info("Logout realizado", { uid, email });
     } catch (err: any) {
       const errorMessage = "Erro ao fazer logout";
       setError(errorMessage);
+
+      logger.error("Erro ao fazer logout", {}, err);
+
       throw new Error(errorMessage);
     }
   };
@@ -127,14 +152,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password
       );
 
-      // TODO: Criar registro no backend (admin, arena, etc)
       const token = await userCredential.user.getIdToken();
       localStorage.setItem("authToken", token);
 
       setUser(convertFirebaseUser(userCredential.user));
+
+      logger.info("Conta criada com sucesso", {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+      });
     } catch (err: any) {
       const errorMessage = getAuthErrorMessage(err.code);
       setError(errorMessage);
+
+      logger.error(
+        "Falha no registro",
+        {
+          email,
+          errorCode: err.code,
+        },
+        err
+      );
+
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
@@ -148,9 +187,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       await sendPasswordResetEmail(auth, email);
+
+      logger.info("Email de recuperação enviado", { email });
     } catch (err: any) {
       const errorMessage = getPasswordResetErrorMessage(err.code);
       setError(errorMessage);
+
+      logger.error(
+        "Falha ao enviar email de recuperação",
+        {
+          email,
+          errorCode: err.code,
+        },
+        err
+      );
+
       throw new Error(errorMessage);
     }
   };
@@ -164,8 +215,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Usuário autenticado
         const token = await firebaseUser.getIdToken();
         localStorage.setItem("authToken", token);
-
-        // TODO: Buscar dados completos do backend
         setUser(convertFirebaseUser(firebaseUser));
       } else {
         // Usuário não autenticado
@@ -175,7 +224,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     });
 
-    // Cleanup
     return () => unsubscribe();
   }, []);
 

@@ -395,7 +395,7 @@ export const createEtapaDuplaFixaSchema: ValidationSchema<any> = {
   formato: [validators.formatoEtapa()],
 };
 
-// ============== NOVO: Schema para criar etapa REI DA PRAIA ==============
+// ==============  Schema para criar etapa REI DA PRAIA ==============
 export const createEtapaReiDaPraiaSchema: ValidationSchema<any> = {
   nome: [
     validators.required("Nome é obrigatório"),

@@ -1,10 +1,11 @@
 import { apiClient } from "./apiClient";
 import { SetPartida } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 /**
  * Service para gerenciar partidas
- * ✅ ATUALIZADO: Suporta Dupla Fixa e Rei da Praia
+ *  Suporta Dupla Fixa e Rei da Praia
  */
 class PartidaService {
   private baseURL = "/partidas";
@@ -18,9 +19,15 @@ class PartidaService {
     placar: SetPartida[]
   ): Promise<void> {
     try {
-      console.log(`⚔️ Registrando resultado da partida ${partidaId}...`);
       await apiClient.put(`${this.baseURL}/${partidaId}/resultado`, { placar });
-      console.log("✅ Resultado registrado!");
+
+      logger.info("Resultado Dupla Fixa registrado", {
+        partidaId,
+        totalSets: placar.length,
+        placar: placar
+          .map((s) => `${s.gamesDupla1}-${s.gamesDupla2}`)
+          .join(", "),
+      });
     } catch (error) {
       const appError = handleError(error, "PartidaService.registrarResultado");
       throw new Error(appError.message);
@@ -28,7 +35,7 @@ class PartidaService {
   }
 
   /**
-   * ✅ NOVO: Registrar resultado de partida REI DA PRAIA
+   *  Registrar resultado de partida REI DA PRAIA
    * (1 SET APENAS - formato específico)
    */
   async registrarResultadoReiDaPraia(
@@ -40,10 +47,6 @@ class PartidaService {
     }>
   ): Promise<void> {
     try {
-      console.log(
-        `⚔️ Registrando resultado Rei da Praia - Partida ${partidaId}...`
-      );
-
       // Validar placar (deve ter apenas 1 set)
       if (placar.length !== 1) {
         throw new Error("Partida Rei da Praia deve ter apenas 1 set");
@@ -53,7 +56,10 @@ class PartidaService {
         placar,
       });
 
-      console.log("✅ Resultado Rei da Praia registrado!");
+      logger.info("Resultado Rei da Praia registrado", {
+        partidaId,
+        placar: `${placar[0].gamesDupla1}-${placar[0].gamesDupla2}`,
+      });
     } catch (error) {
       const appError = handleError(
         error,

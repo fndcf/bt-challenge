@@ -13,6 +13,7 @@ import { Timestamp } from "firebase-admin/firestore";
 export interface CabecaDeChave {
   id: string;
   arenaId: string;
+  etapaId: string;
   jogadorId: string;
   jogadorNome: string;
   jogadorNivel?: string;
@@ -29,6 +30,7 @@ export interface CabecaDeChave {
  */
 export interface CriarCabecaDeChaveDTO {
   arenaId: string;
+  etapaId: string;
   jogadorId: string;
   jogadorNome: string;
   jogadorNivel?: string;

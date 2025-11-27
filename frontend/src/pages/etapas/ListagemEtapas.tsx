@@ -329,7 +329,7 @@ export const ListagemEtapas: React.FC = () => {
   const [filtroStatus, setFiltroStatus] = useState<StatusEtapa | "">("");
   const [filtroNivel, setFiltroNivel] = useState<NivelJogador | "">("");
   const [filtroGenero, setFiltroGenero] = useState<GeneroJogador | "">("");
-  const [filtroFormato, setFiltroFormato] = useState<FormatoEtapa | "">(""); // ✅ NOVO
+  const [filtroFormato, setFiltroFormato] = useState<FormatoEtapa | "">("");
   const [ordenacao, setOrdenacao] = useState<"dataRealizacao" | "criadoEm">(
     "dataRealizacao"
   );
@@ -340,8 +340,8 @@ export const ListagemEtapas: React.FC = () => {
     inscricoesAbertas: 0,
     emAndamento: 0,
     finalizadas: 0,
-    reiDaPraia: 0, // ✅ NOVO
-    duplaFixa: 0, // ✅ NOVO
+    reiDaPraia: 0,
+    duplaFixa: 0,
   });
 
   useEffect(() => {
@@ -372,7 +372,7 @@ export const ListagemEtapas: React.FC = () => {
         filtros.genero = filtroGenero;
       }
 
-      // ✅ NOVO: Filtro de formato
+      //  Filtro de formato
       if (filtroFormato) {
         filtros.formato = filtroFormato;
       }
@@ -395,7 +395,6 @@ export const ListagemEtapas: React.FC = () => {
         duplaFixa: resultado.etapas.length - reiDaPraiaCount,
       });
     } catch (err: any) {
-      console.error("Erro ao carregar etapas:", err);
       setError(err.response?.data?.error || "Erro ao carregar etapas");
     } finally {
       setLoading(false);
@@ -463,7 +462,7 @@ export const ListagemEtapas: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        {/* ✅ NOVO: Card Rei da Praia */}
+        {/*  Card Rei da Praia */}
         <StatCard $variant="purple">
           <StatContent>
             <StatLabel $color="#7c3aed">👑 Rei da Praia</StatLabel>
@@ -471,7 +470,7 @@ export const ListagemEtapas: React.FC = () => {
           </StatContent>
         </StatCard>
 
-        {/* ✅ NOVO: Card Dupla Fixa */}
+        {/*  Card Dupla Fixa */}
         <StatCard $variant="blue">
           <StatContent>
             <StatLabel $color="#2563eb">👥 Dupla Fixa</StatLabel>
@@ -507,7 +506,7 @@ export const ListagemEtapas: React.FC = () => {
             </Select>
           </FilterGroup>
 
-          {/* ✅ NOVO: Filtro de Formato */}
+          {/*  Filtro de Formato */}
           <FilterGroup>
             <FilterLabel>Formato:</FilterLabel>
             <Select

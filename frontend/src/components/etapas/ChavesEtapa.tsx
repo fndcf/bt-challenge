@@ -223,7 +223,7 @@ const DuplaInfo = styled.div`
   min-width: 0;
 
   @media (min-width: 1024px) {
-    flex: 1 1 65%; // Mais espaço para nomes
+    flex: 1 1 65%;
     max-width: 75%;
   }
 `;
@@ -233,9 +233,9 @@ const JogadoresNome = styled.div`
   color: #111827;
   font-size: 0.9375rem;
   margin-bottom: 0.25rem;
-  overflow-wrap: break-word; /* MUDOU: break-word → overflow-wrap */
+  overflow-wrap: break-word;
   word-wrap: break-word;
-  hyphens: auto; /* NOVO: quebra com hífens */
+  hyphens: auto;
 
   @media (min-width: 768px) {
     font-size: 1rem;
@@ -553,7 +553,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                       duplasDoGrupo
                         // ============== ORDENAÇÃO ==============
                         .sort((a, b) => {
-                          // ✅ Se tem posição definida pelo backend, usar ela!
+                          //  Se tem posição definida pelo backend, usar ela!
                           if (
                             a.posicaoGrupo !== undefined &&
                             b.posicaoGrupo !== undefined

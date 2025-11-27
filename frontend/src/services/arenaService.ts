@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import { Arena } from "../types";
 import { handleError } from "../utils/errorHandler";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 /**
  * DTO para criar arena
@@ -40,22 +41,20 @@ export interface EtapaPublica {
 
 /**
  * Jogador/Inscrição pública
- * ✅ ATUALIZADO: Suporta campos do backend (ranking e inscricoes)
  */
 export interface JogadorPublico {
   id: string;
-  nome?: string; // Campo esperado
-  jogadorNome?: string; // ✅ Campo real do backend (ranking)
-  jogadorId?: string; // ID do jogador
-  nivel?: string; // Campo esperado
-  jogadorNivel?: string; // ✅ Campo real do backend (ranking)
-  genero?: string; // ✅ ADICIONAR - importante para filtrar/exibir
-  jogadorGenero?: string; // ✅ ADICIONAR - campo real do backend
-  ranking?: number; // Campo esperado (pontos)
-  pontos?: number; // ✅ Campo real do backend (ranking)
+  nome?: string;
+  jogadorNome?: string;
+  jogadorId?: string;
+  nivel?: string;
+  jogadorNivel?: string;
+  genero?: string;
+  jogadorGenero?: string;
+  ranking?: number;
+  pontos?: number;
   seed?: number;
   statusInscricao?: string;
-  // Campos adicionais do backend (grupos/ranking)
   etapaId?: string;
   arenaId?: string;
   grupoId?: string;
@@ -148,6 +147,14 @@ class ArenaService {
         this.basePath,
         data
       );
+
+      logger.info("Arena criada", {
+        arenaId: response.arena.id,
+        nome: response.arena.nome,
+        slug: response.arena.slug,
+        adminUid: response.adminUid,
+      });
+
       return response;
     } catch (error) {
       const appError = handleError(error, "ArenaService.create");
@@ -163,7 +170,8 @@ class ArenaService {
       const arena = await apiClient.get<Arena>(`${this.basePath}/slug/${slug}`);
       return arena;
     } catch (error) {
-      console.error("Erro ao buscar arena:", error);
+      // ✅ CONVERTER console.error para logger.warn
+      logger.warn("Erro ao buscar arena por slug - retornando null", { slug });
       return null;
     }
   }
@@ -176,7 +184,8 @@ class ArenaService {
       const arena = await apiClient.get<Arena>(`${this.basePath}/${id}`);
       return arena;
     } catch (error) {
-      console.error("Erro ao buscar arena:", error);
+      // ✅ CONVERTER console.error para logger.warn
+      logger.warn("Erro ao buscar arena por ID - retornando null", { id });
       return null;
     }
   }
@@ -189,7 +198,8 @@ class ArenaService {
       const arena = await apiClient.get<Arena>(`${this.basePath}/me`);
       return arena;
     } catch (error) {
-      console.error("Erro ao buscar minha arena:", error);
+      // ✅ CONVERTER console.error para logger.warn
+      logger.warn("Erro ao buscar minha arena - retornando null");
       return null;
     }
   }
@@ -204,7 +214,8 @@ class ArenaService {
       );
       return response.arenas;
     } catch (error) {
-      console.error("Erro ao listar arenas:", error);
+      // ✅ CONVERTER console.error para logger.warn
+      logger.warn("Erro ao listar arenas - retornando lista vazia");
       return [];
     }
   }
@@ -215,6 +226,13 @@ class ArenaService {
   async update(id: string, data: Partial<Arena>): Promise<Arena> {
     try {
       const arena = await apiClient.put<Arena>(`${this.basePath}/${id}`, data);
+
+      logger.info("Arena atualizada", {
+        arenaId: arena.id,
+        nome: arena.nome,
+        camposAtualizados: Object.keys(data),
+      });
+
       return arena;
     } catch (error) {
       const appError = handleError(error, "ArenaService.update");
@@ -228,6 +246,8 @@ class ArenaService {
   async deactivate(id: string): Promise<void> {
     try {
       await apiClient.delete(`${this.basePath}/${id}`);
+
+      logger.info("Arena desativada", { arenaId: id });
     } catch (error) {
       const appError = handleError(error, "ArenaService.deactivate");
       throw new Error(appError.message);
@@ -246,7 +266,8 @@ class ArenaService {
       }>(`${this.basePath}/check-slug/${slug}`);
       return response.available;
     } catch (error) {
-      console.error("Erro ao verificar slug:", error);
+      // ✅ CONVERTER console.error para logger.warn
+      logger.warn("Erro ao verificar slug - retornando false", { slug });
       return false;
     }
   }
@@ -259,21 +280,13 @@ class ArenaService {
   /**
    * Buscar arena pública por slug
    * GET /api/public/:arenaSlug
-   *
-   * ✅ CORRIGIDO: apiClient já retorna apenas response.data.data
    */
   async getArenaPublica(slug: string): Promise<Arena> {
     try {
-      console.log("🔍 Buscando arena:", slug);
-
-      // apiClient.get já retorna apenas o 'data' do response
-      // Então recebemos diretamente: { id, nome, slug, ativa }
       const arena = await apiClient.get<Arena>(`${this.publicPath}/${slug}`);
-
-      console.log("✅ Arena encontrada:", arena);
       return arena;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar arena pública:", error);
+      logger.error("Erro ao buscar arena pública", { slug }, error);
       throw new Error(error.message || "Arena não encontrada");
     }
   }
@@ -281,8 +294,6 @@ class ArenaService {
   /**
    * Listar etapas públicas de uma arena
    * GET /api/public/:arenaSlug/etapas
-   *
-   * ✅ CORRIGIDO: apiClient já retorna response.data.data
    */
   async getEtapasPublicas(
     slug: string,
@@ -297,38 +308,22 @@ class ArenaService {
     try {
       const queryParams = new URLSearchParams();
 
-      if (params?.status) {
-        queryParams.append("status", params.status);
-      }
-      if (params?.nivel) {
-        // ✅ ADICIONAR
-        queryParams.append("nivel", params.nivel);
-      }
-      if (params?.genero) {
-        // ✅ ADICIONAR
-        queryParams.append("genero", params.genero);
-      }
-      if (params?.limite) {
+      if (params?.status) queryParams.append("status", params.status);
+      if (params?.nivel) queryParams.append("nivel", params.nivel);
+      if (params?.genero) queryParams.append("genero", params.genero);
+      if (params?.limite)
         queryParams.append("limite", params.limite.toString());
-      }
-      if (params?.offset) {
+      if (params?.offset)
         queryParams.append("offset", params.offset.toString());
-      }
 
       const url = `${this.publicPath}/${slug}/etapas${
         queryParams.toString() ? `?${queryParams.toString()}` : ""
       }`;
 
-      console.log("🔍 Buscando etapas:", url);
-
-      // apiClient.get já retorna o 'data'
-      // Backend retorna: { etapas: [...], total: N }
       const response = await apiClient.get<EtapasResponse>(url);
-
-      console.log("✅ Etapas encontradas:", response.etapas.length);
       return response.etapas;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar etapas públicas:", error);
+      logger.error("Erro ao buscar etapas públicas", { slug }, error);
       return [];
     }
   }
@@ -336,22 +331,15 @@ class ArenaService {
   /**
    * Buscar etapa pública específica
    * GET /api/public/:arenaSlug/etapas/:etapaId
-   *
-   * ✅ CORRIGIDO: apiClient já retorna response.data.data
    */
   async getEtapaPublica(slug: string, etapaId: string): Promise<EtapaPublica> {
     try {
-      console.log("🔍 Buscando etapa:", etapaId);
-
-      // apiClient.get já retorna apenas o 'data'
       const etapa = await apiClient.get<EtapaPublica>(
         `${this.publicPath}/${slug}/etapas/${etapaId}`
       );
-
-      console.log("✅ Etapa encontrada:", etapa);
       return etapa;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar etapa pública:", error);
+      logger.error("Erro ao buscar etapa pública", { slug, etapaId }, error);
       throw new Error(error.message || "Etapa não encontrada");
     }
   }
@@ -359,22 +347,15 @@ class ArenaService {
   /**
    * Buscar jogadores inscritos em uma etapa
    * GET /api/public/:arenaSlug/etapas/:etapaId/inscricoes
-   *
-   * ✅ CORRIGIDO: Mapeia dados do backend para formato esperado
    */
   async getJogadoresEtapa(
     slug: string,
     etapaId: string
   ): Promise<JogadorPublico[]> {
     try {
-      console.log("🔍 Buscando jogadores da etapa:", etapaId);
-
-      // Backend retorna inscrições com campos: jogadorNome, jogadorNivel, etc
       const inscricoes = await apiClient.get<InscricaoBackend[]>(
         `${this.publicPath}/${slug}/etapas/${etapaId}/inscricoes`
       );
-
-      console.log("✅ Inscrições encontradas:", inscricoes.length);
 
       // Mapear para o formato esperado pelo frontend
       const jogadores: JogadorPublico[] = inscricoes.map(
@@ -388,10 +369,13 @@ class ArenaService {
         })
       );
 
-      console.log("✅ Jogadores mapeados:", jogadores[0]);
       return jogadores;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar jogadores da etapa:", error);
+      logger.error(
+        "Erro ao buscar jogadores da etapa",
+        { slug, etapaId },
+        error
+      );
       return [];
     }
   }
@@ -399,8 +383,6 @@ class ArenaService {
   /**
    * Buscar ranking geral da arena
    * GET /api/public/:arenaSlug/ranking
-   *
-   * ✅ ATUALIZADO: Aceita filtros de gênero e nível
    */
   async getRankingPublico(
     slug: string,
@@ -409,36 +391,20 @@ class ArenaService {
     nivel?: string
   ): Promise<JogadorPublico[]> {
     try {
-      console.log("🔍 Buscando ranking:", { slug, limite, genero, nivel });
-
-      // Construir query params
       const queryParams = new URLSearchParams();
       queryParams.append("limite", limite.toString());
 
-      if (genero) {
-        queryParams.append("genero", genero);
-      }
-
-      if (nivel) {
-        queryParams.append("nivel", nivel);
-      }
+      if (genero) queryParams.append("genero", genero);
+      if (nivel) queryParams.append("nivel", nivel);
 
       const url = `${
         this.publicPath
       }/${slug}/ranking?${queryParams.toString()}`;
-      console.log("📡 URL:", url);
-
-      // Backend retorna array direto com jogadorNome, jogadorNivel, pontos
       const ranking = await apiClient.get<JogadorPublico[]>(url);
-
-      console.log("✅ Ranking recebido:", ranking.length, "jogadores");
-      if (ranking.length > 0) {
-        console.log("📊 Exemplo:", ranking[0]);
-      }
 
       return ranking;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar ranking público:", error);
+      logger.error("Erro ao buscar ranking público", { slug }, error);
       return [];
     }
   }
@@ -454,7 +420,8 @@ class ArenaService {
       );
       return estatisticas;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar estatísticas públicas:", error);
+      // ✅ CONVERTER console.error para logger.error
+      logger.error("Erro ao buscar estatísticas públicas", { slug }, error);
       return null;
     }
   }
@@ -493,7 +460,8 @@ class ArenaService {
       const response = await apiClient.get<JogadoresResponse>(url);
       return response;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar jogadores públicos:", error);
+      // ✅ CONVERTER console.error para logger.error
+      logger.error("Erro ao buscar jogadores públicos", { slug }, error);
       return { jogadores: [], total: 0 };
     }
   }
@@ -512,7 +480,12 @@ class ArenaService {
       );
       return jogador;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar jogador público:", error);
+      // ✅ CONVERTER console.error para logger.error
+      logger.error(
+        "Erro ao buscar jogador público",
+        { slug, jogadorId },
+        error
+      );
       return null;
     }
   }
@@ -528,7 +501,12 @@ class ArenaService {
       );
       return historico;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar histórico do jogador:", error);
+      // ✅ CONVERTER console.error para logger.error
+      logger.error(
+        "Erro ao buscar histórico do jogador",
+        { slug, jogadorId },
+        error
+      );
       return null;
     }
   }
@@ -542,16 +520,17 @@ class ArenaService {
     jogadorId: string
   ): Promise<EstatisticasAgregadas> {
     try {
-      console.log("📊 Buscando estatísticas agregadas:", { slug, jogadorId });
-
       const stats = await apiClient.get<EstatisticasAgregadas>(
         `${this.publicPath}/${slug}/jogadores/${jogadorId}/estatisticas`
       );
-
-      console.log("✅ Estatísticas agregadas recebidas:", stats);
       return stats;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar estatísticas agregadas:", error);
+      logger.error(
+        "Erro ao buscar estatísticas agregadas",
+        { slug, jogadorId },
+        error
+      );
+
       // Retornar valores zerados em caso de erro
       return {
         jogadorId: jogadorId,
@@ -581,16 +560,12 @@ class ArenaService {
    */
   async getChavesEtapa(slug: string, etapaId: string): Promise<any> {
     try {
-      console.log("🔍 Buscando chaves da etapa:", etapaId);
-
       const chaves = await apiClient.get<any>(
         `${this.publicPath}/${slug}/etapas/${etapaId}/chaves`
       );
-
-      console.log("✅ Chaves encontradas:", chaves);
       return chaves;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar chaves da etapa:", error);
+      logger.error("Erro ao buscar chaves da etapa", { slug, etapaId }, error);
       return null;
     }
   }
@@ -601,16 +576,12 @@ class ArenaService {
    */
   async getGruposEtapa(slug: string, etapaId: string): Promise<any> {
     try {
-      console.log("🔍 Buscando grupos da etapa:", etapaId);
-
       const grupos = await apiClient.get<any>(
         `${this.publicPath}/${slug}/etapas/${etapaId}/grupos`
       );
-
-      console.log("✅ Grupos encontrados:", grupos);
       return grupos;
     } catch (error: any) {
-      console.error("❌ Erro ao buscar grupos da etapa:", error);
+      logger.error("Erro ao buscar grupos da etapa", { slug, etapaId }, error);
       return null;
     }
   }

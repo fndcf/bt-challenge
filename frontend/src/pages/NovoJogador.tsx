@@ -494,8 +494,6 @@ const NovoJogador: React.FC = () => {
         navigate("/admin/jogadores");
       }, 1500);
     } catch (error: any) {
-      console.error("Erro ao cadastrar jogador:", error);
-
       let mensagem = "Erro ao cadastrar jogador";
 
       if (error.message) {

@@ -8,7 +8,8 @@ import React, {
 import { useLocation } from "react-router-dom";
 import { Arena, ArenaContextType } from "../types";
 import { arenaService } from "../services/arenaService";
-import { useAuth } from "./AuthContext"; // ✅ NOVO
+import { useAuth } from "./AuthContext";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 const ArenaContext = createContext<ArenaContextType | undefined>(undefined);
 
@@ -25,7 +26,7 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
-  const { user } = useAuth(); // ✅ NOVO: Pegar usuário autenticado
+  const { user } = useAuth();
 
   /**
    * Extrair slug da arena da URL
@@ -44,8 +45,6 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      console.log("🔍 Buscando arena pelo slug:", slug);
-
       const arenaData = await arenaService.getBySlug(slug);
 
       if (!arenaData) {
@@ -54,10 +53,10 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log("✅ Arena carregada (slug):", arenaData);
       setArena(arenaData);
     } catch (err: any) {
-      console.error("❌ Erro ao carregar arena:", err);
+      // ✅ CONVERTER console.error para logger.error
+      logger.error("Erro ao carregar arena por slug", { slug }, err);
       setError(err.message || "Erro ao carregar arena");
       setArena(null);
     } finally {
@@ -66,14 +65,12 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
   };
 
   /**
-   * ✅ NOVO: Buscar arena do admin logado (rotas admin)
+   * Buscar arena do admin logado (rotas admin)
    */
   const fetchMyArena = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      console.log("🔍 Buscando arena do admin logado...");
 
       const arenaData = await arenaService.getMyArena();
 
@@ -83,10 +80,10 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log("✅ Arena carregada (admin):", arenaData);
       setArena(arenaData);
     } catch (err: any) {
-      console.error("❌ Erro ao carregar arena:", err);
+      // ✅ CONVERTER console.error para logger.error
+      logger.error("Erro ao carregar arena do admin", {}, err);
       setError(err.message || "Erro ao carregar arena");
       setArena(null);
     } finally {
@@ -101,17 +98,17 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
     const slug = extractArenaSlug(location.pathname);
 
     if (slug) {
-      // ✅ Rota pública com slug: /arena/:slug
+      // Rota pública com slug: /arena/:slug
       fetchArenaBySlug(slug);
     } else if (location.pathname.startsWith("/admin") && user) {
-      // ✅ NOVO: Rota admin: buscar arena do admin logado
+      // Rota admin: buscar arena do admin logado
       fetchMyArena();
     } else {
       // Não está em uma rota de arena
       setArena(null);
       setLoading(false);
     }
-  }, [location.pathname, user]); // ✅ Adicionar user como dependência
+  }, [location.pathname, user]);
 
   const value: ArenaContextType = {
     arena,

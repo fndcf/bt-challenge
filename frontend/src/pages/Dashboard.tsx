@@ -273,9 +273,6 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { arena } = useArena();
 
-  console.log("🏟️ Arena no Dashboard:", arena);
-  console.log("📍 Slug da arena:", arena?.slug);
-
   const actions = [
     {
       label: "Cadastrar Jogador",

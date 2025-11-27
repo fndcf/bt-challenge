@@ -1,14 +1,15 @@
+/**
+ * Database Initialization
+ * backend/src/config/initDatabase.ts
+ */
+
 import { db } from "./firebase";
 import { COLLECTIONS } from "./firestore";
-
-/**
- * Script para inicializar a estrutura do banco de dados
- * Executa uma única vez para criar documentos iniciais
- */
+import logger from "../utils/logger";
 
 export const initializeDatabase = async () => {
   try {
-    console.log("🚀 Iniciando configuração do banco de dados...");
+    logger.info("Iniciando configuração do banco de dados");
 
     // Criar documento de configuração global
     const configRef = db.collection("config").doc("global");
@@ -28,9 +29,9 @@ export const initializeDatabase = async () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log("✅ Configuração global criada");
+      logger.info("Configuração global criada");
     } else {
-      console.log("ℹ️  Configuração global já existe");
+      logger.debug("Configuração global já existe");
     }
 
     // Verificar se existem arenas
@@ -40,17 +41,17 @@ export const initializeDatabase = async () => {
       .get();
 
     if (arenasSnapshot.empty) {
-      console.log(
-        "⚠️  Nenhuma arena encontrada. Crie uma arena através do painel administrativo."
-      );
+      logger.warn("Nenhuma arena encontrada", {
+        acao: "Crie uma arena através do painel administrativo",
+      });
     } else {
-      console.log("✅ Banco de dados já possui arenas configuradas");
+      logger.info("Banco de dados possui arenas configuradas");
     }
 
-    console.log("✅ Inicialização do banco concluída!");
+    logger.info("Inicialização do banco concluída");
     return true;
   } catch (error) {
-    console.error("❌ Erro ao inicializar banco de dados:", error);
+    logger.error("Erro ao inicializar banco de dados", {}, error as Error);
     throw error;
   }
 };

@@ -1,10 +1,13 @@
+/**
+ * Partida Controller
+ * backend/src/controllers/PartidaController.ts
+ */
+
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
 import chaveService from "../services/ChaveService";
+import logger from "../utils/logger";
 
-/**
- * Controller para gerenciar partidas
- */
 class PartidaController {
   /**
    * Registrar resultado de uma partida
@@ -31,12 +34,22 @@ class PartidaController {
 
       await chaveService.registrarResultadoPartida(id, arenaId, placar);
 
+      logger.info("Resultado registrado", {
+        partidaId: id,
+        placar,
+        arenaId,
+      });
+
       res.json({
         success: true,
         message: "Resultado registrado com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao registrar resultado:", error);
+      logger.error(
+        "Erro ao registrar resultado",
+        { partidaId: req.params.id },
+        error
+      );
 
       if (
         error.message.includes("não encontrada") ||

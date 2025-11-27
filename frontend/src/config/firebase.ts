@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
+import logger from "../utils/logger";
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -29,7 +30,7 @@ const validateConfig = () => {
   );
 
   if (missingKeys.length > 0) {
-    console.error("❌ Configurações do Firebase faltando:", missingKeys);
+    logger.error("Configurações do Firebase faltando", { missingKeys });
     throw new Error("Configuração do Firebase incompleta");
   }
 };
@@ -49,9 +50,8 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
   connectAuthEmulator(auth, "http://localhost:9099");
   connectFirestoreEmulator(db, "localhost", 8080);
   connectStorageEmulator(storage, "localhost", 9199);
-  console.log("🔧 Conectado aos emuladores do Firebase");
-}
 
-console.log("✅ Firebase Client inicializado com sucesso");
+  logger.info("Conectado aos emuladores do Firebase");
+}
 
 export default app;

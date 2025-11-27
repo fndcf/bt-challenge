@@ -7,7 +7,7 @@ const router = Router();
 /**
  * Todas as rotas de jogadores requerem autenticação
  */
-router.use(requireAuth); // ✅ CORRETO: Middleware com assinatura completa
+router.use(requireAuth);
 
 /**
  * @route   POST /api/jogadores

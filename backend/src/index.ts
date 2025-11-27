@@ -1,8 +1,14 @@
+/**
+ * Express App Configuration
+ * backend/src/app.ts (ou index.ts)
+ */
+
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import routes from "./routes";
 import { errorHandler } from "./middlewares/errorHandler";
+import logger from "./utils/logger";
 
 const app = express();
 
@@ -50,10 +56,8 @@ app.use((_req: Request, res: Response) => {
 
 /**
  * Middleware de tratamento de erros
- * ✅ CORRIGIDO: Assinatura completa com 4 parâmetros
  */
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  // ✅ 4 parâmetros
   errorHandler(err, _req, res, _next);
 });
 
@@ -63,9 +67,12 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🔥 Firebase projeto: ${process.env.FIREBASE_PROJECT_ID}`);
+  logger.info("Servidor iniciado com sucesso", {
+    porta: PORT,
+    ambiente: process.env.NODE_ENV || "development",
+    firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
+    frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
+  });
 });
 
 export default app;

@@ -9,7 +9,7 @@ export enum StatusEtapa {
   INSCRICOES_ABERTAS = "inscricoes_abertas",
   INSCRICOES_ENCERRADAS = "inscricoes_encerradas",
   CHAVES_GERADAS = "chaves_geradas",
-  FASE_ELIMINATORIA = "fase_eliminatoria", // ✅ NOVO
+  FASE_ELIMINATORIA = "fase_eliminatoria",
   EM_ANDAMENTO = "em_andamento",
   FINALIZADA = "finalizada",
   CANCELADA = "cancelada",
@@ -23,13 +23,13 @@ export enum FaseEtapa {
   FINAL = "final",
 }
 
-// ✅ NOVO: Formato da etapa
+//  Formato da etapa
 export enum FormatoEtapa {
   DUPLA_FIXA = "dupla_fixa",
   REI_DA_PRAIA = "rei_da_praia",
 }
 
-// ✅ NOVO: Tipo de chaveamento para Rei da Praia
+//  Tipo de chaveamento para Rei da Praia
 export enum TipoChaveamentoReiDaPraia {
   MELHORES_COM_MELHORES = "melhores_com_melhores",
   PAREAMENTO_POR_RANKING = "pareamento_por_ranking",
@@ -70,7 +70,7 @@ export interface CriarEtapaDTO {
   descricao?: string;
   nivel: NivelJogador;
   genero: GeneroJogador;
-  formato: FormatoEtapa; // ✅ NOVO
+  formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   dataInicio: string;
   dataFim: string;
@@ -85,7 +85,6 @@ export interface AtualizarEtapaDTO {
   descricao?: string;
   nivel?: NivelJogador;
   genero?: GeneroJogador;
-  formato?: FormatoEtapa; // ✅ NOVO
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   dataInicio?: string;
   dataFim?: string;
@@ -169,7 +168,7 @@ export interface Partida {
   id: string;
   etapaId: string;
   arenaId: string;
-  tipo?: "dupla_fixa" | "eliminatoria"; // ✅ NOVO
+  tipo?: "dupla_fixa" | "eliminatoria";
   fase: FaseEtapa;
   grupoId?: string;
   grupoNome?: string;
@@ -185,14 +184,14 @@ export interface Partida {
   placar: any[];
   vencedoraId?: string;
   vencedoraNome?: string;
-  vencedores?: string[]; // ✅ NOVO: Array de IDs dos vencedores (Rei da Praia)
-  vencedoresNomes?: string; // ✅ NOVO: Nomes dos vencedores
+  vencedores?: string[];
+  vencedoresNomes?: string;
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;
 }
 
-// ✅ NOVO: Partida específica do Rei da Praia
+//  Partida específica do Rei da Praia
 export interface PartidaReiDaPraia {
   id: string;
   etapaId: string;
@@ -228,7 +227,7 @@ export interface PartidaReiDaPraia {
   finalizadoEm?: string;
 }
 
-// ✅ NOVO: Estatísticas individuais do jogador na etapa
+//  Estatísticas individuais do jogador na etapa
 export interface EstatisticasJogador {
   id: string;
   etapaId: string;
@@ -259,7 +258,7 @@ export interface FiltrosEtapa {
   status?: StatusEtapa;
   nivel?: NivelJogador;
   genero?: GeneroJogador;
-  formato: FormatoEtapa; // ✅ NOVO
+  formato?: FormatoEtapa;
   ordenarPor?: "dataRealizacao" | "criadoEm";
   ordem?: "asc" | "desc";
   limite?: number;
@@ -282,21 +281,21 @@ export interface EstatisticasEtapa {
   totalParticipacoes: number;
 }
 
-// ✅ ATUALIZADO: Resultado da geração de chaves
+//  Resultado da geração de chaves
 export interface ResultadoGeracaoChaves {
   duplas?: Dupla[]; // Opcional (só Dupla Fixa)
-  jogadores?: EstatisticasJogador[]; // ✅ NOVO: Só Rei da Praia
+  jogadores?: EstatisticasJogador[]; //  Só Rei da Praia
   grupos: Grupo[];
   partidas: Partida[] | PartidaReiDaPraia[]; // Pode ser um ou outro
 }
 
-// ✅ NOVO: Resultado da geração de eliminatória no Rei da Praia
+//  Resultado da geração de eliminatória no Rei da Praia
 export interface ResultadoGeracaoEliminatoriaReiDaPraia {
   duplas: Dupla[]; // Duplas FIXAS formadas a partir dos classificados
   confrontos: ConfrontoEliminatorio[];
 }
 
-// ✅ NOVO: DTO para gerar eliminatória Rei da Praia
+//  DTO para gerar eliminatória Rei da Praia
 export interface GerarEliminatoriaReiDaPraiaDTO {
   etapaId: string;
   arenaId: string;

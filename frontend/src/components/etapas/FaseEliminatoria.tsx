@@ -956,10 +956,10 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                 </InfoBox>
               </AlertBox>
 
-              {/* ✅ NOVO: Verificar se grupo está completo */}
+              {/*  Verificar se grupo está completo */}
               {grupoUnicoCompleto ? (
                 <>
-                  {/* ✅ Se etapa já finalizada */}
+                  {/*  Se etapa já finalizada */}
                   {etapaFinalizada ? (
                     <AlertBox $variant="success">
                       <h4>Etapa Finalizada!</h4>
@@ -969,7 +969,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                       </p>
                     </AlertBox>
                   ) : (
-                    /* ✅ Se grupo completo mas etapa não finalizada */
+                    /*  Se grupo completo mas etapa não finalizada */
                     <>
                       <AlertBox $variant="warning">
                         <h4>Grupo Completo!</h4>
@@ -998,7 +998,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
                   )}
                 </>
               ) : (
-                /* ✅ Grupo ainda não completo */
+                /*  Grupo ainda não completo */
                 <AlertBox $variant="warning">
                   <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
                     Finalize todas as partidas do grupo primeiro
@@ -1069,7 +1069,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
         >
           <span>Cancelar Eliminatória</span>
         </Button>
-        {/* ✅ ATUALIZADO: Botão com estados */}
+        {/*  Botão com estados */}
         {finalFinalizada && (
           <>
             <Button
@@ -1133,6 +1133,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
           getStatusBadge={getStatusBadge}
           contarStatus={contarStatus}
           setConfrontoSelecionado={setConfrontoSelecionado}
+          etapaFinalizada={etapaFinalizada}
         />
       ) : (
         <VisualizacaoBracket
@@ -1140,6 +1141,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
           getNomeFase={getNomeFase}
           getStatusBadge={getStatusBadge}
           setConfrontoSelecionado={setConfrontoSelecionado}
+          etapaFinalizada={etapaFinalizada}
         />
       )}
 
@@ -1166,12 +1168,14 @@ const VisualizacaoLista: React.FC<{
   getStatusBadge: (status: StatusConfrontoEliminatorio) => JSX.Element;
   contarStatus: (fase: ConfrontoEliminatorio[]) => string;
   setConfrontoSelecionado: (confronto: ConfrontoEliminatorio) => void;
+  etapaFinalizada: boolean;
 }> = ({
   fasesComConfrontos,
   getNomeFase,
   getStatusBadge,
   contarStatus,
   setConfrontoSelecionado,
+  etapaFinalizada,
 }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -1282,10 +1286,18 @@ const VisualizacaoLista: React.FC<{
                       StatusConfrontoEliminatorio.FINALIZADA && (
                       <ActionSection>
                         <ActionButton
-                          $variant="edit"
-                          onClick={() => setConfrontoSelecionado(confronto)}
+                          $variant={etapaFinalizada ? "disabled" : "edit"}
+                          onClick={() =>
+                            !etapaFinalizada &&
+                            setConfrontoSelecionado(confronto)
+                          }
+                          disabled={etapaFinalizada}
                         >
-                          <span>Editar Resultado</span>
+                          <span>
+                            {etapaFinalizada
+                              ? "🔒 Etapa Finalizada"
+                              : "Editar Resultado"}{" "}
+                          </span>
                         </ActionButton>
                       </ActionSection>
                     )}
@@ -1307,11 +1319,13 @@ const VisualizacaoBracket: React.FC<{
   getNomeFase: (fase: TipoFase) => string;
   getStatusBadge: (status: StatusConfrontoEliminatorio) => JSX.Element;
   setConfrontoSelecionado: (confronto: ConfrontoEliminatorio) => void;
+  etapaFinalizada: boolean;
 }> = ({
   confrontosPorFase,
   getNomeFase,
   getStatusBadge,
   setConfrontoSelecionado,
+  etapaFinalizada,
 }) => {
   const fases = [
     TipoFase.OITAVAS,
@@ -1332,9 +1346,16 @@ const VisualizacaoBracket: React.FC<{
                 <BracketMatch
                   key={confronto.id}
                   onClick={() => {
-                    if (confronto.status !== StatusConfrontoEliminatorio.BYE) {
+                    if (
+                      confronto.status !== StatusConfrontoEliminatorio.BYE &&
+                      !etapaFinalizada
+                    ) {
                       setConfrontoSelecionado(confronto);
                     }
+                  }}
+                  style={{
+                    cursor: etapaFinalizada ? "not-allowed" : "pointer",
+                    opacity: etapaFinalizada ? 0.6 : 1,
                   }}
                 >
                   <BracketStatus>

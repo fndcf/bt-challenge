@@ -1,3 +1,8 @@
+/**
+ * Etapa Controller
+ * backend/src/controllers/EtapaController.ts
+ */
+
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
 import etapaService from "../services/EtapaService";
@@ -11,12 +16,11 @@ import {
 import { z } from "zod";
 import ChaveService from "../services/ChaveService";
 import EtapaService from "../services/EtapaService";
+import logger from "../utils/logger";
 
-/**
- * Controller para gerenciar etapas
- */
 class EtapaController {
   [x: string]: any;
+
   /**
    * Criar nova etapa
    * POST /api/etapas
@@ -24,6 +28,7 @@ class EtapaController {
   async criar(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId || !req.user?.uid) {
+        logger.warn("Tentativa de criar etapa sem autenticação");
         res.status(401).json({
           success: false,
           error: "Usuário não autenticado",
@@ -32,10 +37,20 @@ class EtapaController {
       }
 
       const { arenaId, uid } = req.user;
-
       const dadosValidados = CriarEtapaSchema.parse(req.body);
 
+      logger.info("Criando etapa", {
+        arenaId,
+        nome: dadosValidados.nome,
+        formato: dadosValidados.formato,
+      });
+
       const etapa = await etapaService.criar(arenaId, uid, dadosValidados);
+
+      logger.info("Etapa criada com sucesso", {
+        etapaId: etapa.id,
+        nome: etapa.nome,
+      });
 
       res.status(201).json({
         success: true,
@@ -43,9 +58,8 @@ class EtapaController {
         message: "Etapa criada com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao criar etapa:", error);
-
       if (error instanceof z.ZodError) {
+        logger.warn("Dados inválidos ao criar etapa", { errors: error.issues });
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
@@ -55,6 +69,7 @@ class EtapaController {
       }
 
       if (error.message.includes("deve")) {
+        logger.warn("Validação falhou ao criar etapa", { erro: error.message });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -62,6 +77,11 @@ class EtapaController {
         return;
       }
 
+      logger.error(
+        "Erro ao criar etapa",
+        { arenaId: req.user?.arenaId },
+        error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao criar etapa",
@@ -76,6 +96,7 @@ class EtapaController {
   async buscarPorId(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId) {
+        logger.warn("Tentativa de buscar etapa sem autenticação");
         res.status(401).json({ error: "Usuário não autenticado" });
         return;
       }
@@ -86,6 +107,7 @@ class EtapaController {
       const etapa = await etapaService.buscarPorId(id, arenaId);
 
       if (!etapa) {
+        logger.warn("Etapa não encontrada", { etapaId: id, arenaId });
         res.status(404).json({
           success: false,
           error: "Etapa não encontrada",
@@ -98,7 +120,11 @@ class EtapaController {
         data: etapa,
       });
     } catch (error) {
-      console.error("Erro ao buscar etapa:", error);
+      logger.error(
+        "Erro ao buscar etapa",
+        { etapaId: req.params.id },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao buscar etapa",
@@ -113,6 +139,7 @@ class EtapaController {
   async listar(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId) {
+        logger.warn("Tentativa de listar etapas sem autenticação");
         res.status(401).json({ error: "Usuário não autenticado" });
         return;
       }
@@ -135,7 +162,11 @@ class EtapaController {
         data: resultado,
       });
     } catch (error) {
-      console.error("Erro ao listar etapas:", error);
+      logger.error(
+        "Erro ao listar etapas",
+        { arenaId: req.user?.arenaId },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao listar etapas",
@@ -150,19 +181,23 @@ class EtapaController {
   async atualizar(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId) {
+        logger.warn("Tentativa de atualizar etapa sem autenticação");
         res.status(401).json({ error: "Usuário não autenticado" });
         return;
       }
 
       const arenaId = req.user.arenaId;
       const { id } = req.params;
-
       const dadosValidados = AtualizarEtapaSchema.parse(req.body);
 
       // Validação extra: maxJogadores não pode ser menor que totalInscritos
       if (dadosValidados.maxJogadores !== undefined) {
         const etapaAtual = await etapaService.buscarPorId(id, arenaId);
         if (!etapaAtual) {
+          logger.warn("Etapa não encontrada ao atualizar", {
+            etapaId: id,
+            arenaId,
+          });
           res.status(404).json({
             success: false,
             error: "Etapa não encontrada",
@@ -171,6 +206,11 @@ class EtapaController {
         }
 
         if (dadosValidados.maxJogadores < etapaAtual.totalInscritos) {
+          logger.warn("Tentativa de reduzir maxJogadores abaixo de inscritos", {
+            etapaId: id,
+            tentativa: dadosValidados.maxJogadores,
+            inscritos: etapaAtual.totalInscritos,
+          });
           res.status(400).json({
             success: false,
             error: `Não é possível reduzir para ${dadosValidados.maxJogadores} jogadores. A etapa já possui ${etapaAtual.totalInscritos} jogador(es) inscrito(s).`,
@@ -179,11 +219,15 @@ class EtapaController {
         }
       }
 
+      logger.info("Atualizando etapa", { etapaId: id, arenaId });
+
       const etapaAtualizada = await etapaService.atualizar(
         id,
         arenaId,
         dadosValidados
       );
+
+      logger.info("Etapa atualizada com sucesso", { etapaId: id });
 
       res.json({
         success: true,
@@ -191,9 +235,10 @@ class EtapaController {
         message: "Etapa atualizada com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao atualizar etapa:", error);
-
       if (error instanceof z.ZodError) {
+        logger.warn("Dados inválidos ao atualizar etapa", {
+          errors: error.issues,
+        });
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
@@ -203,6 +248,9 @@ class EtapaController {
       }
 
       if (error.message.includes("não encontrada")) {
+        logger.warn("Etapa não encontrada ao atualizar", {
+          erro: error.message,
+        });
         res.status(404).json({
           success: false,
           error: error.message,
@@ -210,6 +258,11 @@ class EtapaController {
         return;
       }
 
+      logger.error(
+        "Erro ao atualizar etapa",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao atualizar etapa",
@@ -224,6 +277,7 @@ class EtapaController {
   async deletar(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId) {
+        logger.warn("Tentativa de deletar etapa sem autenticação");
         res.status(401).json({ error: "Usuário não autenticado" });
         return;
       }
@@ -231,16 +285,19 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
+      logger.info("Deletando etapa", { etapaId: id, arenaId });
+
       await etapaService.deletar(id, arenaId);
+
+      logger.info("Etapa deletada com sucesso", { etapaId: id });
 
       res.json({
         success: true,
         message: "Etapa deletada com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao deletar etapa:", error);
-
       if (error.message.includes("não encontrada")) {
+        logger.warn("Etapa não encontrada ao deletar", { erro: error.message });
         res.status(404).json({
           success: false,
           error: error.message,
@@ -253,6 +310,7 @@ class EtapaController {
         error.message.includes("inscritos") ||
         error.message.includes("chaves")
       ) {
+        logger.warn("Não é possível deletar etapa", { erro: error.message });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -260,6 +318,7 @@ class EtapaController {
         return;
       }
 
+      logger.error("Erro ao deletar etapa", { etapaId: req.params.id }, error);
       res.status(500).json({
         success: false,
         error: "Erro ao deletar etapa",
@@ -274,14 +333,19 @@ class EtapaController {
   async inscreverJogador(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId) {
+        logger.warn("Tentativa de inscrever jogador sem autenticação");
         res.status(401).json({ error: "Usuário não autenticado" });
         return;
       }
 
       const arenaId = req.user.arenaId;
       const { id } = req.params;
-
       const dadosValidados = InscreverJogadorSchema.parse(req.body);
+
+      logger.info("Inscrevendo jogador", {
+        etapaId: id,
+        jogadorId: dadosValidados.jogadorId,
+      });
 
       const inscricao = await etapaService.inscreverJogador(
         id,
@@ -289,15 +353,21 @@ class EtapaController {
         dadosValidados
       );
 
+      logger.info("Jogador inscrito com sucesso", {
+        inscricaoId: inscricao.id,
+        etapaId: id,
+      });
+
       res.status(201).json({
         success: true,
         data: inscricao,
         message: "Jogador inscrito com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao inscrever jogador:", error);
-
       if (error instanceof z.ZodError) {
+        logger.warn("Dados inválidos ao inscrever jogador", {
+          errors: error.issues,
+        });
         res.status(400).json({
           success: false,
           error: "Dados inválidos",
@@ -311,6 +381,7 @@ class EtapaController {
         error.message.includes("já") ||
         error.message.includes("atingiu")
       ) {
+        logger.warn("Validação falhou ao inscrever", { erro: error.message });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -318,6 +389,11 @@ class EtapaController {
         return;
       }
 
+      logger.error(
+        "Erro ao inscrever jogador",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao inscrever jogador",
@@ -332,6 +408,7 @@ class EtapaController {
   async cancelarInscricao(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user?.arenaId) {
+        logger.warn("Tentativa de cancelar inscrição sem autenticação");
         res.status(401).json({ error: "Usuário não autenticado" });
         return;
       }
@@ -339,16 +416,57 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { etapaId, inscricaoId } = req.params;
 
+      logger.info("Cancelando inscrição", { inscricaoId, etapaId });
+
+      // 1. Buscar inscrição para pegar jogadorId
+      const inscricao = await etapaService.buscarInscricao(
+        etapaId,
+        arenaId,
+        inscricaoId
+      );
+
+      if (!inscricao) {
+        logger.warn("Inscrição não encontrada", { inscricaoId });
+        res.status(404).json({
+          success: false,
+          error: "Inscrição não encontrada",
+        });
+        return;
+      }
+
+      // 2. Cancelar inscrição
       await etapaService.cancelarInscricao(inscricaoId, etapaId, arenaId);
+      logger.info("Inscrição cancelada", {
+        inscricaoId,
+        jogador: inscricao.jogadorNome,
+      });
+
+      // 3. Remover cabeça de chave (se existir)
+      try {
+        const cabecaDeChaveService = (
+          await import("../services/CabecaDeChaveService")
+        ).default;
+        await cabecaDeChaveService.remover(
+          arenaId,
+          etapaId,
+          inscricao.jogadorId
+        );
+        logger.info("Cabeça de chave removida", {
+          jogador: inscricao.jogadorNome,
+        });
+      } catch (error) {
+        logger.debug("Jogador não era cabeça de chave", {
+          jogador: inscricao.jogadorNome,
+        });
+      }
 
       res.json({
         success: true,
         message: "Inscrição cancelada com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao cancelar inscrição:", error);
-
       if (error.message.includes("não") || error.message.includes("após")) {
+        logger.warn("Validação falhou ao cancelar", { erro: error.message });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -356,6 +474,11 @@ class EtapaController {
         return;
       }
 
+      logger.error(
+        "Erro ao cancelar inscrição",
+        { inscricaoId: req.params.inscricaoId },
+        error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao cancelar inscrição",
@@ -384,7 +507,11 @@ class EtapaController {
         data: inscricoes,
       });
     } catch (error) {
-      console.error("Erro ao listar inscrições:", error);
+      logger.error(
+        "Erro ao listar inscrições",
+        { etapaId: req.params.id },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao listar inscrições",
@@ -406,7 +533,11 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
+      logger.info("Encerrando inscrições", { etapaId: id });
+
       const etapa = await etapaService.encerrarInscricoes(id, arenaId);
+
+      logger.info("Inscrições encerradas", { etapaId: id });
 
       res.json({
         success: true,
@@ -414,9 +545,8 @@ class EtapaController {
         message: "Inscrições encerradas com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao encerrar inscrições:", error);
-
       if (error.message.includes("não")) {
+        logger.warn("Validação falhou ao encerrar", { erro: error.message });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -424,6 +554,11 @@ class EtapaController {
         return;
       }
 
+      logger.error(
+        "Erro ao encerrar inscrições",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao encerrar inscrições",
@@ -445,7 +580,11 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
+      logger.info("Reabrindo inscrições", { etapaId: id });
+
       const etapa = await etapaService.reabrirInscricoes(id, arenaId);
+
+      logger.info("Inscrições reabertas", { etapaId: id });
 
       res.json({
         success: true,
@@ -453,9 +592,8 @@ class EtapaController {
         message: "Inscrições reabertas com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao reabrir inscrições:", error);
-
       if (error.message.includes("não")) {
+        logger.warn("Validação falhou ao reabrir", { erro: error.message });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -463,6 +601,11 @@ class EtapaController {
         return;
       }
 
+      logger.error(
+        "Erro ao reabrir inscrições",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao reabrir inscrições",
@@ -484,15 +627,16 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
-      // ✅ NOVO: Verificar formato da etapa
       const etapa = await etapaService.buscarPorId(id, arenaId);
       if (!etapa) {
         res.status(404).json({ error: "Etapa não encontrada" });
         return;
       }
 
-      // ✅ NOVO: Bloquear se for Rei da Praia
       if (etapa.formato === "rei_da_praia") {
+        logger.warn("Tentativa de gerar chaves para Rei da Praia", {
+          etapaId: id,
+        });
         res.status(400).json({
           success: false,
           error:
@@ -501,7 +645,14 @@ class EtapaController {
         return;
       }
 
+      logger.info("Gerando chaves", { etapaId: id, formato: etapa.formato });
+
       const resultado = await chaveService.gerarChaves(id, arenaId);
+
+      logger.info("Chaves geradas com sucesso", {
+        etapaId: id,
+        totalDuplas: resultado.duplas.length,
+      });
 
       res.json({
         success: true,
@@ -509,14 +660,15 @@ class EtapaController {
         message: "Chaves geradas com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao gerar chaves:", error);
-
       if (
         error.message.includes("não") ||
         error.message.includes("devem") ||
         error.message.includes("já") ||
         error.message.includes("mínimo")
       ) {
+        logger.warn("Validação falhou ao gerar chaves", {
+          erro: error.message,
+        });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -524,6 +676,7 @@ class EtapaController {
         return;
       }
 
+      logger.error("Erro ao gerar chaves", { etapaId: req.params.id }, error);
       res.status(500).json({
         success: false,
         error: "Erro ao gerar chaves",
@@ -543,7 +696,6 @@ class EtapaController {
       }
 
       const arenaId = req.user.arenaId;
-
       const estatisticas = await etapaService.obterEstatisticas(arenaId);
 
       res.json({
@@ -551,13 +703,18 @@ class EtapaController {
         data: estatisticas,
       });
     } catch (error) {
-      console.error("Erro ao obter estatísticas:", error);
+      logger.error(
+        "Erro ao obter estatísticas",
+        { arenaId: req.user?.arenaId },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao obter estatísticas",
       });
     }
   }
+
   /**
    * Buscar duplas de uma etapa
    * GET /api/etapas/:id/duplas
@@ -579,7 +736,11 @@ class EtapaController {
         data: duplas,
       });
     } catch (error) {
-      console.error("Erro ao buscar duplas:", error);
+      logger.error(
+        "Erro ao buscar duplas",
+        { etapaId: req.params.id },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao buscar duplas",
@@ -608,7 +769,11 @@ class EtapaController {
         data: grupos,
       });
     } catch (error) {
-      console.error("Erro ao buscar grupos:", error);
+      logger.error(
+        "Erro ao buscar grupos",
+        { etapaId: req.params.id },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao buscar grupos",
@@ -637,7 +802,11 @@ class EtapaController {
         data: partidas,
       });
     } catch (error) {
-      console.error("Erro ao buscar partidas:", error);
+      logger.error(
+        "Erro ao buscar partidas",
+        { etapaId: req.params.id },
+        error as Error
+      );
       res.status(500).json({
         success: false,
         error: "Erro ao buscar partidas",
@@ -659,16 +828,21 @@ class EtapaController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
+      logger.info("Excluindo chaves", { etapaId: id });
+
       await chaveService.excluirChaves(id, arenaId);
+
+      logger.info("Chaves excluídas com sucesso", { etapaId: id });
 
       res.json({
         success: true,
         message: "Chaves excluídas com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao excluir chaves:", error);
-
       if (error.message.includes("não")) {
+        logger.warn("Validação falhou ao excluir chaves", {
+          erro: error.message,
+        });
         res.status(400).json({
           success: false,
           error: error.message,
@@ -676,6 +850,7 @@ class EtapaController {
         return;
       }
 
+      logger.error("Erro ao excluir chaves", { etapaId: req.params.id }, error);
       res.status(500).json({
         success: false,
         error: "Erro ao excluir chaves",
@@ -697,17 +872,28 @@ class EtapaController {
         return;
       }
 
+      logger.info("Gerando fase eliminatória", {
+        etapaId: id,
+        classificadosPorGrupo,
+      });
+
       await ChaveService.gerarFaseEliminatoria(
         id,
         arenaId,
         classificadosPorGrupo
       );
 
+      logger.info("Fase eliminatória gerada com sucesso", { etapaId: id });
+
       res.status(201).json({
         message: "Fase eliminatória gerada com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao gerar fase eliminatória:", error);
+      logger.error(
+        "Erro ao gerar fase eliminatória",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({ error: error.message });
     }
   }
@@ -729,10 +915,10 @@ class EtapaController {
         return;
       }
 
-      console.log("📥 Buscando confrontos eliminatórios:", {
+      logger.debug("Buscando confrontos eliminatórios", {
         etapaId: id,
         arenaId,
-        fase: fase || undefined,
+        fase: fase || "todas",
       });
 
       const confrontos = await ChaveService.buscarConfrontosEliminatorios(
@@ -741,11 +927,15 @@ class EtapaController {
         fase as any
       );
 
-      console.log(`✅ Retornando ${confrontos.length} confrontos`);
+      logger.debug("Confrontos encontrados", { total: confrontos.length });
 
       res.json(confrontos);
     } catch (error: any) {
-      console.error("Erro ao buscar confrontos eliminatórios:", error);
+      logger.error(
+        "Erro ao buscar confrontos eliminatórios",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({ error: error.message });
     }
   }
@@ -766,13 +956,21 @@ class EtapaController {
         return;
       }
 
+      logger.info("Cancelando fase eliminatória", { etapaId: id });
+
       await ChaveService.cancelarFaseEliminatoria(id, arenaId);
+
+      logger.info("Fase eliminatória cancelada com sucesso", { etapaId: id });
 
       res.json({
         message: "Fase eliminatória cancelada com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao cancelar fase eliminatória:", error);
+      logger.error(
+        "Erro ao cancelar fase eliminatória",
+        { etapaId: req.params.id },
+        error
+      );
       res.status(500).json({ error: error.message });
     }
   }
@@ -790,13 +988,17 @@ class EtapaController {
         return;
       }
 
+      logger.info("Encerrando etapa", { etapaId: id });
+
       await EtapaService.encerrarEtapa(id, arenaId);
+
+      logger.info("Etapa encerrada com sucesso", { etapaId: id });
 
       res.json({
         message: "Etapa encerrada com sucesso! ",
       });
     } catch (error: any) {
-      console.error("Erro ao encerrar etapa:", error);
+      logger.error("Erro ao encerrar etapa", { etapaId: req.params.id }, error);
       res.status(500).json({ error: error.message });
     }
   }

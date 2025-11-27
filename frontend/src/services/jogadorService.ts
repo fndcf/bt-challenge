@@ -1,5 +1,5 @@
 /**
- * Jogador Service (PADRONIZADO)
+ * Jogador Service (COM LOGGER)
  * Service para gerenciar jogadores usando apiClient
  */
 
@@ -12,6 +12,7 @@ import {
   ListagemJogadores,
 } from "../types/jogador";
 import { handleError } from "../utils/errorHandler";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 /**
  * Service para comunicação com API de Jogadores
@@ -24,9 +25,15 @@ class JogadorService {
    */
   async criar(data: CriarJogadorDTO): Promise<Jogador> {
     try {
-      console.log("📝 Criando jogador...");
       const jogador = await apiClient.post<Jogador>(this.basePath, data);
-      console.log("✅ Jogador criado:", jogador.id);
+
+      logger.info("Jogador criado", {
+        jogadorId: jogador.id,
+        nome: jogador.nome,
+        nivel: jogador.nivel,
+        genero: jogador.genero,
+      });
+
       return jogador;
     } catch (error) {
       const appError = handleError(error, "JogadorService.criar");
@@ -56,13 +63,14 @@ class JogadorService {
         : this.basePath;
 
       const response = await apiClient.get<ListagemJogadores>(url);
-      console.log(
-        `✅ Jogadores listados: ${response.jogadores.length} de ${response.total}`
-      );
       return response;
     } catch (error) {
       const appError = handleError(error, "JogadorService.listar");
-      console.warn("⚠️ Erro ao listar jogadores, retornando lista vazia");
+
+      logger.warn("Erro ao listar jogadores - retornando lista vazia", {
+        erro: appError.message,
+        status: appError.status,
+      });
 
       // Retornar lista vazia em caso de erro (exceto erro de auth)
       if (appError.status === 401) {
@@ -84,9 +92,7 @@ class JogadorService {
    */
   async buscarPorId(id: string): Promise<Jogador> {
     try {
-      console.log(`🔍 Buscando jogador ${id}...`);
       const jogador = await apiClient.get<Jogador>(`${this.basePath}/${id}`);
-      console.log("✅ Jogador encontrado:", jogador.nome);
       return jogador;
     } catch (error) {
       const appError = handleError(error, "JogadorService.buscarPorId");
@@ -99,12 +105,17 @@ class JogadorService {
    */
   async atualizar(id: string, data: AtualizarJogadorDTO): Promise<Jogador> {
     try {
-      console.log(`✏️ Atualizando jogador ${id}...`);
       const jogador = await apiClient.put<Jogador>(
         `${this.basePath}/${id}`,
         data
       );
-      console.log("✅ Jogador atualizado:", jogador.nome);
+
+      logger.info("Jogador atualizado", {
+        jogadorId: jogador.id,
+        nome: jogador.nome,
+        camposAtualizados: Object.keys(data),
+      });
+
       return jogador;
     } catch (error) {
       const appError = handleError(error, "JogadorService.atualizar");
@@ -117,9 +128,9 @@ class JogadorService {
    */
   async deletar(id: string): Promise<void> {
     try {
-      console.log(`🗑️ Deletando jogador ${id}...`);
       await apiClient.delete(`${this.basePath}/${id}`);
-      console.log("✅ Jogador deletado");
+
+      logger.info("Jogador deletado", { jogadorId: id });
     } catch (error) {
       const appError = handleError(error, "JogadorService.deletar");
       throw new Error(appError.message);
@@ -134,7 +145,6 @@ class JogadorService {
       const response = await apiClient.get<{ total: number }>(
         `${this.basePath}/stats/total`
       );
-      console.log(`📊 Total de jogadores: ${response.total}`);
       return response.total;
     } catch (error) {
       handleError(error, "JogadorService.contarTotal");
@@ -150,7 +160,6 @@ class JogadorService {
       const response = await apiClient.get<Record<string, number>>(
         `${this.basePath}/stats/por-nivel`
       );
-      console.log("📊 Jogadores por nível:", response);
       return response;
     } catch (error) {
       handleError(error, "JogadorService.contarPorNivel");
@@ -163,11 +172,9 @@ class JogadorService {
    */
   async buscarDisponiveis(etapaId: string): Promise<Jogador[]> {
     try {
-      console.log(`🔍 Buscando jogadores disponíveis para etapa ${etapaId}...`);
       const jogadores = await apiClient.get<Jogador[]>(
         `${this.basePath}/disponiveis/${etapaId}`
       );
-      console.log(`✅ ${jogadores.length} jogadores disponíveis`);
       return jogadores;
     } catch (error) {
       handleError(error, "JogadorService.buscarDisponiveis");

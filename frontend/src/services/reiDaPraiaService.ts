@@ -1,10 +1,11 @@
 /**
- * Rei da Praia Service
+ * Rei da Praia Service - COM LOGGER
  * Service específico para operações do formato Rei da Praia
  */
 
 import { apiClient } from "./apiClient";
 import { handleError } from "../utils/errorHandler";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 import {
   EstatisticasJogador,
   PartidaReiDaPraia,
@@ -33,17 +34,17 @@ class ReiDaPraiaService {
    */
   async gerarChaves(etapaId: string): Promise<ResultadoChavesReiDaPraia> {
     try {
-      console.log(`🎾 Gerando chaves Rei da Praia - Etapa ${etapaId}...`);
-
       const response = await apiClient.post<ResultadoChavesReiDaPraia>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/gerar-chaves`,
         {}
       );
 
-      console.log("✅ Chaves Rei da Praia geradas:");
-      console.log(`   📊 ${response.jogadores.length} jogadores`);
-      console.log(`   📦 ${response.grupos.length} grupos`);
-      console.log(`   ⚔️ ${response.partidas.length} partidas`);
+      logger.info("Chaves Rei da Praia geradas", {
+        etapaId,
+        totalJogadores: response.jogadores.length,
+        totalGrupos: response.grupos.length,
+        totalPartidas: response.partidas.length,
+      });
 
       return response;
     } catch (error) {
@@ -63,15 +64,12 @@ class ReiDaPraiaService {
    */
   async buscarJogadores(etapaId: string): Promise<EstatisticasJogador[]> {
     try {
-      console.log(`🔍 Buscando jogadores Rei da Praia - Etapa ${etapaId}...`);
-
       // Cache busting para evitar 304
       const timestamp = new Date().getTime();
       const response = await apiClient.get<EstatisticasJogador[]>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/jogadores?_t=${timestamp}`
       );
 
-      console.log(`✅ ${response.length} jogadores carregados`);
       return response;
     } catch (error) {
       const appError = handleError(error, "ReiDaPraiaService.buscarJogadores");
@@ -86,14 +84,11 @@ class ReiDaPraiaService {
    */
   async buscarGrupos(etapaId: string): Promise<Grupo[]> {
     try {
-      console.log(`🔍 Buscando grupos Rei da Praia - Etapa ${etapaId}...`);
-
       const timestamp = new Date().getTime();
       const response = await apiClient.get<Grupo[]>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/grupos?_t=${timestamp}`
       );
 
-      console.log(`✅ ${response.length} grupos carregados`);
       return response;
     } catch (error) {
       const appError = handleError(error, "ReiDaPraiaService.buscarGrupos");
@@ -108,14 +103,11 @@ class ReiDaPraiaService {
    */
   async buscarPartidas(etapaId: string): Promise<PartidaReiDaPraia[]> {
     try {
-      console.log(`🔍 Buscando partidas Rei da Praia - Etapa ${etapaId}...`);
-
       const timestamp = new Date().getTime();
       const response = await apiClient.get<PartidaReiDaPraia[]>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/partidas?_t=${timestamp}`
       );
 
-      console.log(`✅ ${response.length} partidas carregadas`);
       return response;
     } catch (error) {
       const appError = handleError(error, "ReiDaPraiaService.buscarPartidas");
@@ -166,10 +158,6 @@ class ReiDaPraiaService {
     }>
   ): Promise<void> {
     try {
-      console.log(
-        `⚔️ Registrando resultado Rei da Praia - Partida ${partidaId}...`
-      );
-
       // Validar que é apenas 1 set
       if (placar.length !== 1) {
         throw new Error("Partida Rei da Praia deve ter apenas 1 set");
@@ -180,7 +168,11 @@ class ReiDaPraiaService {
         { placar }
       );
 
-      console.log("✅ Resultado registrado!");
+      logger.info("Resultado Rei da Praia registrado", {
+        etapaId,
+        partidaId,
+        placar: `${placar[0].gamesDupla1}-${placar[0].gamesDupla2}`,
+      });
     } catch (error) {
       const appError = handleError(
         error,
@@ -211,18 +203,23 @@ class ReiDaPraiaService {
     }
   ): Promise<ResultadoEliminatoriaReiDaPraia> {
     try {
-      console.log(`🏆 Gerando fase eliminatória Rei da Praia...`);
-      console.log(`   📊 ${data.classificadosPorGrupo} por grupo`);
-      console.log(`   🎲 Chaveamento: ${data.tipoChaveamento}`);
-
+      // ✅ ADICIONAR LOG AQUI
+      console.log("📡 [SERVICE] Enviando requisição:", {
+        url: `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/gerar-eliminatoria`,
+        data,
+      });
       const response = await apiClient.post<ResultadoEliminatoriaReiDaPraia>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/gerar-eliminatoria`,
         data
       );
 
-      console.log("✅ Fase eliminatória gerada:");
-      console.log(`   👥 ${response.duplas.length} duplas fixas`);
-      console.log(`   ⚔️ ${response.confrontos.length} confrontos`);
+      logger.info("Fase eliminatória Rei da Praia gerada", {
+        etapaId,
+        classificadosPorGrupo: data.classificadosPorGrupo,
+        tipoChaveamento: data.tipoChaveamento,
+        totalDuplas: response.duplas.length,
+        totalConfrontos: response.confrontos.length,
+      });
 
       return response;
     } catch (error) {
@@ -245,7 +242,6 @@ class ReiDaPraiaService {
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/duplas-eliminatoria`
       );
 
-      console.log(`✅ ${response.length} duplas eliminatória carregadas`);
       return response;
     } catch (error) {
       const appError = handleError(
@@ -267,7 +263,6 @@ class ReiDaPraiaService {
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/confrontos`
       );
 
-      console.log(`✅ ${response.length} confrontos carregados`);
       return response;
     } catch (error) {
       const appError = handleError(
@@ -381,9 +376,19 @@ class ReiDaPraiaService {
    * Cancelar fase eliminatória
    */
   async cancelarEliminatoria(etapaId: string): Promise<void> {
-    await apiClient.post(
-      `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/cancelar-eliminatoria`
-    );
+    try {
+      await apiClient.post(
+        `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/cancelar-eliminatoria`
+      );
+
+      logger.info("Fase eliminatória Rei da Praia cancelada", { etapaId });
+    } catch (error) {
+      const appError = handleError(
+        error,
+        "ReiDaPraiaService.cancelarEliminatoria"
+      );
+      throw new Error(appError.message);
+    }
   }
 }
 

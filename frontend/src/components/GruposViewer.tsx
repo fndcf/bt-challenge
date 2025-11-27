@@ -1,8 +1,3 @@
-/**
- * GruposViewer - DESIGN MODERNO DO ZERO
- * ✅ Suporta Dupla Fixa e Rei da Praia
- */
-
 import React from "react";
 import styled from "styled-components";
 
@@ -21,7 +16,6 @@ interface Dupla {
   classificada: boolean;
 }
 
-// ✅ NOVO: Interface para jogador individual (Rei da Praia)
 interface JogadorIndividual {
   id: string;
   jogadorId: string;
@@ -111,7 +105,6 @@ const Title = styled.h2`
   }
 `;
 
-// ✅ NOVO: Badge de formato
 const FormatoBadge = styled.span<{ $formato: string }>`
   display: inline-flex;
   align-items: center;
@@ -644,7 +637,6 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
     );
   }
 
-  // ✅ Detectar formato pelo primeiro grupo
   const formato =
     grupos[0]?.formato ||
     (grupos[0]?.jogadores?.length ? "rei_da_praia" : "dupla_fixa");
@@ -669,7 +661,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
             </GroupHeader>
 
             <GroupContent>
-              {/* ✅ CLASSIFICAÇÃO REI DA PRAIA - Jogadores individuais */}
+              {/*  CLASSIFICAÇÃO REI DA PRAIA - Jogadores individuais */}
               {isReiDaPraia &&
                 group.jogadores &&
                 group.jogadores.length > 0 && (
@@ -734,7 +726,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                   </>
                 )}
 
-              {/* ✅ CLASSIFICAÇÃO DUPLA FIXA - Manter código existente */}
+              {/*  CLASSIFICAÇÃO DUPLA FIXA - Manter código existente */}
               {!isReiDaPraia && group.duplas && group.duplas.length > 0 && (
                 <>
                   <SectionTitle>Classificação</SectionTitle>
@@ -792,7 +784,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                 </>
               )}
 
-              {/* ✅ PARTIDAS - Adaptar por formato */}
+              {/*  PARTIDAS - Adaptar por formato */}
               {group.partidas?.length > 0 && (
                 <>
                   <SectionTitle>Partidas</SectionTitle>
@@ -801,7 +793,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                       const finished =
                         match.status?.toUpperCase() === "FINALIZADA";
 
-                      // ✅ Detectar vencedor por formato
+                      //  Detectar vencedor por formato
                       const winner1 = isReiDaPraia
                         ? match.vencedoresNomes === match.dupla1Nome
                         : match.vencedoraNome === match.dupla1Nome;

@@ -1,3 +1,8 @@
+/**
+ * Jogador Controller
+ * backend/src/controllers/JogadorController.ts
+ */
+
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
 import jogadorService from "../services/JogadorService";
@@ -7,10 +12,8 @@ import {
   FiltrosJogador,
 } from "../models/Jogador";
 import { z } from "zod";
+import logger from "../utils/logger";
 
-/**
- * Controller para gerenciar jogadores
- */
 class JogadorController {
   /**
    * Criar novo jogador
@@ -26,11 +29,14 @@ class JogadorController {
       }
 
       const arenaId = req.user.arenaId;
-
-      // Validar dados
       const dadosValidados = CriarJogadorSchema.parse(req.body);
-
       const jogador = await jogadorService.criar(arenaId, uid, dadosValidados);
+
+      logger.info("Jogador criado", {
+        jogadorId: jogador.id,
+        nome: jogador.nome,
+        nivel: jogador.nivel,
+      });
 
       res.status(201).json({
         success: true,
@@ -38,7 +44,7 @@ class JogadorController {
         message: "Jogador criado com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao criar jogador:", error);
+      logger.error("Erro ao criar jogador", { nome: req.body.nome }, error);
 
       if (error instanceof z.ZodError) {
         res.status(400).json({
@@ -49,7 +55,6 @@ class JogadorController {
         return;
       }
 
-      // Verificação case-insensitive para "já existe"
       if (error.message && error.message.toLowerCase().includes("já existe")) {
         res.status(409).json({
           success: false,
@@ -94,7 +99,6 @@ class JogadorController {
         data: jogador,
       });
     } catch (error) {
-      console.error("Erro ao buscar jogador:", error);
       res.status(500).json({
         success: false,
         error: "Erro ao buscar jogador",
@@ -105,7 +109,6 @@ class JogadorController {
   /**
    * Listar jogadores com filtros
    * GET /api/jogadores
-   * Query params: nivel, status, genero, busca, ordenarPor, ordem, limite, offset
    */
   async listar(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -124,7 +127,9 @@ class JogadorController {
         busca: req.query.busca as string,
         ordenarPor: req.query.ordenarPor as any,
         ordem: req.query.ordem as any,
-        limite: req.query.limite ? parseInt(req.query.limite as string) : 20,
+        limite: req.query.limite
+          ? parseInt(req.query.limite as string)
+          : undefined,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
       };
 
@@ -135,7 +140,6 @@ class JogadorController {
         data: resultado,
       });
     } catch (error) {
-      console.error("Erro ao listar jogadores:", error);
       res.status(500).json({
         success: false,
         error: "Erro ao listar jogadores",
@@ -157,9 +161,7 @@ class JogadorController {
       const arenaId = req.user.arenaId;
       const { id } = req.params;
 
-      // Validar dados
       const dadosValidados = AtualizarJogadorSchema.parse(req.body);
-
       const jogadorAtualizado = await jogadorService.atualizar(
         id,
         arenaId,
@@ -172,7 +174,11 @@ class JogadorController {
         message: "Jogador atualizado com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao atualizar jogador:", error);
+      logger.error(
+        "Erro ao atualizar jogador",
+        { jogadorId: req.params.id },
+        error
+      );
 
       if (error instanceof z.ZodError) {
         res.status(400).json({
@@ -222,12 +228,18 @@ class JogadorController {
 
       await jogadorService.deletar(id, arenaId);
 
+      logger.info("Jogador deletado", { jogadorId: id, arenaId });
+
       res.json({
         success: true,
         message: "Jogador deletado com sucesso",
       });
     } catch (error: any) {
-      console.error("Erro ao deletar jogador:", error);
+      logger.error(
+        "Erro ao deletar jogador",
+        { jogadorId: req.params.id },
+        error
+      );
 
       if (error.message.includes("não encontrado")) {
         res.status(404).json({
@@ -237,7 +249,6 @@ class JogadorController {
         return;
       }
 
-      // Tratamento para jogador inscrito em etapa
       if (error.message.includes("está inscrito")) {
         res.status(400).json({
           success: false,
@@ -265,7 +276,6 @@ class JogadorController {
       }
 
       const arenaId = req.user.arenaId;
-
       const total = await jogadorService.contar(arenaId);
 
       res.json({
@@ -275,7 +285,6 @@ class JogadorController {
         },
       });
     } catch (error) {
-      console.error("Erro ao contar jogadores:", error);
       res.status(500).json({
         success: false,
         error: "Erro ao contar jogadores",
@@ -295,7 +304,6 @@ class JogadorController {
       }
 
       const arenaId = req.user.arenaId;
-
       const contagem = await jogadorService.contarPorNivel(arenaId);
 
       res.json({
@@ -303,7 +311,6 @@ class JogadorController {
         data: contagem,
       });
     } catch (error) {
-      console.error("Erro ao contar jogadores por nível:", error);
       res.status(500).json({
         success: false,
         error: "Erro ao contar jogadores por nível",

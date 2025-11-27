@@ -8,6 +8,7 @@ import {
   TipoFase,
 } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
+import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 
 /**
  * Service para gerenciar chaves (duplas, grupos, partidas)
@@ -20,15 +21,21 @@ class ChaveService {
    */
   async gerarChaves(etapaId: string): Promise<ResultadoGeracaoChaves> {
     try {
-      console.log(`🎾 Gerando chaves para etapa ${etapaId}...`);
       const response = await apiClient.post<ResultadoGeracaoChaves>(
         `${this.baseURL}/${etapaId}/gerar-chaves`,
         {}
       );
-      console.log("✅ Chaves geradas:", response);
+
+      logger.info("Chaves Dupla Fixa geradas", {
+        etapaId,
+        totalDuplas: response.duplas?.length || 0,
+        totalGrupos: response.grupos?.length || 0,
+        totalPartidas: response.partidas?.length || 0,
+      });
+
       return response;
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.gerarChaves");
       throw new Error(appError.message);
     }
   }
@@ -43,10 +50,9 @@ class ChaveService {
       const response = await apiClient.get<Dupla[]>(
         `${this.baseURL}/${etapaId}/duplas?_t=${timestamp}`
       );
-      console.log(`✅ Duplas carregadas:`, response?.length || 0);
       return response;
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.buscarDuplas");
       throw new Error(appError.message);
     }
   }
@@ -61,10 +67,9 @@ class ChaveService {
       const response = await apiClient.get<Grupo[]>(
         `${this.baseURL}/${etapaId}/grupos?_t=${timestamp}`
       );
-      console.log(`✅ Grupos carregados:`, response?.length || 0);
       return response;
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.buscarGrupos");
       throw new Error(appError.message);
     }
   }
@@ -79,7 +84,7 @@ class ChaveService {
       );
       return response;
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.buscarPartidas");
       throw new Error(appError.message);
     }
   }
@@ -97,7 +102,7 @@ class ChaveService {
       );
       return response;
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.buscarDuplasDoGrupo");
       throw new Error(appError.message);
     }
   }
@@ -107,11 +112,11 @@ class ChaveService {
    */
   async excluirChaves(etapaId: string): Promise<void> {
     try {
-      console.log(`🗑️ Excluindo chaves da etapa ${etapaId}...`);
       await apiClient.delete(`${this.baseURL}/${etapaId}/chaves`);
-      console.log("✅ Chaves excluídas com sucesso!");
+
+      logger.info("Chaves Dupla Fixa excluídas", { etapaId });
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.excluirChaves");
       throw new Error(appError.message);
     }
   }
@@ -124,13 +129,16 @@ class ChaveService {
     classificadosPorGrupo: number = 2
   ): Promise<void> {
     try {
-      console.log(`🏆 Gerando fase eliminatória...`);
       await apiClient.post(`${this.baseURL}/${etapaId}/gerar-eliminatoria`, {
         classificadosPorGrupo,
       });
-      console.log("✅ Fase eliminatória gerada!");
+
+      logger.info("Fase eliminatória Dupla Fixa gerada", {
+        etapaId,
+        classificadosPorGrupo,
+      });
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(error, "ChaveService.gerarFaseEliminatoria");
       throw new Error(appError.message);
     }
   }
@@ -149,7 +157,10 @@ class ChaveService {
       );
       return response;
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(
+        error,
+        "ChaveService.buscarConfrontosEliminatorios"
+      );
       throw new Error(appError.message);
     }
   }
@@ -162,14 +173,23 @@ class ChaveService {
     placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
   ): Promise<void> {
     try {
-      console.log(`⚔️ Registrando resultado do confronto...`);
       await apiClient.post(
         `/etapas/confrontos-eliminatorios/${confrontoId}/resultado`,
         { placar }
       );
-      console.log("✅ Resultado registrado!");
+
+      logger.info("Resultado eliminatória Dupla Fixa registrado", {
+        confrontoId,
+        totalSets: placar.length,
+        placar: placar
+          .map((s) => `${s.gamesDupla1}-${s.gamesDupla2}`)
+          .join(", "),
+      });
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(
+        error,
+        "ChaveService.registrarResultadoEliminatorio"
+      );
       throw new Error(appError.message);
     }
   }
@@ -179,19 +199,22 @@ class ChaveService {
    */
   async cancelarFaseEliminatoria(etapaId: string): Promise<void> {
     try {
-      console.log(`🗑️ Cancelando fase eliminatória...`);
       await apiClient.delete(
         `${this.baseURL}/${etapaId}/cancelar-eliminatoria`
       );
-      console.log("✅ Fase eliminatória cancelada!");
+
+      logger.info("Fase eliminatória Dupla Fixa cancelada", { etapaId });
     } catch (error) {
-      const appError = handleError(error, "EtapaService.listar");
+      const appError = handleError(
+        error,
+        "ChaveService.cancelarFaseEliminatoria"
+      );
       throw new Error(appError.message);
     }
   }
 
   /**
-   * ✅ NOVO: Detectar formato da etapa e buscar dados corretos
+   *  Detectar formato da etapa e buscar dados corretos
    */
   async buscarDadosEtapa(
     etapaId: string,

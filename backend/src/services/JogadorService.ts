@@ -1,3 +1,8 @@
+/**
+ * JogadorService.ts
+ * Service para gerenciar jogadores
+ */
+
 import { db } from "../config/firebase";
 import {
   Jogador,
@@ -10,8 +15,9 @@ import {
   CriarJogadorSchema,
   AtualizarJogadorSchema,
 } from "../models/Jogador";
-import { StatusInscricao } from "../models/Inscricao"; // ← ADICIONADO
+import { StatusInscricao } from "../models/Inscricao";
 import { Timestamp } from "firebase-admin/firestore";
+import logger from "../utils/logger";
 
 /**
  * Service para gerenciar jogadores
@@ -62,33 +68,40 @@ export class JogadorService {
 
       const docRef = await db.collection(this.collection).add(jogadorData);
 
-      console.log(`✅ Jogador criado com sucesso:`, {
-        id: docRef.id,
-        nome: jogadorData.nome,
-        genero: jogadorData.genero,
-        arenaId: jogadorData.arenaId,
-        nivel: jogadorData.nivel,
-      });
-
-      return {
+      const novoJogador = {
         id: docRef.id,
         ...jogadorData,
       } as Jogador;
-    } catch (error: any) {
-      console.error("❌ Erro ao criar jogador:", error);
 
+      logger.info("Jogador criado", {
+        jogadorId: novoJogador.id,
+        nome: novoJogador.nome,
+        genero: novoJogador.genero,
+        nivel: novoJogador.nivel,
+        arenaId,
+      });
+
+      return novoJogador;
+    } catch (error: any) {
       // Se é erro de validação Zod, lançar direto
       if (error.name === "ZodError") {
         throw error;
       }
 
-      // Se é erro de duplicação, lançar direto (preservar mensagem original)
+      // Se é erro de duplicação, lançar direto
       if (error.message && error.message.toLowerCase().includes("já existe")) {
         throw error;
       }
 
       // Outros erros
-      console.error("❌ Erro desconhecido:", error.message || error);
+      logger.error(
+        "Erro ao criar jogador",
+        {
+          arenaId,
+          nome: data.nome,
+        },
+        error
+      );
       throw new Error("Falha ao criar jogador");
     }
   }
@@ -97,28 +110,23 @@ export class JogadorService {
    * Buscar jogador por ID
    */
   async buscarPorId(id: string, arenaId: string): Promise<Jogador | null> {
-    try {
-      const doc = await db.collection(this.collection).doc(id).get();
+    const doc = await db.collection(this.collection).doc(id).get();
 
-      if (!doc.exists) {
-        return null;
-      }
-
-      const data = doc.data();
-
-      // Verificar se pertence à arena
-      if (data?.arenaId !== arenaId) {
-        return null;
-      }
-
-      return {
-        id: doc.id,
-        ...data,
-      } as Jogador;
-    } catch (error) {
-      console.error("Erro ao buscar jogador:", error);
-      throw new Error("Falha ao buscar jogador");
+    if (!doc.exists) {
+      return null;
     }
+
+    const data = doc.data();
+
+    // Verificar se pertence à arena
+    if (data?.arenaId !== arenaId) {
+      return null;
+    }
+
+    return {
+      id: doc.id,
+      ...data,
+    } as Jogador;
   }
 
   /**
@@ -146,7 +154,6 @@ export class JogadorService {
         ...doc.data(),
       } as Jogador;
     } catch (error) {
-      console.error("Erro ao buscar jogador por nome:", error);
       return null;
     }
   }
@@ -155,79 +162,82 @@ export class JogadorService {
    * Listar jogadores com filtros
    */
   async listar(filtros: FiltrosJogador): Promise<ListagemJogadores> {
-    try {
-      // Query MÍNIMA - apenas arenaId (SEM orderBy para evitar índice)
-      const snapshot = await db
-        .collection(this.collection)
-        .where("arenaId", "==", filtros.arenaId)
-        .get();
+    // Query mínima - apenas arenaId (sem orderBy para evitar índice)
+    const snapshot = await db
+      .collection(this.collection)
+      .where("arenaId", "==", filtros.arenaId)
+      .get();
 
-      let jogadores = snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Jogador[];
+    let jogadores = snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Jogador[];
 
-      // Aplicar filtros no client-side
-      if (filtros.nivel) {
-        jogadores = jogadores.filter((j) => j.nivel === filtros.nivel);
-      }
-
-      if (filtros.status) {
-        jogadores = jogadores.filter((j) => j.status === filtros.status);
-      }
-
-      if (filtros.genero) {
-        jogadores = jogadores.filter((j) => j.genero === filtros.genero);
-      }
-
-      // Aplicar busca por texto
-      if (filtros.busca) {
-        const termoBusca = filtros.busca.toLowerCase().trim();
-        jogadores = jogadores.filter((jogador) => {
-          return (
-            jogador.nome.toLowerCase().includes(termoBusca) ||
-            jogador.email?.toLowerCase().includes(termoBusca) ||
-            jogador.telefone?.includes(termoBusca)
-          );
-        });
-      }
-
-      // Ordenar no client-side
-      if (filtros.ordenarPor === "nome" || !filtros.ordenarPor) {
-        jogadores.sort((a, b) => {
-          const nomeA = a.nome.toLowerCase();
-          const nomeB = b.nome.toLowerCase();
-          return filtros.ordem === "desc"
-            ? nomeB.localeCompare(nomeA)
-            : nomeA.localeCompare(nomeB);
-        });
-      } else if (filtros.ordenarPor === "criadoEm") {
-        jogadores.sort((a, b) => {
-          const dataA = a.criadoEm?.seconds || 0;
-          const dataB = b.criadoEm?.seconds || 0;
-          return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
-        });
-      }
-
-      // Total após filtros
-      const total = jogadores.length;
-
-      // Paginação no client-side
-      const limite = filtros.limite || 20;
-      const offset = filtros.offset || 0;
-      jogadores = jogadores.slice(offset, offset + limite);
-
-      return {
-        jogadores,
-        total,
-        limite,
-        offset,
-        temMais: offset + limite < total,
-      };
-    } catch (error) {
-      console.error("Erro ao listar jogadores:", error);
-      throw new Error("Falha ao listar jogadores");
+    // Aplicar filtros no client-side
+    if (filtros.nivel) {
+      jogadores = jogadores.filter((j) => j.nivel === filtros.nivel);
     }
+
+    if (filtros.status) {
+      jogadores = jogadores.filter((j) => j.status === filtros.status);
+    }
+
+    if (filtros.genero) {
+      jogadores = jogadores.filter((j) => j.genero === filtros.genero);
+    }
+
+    // Aplicar busca por texto
+    if (filtros.busca) {
+      const termoBusca = filtros.busca.toLowerCase().trim();
+      jogadores = jogadores.filter((jogador) => {
+        return (
+          jogador.nome.toLowerCase().includes(termoBusca) ||
+          jogador.email?.toLowerCase().includes(termoBusca) ||
+          jogador.telefone?.includes(termoBusca)
+        );
+      });
+    }
+
+    // Ordenar no client-side
+    if (filtros.ordenarPor === "nome" || !filtros.ordenarPor) {
+      jogadores.sort((a, b) => {
+        const nomeA = a.nome.toLowerCase();
+        const nomeB = b.nome.toLowerCase();
+        return filtros.ordem === "desc"
+          ? nomeB.localeCompare(nomeA)
+          : nomeA.localeCompare(nomeB);
+      });
+    } else if (filtros.ordenarPor === "criadoEm") {
+      jogadores.sort((a, b) => {
+        const dataA = a.criadoEm?.seconds || 0;
+        const dataB = b.criadoEm?.seconds || 0;
+        return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
+      });
+    }
+
+    // Total após filtros
+    const total = jogadores.length;
+
+    // Paginação opcional
+    let jogadoresPaginados = jogadores;
+    let limite = total;
+    let offset = 0;
+    let temMais = false;
+
+    if (filtros.limite && filtros.limite > 0) {
+      limite = filtros.limite;
+      offset = filtros.offset || 0;
+      jogadoresPaginados = jogadores.slice(offset, offset + limite);
+      temMais = offset + limite < total;
+    }
+
+    return {
+      jogadores: jogadoresPaginados,
+      total,
+      limite,
+      offset,
+      temMais,
+    };
   }
 
   /**
@@ -282,15 +292,30 @@ export class JogadorService {
         throw new Error("Erro ao recuperar jogador atualizado");
       }
 
+      logger.info("Jogador atualizado", {
+        jogadorId: id,
+        arenaId,
+        camposAtualizados: Object.keys(dadosAtualizacao).filter(
+          (k) => k !== "atualizadoEm"
+        ),
+      });
+
       return jogadorAtualizado;
     } catch (error: any) {
-      console.error("Erro ao atualizar jogador:", error);
       if (
         error.message.includes("não encontrado") ||
         error.message.includes("já existe")
       ) {
         throw error;
       }
+      logger.error(
+        "Erro ao atualizar jogador",
+        {
+          jogadorId: id,
+          arenaId,
+        },
+        error
+      );
       throw new Error("Falha ao atualizar jogador");
     }
   }
@@ -306,50 +331,44 @@ export class JogadorService {
         throw new Error("Jogador não encontrado");
       }
 
-      // VALIDAÇÃO CRÍTICA: Verificar se jogador está inscrito em alguma etapa
-      console.log(`🔍 Verificando inscrições do jogador ${id}...`);
-
+      // Verificar se jogador está inscrito em alguma etapa
       const inscricoesSnapshot = await db
         .collection("inscricoes")
         .where("arenaId", "==", arenaId)
         .where("jogadorId", "==", id)
-        .where("status", "==", StatusInscricao.CONFIRMADA) // ← Usando enum
+        .where("status", "==", StatusInscricao.CONFIRMADA)
         .get();
 
-      console.log(
-        `📊 Total de inscrições confirmadas: ${inscricoesSnapshot.size}`
-      );
-
       if (!inscricoesSnapshot.empty) {
-        // Log das inscrições para debug
-        inscricoesSnapshot.forEach((doc) => {
-          const inscricao = doc.data();
-          console.log(`⚠️ Inscrição encontrada:`, {
-            id: doc.id,
-            etapaId: inscricao.etapaId,
-            status: inscricao.status,
-          });
-        });
-
         throw new Error(
           "Não é possível excluir este jogador pois ele está inscrito em uma ou mais etapas. " +
             "Cancele as inscrições primeiro."
         );
       }
 
-      console.log(
-        `✅ Nenhuma inscrição ativa encontrada. Deletando jogador...`
-      );
       await db.collection(this.collection).doc(id).delete();
-      console.log(`✅ Jogador ${id} deletado com sucesso`);
+
+      logger.info("Jogador deletado", {
+        jogadorId: id,
+        nome: jogador.nome,
+        arenaId,
+        inscricoesVerificadas: inscricoesSnapshot.size,
+      });
     } catch (error: any) {
-      console.error("❌ Erro ao deletar jogador:", error);
       if (
         error.message.includes("não encontrado") ||
         error.message.includes("está inscrito")
       ) {
         throw error;
       }
+      logger.error(
+        "Erro ao deletar jogador",
+        {
+          jogadorId: id,
+          arenaId,
+        },
+        error
+      );
       throw new Error("Falha ao deletar jogador");
     }
   }
@@ -367,7 +386,6 @@ export class JogadorService {
 
       return snapshot.data().count;
     } catch (error) {
-      console.error("Erro ao contar jogadores:", error);
       return 0;
     }
   }
@@ -397,7 +415,6 @@ export class JogadorService {
 
       return contagem as Record<NivelJogador, number>;
     } catch (error) {
-      console.error("Erro ao contar jogadores por nível:", error);
       return {
         [NivelJogador.INICIANTE]: 0,
         [NivelJogador.INTERMEDIARIO]: 0,

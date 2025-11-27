@@ -855,9 +855,6 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
   // Estado para geração
   const [classificadosPorGrupo, setClassificadosPorGrupo] = useState(2);
 
-  const tipoChaveamento =
-    etapaTipoChaveamento || TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES;
-
   const todosGruposCompletos = useMemo(() => {
     if (!grupos || grupos.length === 0) return false;
     return grupos.every((g) => g.completo);
@@ -884,9 +881,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
         if (etapa) {
           setEtapaFinalizada(etapa.status === "finalizada");
         }
-      } catch (error) {
-        console.error("Erro ao verificar status da etapa:", error);
-      }
+      } catch (error) {}
     };
 
     verificarStatusEtapa();
@@ -913,6 +908,17 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
   };
 
   const gerarEliminatoria = async () => {
+    const tipoChaveamento =
+      etapaTipoChaveamento || TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES;
+
+    // ✅ ADICIONAR LOG AQUI
+    console.log("🔍 [FRONTEND] Valores antes de enviar:", {
+      etapaId,
+      classificadosPorGrupo,
+      tipoChaveamento,
+      etapaTipoChaveamento, // Ver se tem valor
+    });
+
     const chaveamentoInfo = getNomeChaveamento(tipoChaveamento);
 
     if (
@@ -928,12 +934,19 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
 
     try {
       setLoading(true);
+
+      // ✅ ADICIONAR LOG AQUI TAMBÉM
+      console.log("🚀 [FRONTEND] Chamando service com:", {
+        classificadosPorGrupo,
+        tipoChaveamento,
+      });
+
       await reiDaPraiaService.gerarEliminatoria(etapaId, {
         classificadosPorGrupo,
         tipoChaveamento,
       });
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("✅ Fase eliminatória gerada com sucesso!");
+      alert(" Fase eliminatória gerada com sucesso!");
       await carregarConfrontos();
     } catch (err: any) {
       alert(`❌ Erro: ${err.message}`);
@@ -961,11 +974,10 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
     try {
       setLoading(true);
 
-      // ✅ DESCOMENTAR E USAR O SERVIÇO
       await reiDaPraiaService.cancelarEliminatoria(etapaId);
 
       alert(
-        "✅ Fase eliminatória cancelada!\n\n" +
+        " Fase eliminatória cancelada!\n\n" +
           "Você pode agora:\n" +
           "• Ajustar resultados da fase de grupos\n" +
           "• Gerar a eliminatória novamente"
@@ -995,7 +1007,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
     try {
       setLoading(true);
       await etapaService.encerrarEtapa(etapaId);
-      alert("✅ Etapa encerrada com sucesso! 🏆");
+      alert(" Etapa encerrada com sucesso! ");
       window.location.reload();
     } catch (err: any) {
       alert(`❌ Erro: ${err.message}`);
@@ -1095,7 +1107,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
           ) : (
             <>
               <AlertBox $variant="purple">
-                <h4>✅ Fase de Grupos Concluída!</h4>
+                <h4> Fase de Grupos Concluída!</h4>
                 <p>
                   Todos os jogadores completaram suas partidas. Agora você pode
                   formar as duplas para a fase eliminatória.
@@ -1151,14 +1163,14 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
         {etapaTipoChaveamento && (
           <ChaveamentoInfo>
             <ChaveamentoIcon>
-              {getNomeChaveamento(tipoChaveamento).icon}
+              {getNomeChaveamento(etapaTipoChaveamento).icon}
             </ChaveamentoIcon>
             <ChaveamentoContent>
               <ChaveamentoTitle>
-                {getNomeChaveamento(tipoChaveamento).nome}
+                {getNomeChaveamento(etapaTipoChaveamento).nome}
               </ChaveamentoTitle>
               <ChaveamentoDesc>
-                {getNomeChaveamento(tipoChaveamento).desc}
+                {getNomeChaveamento(etapaTipoChaveamento).desc}
               </ChaveamentoDesc>
               <small
                 style={{
@@ -1252,9 +1264,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
                       <ByeBox>
                         <ByeTeam>{confronto.dupla1Nome}</ByeTeam>
                         <ByeOrigin>({confronto.dupla1Origem})</ByeOrigin>
-                        <ByeLabel>
-                          ✅ Classificado automaticamente (BYE)
-                        </ByeLabel>
+                        <ByeLabel>Classificado automaticamente (BYE)</ByeLabel>
                       </ByeBox>
                     ) : (
                       <>
@@ -1334,10 +1344,18 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
                           StatusConfrontoEliminatorio.FINALIZADA && (
                           <ActionSection>
                             <ActionButton
-                              $variant="edit"
-                              onClick={() => setConfrontoSelecionado(confronto)}
+                              $variant={etapaFinalizada ? "disabled" : "edit"}
+                              onClick={() =>
+                                !etapaFinalizada &&
+                                setConfrontoSelecionado(confronto)
+                              }
+                              disabled={etapaFinalizada}
                             >
-                              ✏️ Editar Resultado
+                              <span>
+                                {etapaFinalizada
+                                  ? "🔒 Etapa Finalizada"
+                                  : "✏️ Editar Resultado"}{" "}
+                              </span>
                             </ActionButton>
                           </ActionSection>
                         )}
@@ -1362,10 +1380,16 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
                       key={confronto.id}
                       onClick={() => {
                         if (
-                          confronto.status !== StatusConfrontoEliminatorio.BYE
+                          confronto.status !==
+                            StatusConfrontoEliminatorio.BYE &&
+                          !etapaFinalizada
                         ) {
                           setConfrontoSelecionado(confronto);
                         }
+                      }}
+                      style={{
+                        cursor: etapaFinalizada ? "not-allowed" : "pointer",
+                        opacity: etapaFinalizada ? 0.6 : 1,
                       }}
                     >
                       <BracketStatus>

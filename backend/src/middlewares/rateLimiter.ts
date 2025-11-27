@@ -1,5 +1,11 @@
+/**
+ * Rate Limit Middleware
+ * backend/src/middlewares/rateLimit.ts
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { ResponseHelper } from "../utils/responseHelper";
+import logger from "../utils/logger";
 
 /**
  * Rate Limiter simples baseado em memória
@@ -64,6 +70,17 @@ export const rateLimit = (options: RateLimitOptions) => {
     // Verificar se excedeu o limite
     if (store[key].count > max) {
       const retryAfter = Math.ceil((store[key].resetTime - now) / 1000);
+
+      logger.warn("Rate limit atingido", {
+        key,
+        ip: req.ip,
+        method: req.method,
+        url: req.url,
+        count: store[key].count,
+        limit: max,
+        retryAfter: `${retryAfter}s`,
+        userAgent: req.get("user-agent"),
+      });
 
       res.setHeader("Retry-After", retryAfter.toString());
       res.setHeader("X-RateLimit-Limit", max.toString());
