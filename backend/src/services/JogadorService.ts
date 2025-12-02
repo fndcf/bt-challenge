@@ -1,9 +1,9 @@
 /**
  * JogadorService.ts
  * Service para gerenciar jogadores
+ * REFATORADO: Fase 4 - Usando IJogadorRepository via DI
  */
 
-import { db } from "../config/firebase";
 import {
   Jogador,
   CriarJogadorDTO,
@@ -15,15 +15,25 @@ import {
   CriarJogadorSchema,
   AtualizarJogadorSchema,
 } from "../models/Jogador";
-import { StatusInscricao } from "../models/Inscricao";
-import { Timestamp } from "firebase-admin/firestore";
 import logger from "../utils/logger";
+
+// Interfaces dos repositories
+import { IJogadorRepository } from "../repositories/interfaces/IJogadorRepository";
+import { IInscricaoRepository } from "../repositories/interfaces/IInscricaoRepository";
+
+// Implementações Firebase (para instância default)
+import { JogadorRepository } from "../repositories/firebase/JogadorRepository";
+import { InscricaoRepository } from "../repositories/firebase/InscricaoRepository";
 
 /**
  * Service para gerenciar jogadores
+ * Usa injeção de dependência para repositories
  */
 export class JogadorService {
-  private collection = "jogadores";
+  constructor(
+    private jogadorRepository: IJogadorRepository,
+    private inscricaoRepository: IInscricaoRepository
+  ) {}
 
   /**
    * Criar novo jogador
@@ -38,7 +48,7 @@ export class JogadorService {
       const dadosValidados = CriarJogadorSchema.parse(data);
 
       // Verificar se já existe jogador com mesmo nome na arena
-      const jogadorExistente = await this.buscarPorNome(
+      const jogadorExistente = await this.jogadorRepository.nomeExiste(
         arenaId,
         dadosValidados.nome
       );
@@ -46,32 +56,19 @@ export class JogadorService {
         throw new Error("Já existe um jogador com este nome nesta arena");
       }
 
-      const agora = Timestamp.now();
-
-      const jogadorData = {
+      // Criar jogador via repository
+      const novoJogador = await this.jogadorRepository.criar({
         arenaId,
+        criadoPor: adminUid,
         nome: dadosValidados.nome.trim(),
-        email: dadosValidados.email?.trim().toLowerCase() || undefined,
-        telefone: dadosValidados.telefone?.trim() || undefined,
-        dataNascimento: dadosValidados.dataNascimento || undefined,
+        email: dadosValidados.email?.trim().toLowerCase(),
+        telefone: dadosValidados.telefone?.trim(),
+        dataNascimento: dadosValidados.dataNascimento,
         genero: dadosValidados.genero,
         nivel: dadosValidados.nivel,
         status: dadosValidados.status || StatusJogador.ATIVO,
-        observacoes: dadosValidados.observacoes?.trim() || undefined,
-        vitorias: 0,
-        derrotas: 0,
-        pontos: 0,
-        criadoEm: agora,
-        atualizadoEm: agora,
-        criadoPor: adminUid,
-      };
-
-      const docRef = await db.collection(this.collection).add(jogadorData);
-
-      const novoJogador = {
-        id: docRef.id,
-        ...jogadorData,
-      } as Jogador;
+        observacoes: dadosValidados.observacoes?.trim(),
+      });
 
       logger.info("Jogador criado", {
         jogadorId: novoJogador.id,
@@ -110,134 +107,14 @@ export class JogadorService {
    * Buscar jogador por ID
    */
   async buscarPorId(id: string, arenaId: string): Promise<Jogador | null> {
-    const doc = await db.collection(this.collection).doc(id).get();
-
-    if (!doc.exists) {
-      return null;
-    }
-
-    const data = doc.data();
-
-    // Verificar se pertence à arena
-    if (data?.arenaId !== arenaId) {
-      return null;
-    }
-
-    return {
-      id: doc.id,
-      ...data,
-    } as Jogador;
-  }
-
-  /**
-   * Buscar jogador por nome (case-insensitive)
-   */
-  private async buscarPorNome(
-    arenaId: string,
-    nome: string
-  ): Promise<Jogador | null> {
-    try {
-      const snapshot = await db
-        .collection(this.collection)
-        .where("arenaId", "==", arenaId)
-        .where("nome", "==", nome.trim())
-        .limit(1)
-        .get();
-
-      if (snapshot.empty) {
-        return null;
-      }
-
-      const doc = snapshot.docs[0];
-      return {
-        id: doc.id,
-        ...doc.data(),
-      } as Jogador;
-    } catch (error) {
-      return null;
-    }
+    return this.jogadorRepository.buscarPorIdEArena(id, arenaId);
   }
 
   /**
    * Listar jogadores com filtros
    */
   async listar(filtros: FiltrosJogador): Promise<ListagemJogadores> {
-    // Query mínima - apenas arenaId (sem orderBy para evitar índice)
-    const snapshot = await db
-      .collection(this.collection)
-      .where("arenaId", "==", filtros.arenaId)
-      .get();
-
-    let jogadores = snapshot.docs.map((doc: any) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Jogador[];
-
-    // Aplicar filtros no client-side
-    if (filtros.nivel) {
-      jogadores = jogadores.filter((j) => j.nivel === filtros.nivel);
-    }
-
-    if (filtros.status) {
-      jogadores = jogadores.filter((j) => j.status === filtros.status);
-    }
-
-    if (filtros.genero) {
-      jogadores = jogadores.filter((j) => j.genero === filtros.genero);
-    }
-
-    // Aplicar busca por texto
-    if (filtros.busca) {
-      const termoBusca = filtros.busca.toLowerCase().trim();
-      jogadores = jogadores.filter((jogador) => {
-        return (
-          jogador.nome.toLowerCase().includes(termoBusca) ||
-          jogador.email?.toLowerCase().includes(termoBusca) ||
-          jogador.telefone?.includes(termoBusca)
-        );
-      });
-    }
-
-    // Ordenar no client-side
-    if (filtros.ordenarPor === "nome" || !filtros.ordenarPor) {
-      jogadores.sort((a, b) => {
-        const nomeA = a.nome.toLowerCase();
-        const nomeB = b.nome.toLowerCase();
-        return filtros.ordem === "desc"
-          ? nomeB.localeCompare(nomeA)
-          : nomeA.localeCompare(nomeB);
-      });
-    } else if (filtros.ordenarPor === "criadoEm") {
-      jogadores.sort((a, b) => {
-        const dataA = a.criadoEm?.seconds || 0;
-        const dataB = b.criadoEm?.seconds || 0;
-        return filtros.ordem === "desc" ? dataB - dataA : dataA - dataB;
-      });
-    }
-
-    // Total após filtros
-    const total = jogadores.length;
-
-    // Paginação opcional
-    let jogadoresPaginados = jogadores;
-    let limite = total;
-    let offset = 0;
-    let temMais = false;
-
-    if (filtros.limite && filtros.limite > 0) {
-      limite = filtros.limite;
-      offset = filtros.offset || 0;
-      jogadoresPaginados = jogadores.slice(offset, offset + limite);
-      temMais = offset + limite < total;
-    }
-
-    return {
-      jogadores: jogadoresPaginados,
-      total,
-      limite,
-      offset,
-      temMais,
-    };
+    return this.jogadorRepository.listar(filtros);
   }
 
   /**
@@ -263,41 +140,26 @@ export class JogadorService {
         dadosValidados.nome &&
         dadosValidados.nome !== jogadorExistente.nome
       ) {
-        const outroJogador = await this.buscarPorNome(
+        const nomeExiste = await this.jogadorRepository.nomeExiste(
           arenaId,
-          dadosValidados.nome
+          dadosValidados.nome,
+          id // excluir o próprio jogador da verificação
         );
-        if (outroJogador && outroJogador.id !== id) {
+        if (nomeExiste) {
           throw new Error("Já existe outro jogador com este nome nesta arena");
         }
       }
 
-      const dadosAtualizacao: any = {
-        ...dadosValidados,
-        atualizadoEm: Timestamp.now(),
-      };
-
-      // Limpar valores undefined
-      Object.keys(dadosAtualizacao).forEach((key) => {
-        if (dadosAtualizacao[key] === undefined) {
-          delete dadosAtualizacao[key];
-        }
-      });
-
-      await db.collection(this.collection).doc(id).update(dadosAtualizacao);
-
-      // Buscar jogador atualizado
-      const jogadorAtualizado = await this.buscarPorId(id, arenaId);
-      if (!jogadorAtualizado) {
-        throw new Error("Erro ao recuperar jogador atualizado");
-      }
+      // Atualizar via repository
+      const jogadorAtualizado = await this.jogadorRepository.atualizar(
+        id,
+        dadosValidados
+      );
 
       logger.info("Jogador atualizado", {
         jogadorId: id,
         arenaId,
-        camposAtualizados: Object.keys(dadosAtualizacao).filter(
-          (k) => k !== "atualizadoEm"
-        ),
+        camposAtualizados: Object.keys(dadosValidados),
       });
 
       return jogadorAtualizado;
@@ -332,27 +194,23 @@ export class JogadorService {
       }
 
       // Verificar se jogador está inscrito em alguma etapa
-      const inscricoesSnapshot = await db
-        .collection("inscricoes")
-        .where("arenaId", "==", arenaId)
-        .where("jogadorId", "==", id)
-        .where("status", "==", StatusInscricao.CONFIRMADA)
-        .get();
+      const inscricoesAtivas =
+        await this.inscricaoRepository.buscarAtivasPorJogador(arenaId, id);
 
-      if (!inscricoesSnapshot.empty) {
+      if (inscricoesAtivas.length > 0) {
         throw new Error(
           "Não é possível excluir este jogador pois ele está inscrito em uma ou mais etapas. " +
             "Cancele as inscrições primeiro."
         );
       }
 
-      await db.collection(this.collection).doc(id).delete();
+      // Deletar via repository
+      await this.jogadorRepository.deletar(id);
 
       logger.info("Jogador deletado", {
         jogadorId: id,
         nome: jogador.nome,
         arenaId,
-        inscricoesVerificadas: inscricoesSnapshot.size,
       });
     } catch (error: any) {
       if (
@@ -374,17 +232,46 @@ export class JogadorService {
   }
 
   /**
+   * Deletar múltiplos jogadores
+   */
+  async deletarEmLote(
+    ids: string[],
+    arenaId: string
+  ): Promise<{
+    deletados: string[];
+    erros: { id: string; motivo: string }[];
+  }> {
+    const deletados: string[] = [];
+    const erros: { id: string; motivo: string }[] = [];
+
+    for (const id of ids) {
+      try {
+        await this.deletar(id, arenaId);
+        deletados.push(id);
+      } catch (error: any) {
+        erros.push({
+          id,
+          motivo: error.message || "Erro desconhecido",
+        });
+      }
+    }
+
+    logger.info("Deleção em lote concluída", {
+      arenaId,
+      totalSolicitados: ids.length,
+      totalDeletados: deletados.length,
+      totalErros: erros.length,
+    });
+
+    return { deletados, erros };
+  }
+
+  /**
    * Contar jogadores de uma arena
    */
   async contar(arenaId: string): Promise<number> {
     try {
-      const snapshot = await db
-        .collection(this.collection)
-        .where("arenaId", "==", arenaId)
-        .count()
-        .get();
-
-      return snapshot.data().count;
+      return await this.jogadorRepository.contar(arenaId);
     } catch (error) {
       return 0;
     }
@@ -395,25 +282,7 @@ export class JogadorService {
    */
   async contarPorNivel(arenaId: string): Promise<Record<NivelJogador, number>> {
     try {
-      const snapshot = await db
-        .collection(this.collection)
-        .where("arenaId", "==", arenaId)
-        .get();
-
-      const contagem: Record<string, number> = {
-        [NivelJogador.INICIANTE]: 0,
-        [NivelJogador.INTERMEDIARIO]: 0,
-        [NivelJogador.AVANCADO]: 0,
-      };
-
-      snapshot.forEach((doc) => {
-        const nivel = doc.data().nivel;
-        if (nivel && contagem[nivel] !== undefined) {
-          contagem[nivel]++;
-        }
-      });
-
-      return contagem as Record<NivelJogador, number>;
+      return await this.jogadorRepository.contarPorNivel(arenaId);
     } catch (error) {
       return {
         [NivelJogador.INICIANTE]: 0,
@@ -422,6 +291,62 @@ export class JogadorService {
       };
     }
   }
+
+  /**
+   * Buscar jogadores por IDs
+   */
+  async buscarPorIds(ids: string[], arenaId: string): Promise<Jogador[]> {
+    return this.jogadorRepository.buscarPorIds(ids, arenaId);
+  }
+
+  /**
+   * Buscar jogadores ativos
+   */
+  async buscarAtivos(arenaId: string): Promise<Jogador[]> {
+    return this.jogadorRepository.buscarAtivos(arenaId);
+  }
+
+  /**
+   * Buscar jogadores por nível
+   */
+  async buscarPorNivel(
+    arenaId: string,
+    nivel: NivelJogador
+  ): Promise<Jogador[]> {
+    return this.jogadorRepository.buscarPorNivel(arenaId, nivel);
+  }
+
+  /**
+   * Atualizar estatísticas do jogador
+   */
+  async atualizarEstatisticas(
+    id: string,
+    estatisticas: {
+      vitorias?: number;
+      derrotas?: number;
+      pontos?: number;
+    }
+  ): Promise<void> {
+    await this.jogadorRepository.atualizarEstatisticas(id, estatisticas);
+  }
+
+  /**
+   * Incrementar vitórias
+   */
+  async incrementarVitorias(id: string): Promise<void> {
+    await this.jogadorRepository.incrementarVitorias(id);
+  }
+
+  /**
+   * Incrementar derrotas
+   */
+  async incrementarDerrotas(id: string): Promise<void> {
+    await this.jogadorRepository.incrementarDerrotas(id);
+  }
 }
 
-export default new JogadorService();
+// Instância default com repositories Firebase
+const jogadorRepository = new JogadorRepository();
+const inscricaoRepository = new InscricaoRepository();
+
+export default new JogadorService(jogadorRepository, inscricaoRepository);

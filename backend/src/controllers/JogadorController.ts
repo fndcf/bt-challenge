@@ -1,10 +1,13 @@
 /**
- * Jogador Controller
- * backend/src/controllers/JogadorController.ts
+ * JogadorController.ts
+ * Controller para gerenciar jogadores
+ * REFATORADO: Fase 5.2 - Usando ResponseHelper e BaseController
  */
 
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
+import { BaseController } from "./BaseController";
+import { ResponseHelper } from "../utils/responseHelper";
 import jogadorService from "../services/JogadorService";
 import {
   CriarJogadorSchema,
@@ -14,22 +17,20 @@ import {
 import { z } from "zod";
 import logger from "../utils/logger";
 
-class JogadorController {
+class JogadorController extends BaseController {
+  protected controllerName = "JogadorController";
+
   /**
    * Criar novo jogador
    * POST /api/jogadores
    */
   async criar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { uid } = req.user!;
+      if (!this.checkAuth(req, res)) return;
 
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
-
-      const arenaId = req.user.arenaId;
+      const { arenaId, uid } = req.user;
       const dadosValidados = CriarJogadorSchema.parse(req.body);
+
       const jogador = await jogadorService.criar(arenaId, uid, dadosValidados);
 
       logger.info("Jogador criado", {
@@ -38,35 +39,18 @@ class JogadorController {
         nivel: jogador.nivel,
       });
 
-      res.status(201).json({
-        success: true,
-        data: jogador,
-        message: "Jogador criado com sucesso",
-      });
+      ResponseHelper.created(res, jogador, "Jogador criado com sucesso");
     } catch (error: any) {
-      logger.error("Erro ao criar jogador", { nome: req.body.nome }, error);
-
       if (error instanceof z.ZodError) {
-        res.status(400).json({
-          success: false,
-          error: "Dados inválidos",
-          details: error.issues,
-        });
+        return this.handleZodError(res, error);
+      }
+
+      if (this.handleBusinessError(res, error, BaseController.ERROR_PATTERNS.CONFLICT)) {
         return;
       }
 
-      if (error.message && error.message.toLowerCase().includes("já existe")) {
-        res.status(409).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: "Erro ao criar jogador",
-      });
+      logger.error("Erro ao criar jogador", { nome: req.body.nome }, error);
+      this.handleGenericError(res, error, "criar jogador");
     }
   }
 
@@ -76,32 +60,21 @@ class JogadorController {
    */
   async buscarPorId(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
       const { id } = req.params;
 
       const jogador = await jogadorService.buscarPorId(id, arenaId);
 
       if (!jogador) {
-        res.status(404).json({
-          success: false,
-          error: "Jogador não encontrado",
-        });
-        return;
+        ResponseHelper.notFound(res, "Jogador não encontrado"); return;
       }
 
-      res.json({
-        success: true,
-        data: jogador,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: "Erro ao buscar jogador",
+      ResponseHelper.success(res, jogador);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar jogador", {
+        jogadorId: req.params.id,
       });
     }
   }
@@ -112,12 +85,9 @@ class JogadorController {
    */
   async listar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
 
       const filtros: FiltrosJogador = {
         arenaId,
@@ -135,14 +105,10 @@ class JogadorController {
 
       const resultado = await jogadorService.listar(filtros);
 
-      res.json({
-        success: true,
-        data: resultado,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: "Erro ao listar jogadores",
+      ResponseHelper.success(res, resultado);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "listar jogadores", {
+        arenaId: req.user?.arenaId,
       });
     }
   }
@@ -153,12 +119,9 @@ class JogadorController {
    */
   async atualizar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
       const { id } = req.params;
 
       const dadosValidados = AtualizarJogadorSchema.parse(req.body);
@@ -168,47 +131,18 @@ class JogadorController {
         dadosValidados
       );
 
-      res.json({
-        success: true,
-        data: jogadorAtualizado,
-        message: "Jogador atualizado com sucesso",
-      });
+      ResponseHelper.success(res, jogadorAtualizado, "Jogador atualizado com sucesso");
     } catch (error: any) {
-      logger.error(
-        "Erro ao atualizar jogador",
-        { jogadorId: req.params.id },
-        error
-      );
-
       if (error instanceof z.ZodError) {
-        res.status(400).json({
-          success: false,
-          error: "Dados inválidos",
-          details: error.issues,
-        });
+        return this.handleZodError(res, error);
+      }
+
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
         return;
       }
 
-      if (error.message.includes("não encontrado")) {
-        res.status(404).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      if (error.message.includes("já existe")) {
-        res.status(409).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: "Erro ao atualizar jogador",
-      });
+      logger.error("Erro ao atualizar jogador", { jogadorId: req.params.id }, error);
+      this.handleGenericError(res, error, "atualizar jogador");
     }
   }
 
@@ -218,49 +152,23 @@ class JogadorController {
    */
   async deletar(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
       const { id } = req.params;
 
       await jogadorService.deletar(id, arenaId);
 
       logger.info("Jogador deletado", { jogadorId: id, arenaId });
 
-      res.json({
-        success: true,
-        message: "Jogador deletado com sucesso",
-      });
+      ResponseHelper.success(res, null, "Jogador deletado com sucesso");
     } catch (error: any) {
-      logger.error(
-        "Erro ao deletar jogador",
-        { jogadorId: req.params.id },
-        error
-      );
-
-      if (error.message.includes("não encontrado")) {
-        res.status(404).json({
-          success: false,
-          error: error.message,
-        });
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
         return;
       }
 
-      if (error.message.includes("está inscrito")) {
-        res.status(400).json({
-          success: false,
-          error: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: "Erro ao deletar jogador",
-      });
+      logger.error("Erro ao deletar jogador", { jogadorId: req.params.id }, error);
+      this.handleGenericError(res, error, "deletar jogador");
     }
   }
 
@@ -270,24 +178,15 @@ class JogadorController {
    */
   async contarTotal(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
       const total = await jogadorService.contar(arenaId);
 
-      res.json({
-        success: true,
-        data: {
-          total,
-        },
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: "Erro ao contar jogadores",
+      ResponseHelper.success(res, { total });
+    } catch (error: any) {
+      this.handleGenericError(res, error, "contar jogadores", {
+        arenaId: req.user?.arenaId,
       });
     }
   }
@@ -298,22 +197,15 @@ class JogadorController {
    */
   async contarPorNivel(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
       const contagem = await jogadorService.contarPorNivel(arenaId);
 
-      res.json({
-        success: true,
-        data: contagem,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: "Erro ao contar jogadores por nível",
+      ResponseHelper.success(res, contagem);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "contar jogadores por nível", {
+        arenaId: req.user?.arenaId,
       });
     }
   }

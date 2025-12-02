@@ -99,6 +99,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         return {
           label: "Cancelada",
         };
+      case StatusEtapa.FASE_ELIMINATORIA:
+        return {
+          label: "Fase Eliminatória",
+        };
       default:
         return {
           label: status,

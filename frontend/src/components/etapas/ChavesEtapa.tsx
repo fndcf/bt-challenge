@@ -8,6 +8,7 @@ import chaveService from "../../services/chaveService";
 import { Dupla, Grupo } from "../../types/chave";
 import { PartidasGrupo } from "./PartidasGrupo";
 import { FaseEliminatoria } from "./FaseEliminatoria";
+import etapaService from "../../services/etapaService";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -441,6 +442,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [grupoSelecionado, setGrupoSelecionado] = useState<string | null>(null);
   const [eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
+  const [etapaFinalizada, setEtapaFinalizada] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
 
   useEffect(() => {
@@ -459,6 +461,13 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
 
       setGrupos(gruposData);
       setDuplas(duplasData);
+
+      try {
+        const etapa = await etapaService.buscarPorId(etapaId);
+        if (etapa) {
+          setEtapaFinalizada(etapa.status === "finalizada");
+        }
+      } catch {}
 
       try {
         const confrontos = await chaveService.buscarConfrontosEliminatorios(
@@ -674,6 +683,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                           grupoNome={grupo.nome}
                           onAtualizarGrupos={carregarChaves}
                           eliminatoriaExiste={eliminatoriaExiste}
+                          etapaFinalizada={etapaFinalizada}
                         />
                       </PartidasContainer>
                     )}

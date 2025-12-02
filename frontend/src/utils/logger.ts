@@ -45,12 +45,6 @@ const getTimestamp = (): string => {
   return now.toISOString().split("T")[1].slice(0, -1); // HH:mm:ss.SSS
 };
 
-// Formatar contexto
-const formatContext = (context?: Record<string, any>): string => {
-  if (!context || Object.keys(context).length === 0) return "";
-  return JSON.stringify(context, null, 2);
-};
-
 // ============================================
 // LOGGER CLASS
 // ============================================

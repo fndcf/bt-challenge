@@ -1,3 +1,9 @@
+/**
+ * Jogador Routes
+ * backend/src/routes/jogadores.ts
+ * CORRIGIDO: Usando arrow functions para manter contexto 'this'
+ */
+
 import { Router } from "express";
 import jogadorController from "../controllers/JogadorController";
 import { requireAuth } from "../middlewares/auth";
@@ -14,48 +20,48 @@ router.use(requireAuth);
  * @desc    Criar novo jogador
  * @access  Private
  */
-router.post("/", jogadorController.criar);
+router.post("/", (req, res) => jogadorController.criar(req, res));
 
 /**
  * @route   GET /api/jogadores
  * @desc    Listar jogadores com filtros
  * @access  Private
  */
-router.get("/", jogadorController.listar);
+router.get("/", (req, res) => jogadorController.listar(req, res));
 
 /**
  * @route   GET /api/jogadores/stats/total
  * @desc    Contar total de jogadores
  * @access  Private
  */
-router.get("/stats/total", jogadorController.contarTotal);
+router.get("/stats/total", (req, res) => jogadorController.contarTotal(req, res));
 
 /**
  * @route   GET /api/jogadores/stats/por-nivel
  * @desc    Contar jogadores por nível
  * @access  Private
  */
-router.get("/stats/por-nivel", jogadorController.contarPorNivel);
+router.get("/stats/por-nivel", (req, res) => jogadorController.contarPorNivel(req, res));
 
 /**
  * @route   GET /api/jogadores/:id
  * @desc    Buscar jogador por ID
  * @access  Private
  */
-router.get("/:id", jogadorController.buscarPorId);
+router.get("/:id", (req, res) => jogadorController.buscarPorId(req, res));
 
 /**
  * @route   PUT /api/jogadores/:id
  * @desc    Atualizar jogador
  * @access  Private
  */
-router.put("/:id", jogadorController.atualizar);
+router.put("/:id", (req, res) => jogadorController.atualizar(req, res));
 
 /**
  * @route   DELETE /api/jogadores/:id
  * @desc    Deletar jogador
  * @access  Private
  */
-router.delete("/:id", jogadorController.deletar);
+router.delete("/:id", (req, res) => jogadorController.deletar(req, res));
 
 export default router;

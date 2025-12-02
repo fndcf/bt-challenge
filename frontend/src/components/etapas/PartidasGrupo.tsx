@@ -10,6 +10,7 @@ interface PartidasGrupoProps {
   grupoNome: string;
   onAtualizarGrupos?: () => void;
   eliminatoriaExiste?: boolean;
+  etapaFinalizada?: boolean;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -275,6 +276,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
   grupoNome,
   onAtualizarGrupos,
   eliminatoriaExiste = false,
+  etapaFinalizada = false,
 }) => {
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [loading, setLoading] = useState(true);
@@ -282,6 +284,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
   const [partidaSelecionada, setPartidaSelecionada] = useState<Partida | null>(
     null
   );
+  const bloqueado = eliminatoriaExiste || etapaFinalizada;
 
   useEffect(() => {
     carregarPartidas();
@@ -415,18 +418,24 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
             {partida.status === StatusPartida.FINALIZADA && (
               <ActionSection>
                 <ActionButton
-                  $variant={eliminatoriaExiste ? "disabled" : "edit"}
-                  onClick={() => setPartidaSelecionada(partida)}
-                  disabled={eliminatoriaExiste}
+                  $variant={bloqueado ? "disabled" : "edit"}
+                  onClick={() => !bloqueado && setPartidaSelecionada(partida)}
+                  disabled={bloqueado}
                   title={
-                    eliminatoriaExiste
+                    etapaFinalizada
+                      ? "Etapa finalizada - não é possível editar"
+                      : eliminatoriaExiste
                       ? "Não é possível editar após gerar a eliminatória. Cancele a eliminatória primeiro."
                       : "Editar resultado desta partida"
                   }
                 >
-                  <span>Editar Resultado</span>
+                  <span>
+                    {etapaFinalizada
+                      ? "🔒 Etapa Finalizada"
+                      : "Editar Resultado"}
+                  </span>{" "}
                 </ActionButton>
-                {eliminatoriaExiste && (
+                {eliminatoriaExiste && !etapaFinalizada && (
                   <WarningText>
                     Para editar, cancele a eliminatória primeiro
                   </WarningText>

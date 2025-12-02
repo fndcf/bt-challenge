@@ -1,3 +1,9 @@
+/**
+ * ResponseHelper.ts
+ * Helper para padronizar respostas HTTP da API
+ * REFATORADO: Fase 5.2 - Correções e melhorias
+ */
+
 import { Response } from "express";
 
 /**
@@ -12,16 +18,22 @@ export interface ApiResponse<T = any> {
 }
 
 /**
+ * Interface para resposta paginada
+ */
+export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+/**
  * Helper para padronizar respostas HTTP
+ * Garante consistência em todas as respostas da API
  */
 export class ResponseHelper {
-  static error(
-    _res: Response<any, Record<string, any>>,
-    _message: string,
-    _statusCode: number
-  ) {
-    throw new Error("Method not implemented.");
-  }
   /**
    * Resposta de sucesso (200)
    */
@@ -49,6 +61,52 @@ export class ResponseHelper {
       success: true,
       data,
       message,
+    });
+  }
+
+  /**
+   * Resposta de sucesso sem conteúdo (204)
+   */
+  static noContent(res: Response): Response {
+    return res.status(204).send();
+  }
+
+  /**
+   * Resposta paginada (200)
+   */
+  static paginated<T>(
+    res: Response,
+    data: T[],
+    total: number,
+    limit: number,
+    offset: number
+  ): Response<PaginatedResponse<T>> {
+    return res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + data.length < total,
+      },
+    });
+  }
+
+  /**
+   * Resposta de erro genérico
+   * @param res - Response do Express
+   * @param message - Mensagem de erro
+   * @param statusCode - Código HTTP (default: 500)
+   */
+  static error(
+    res: Response,
+    message: string,
+    statusCode: number = 500
+  ): Response<ApiResponse> {
+    return res.status(statusCode).json({
+      success: false,
+      error: message,
     });
   }
 
@@ -109,8 +167,50 @@ export class ResponseHelper {
   /**
    * Resposta de conflito (409)
    */
-  static conflict(res: Response, error: string): Response<ApiResponse> {
+  static conflict(
+    res: Response,
+    error: string
+  ): Response<ApiResponse> {
     return res.status(409).json({
+      success: false,
+      error,
+    });
+  }
+
+  /**
+   * Resposta de erro de validação (422)
+   */
+  static validationError(
+    res: Response,
+    error: string | any[],
+    details?: any
+  ): Response<ApiResponse> {
+    const errorMessage = Array.isArray(error) 
+      ? "Erro de validação" 
+      : error;
+    const errorDetails = Array.isArray(error) 
+      ? error 
+      : details;
+
+    return res.status(422).json({
+      success: false,
+      error: errorMessage,
+      ...(errorDetails && { details: errorDetails }),
+    });
+  }
+
+  /**
+   * Resposta de muitas requisições (429)
+   */
+  static tooManyRequests(
+    res: Response,
+    error = "Muitas requisições. Tente novamente mais tarde.",
+    retryAfter?: number
+  ): Response<ApiResponse> {
+    if (retryAfter) {
+      res.setHeader("Retry-After", retryAfter.toString());
+    }
+    return res.status(429).json({
       success: false,
       error,
     });
@@ -132,17 +232,38 @@ export class ResponseHelper {
   }
 
   /**
-   * Resposta de erro de validação (422)
+   * Resposta de serviço indisponível (503)
    */
-  static validationError(
+  static serviceUnavailable(
     res: Response,
-    error: string,
-    details?: any
+    error = "Serviço temporariamente indisponível"
   ): Response<ApiResponse> {
-    return res.status(422).json({
+    return res.status(503).json({
       success: false,
       error,
-      details,
+    });
+  }
+
+  /**
+   * Helper para determinar o método correto baseado no código de status
+   */
+  static fromStatusCode(
+    res: Response,
+    statusCode: number,
+    message: string,
+    data?: any
+  ): Response<ApiResponse> {
+    if (statusCode >= 200 && statusCode < 300) {
+      return res.status(statusCode).json({
+        success: true,
+        data,
+        message,
+      });
+    }
+
+    return res.status(statusCode).json({
+      success: false,
+      error: message,
     });
   }
 }

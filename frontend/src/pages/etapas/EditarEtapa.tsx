@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
-import {
-  Etapa,
-  AtualizarEtapaDTO,
-  FormatoEtapa,
-  StatusEtapa,
-} from "../../types/etapa";
+import { Etapa, AtualizarEtapaDTO, FormatoEtapa } from "../../types/etapa";
 import { TipoChaveamentoReiDaPraia } from "../../types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "../../types/jogador";
 import etapaService from "../../services/etapaService";
@@ -388,10 +383,6 @@ export const EditarEtapa: React.FC = () => {
   const [salvando, setSalvando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const faseEliminatoriaGerada =
-    etapa?.status === StatusEtapa.FASE_ELIMINATORIA ||
-    etapa?.status === StatusEtapa.FINALIZADA;
-
   const [formData, setFormData] = useState<AtualizarEtapaDTO>({
     nome: "",
     descricao: "",
@@ -654,7 +645,7 @@ export const EditarEtapa: React.FC = () => {
                 </Label>
                 <Select
                   required
-                  disabled={faseEliminatoriaGerada}
+                  disabled={chavesGeradas}
                   value={formData.tipoChaveamento || ""}
                   onChange={(e) =>
                     handleChange(
@@ -677,15 +668,9 @@ export const EditarEtapa: React.FC = () => {
                     🎲 Sorteio Aleatório
                   </option>
                 </Select>
-                {faseEliminatoriaGerada ? (
-                  <HelperText $variant="warning">
-                    Não é possível alterar após gerar a fase eliminatória
-                  </HelperText>
-                ) : (
-                  <HelperText $variant="purple">
-                    Define como as duplas serão formadas na fase eliminatória
-                  </HelperText>
-                )}
+                <HelperText $variant="purple">
+                  Define como as duplas serão formadas na fase eliminatória
+                </HelperText>
               </Field>
             )}
           </GridContainer2>

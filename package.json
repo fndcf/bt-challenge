@@ -20,7 +20,8 @@
     "check": "./check-setup.sh"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "ts-jest": "^29.4.5"
   },
   "keywords": [
     "beach-tennis",

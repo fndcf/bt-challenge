@@ -1,35 +1,34 @@
 /**
- * Partida Controller
- * backend/src/controllers/PartidaController.ts
+ * PartidaController.ts
+ * Controller para gerenciar partidas
+ * REFATORADO: Fase 5.2 - Usando ResponseHelper e BaseController
  */
 
 import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
+import { BaseController } from "./BaseController";
+import { ResponseHelper } from "../utils/responseHelper";
 import chaveService from "../services/ChaveService";
 import logger from "../utils/logger";
 
-class PartidaController {
+class PartidaController extends BaseController {
+  protected controllerName = "PartidaController";
+
   /**
    * Registrar resultado de uma partida
    * PUT /api/partidas/:id/resultado
    */
   async registrarResultado(req: AuthRequest, res: Response): Promise<void> {
     try {
-      if (!req.user?.arenaId) {
-        res.status(401).json({ error: "Usuário não autenticado" });
-        return;
-      }
+      if (!this.checkAuth(req, res)) return;
 
-      const arenaId = req.user.arenaId;
+      const { arenaId } = req.user;
       const { id } = req.params;
       const { placar } = req.body;
 
+      // Validação do placar
       if (!placar || !Array.isArray(placar) || placar.length === 0) {
-        res.status(400).json({
-          success: false,
-          error: "Placar inválido",
-        });
-        return;
+        ResponseHelper.badRequest(res, "Placar inválido"); return;
       }
 
       await chaveService.registrarResultadoPartida(id, arenaId, placar);
@@ -40,32 +39,14 @@ class PartidaController {
         arenaId,
       });
 
-      res.json({
-        success: true,
-        message: "Resultado registrado com sucesso",
-      });
+      ResponseHelper.success(res, null, "Resultado registrado com sucesso");
     } catch (error: any) {
-      logger.error(
-        "Erro ao registrar resultado",
-        { partidaId: req.params.id },
-        error
-      );
-
-      if (
-        error.message.includes("não encontrada") ||
-        error.message.includes("inválid")
-      ) {
-        res.status(400).json({
-          success: false,
-          error: error.message,
-        });
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
         return;
       }
 
-      res.status(500).json({
-        success: false,
-        error: "Erro ao registrar resultado",
-      });
+      logger.error("Erro ao registrar resultado", { partidaId: req.params.id }, error);
+      this.handleGenericError(res, error, "registrar resultado");
     }
   }
 }

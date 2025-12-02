@@ -739,7 +739,92 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * Buscar estatísticas AGREGADAS de um jogador (todas as etapas)
+   * Buscar estatísticas AGREGADAS de um jogador POR NÍVEL
+   * Separa pontos por categoria (iniciante, intermediário, avançado)
+   */
+  async buscarEstatisticasAgregadasPorNivel(
+    jogadorId: string,
+    arenaId: string,
+    nivel: string
+  ): Promise<any> {
+    const snapshot = await db
+      .collection(this.collection)
+      .where("jogadorId", "==", jogadorId)
+      .where("arenaId", "==", arenaId)
+      .where("jogadorNivel", "==", nivel)
+      .get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    // Agregar estatísticas apenas do nível especificado
+    let jogadorNome = "";
+    let jogadorNivel: string | undefined = undefined;
+    let jogadorGenero: string | undefined = undefined;
+    let etapasParticipadas = 0;
+    let jogos = 0;
+    let vitorias = 0;
+    let derrotas = 0;
+    let pontos = 0;
+    let setsVencidos = 0;
+    let setsPerdidos = 0;
+    let gamesVencidos = 0;
+    let gamesPerdidos = 0;
+
+    snapshot.docs.forEach((doc) => {
+      const stat = doc.data() as EstatisticasJogador;
+      jogadorNome = stat.jogadorNome;
+      jogadorNivel = stat.jogadorNivel;
+      jogadorGenero = stat.jogadorGenero;
+      etapasParticipadas++;
+      jogos += stat.jogos || 0;
+      vitorias += stat.vitorias || 0;
+      derrotas += stat.derrotas || 0;
+      pontos += stat.pontos || 0;
+      setsVencidos += stat.setsVencidos || 0;
+      setsPerdidos += stat.setsPerdidos || 0;
+      gamesVencidos += stat.gamesVencidos || 0;
+      gamesPerdidos += stat.gamesPerdidos || 0;
+    });
+
+    const saldoSets = setsVencidos - setsPerdidos;
+    const saldoGames = gamesVencidos - gamesPerdidos;
+
+    // Buscar posição no ranking DO NÍVEL
+    const rankingCompleto = await this.buscarRankingPorNivel(
+      arenaId,
+      nivel,
+      999
+    );
+    const posicaoRanking =
+      rankingCompleto.findIndex((j) => j.jogadorId === jogadorId) + 1;
+
+    return {
+      jogadorId,
+      jogadorNome,
+      jogadorNivel,
+      jogadorGenero,
+      arenaId,
+      nivel,
+      etapasParticipadas,
+      jogos,
+      vitorias,
+      derrotas,
+      pontos,
+      setsVencidos,
+      setsPerdidos,
+      gamesVencidos,
+      gamesPerdidos,
+      saldoSets,
+      saldoGames,
+      posicaoRanking,
+    };
+  }
+
+  /**
+   * Buscar estatísticas AGREGADAS de um jogador (todas as etapas - TODOS OS NÍVEIS)
+   * @deprecated Use buscarEstatisticasAgregadasPorNivel para estatísticas separadas por categoria
    */
   async buscarEstatisticasAgregadas(
     jogadorId: string,
@@ -818,7 +903,96 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * Buscar ranking GLOBAL agregado (todas as etapas)
+   * Buscar ranking POR NÍVEL (separado por categoria)
+   *
+   * IMPORTANTE: Quando jogador muda de nível (ex: iniciante → intermediário),
+   * os pontos ficam separados por categoria. Isso garante que:
+   * - Ranking de iniciantes só considera pontos ganhos como iniciante
+   * - Ranking de intermediários só considera pontos ganhos como intermediário
+   * - Jogador começa do zero ao mudar de categoria
+   *
+   * @param arenaId - ID da arena
+   * @param nivel - Nível do jogador ('iniciante' | 'intermediario' | 'avancado')
+   * @param limite - Quantidade máxima de resultados
+   */
+  async buscarRankingPorNivel(
+    arenaId: string,
+    nivel: string,
+    limite: number = 50
+  ): Promise<Array<any>> {
+    const snapshot = await db
+      .collection(this.collection)
+      .where("arenaId", "==", arenaId)
+      .where("jogadorNivel", "==", nivel)
+      .get();
+
+    // Agregar por jogador
+    const jogadoresMap = new Map<string, any>();
+
+    snapshot.docs.forEach((doc) => {
+      const stats = doc.data() as EstatisticasJogador;
+
+      if (!jogadoresMap.has(stats.jogadorId)) {
+        jogadoresMap.set(stats.jogadorId, {
+          jogadorId: stats.jogadorId,
+          jogadorNome: stats.jogadorNome,
+          jogadorNivel: stats.jogadorNivel,
+          jogadorGenero: stats.jogadorGenero,
+          etapasParticipadas: 0,
+          jogos: 0,
+          vitorias: 0,
+          derrotas: 0,
+          pontos: 0,
+          setsVencidos: 0,
+          setsPerdidos: 0,
+          gamesVencidos: 0,
+          gamesPerdidos: 0,
+          saldoSets: 0,
+          saldoGames: 0,
+        });
+      }
+
+      const jogador = jogadoresMap.get(stats.jogadorId);
+      jogador.etapasParticipadas += 1;
+      jogador.jogos += stats.jogos || 0;
+      jogador.vitorias += stats.vitorias || 0;
+      jogador.derrotas += stats.derrotas || 0;
+      jogador.pontos += stats.pontos || 0;
+      jogador.setsVencidos += stats.setsVencidos || 0;
+      jogador.setsPerdidos += stats.setsPerdidos || 0;
+      jogador.gamesVencidos += stats.gamesVencidos || 0;
+      jogador.gamesPerdidos += stats.gamesPerdidos || 0;
+      jogador.saldoSets += stats.saldoSets || 0;
+      jogador.saldoGames += stats.saldoGames || 0;
+    });
+
+    // Converter para array e ordenar
+    const ranking = Array.from(jogadoresMap.values());
+
+    ranking.sort((a, b) => {
+      if (a.pontos !== b.pontos) return b.pontos - a.pontos;
+      if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
+      if (a.gamesVencidos !== b.gamesVencidos)
+        return b.gamesVencidos - a.gamesVencidos;
+      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
+      return 0;
+    });
+
+    logger.info("Ranking por nível calculado", {
+      arenaId,
+      nivel,
+      totalJogadores: ranking.length,
+    });
+
+    return ranking.slice(0, limite);
+  }
+
+  /**
+   * Buscar ranking GLOBAL agregado (todas as etapas - TODOS OS NÍVEIS MISTURADOS)
+   *
+   * @deprecated Use buscarRankingPorNivel para rankings separados por categoria.
+   * Este método soma pontos de todos os níveis, o que pode ser injusto quando
+   * um jogador muda de categoria.
    */
   async buscarRankingGlobalAgregado(
     arenaId: string,

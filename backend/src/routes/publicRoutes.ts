@@ -724,6 +724,13 @@ function converterColocacaoParaPosicao(
 /**
  * Buscar ranking geral da arena
  * GET /api/public/:arenaSlug/ranking
+ *
+ * IMPORTANTE: Quando o parâmetro 'nivel' é passado, usa buscarRankingPorNivel
+ * para garantir que os pontos sejam separados por categoria.
+ *
+ * Exemplo: Jogador que era iniciante (100 pts) e virou intermediário (10 pts)
+ * - Ranking iniciante: 100 pts
+ * - Ranking intermediário: 10 pts
  */
 router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
   try {
@@ -731,34 +738,45 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
     const { limite = "50", genero, nivel } = req.query;
 
     const arena = await arenaService.getArenaBySlug(arenaSlug);
+    const limiteNum = parseInt(limite as string);
 
-    const ranking =
-      await estatisticasJogadorService.buscarRankingGlobalAgregado(
+    let ranking: any[];
+
+    // ✅ CORREÇÃO: Usar buscarRankingPorNivel quando nível for especificado
+    // Isso garante que os pontos sejam calculados APENAS para o nível solicitado
+    if (nivel) {
+      ranking = await estatisticasJogadorService.buscarRankingPorNivel(
         arena.id,
-        parseInt(limite as string)
+        nivel as string,
+        999 // Buscar todos para depois filtrar por gênero se necessário
       );
 
+      logger.info("Ranking por nível carregado", {
+        arenaId: arena.id,
+        nivel,
+        totalJogadores: ranking.length,
+      });
+    } else {
+      // Sem nível especificado: ranking global (todos os níveis somados)
+      // ⚠️ ATENÇÃO: Este método soma pontos de todos os níveis!
+      ranking = await estatisticasJogadorService.buscarRankingGlobalAgregado(
+        arena.id,
+        999
+      );
+    }
+
+    // Filtrar por gênero se especificado
     let rankingFiltrado = ranking;
-
-    if (genero || nivel) {
+    if (genero) {
       rankingFiltrado = ranking.filter((jogador) => {
-        let match = true;
-
-        if (genero) {
-          const jogadorGenero = (jogador.jogadorGenero || "").toLowerCase();
-          const filtroGenero = (genero as string).toLowerCase();
-          match = match && jogadorGenero === filtroGenero;
-        }
-
-        if (nivel) {
-          const jogadorNivel = jogador.jogadorNivel || "";
-          const filtroNivel = (nivel as string).toLowerCase();
-          match = match && jogadorNivel === filtroNivel;
-        }
-
-        return match;
+        const jogadorGenero = (jogador.jogadorGenero || "").toLowerCase();
+        const filtroGenero = (genero as string).toLowerCase();
+        return jogadorGenero === filtroGenero;
       });
     }
+
+    // Aplicar limite após filtragem
+    rankingFiltrado = rankingFiltrado.slice(0, limiteNum);
 
     const rankingFormatado = rankingFiltrado.map((jogador, index) => ({
       id: jogador.jogadorId,
@@ -810,8 +828,12 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
 // ============================================
 
 /**
- * Buscar estatísticas AGREGADAS de um jogador (todas as etapas)
+ * Buscar estatísticas AGREGADAS de um jogador (por nível atual)
  * GET /api/public/:arenaSlug/jogadores/:jogadorId/estatisticas
+ *
+ * IMPORTANTE: A posição no ranking é calculada com base no nível ATUAL do jogador.
+ * Se o jogador mudou de iniciante para intermediário, a posição mostrada é
+ * no ranking de intermediários (com os pontos acumulados nesse nível).
  */
 router.get(
   "/:arenaSlug/jogadores/:jogadorId/estatisticas",
@@ -821,20 +843,61 @@ router.get(
 
       const arena = await arenaService.getArenaBySlug(arenaSlug);
 
-      const stats =
-        await estatisticasJogadorService.buscarEstatisticasAgregadas(
+      // Buscar o jogador para pegar o nível ATUAL
+      const jogador = await jogadorService.buscarPorId(jogadorId, arena.id);
+
+      if (!jogador) {
+        return res.status(404).json({
+          success: false,
+          error: "Jogador não encontrado",
+        });
+      }
+
+      const nivelAtual = jogador.nivel;
+
+      let stats;
+
+      if (nivelAtual) {
+        // ✅ Buscar estatísticas apenas do nível atual
+        stats =
+          await estatisticasJogadorService.buscarEstatisticasAgregadasPorNivel(
+            jogadorId,
+            arena.id,
+            nivelAtual
+          );
+
+        logger.info("Estatísticas por nível carregadas", {
+          jogadorId,
+          nivel: nivelAtual,
+          posicaoRanking: stats?.posicaoRanking,
+        });
+      } else {
+        // Fallback: sem nível definido, usa método global
+        stats = await estatisticasJogadorService.buscarEstatisticasAgregadas(
           jogadorId,
           arena.id
         );
+      }
 
       res.json({
         success: true,
         data: stats || {
-          totalVitorias: 0,
-          totalDerrotas: 0,
-          totalJogos: 0,
-          totalEtapas: 0,
-          totalPontos: 0,
+          jogadorId,
+          jogadorNome: jogador.nome,
+          jogadorNivel: nivelAtual,
+          jogadorGenero: jogador.genero,
+          etapasParticipadas: 0,
+          jogos: 0,
+          vitorias: 0,
+          derrotas: 0,
+          pontos: 0,
+          posicaoRanking: 0,
+          setsVencidos: 0,
+          setsPerdidos: 0,
+          gamesVencidos: 0,
+          gamesPerdidos: 0,
+          saldoSets: 0,
+          saldoGames: 0,
         },
       });
     } catch (error: any) {

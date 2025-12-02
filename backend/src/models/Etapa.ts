@@ -12,13 +12,12 @@ export enum NivelJogador {
 }
 
 export enum StatusEtapa {
-  RASCUNHO = "rascunho",
   INSCRICOES_ABERTAS = "inscricoes_abertas",
   INSCRICOES_ENCERRADAS = "inscricoes_encerradas",
   CHAVES_GERADAS = "chaves_geradas",
   EM_ANDAMENTO = "em_andamento",
   FINALIZADA = "finalizada",
-  FASE_ELIMINATORIA = "FASE_ELIMINATORIA",
+  FASE_ELIMINATORIA = "fase_eliminatoria",
 }
 
 export enum FaseEtapa {
