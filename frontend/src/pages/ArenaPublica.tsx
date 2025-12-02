@@ -9,7 +9,7 @@ import { useParams, Link } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import { arenaService, EtapaPublica } from "../services/arenaService";
-import { Arena } from "../types";
+import { Arena } from "../types/arena";
 import RankingList from "../components/RankingList";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";

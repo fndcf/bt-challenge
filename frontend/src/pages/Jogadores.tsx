@@ -11,7 +11,7 @@ import {
   StatusJogador,
   GeneroJogador,
 } from "../types/jogador";
-import { Arena } from "../types";
+import { Arena } from "../types/arena";
 import JogadorCard from "../components/JogadorCard";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import Footer from "@/components/Footer";

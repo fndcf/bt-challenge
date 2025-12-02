@@ -1,3 +1,12 @@
+/**
+ * chaveService.ts
+ * Service para gerenciar chaves do formato DUPLA FIXA
+ *
+ * Responsabilidade única: Operações de chaves para Dupla Fixa
+ *
+ * ⚠️ Para formato Rei da Praia, use reiDaPraiaService
+ */
+
 import { apiClient } from "./apiClient";
 import {
   Dupla,
@@ -6,15 +15,17 @@ import {
   ResultadoGeracaoChaves,
   ConfrontoEliminatorio,
   TipoFase,
+  SetPartida,
 } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import logger from "../utils/logger";
 
-/**
- * Service para gerenciar chaves (duplas, grupos, partidas)
- */
 class ChaveService {
   private baseURL = "/etapas";
+
+  // ============================================
+  // GERAÇÃO DE CHAVES
+  // ============================================
 
   /**
    * Gerar chaves de uma etapa
@@ -41,11 +52,28 @@ class ChaveService {
   }
 
   /**
+   * Excluir chaves de uma etapa (duplas, grupos, partidas)
+   */
+  async excluirChaves(etapaId: string): Promise<void> {
+    try {
+      await apiClient.delete(`${this.baseURL}/${etapaId}/chaves`);
+
+      logger.info("Chaves Dupla Fixa excluídas", { etapaId });
+    } catch (error) {
+      const appError = handleError(error, "ChaveService.excluirChaves");
+      throw new Error(appError.message);
+    }
+  }
+
+  // ============================================
+  // CONSULTAS - DUPLAS
+  // ============================================
+
+  /**
    * Buscar duplas de uma etapa
    */
   async buscarDuplas(etapaId: string): Promise<Dupla[]> {
     try {
-      // Cache busting: adicionar timestamp para evitar cache HTTP 304
       const timestamp = new Date().getTime();
       const response = await apiClient.get<Dupla[]>(
         `${this.baseURL}/${etapaId}/duplas?_t=${timestamp}`
@@ -53,38 +81,6 @@ class ChaveService {
       return response;
     } catch (error) {
       const appError = handleError(error, "ChaveService.buscarDuplas");
-      throw new Error(appError.message);
-    }
-  }
-
-  /**
-   * Buscar grupos de uma etapa
-   */
-  async buscarGrupos(etapaId: string): Promise<Grupo[]> {
-    try {
-      // Cache busting: adicionar timestamp para evitar cache HTTP 304
-      const timestamp = new Date().getTime();
-      const response = await apiClient.get<Grupo[]>(
-        `${this.baseURL}/${etapaId}/grupos?_t=${timestamp}`
-      );
-      return response;
-    } catch (error) {
-      const appError = handleError(error, "ChaveService.buscarGrupos");
-      throw new Error(appError.message);
-    }
-  }
-
-  /**
-   * Buscar partidas de uma etapa
-   */
-  async buscarPartidas(etapaId: string): Promise<Partida[]> {
-    try {
-      const response = await apiClient.get<Partida[]>(
-        `${this.baseURL}/${etapaId}/partidas`
-      );
-      return response;
-    } catch (error) {
-      const appError = handleError(error, "ChaveService.buscarPartidas");
       throw new Error(appError.message);
     }
   }
@@ -107,19 +103,79 @@ class ChaveService {
     }
   }
 
-  /**
-   * Excluir chaves de uma etapa (duplas, grupos, partidas)
-   */
-  async excluirChaves(etapaId: string): Promise<void> {
-    try {
-      await apiClient.delete(`${this.baseURL}/${etapaId}/chaves`);
+  // ============================================
+  // CONSULTAS - GRUPOS
+  // ============================================
 
-      logger.info("Chaves Dupla Fixa excluídas", { etapaId });
+  /**
+   * Buscar grupos de uma etapa
+   */
+  async buscarGrupos(etapaId: string): Promise<Grupo[]> {
+    try {
+      const timestamp = new Date().getTime();
+      const response = await apiClient.get<Grupo[]>(
+        `${this.baseURL}/${etapaId}/grupos?_t=${timestamp}`
+      );
+      return response;
     } catch (error) {
-      const appError = handleError(error, "ChaveService.excluirChaves");
+      const appError = handleError(error, "ChaveService.buscarGrupos");
       throw new Error(appError.message);
     }
   }
+
+  // ============================================
+  // CONSULTAS - PARTIDAS
+  // ============================================
+
+  /**
+   * Buscar partidas de uma etapa
+   */
+  async buscarPartidas(etapaId: string): Promise<Partida[]> {
+    try {
+      const response = await apiClient.get<Partida[]>(
+        `${this.baseURL}/${etapaId}/partidas`
+      );
+      return response;
+    } catch (error) {
+      const appError = handleError(error, "ChaveService.buscarPartidas");
+      throw new Error(appError.message);
+    }
+  }
+
+  // ============================================
+  // RESULTADOS - FASE DE GRUPOS
+  // ============================================
+
+  /**
+   * Registrar resultado de partida da fase de grupos
+   * (Múltiplos sets - melhor de 3 ou 5)
+   */
+  async registrarResultadoPartida(
+    partidaId: string,
+    placar: SetPartida[]
+  ): Promise<void> {
+    try {
+      await apiClient.put(`/partidas/${partidaId}/resultado`, { placar });
+
+      logger.info("Resultado partida Dupla Fixa registrado", {
+        partidaId,
+        totalSets: placar.length,
+        placar: placar
+          .map((s) => `${s.gamesDupla1}-${s.gamesDupla2}`)
+          .join(", "),
+      });
+    } catch (error) {
+      const appError = handleError(
+        error,
+        "ChaveService.registrarResultadoPartida"
+      );
+      throw new Error(appError.message);
+    }
+  }
+
+  // ============================================
+  // FASE ELIMINATÓRIA
+  // ============================================
 
   /**
    * Gerar fase eliminatória
@@ -209,44 +265,6 @@ class ChaveService {
         error,
         "ChaveService.cancelarFaseEliminatoria"
       );
-      throw new Error(appError.message);
-    }
-  }
-
-  /**
-   *  Detectar formato da etapa e buscar dados corretos
-   */
-  async buscarDadosEtapa(
-    etapaId: string,
-    formato: string
-  ): Promise<{
-    duplas?: any[];
-    jogadores?: any[];
-    grupos: any[];
-    partidas: any[];
-  }> {
-    try {
-      if (formato === "rei_da_praia") {
-        // Buscar dados do Rei da Praia
-        const [jogadores, grupos, partidas] = await Promise.all([
-          apiClient.get(`${this.baseURL}/${etapaId}/rei-da-praia/jogadores`),
-          apiClient.get(`${this.baseURL}/${etapaId}/rei-da-praia/grupos`),
-          apiClient.get(`${this.baseURL}/${etapaId}/rei-da-praia/partidas`),
-        ]);
-
-        return { jogadores, grupos, partidas };
-      } else {
-        // Buscar dados da Dupla Fixa (formato tradicional)
-        const [duplas, grupos, partidas] = await Promise.all([
-          this.buscarDuplas(etapaId),
-          this.buscarGrupos(etapaId),
-          this.buscarPartidas(etapaId),
-        ]);
-
-        return { duplas, grupos, partidas };
-      }
-    } catch (error) {
-      const appError = handleError(error, "ChaveService.buscarDadosEtapa");
       throw new Error(appError.message);
     }
   }

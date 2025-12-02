@@ -2,8 +2,8 @@
  * Types para Etapas - VERSÃO ATUALIZADA COM REI DA PRAIA
  */
 
-import { ConfrontoEliminatorio } from "./chave";
 import { NivelJogador, GeneroJogador } from "./jogador";
+import { Dupla, Grupo, Partida, ConfrontoEliminatorio } from "./chave";
 
 export enum StatusEtapa {
   INSCRICOES_ABERTAS = "inscricoes_abertas",
@@ -115,80 +115,6 @@ export interface Inscricao {
   criadoEm: string;
   atualizadoEm: string;
   canceladoEm?: string;
-}
-
-export interface Dupla {
-  id: string;
-  etapaId: string;
-  arenaId: string;
-  jogador1Id: string;
-  jogador1Nome: string;
-  jogador1Nivel: string;
-  jogador1Genero?: string; // ✅ Adicionado
-  jogador2Id: string;
-  jogador2Nome: string;
-  jogador2Nivel: string;
-  jogador2Genero?: string; // ✅ Adicionado
-  grupoId: string;
-  grupoNome: string;
-  jogos: number;
-  vitorias: number;
-  derrotas: number;
-  pontos: number;
-  setsVencidos: number;
-  setsPerdidos: number;
-  gamesVencidos: number;
-  gamesPerdidos: number;
-  saldoSets: number;
-  saldoGames: number;
-  posicaoGrupo?: number;
-  classificada?: boolean;
-  criadoEm: string;
-  atualizadoEm: string;
-}
-
-export interface Grupo {
-  id: string;
-  etapaId: string;
-  arenaId: string;
-  nome: string;
-  ordem: number;
-  duplas: string[];
-  totalDuplas: number;
-  partidas: string[];
-  totalPartidas: number;
-  partidasFinalizadas: number;
-  completo: boolean;
-  classificadas: string[];
-  criadoEm: string;
-  atualizadoEm: string;
-}
-
-export interface Partida {
-  id: string;
-  etapaId: string;
-  arenaId: string;
-  tipo?: "dupla_fixa" | "eliminatoria";
-  fase: FaseEtapa;
-  grupoId?: string;
-  grupoNome?: string;
-  dupla1Id: string;
-  dupla1Nome: string;
-  dupla2Id: string;
-  dupla2Nome: string;
-  dataHora?: string;
-  quadra?: string;
-  status: "agendada" | "em_andamento" | "finalizada" | "cancelada";
-  setsDupla1: number;
-  setsDupla2: number;
-  placar: any[];
-  vencedoraId?: string;
-  vencedoraNome?: string;
-  vencedores?: string[];
-  vencedoresNomes?: string;
-  criadoEm: string;
-  atualizadoEm: string;
-  finalizadoEm?: string;
 }
 
 //  Partida específica do Rei da Praia

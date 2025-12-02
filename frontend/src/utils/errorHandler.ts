@@ -1,10 +1,12 @@
 /**
- * Error Handler - COM LOGGER
+ * Error Handler - VERSÃO REFATORADA
  * Tratamento centralizado de erros da aplicação
+ * 
+ * Responsabilidade única: Traduzir e formatar erros
  */
 
 import { AxiosError } from "axios";
-import logger from "./logger"; // ← IMPORTAR LOGGER
+import logger from "./logger";
 
 export interface AppError {
   message: string;
@@ -37,7 +39,9 @@ export class ApplicationError extends Error {
  * Tradução de mensagens de erro
  */
 const errorMessages: Record<string, string> = {
-  // Erros de autenticação
+  // ============================================
+  // ERROS DE AUTENTICAÇÃO (Firebase Auth)
+  // ============================================
   "auth/user-not-found": "Usuário não encontrado",
   "auth/wrong-password": "Senha incorreta",
   "auth/email-already-in-use": "Email já está em uso",
@@ -48,8 +52,15 @@ const errorMessages: Record<string, string> = {
   "auth/network-request-failed": "Erro de conexão. Verifique sua internet",
   "auth/invalid-credential": "Email ou senha incorretos",
   "auth/requires-recent-login": "Por segurança, faça login novamente",
+  "auth/operation-not-allowed": "Operação não permitida",
+  "auth/account-exists-with-different-credential": "Conta já existe com credencial diferente",
+  "auth/popup-closed-by-user": "Login cancelado pelo usuário",
+  "auth/expired-action-code": "Link expirado. Solicite novamente",
+  "auth/invalid-action-code": "Link inválido ou já utilizado",
 
-  // Erros de validação
+  // ============================================
+  // ERROS DE VALIDAÇÃO
+  // ============================================
   "validation/required-field": "Campo obrigatório",
   "validation/invalid-email": "Email inválido",
   "validation/invalid-phone": "Telefone inválido",
@@ -57,15 +68,20 @@ const errorMessages: Record<string, string> = {
   "validation/min-length": "Mínimo de caracteres não atingido",
   "validation/max-length": "Máximo de caracteres excedido",
 
-  // Erros de negócio
+  // ============================================
+  // ERROS DE NEGÓCIO
+  // ============================================
   "business/inscricoes-encerradas": "Inscrições encerradas",
   "business/vagas-esgotadas": "Vagas esgotadas",
   "business/jogador-ja-inscrito": "Jogador já está inscrito",
   "business/chaves-ja-geradas": "Chaves já foram geradas",
   "business/etapa-nao-encontrada": "Etapa não encontrada",
   "business/jogador-nao-encontrado": "Jogador não encontrado",
+  "business/arena-nao-encontrada": "Arena não encontrada",
 
-  // Erros HTTP genéricos
+  // ============================================
+  // ERROS HTTP
+  // ============================================
   400: "Requisição inválida",
   401: "Não autorizado. Faça login novamente",
   403: "Acesso negado",
@@ -79,6 +95,13 @@ const errorMessages: Record<string, string> = {
 };
 
 /**
+ * Obter mensagem de erro traduzida por código
+ */
+export const getErrorMessageByCode = (code: string): string | undefined => {
+  return errorMessages[code];
+};
+
+/**
  * Extrai mensagem de erro amigável
  */
 export const getErrorMessage = (error: any): string => {
@@ -87,7 +110,7 @@ export const getErrorMessage = (error: any): string => {
     return error.message;
   }
 
-  // Erro do Firebase
+  // Erro do Firebase (código específico)
   if (error?.code && errorMessages[error.code]) {
     return errorMessages[error.code];
   }
@@ -112,7 +135,7 @@ export const getErrorMessage = (error: any): string => {
     }
   }
 
-  // Erro genérico
+  // Erro genérico com mensagem
   if (error?.message) {
     return error.message;
   }

@@ -1,12 +1,17 @@
+/**
+ * partidaService.ts
+ * Service para gerenciar partidas do formato DUPLA FIXA
+ *
+ * Responsabilidade única: Registrar resultados de partidas Dupla Fixa
+ *
+ * ⚠️ Para formato Rei da Praia, use reiDaPraiaService.registrarResultado()
+ */
+
 import { apiClient } from "./apiClient";
 import { SetPartida } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import logger from "../utils/logger";
 
-/**
- * Service para gerenciar partidas
- *  Suporta Dupla Fixa e Rei da Praia
- */
 class PartidaService {
   private baseURL = "/partidas";
 
@@ -30,41 +35,6 @@ class PartidaService {
       });
     } catch (error) {
       const appError = handleError(error, "PartidaService.registrarResultado");
-      throw new Error(appError.message);
-    }
-  }
-
-  /**
-   *  Registrar resultado de partida REI DA PRAIA
-   * (1 SET APENAS - formato específico)
-   */
-  async registrarResultadoReiDaPraia(
-    partidaId: string,
-    placar: Array<{
-      numero: number;
-      gamesDupla1: number;
-      gamesDupla2: number;
-    }>
-  ): Promise<void> {
-    try {
-      // Validar placar (deve ter apenas 1 set)
-      if (placar.length !== 1) {
-        throw new Error("Partida Rei da Praia deve ter apenas 1 set");
-      }
-
-      await apiClient.put(`/partidas/rei-da-praia/${partidaId}/resultado`, {
-        placar,
-      });
-
-      logger.info("Resultado Rei da Praia registrado", {
-        partidaId,
-        placar: `${placar[0].gamesDupla1}-${placar[0].gamesDupla2}`,
-      });
-    } catch (error) {
-      const appError = handleError(
-        error,
-        "PartidaService.registrarResultadoReiDaPraia"
-      );
       throw new Error(appError.message);
     }
   }

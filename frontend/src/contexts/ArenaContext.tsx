@@ -1,15 +1,23 @@
+/**
+ * ArenaContext.tsx - VERSÃO REFATORADA
+ *
+ * Responsabilidade única: Gerenciar estado da arena atual
+ *
+ * ✅ Lógica de roteamento movida para hooks/useArenaLoader.ts
+ */
+
 import React, {
   createContext,
   useContext,
   useState,
-  useEffect,
+  useCallback,
   ReactNode,
 } from "react";
-import { useLocation } from "react-router-dom";
-import { Arena, ArenaContextType } from "../types";
+import { ArenaContextType } from "../types";
+import { Arena } from "../types/arena";
 import { arenaService } from "../services/arenaService";
-import { useAuth } from "./AuthContext";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import { useArenaLoader } from "../hooks/useArenaLoader";
+import logger from "../utils/logger";
 
 const ArenaContext = createContext<ArenaContextType | undefined>(undefined);
 
@@ -25,22 +33,11 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
   const [arena, setArena] = useState<Arena | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const location = useLocation();
-  const { user } = useAuth();
-
-  /**
-   * Extrair slug da arena da URL
-   * Exemplo: /arena/arenaazul -> arenaazul
-   */
-  const extractArenaSlug = (pathname: string): string | null => {
-    const match = pathname.match(/^\/arena\/([^\/]+)/);
-    return match ? match[1] : null;
-  };
 
   /**
    * Buscar arena pelo slug (rotas públicas)
    */
-  const fetchArenaBySlug = async (slug: string) => {
+  const fetchArenaBySlug = useCallback(async (slug: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -61,12 +58,12 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   /**
    * Buscar arena do admin logado (rotas admin)
    */
-  const fetchMyArena = async () => {
+  const fetchMyArena = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -87,26 +84,24 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   /**
-   * Observar mudanças na URL e carregar arena correspondente
+   * Limpar arena (quando não está em rota de arena)
    */
-  useEffect(() => {
-    const slug = extractArenaSlug(location.pathname);
+  const clearArena = useCallback(() => {
+    setArena(null);
+    setLoading(false);
+  }, []);
 
-    if (slug) {
-      // Rota pública com slug: /arena/:slug
-      fetchArenaBySlug(slug);
-    } else if (location.pathname.startsWith("/admin") && user) {
-      // Rota admin: buscar arena do admin logado
-      fetchMyArena();
-    } else {
-      // Não está em uma rota de arena
-      setArena(null);
-      setLoading(false);
-    }
-  }, [location.pathname, user]);
+  /**
+   * Hook que observa mudanças na URL e carrega arena correspondente
+   */
+  useArenaLoader({
+    onPublicArena: fetchArenaBySlug,
+    onAdminArena: fetchMyArena,
+    onNoArena: clearArena,
+  });
 
   const value: ArenaContextType = {
     arena,

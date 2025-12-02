@@ -1,3 +1,11 @@
+/**
+ * AuthContext.tsx - VERSÃO REFATORADA
+ * 
+ * Responsabilidade única: Gerenciar estado de autenticação
+ * 
+ * ✅ Funções de tradução de erro movidas para errorHandler.ts
+ */
+
 import React, {
   createContext,
   useContext,
@@ -15,7 +23,8 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { User, AuthState } from "../types";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import { getErrorMessage } from "../utils/errorHandler";
+import logger from "../utils/logger";
 
 interface AuthContextType extends AuthState {
   login: (
@@ -36,6 +45,17 @@ interface AuthProviderProps {
 }
 
 /**
+ * Converter Firebase User para nosso User type
+ */
+const convertFirebaseUser = (firebaseUser: FirebaseUser): User => {
+  return {
+    uid: firebaseUser.uid,
+    email: firebaseUser.email || "",
+    role: "admin",
+  };
+};
+
+/**
  * Provider de Autenticação
  * Gerencia o estado de autenticação do usuário com Firebase
  */
@@ -43,17 +63,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  /**
-   * Converter Firebase User para nosso User type
-   */
-  const convertFirebaseUser = (firebaseUser: FirebaseUser): User => {
-    return {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email || "",
-      role: "admin",
-    };
-  };
 
   /**
    * Login com email e senha
@@ -94,7 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         rememberMe,
       });
     } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
       logger.error(
@@ -119,7 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
 
-      //  Capturar uid antes de fazer logout
+      // Capturar uid antes de fazer logout
       const uid = user?.uid;
       const email = user?.email;
 
@@ -129,7 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       logger.info("Logout realizado", { uid, email });
     } catch (err: any) {
-      const errorMessage = "Erro ao fazer logout";
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
       logger.error("Erro ao fazer logout", {}, err);
@@ -162,7 +171,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: userCredential.user.email,
       });
     } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
       logger.error(
@@ -190,7 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       logger.info("Email de recuperação enviado", { email });
     } catch (err: any) {
-      const errorMessage = getPasswordResetErrorMessage(err.code);
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
       logger.error(
@@ -250,37 +259,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
-};
-
-/**
- * Traduzir erros do Firebase para mensagens amigáveis
- */
-const getAuthErrorMessage = (errorCode: string): string => {
-  const errorMessages: { [key: string]: string } = {
-    "auth/user-not-found": "Usuário não encontrado",
-    "auth/wrong-password": "Senha incorreta",
-    "auth/email-already-in-use": "Email já está em uso",
-    "auth/weak-password": "Senha muito fraca. Use no mínimo 6 caracteres",
-    "auth/invalid-email": "Email inválido",
-    "auth/user-disabled": "Usuário desabilitado",
-    "auth/too-many-requests": "Muitas tentativas. Tente novamente mais tarde",
-    "auth/network-request-failed": "Erro de conexão. Verifique sua internet",
-    "auth/invalid-credential": "Email ou senha incorretos",
-  };
-
-  return errorMessages[errorCode] || "Erro ao autenticar. Tente novamente";
-};
-
-/**
- * Traduzir erros de reset de senha
- */
-const getPasswordResetErrorMessage = (errorCode: string): string => {
-  const errorMessages: { [key: string]: string } = {
-    "auth/user-not-found": "Email não encontrado",
-    "auth/invalid-email": "Email inválido",
-    "auth/network-request-failed": "Erro de conexão. Verifique sua internet",
-    "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos",
-  };
-
-  return errorMessages[errorCode] || "Erro ao enviar email de recuperação";
 };

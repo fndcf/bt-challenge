@@ -7,7 +7,7 @@ import {
   JogadorPublico,
   EstatisticasAgregadas,
 } from "../services/arenaService";
-import { Arena } from "../types";
+import { Arena } from "../types/arena";
 import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============

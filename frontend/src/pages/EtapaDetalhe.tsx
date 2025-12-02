@@ -12,7 +12,7 @@ import {
   EtapaPublica,
   JogadorPublico,
 } from "../services/arenaService";
-import { Arena } from "../types";
+import { Arena } from "../types/arena";
 import BracketViewer from "../components/BracketViewer";
 import GruposViewer from "../components/GruposViewer";
 import { format } from "date-fns";
