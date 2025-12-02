@@ -8,11 +8,11 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import {
-  arenaService,
+  ArenaPublica,
+  arenaPublicService,
   EtapaPublica,
   JogadorPublico,
-} from "../services/arenaService";
-import { Arena } from "../types/arena";
+} from "../services/arenaPublicService";
 import BracketViewer from "../components/BracketViewer";
 import GruposViewer from "../components/GruposViewer";
 import { format } from "date-fns";
@@ -513,7 +513,7 @@ const EtapaDetalhes: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [arena, setArena] = useState<Arena | null>(null);
+  const [arena, setArena] = useState<ArenaPublica | null>(null);
   const [etapa, setEtapa] = useState<EtapaPublica | null>(null);
   const [jogadores, setJogadores] = useState<JogadorPublico[]>([]);
   const [chaves, setChaves] = useState<any>(null);
@@ -570,22 +570,28 @@ const EtapaDetalhes: React.FC = () => {
         setLoading(true);
         setError("");
 
-        const arenaData = await arenaService.getArenaPublica(slug);
+        const arenaData = await arenaPublicService.buscarArena(slug);
         setArena(arenaData);
 
-        const etapaData = await arenaService.getEtapaPublica(slug, etapaId);
+        const etapaData = await arenaPublicService.buscarEtapa(slug, etapaId);
         setEtapa(etapaData);
 
-        const jogadoresData = await arenaService.getJogadoresEtapa(
+        const jogadoresData = await arenaPublicService.buscarInscritosEtapa(
           slug,
           etapaId
         );
         setJogadores(jogadoresData);
 
-        const gruposData = await arenaService.getGruposEtapa(slug, etapaId);
+        const gruposData = await arenaPublicService.buscarGruposEtapa(
+          slug,
+          etapaId
+        );
         setGrupos(gruposData || []);
 
-        const chavesData = await arenaService.getChavesEtapa(slug, etapaId);
+        const chavesData = await arenaPublicService.buscarChavesEtapa(
+          slug,
+          etapaId
+        );
         setChaves(chavesData);
       } catch (err: any) {
         setError(err.message || "Erro ao carregar detalhes da etapa");

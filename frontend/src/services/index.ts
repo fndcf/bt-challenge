@@ -1,8 +1,8 @@
 /**
  * Arena Services - Index
- * 
+ *
  * Exporta os services de arena organizados por responsabilidade:
- * 
+ *
  * ┌─────────────────────────────────────────────────────────────┐
  * │                      ARENA SERVICES                         │
  * ├─────────────────────────────────────────────────────────────┤
@@ -18,34 +18,16 @@
  * │                           - etapas públicas                 │
  * │                           - jogadores públicos              │
  * │                                                             │
- * │  arenaService          →  ⚠️ DEPRECATED                     │
- * │                           Compatibilidade com código antigo │
- * │                           Delega para os services acima     │
- * │                                                             │
  * └─────────────────────────────────────────────────────────────┘
- * 
- * USO RECOMENDADO:
- * 
- * // ✅ Novo código
- * import { arenaAdminService } from "@/services/arena";
- * import { arenaPublicService } from "@/services/arena";
- * 
- * // ⚠️ Código legado (ainda funciona, mas migrar gradualmente)
- * import { arenaService } from "@/services/arena";
+ *
  */
 
 // Services principais
 export { arenaAdminService } from "./arenaAdminService";
 export { arenaPublicService } from "./arenaPublicService";
 
-// Compatibilidade (deprecated)
-export { arenaService } from "./arenaService";
-
 // Tipos do Admin
-export type {
-  CreateArenaDTO,
-  CreateArenaResponse,
-} from "./arenaAdminService";
+export type { CreateArenaDTO, CreateArenaResponse } from "./arenaAdminService";
 
 // Tipos do Public
 export type {

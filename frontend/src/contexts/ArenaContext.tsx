@@ -15,9 +15,9 @@ import React, {
 } from "react";
 import { ArenaContextType } from "../types";
 import { Arena } from "../types/arena";
-import { arenaService } from "../services/arenaService";
 import { useArenaLoader } from "../hooks/useArenaLoader";
 import logger from "../utils/logger";
+import arenaAdminService from "@/services/arenaAdminService";
 
 const ArenaContext = createContext<ArenaContextType | undefined>(undefined);
 
@@ -42,7 +42,7 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const arenaData = await arenaService.getBySlug(slug);
+      const arenaData = await arenaAdminService.buscarPorSlug(slug);
 
       if (!arenaData) {
         setError("Arena não encontrada");
@@ -68,7 +68,7 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const arenaData = await arenaService.getMyArena();
+      const arenaData = await arenaAdminService.obterMinhaArena();
 
       if (!arenaData) {
         setError("Arena não encontrada");

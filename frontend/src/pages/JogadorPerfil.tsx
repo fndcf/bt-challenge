@@ -3,11 +3,11 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import {
-  arenaService,
+  arenaPublicService,
   JogadorPublico,
   EstatisticasAgregadas,
-} from "../services/arenaService";
-import { Arena } from "../types/arena";
+  ArenaPublica,
+} from "../services/arenaPublicService";
 import Footer from "@/components/Footer";
 
 // ============== STYLED COMPONENTS ==============
@@ -440,7 +440,7 @@ const JogadorPerfil: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [arena, setArena] = useState<Arena | null>(null);
+  const [arena, setArena] = useState<ArenaPublica | null>(null);
   const [jogador, setJogador] = useState<JogadorPublico | null>(null);
   const [historico, setHistorico] = useState<any[]>([]);
   const [estatisticas, setEstatisticas] =
@@ -491,11 +491,11 @@ const JogadorPerfil: React.FC = () => {
         setError("");
 
         // Buscar arena
-        const arenaData = await arenaService.getArenaPublica(slug);
+        const arenaData = await arenaPublicService.buscarArena(slug);
         setArena(arenaData);
 
         // Buscar jogador
-        const jogadorData = await arenaService.getJogadorPublico(
+        const jogadorData = await arenaPublicService.buscarJogador(
           slug,
           jogadorId
         );
@@ -505,14 +505,14 @@ const JogadorPerfil: React.FC = () => {
         setJogador(jogadorData);
 
         //  Buscar estatísticas agregadas
-        const statsData = await arenaService.getEstatisticasAgregadas(
+        const statsData = await arenaPublicService.buscarEstatisticasJogador(
           slug,
           jogadorId
         );
         setEstatisticas(statsData);
 
         // Buscar histórico
-        const historicoData = await arenaService.getHistoricoJogador(
+        const historicoData = await arenaPublicService.buscarHistoricoJogador(
           slug,
           jogadorId
         );

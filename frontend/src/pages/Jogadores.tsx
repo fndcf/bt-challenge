@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useDocumentTitle } from "../hooks";
 import jogadorService from "../services/jogadorService";
-import { arenaService } from "../services/arenaService";
+import { arenaAdminService } from "../services/arenaAdminService";
 import {
   Jogador,
   FiltrosJogador,
@@ -491,7 +491,7 @@ const ListagemJogadores: React.FC = () => {
     const carregarArena = async () => {
       try {
         // Opção 1: Se você tem um service que retorna a arena do usuário logado
-        const arenaData = await arenaService.getMyArena();
+        const arenaData = await arenaAdminService.obterMinhaArena();
         setArena(arenaData);
       } catch (error) {
         // Opção 2: Fallback - pegar do localStorage se tiver

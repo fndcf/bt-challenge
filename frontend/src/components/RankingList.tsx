@@ -6,8 +6,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
-import { arenaService, JogadorPublico } from "../services/arenaService";
 import { GeneroJogador, NivelJogador } from "../types/jogador";
+import arenaPublicService, {
+  JogadorPublico,
+} from "@/services/arenaPublicService";
 
 // ============== TIPOS ==============
 
@@ -445,7 +447,7 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
       setError("");
 
       // Buscar ranking completo filtrado por gênero e nível
-      const rankingData = await arenaService.getRankingPublico(
+      const rankingData = await arenaPublicService.buscarRanking(
         arenaSlug,
         999, // Buscar todos
         genero,
@@ -469,7 +471,7 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
       };
 
       for (const nivel of Object.values(NivelJogador)) {
-        const rankingNivel = await arenaService.getRankingPublico(
+        const rankingNivel = await arenaPublicService.buscarRanking(
           arenaSlug,
           999,
           genero,

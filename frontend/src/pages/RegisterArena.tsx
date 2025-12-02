@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import styled from "styled-components";
-import { arenaService } from "../services/arenaService";
+import { arenaAdminService } from "../services/arenaAdminService";
 import { useForm, useDebounce, useDocumentTitle } from "../hooks";
 
 // ============== STYLED COMPONENTS ==============
@@ -392,7 +392,7 @@ const RegisterArena: React.FC = () => {
       if (debouncedSlug && debouncedSlug.length >= 3) {
         setCheckingSlug(true);
         try {
-          const available = await arenaService.checkSlugAvailability(
+          const available = await arenaAdminService.verificarSlugDisponivel(
             debouncedSlug
           );
           setSlugAvailable(available);
@@ -479,7 +479,7 @@ const RegisterArena: React.FC = () => {
         payload.slug = values.slug;
       }
 
-      const result = await arenaService.create(payload);
+      const result = await arenaAdminService.criar(payload);
 
       setSuccessMessage(
         `Arena "${result.arena.nome}" criada com sucesso! Slug: ${result.arena.slug}. Redirecionando para login...`
