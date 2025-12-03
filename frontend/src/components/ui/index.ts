@@ -23,3 +23,5 @@ export type { AlertVariant } from "./Alert";
 
 export { ToastProvider, useToast } from "./Toast";
 export type { ToastType, ToastPosition } from "./Toast";
+
+export { Pagination } from "./Pagination";

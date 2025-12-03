@@ -3,12 +3,13 @@
  * Componente para gerenciar cabeças de chave dentro da aba de inscrições
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
 import cabecaDeChaveService from "../../services/cabecaDeChaveService";
 import { CabecaDeChave } from "../../types/cabecaDeChave";
 import { Inscricao } from "../../types/etapa";
 import { FormatoEtapa } from "../../types/etapa";
+import { Pagination } from "../ui";
 
 // ===== STYLES =====
 
@@ -244,8 +245,20 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
 }) => {
   const [cabecas, setCabecas] = useState<CabecaDeChave[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
+
+  // Paginação
+  const { paginatedInscricoes, totalPages } = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return {
+      paginatedInscricoes: inscricoes.slice(startIndex, endIndex),
+      totalPages: Math.ceil(inscricoes.length / itemsPerPage),
+    };
+  }, [inscricoes, currentPage, itemsPerPage]);
 
   const calcularLimite = (): number => {
     if (isReiDaPraia) {
@@ -458,7 +471,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
 
           <JogadoresLista>
             <ListaTitle>Selecione Jogadores como Cabeças:</ListaTitle>
-            {inscricoes.map((inscricao) => {
+            {paginatedInscricoes.map((inscricao) => {
               const ordem = getCabecaOrdem(inscricao.jogadorId);
               const ehCabeca = ordem !== null;
 
@@ -487,6 +500,17 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
               );
             })}
           </JogadoresLista>
+
+          {/* Paginação */}
+          {inscricoes.length > itemsPerPage && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={inscricoes.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </>
       )}
 

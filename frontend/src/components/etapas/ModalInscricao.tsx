@@ -370,25 +370,22 @@ const EmptyHint = styled.p`
 
 const JogadoresGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
 `;
 
 const JogadorCard = styled.div<{ $selected: boolean }>`
-  border: 1px solid ${(props) => (props.$selected ? "#3b82f6" : "#e5e7eb")};
+  border: 1px solid ${(props) => (props.$selected ? "#bae6fd" : "#e5e7eb")};
   border-radius: 0.5rem;
   padding: 1rem;
   cursor: pointer;
   transition: all 0.2s;
-  background: ${(props) => (props.$selected ? "#eff6ff" : "white")};
+  background: ${(props) => (props.$selected ? "#f0f9ff" : "white")};
 
   &:hover {
-    border-color: ${(props) => (props.$selected ? "#3b82f6" : "#d1d5db")};
-    background: ${(props) => (props.$selected ? "#eff6ff" : "#f9fafb")};
+    background: ${(props) => (props.$selected ? "#f0f9ff" : "#f9fafb")};
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
   }
 `;
 

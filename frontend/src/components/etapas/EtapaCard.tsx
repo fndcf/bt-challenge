@@ -24,7 +24,7 @@ const Card = styled.div`
 
   &:hover {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    border-color: #2563eb;
+    transform: translateY(-2px);
   }
 `;
 
@@ -78,17 +78,8 @@ const FormatoBadge = styled.span<{ $formato: string }>`
   font-size: 0.6875rem;
   font-weight: 600;
   white-space: nowrap;
-
-  ${(props) =>
-    props.$formato === "rei_da_praia"
-      ? `
-    background: #ede9fe;
-    color: #7c3aed;
-  `
-      : `
-    background: #dbeafe;
-    color: #2563eb;
-  `}
+  background: #f3f4f6;
+  color: #4b5563;
 `;
 
 const InfoSection = styled.div`
@@ -226,11 +217,11 @@ const ActionButton = styled.button<{ $variant?: "blue" | "purple" | "gray" }>`
 const getChaveamentoLabel = (tipo: TipoChaveamentoReiDaPraia): string => {
   switch (tipo) {
     case TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES:
-      return "🏆 Melhores c/ Melhores";
+      return "Melhores c/ Melhores";
     case TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING:
-      return "📊 Por Ranking";
+      return "Por Ranking";
     case TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO:
-      return "🎲 Sorteio";
+      return "Sorteio Aleatório";
     default:
       return "";
   }
@@ -335,7 +326,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           <InfoItem>
             <InfoContent>
               <InfoLabel>Chaveamento</InfoLabel>
-              <InfoValue $color="#7c3aed">
+              <InfoValue>
                 {getChaveamentoLabel(etapa.tipoChaveamento)}
               </InfoValue>
             </InfoContent>
@@ -391,7 +382,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           {isReiDaPraia ? (
             <>
               <FooterItem>
-                <span>{Math.floor(etapa.totalInscritos / 4) || 0} grupos</span>
+                <span>{etapa.qtdGrupos || 0} grupos</span>
               </FooterItem>
               <FooterItem>
                 <span>4 jogadores/grupo</span>

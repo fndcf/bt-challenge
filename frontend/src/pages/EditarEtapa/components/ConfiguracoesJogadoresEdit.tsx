@@ -1,0 +1,99 @@
+/**
+ * ConfiguracoesJogadoresEdit.tsx
+ *
+ * Responsabilidade única: Configuração de número de jogadores no modo edição
+ */
+
+import React from "react";
+import { FormatoEtapa } from "@/types/etapa";
+import * as S from "../EditarEtapa.styles";
+
+export interface ConfiguracoesJogadoresEditProps {
+  maxJogadores: number | undefined;
+  formato: FormatoEtapa;
+  chavesGeradas: boolean;
+  temInscritos: boolean;
+  totalInscritos: number;
+  minimoJogadores: number;
+  onMaxJogadoresChange: (value: number | undefined) => void;
+  onBlur: (value: number) => void;
+}
+
+export const ConfiguracoesJogadoresEdit: React.FC<
+  ConfiguracoesJogadoresEditProps
+> = ({
+  maxJogadores,
+  formato,
+  chavesGeradas,
+  temInscritos,
+  totalInscritos,
+  minimoJogadores,
+  onMaxJogadoresChange,
+  onBlur,
+}) => {
+  const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      onMaxJogadoresChange(undefined);
+    } else {
+      const numValue = parseInt(value);
+      if (!isNaN(numValue)) {
+        onMaxJogadoresChange(numValue);
+      }
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value !== "") {
+      const valor = parseInt(e.target.value);
+      onBlur(valor);
+    }
+  };
+
+  return (
+    <S.Card>
+      <S.CardTitle>Configurações</S.CardTitle>
+
+      <S.FieldsContainer>
+        <S.Field>
+          <S.Label>
+            Número Máximo de Jogadores <S.Required>*</S.Required>
+          </S.Label>
+          <S.Input
+            type="number"
+            required
+            min={minimoJogadores}
+            max={isReiDaPraia ? 64 : 52}
+            step={isReiDaPraia ? 4 : 2}
+            disabled={chavesGeradas}
+            value={maxJogadores || ""}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            placeholder={
+              isReiDaPraia ? "Ex: 8, 12, 16, 20..." : "Ex: 16, 20, 24..."
+            }
+          />
+
+          {/* Helper text específico por formato e estado */}
+          {isReiDaPraia ? (
+            <S.HelperText>
+              {temInscritos
+                ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - múltiplo de 4`
+                : "Múltiplo de 4 (mín: 8, máx: 64)"}
+            </S.HelperText>
+          ) : (
+            <S.HelperText>
+              {temInscritos
+                ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - número par`
+                : "Número par (mín: 6, máx: 52)"}
+            </S.HelperText>
+          )}
+        </S.Field>
+      </S.FieldsContainer>
+    </S.Card>
+  );
+};
+
+export default ConfiguracoesJogadoresEdit;

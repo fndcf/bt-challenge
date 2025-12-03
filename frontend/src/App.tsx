@@ -11,17 +11,21 @@ import Dashboard from "./pages/Dashboard";
 import Jogadores from "./pages/Jogadores";
 import NovoJogador from "./pages/NovoJogador";
 import EditarJogador from "./pages/EditarJogador";
-import { ListagemEtapas } from "./pages/etapas/ListagemEtapas";
-import { CriarEtapa } from "./pages/etapas/CriarEtapa";
-import { EditarEtapa } from "./pages/etapas/EditarEtapa";
-import { DetalhesEtapa } from "./pages/etapas/DetalhesEtapa";
+import JogadorPerfil from "./pages/JogadorPerfil";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import "./config/firebase"; // Inicializar Firebase
 import { ToastProvider } from "./components/ui";
+
+// Pages - Etapas
+import { ListagemEtapas } from "./pages/ListagemEtapas";
+import { CriarEtapa } from "./pages/CriarEtapa";
+import { EditarEtapa } from "./pages/EditarEtapa";
+import DetalhesEtapa from "./pages/DetalhesEtapa";
+
+// Pages - Arena Pública
 import ArenaPublica from "./pages/ArenaPublica";
-import EtapaDetalhes from "./pages/EtapaDetalhe";
-import JogadorPerfil from "./pages/JogadorPerfil";
+import EtapaDetalhe from "./pages/EtapaDetalhe";
 
 function App() {
   return (
@@ -43,7 +47,7 @@ function App() {
               <Route path="/arena/:slug" element={<ArenaPublica />} />
               <Route
                 path="/arena/:slug/etapa/:etapaId"
-                element={<EtapaDetalhes />}
+                element={<EtapaDetalhe />}
               />
               <Route
                 path="/arena/:slug/jogador/:jogadorId"

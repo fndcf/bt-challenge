@@ -151,6 +151,9 @@ export type InscreverJogadorDTO = z.infer<typeof InscreverJogadorSchema>;
 export interface FiltrosEtapa {
   arenaId: string;
   status?: StatusEtapa;
+  nivel?: NivelJogador;
+  genero?: GeneroJogador;
+  formato?: FormatoEtapa;
   dataInicio?: string;
   dataFim?: string;
   ordenarPor?: "dataRealizacao" | "criadoEm";

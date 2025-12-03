@@ -108,6 +108,9 @@ class EtapaController extends BaseController {
       const filtros: FiltrosEtapa = {
         arenaId,
         status: req.query.status as any,
+        nivel: req.query.nivel as any,
+        genero: req.query.genero as any,
+        formato: req.query.formato as any,
         ordenarPor: req.query.ordenarPor as any,
         ordem: req.query.ordem as any,
         limite: req.query.limite ? parseInt(req.query.limite as string) : 20,

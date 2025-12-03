@@ -165,9 +165,21 @@ export class EtapaRepository implements IEtapaRepository {
       ...doc.data(),
     })) as Etapa[];
 
-    // Filtro por status no client-side
+    // Filtros no client-side
     if (filtros.status) {
       etapas = etapas.filter((e) => e.status === filtros.status);
+    }
+
+    if (filtros.nivel) {
+      etapas = etapas.filter((e) => e.nivel === filtros.nivel);
+    }
+
+    if (filtros.genero) {
+      etapas = etapas.filter((e) => e.genero === filtros.genero);
+    }
+
+    if (filtros.formato) {
+      etapas = etapas.filter((e) => e.formato === filtros.formato);
     }
 
     // Ordenação no client-side
