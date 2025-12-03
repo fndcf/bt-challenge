@@ -12,7 +12,7 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { useListagemEtapas } from "./hooks/useListagemEtapas";
 import { PageHeader } from "./components/PageHeader";
 import { StatsCards } from "./components/StatsCards";

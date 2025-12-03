@@ -1,0 +1,1 @@
+export { FaseEliminatoriaReiDaPraia } from "./FaseEliminatoriaReiDaPraia";

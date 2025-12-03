@@ -18,7 +18,7 @@ import { useEditarJogador } from "./hooks/useEditarJogador";
 import { InformacoesBasicas } from "../NovoJogador/components/InformacoesBasicas";
 import { NivelStatus } from "../NovoJogador/components/NivelStatus";
 import { ObservacoesField } from "../NovoJogador/components/ObservacoesField";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import * as S from "./EditarJogador.styles";
 
 export const EditarJogador: React.FC = () => {

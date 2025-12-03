@@ -1,0 +1,1 @@
+export { GerenciarCabecasDeChave } from "./GerenciarCabecasDeChave";

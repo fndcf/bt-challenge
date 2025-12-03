@@ -18,8 +18,8 @@ import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import { ModalInscricao } from "@/components/etapas/ModalInscricao";
 import { ChavesEtapa } from "@/components/etapas/ChavesEtapa";
 import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia";
-import { ConfirmacaoPerigosa } from "@/components/ConfirmacaoPerigosa";
-import Footer from "@/components/Footer";
+import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { Footer } from "@/components/layout/Footer";
 import etapaService from "@/services/etapaService";
 import logger from "@/utils/logger";
 

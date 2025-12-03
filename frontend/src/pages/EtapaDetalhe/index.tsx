@@ -17,8 +17,8 @@ import { EtapaHeader } from "./components/EtapaHeader";
 import { EtapaInfo } from "./components/EtapaInfo";
 import { JogadoresList } from "./components/JogadoresList";
 import { ArenaInfo } from "./components/ArenaInfo";
-import BracketViewer from "@/components/BracketViewer";
-import GruposViewer from "@/components/GruposViewer";
+import { BracketViewer } from "@/components/visualizadores/BracketViewer";
+import { GruposViewer } from "@/components/visualizadores/GruposViewer";
 import * as S from "./EtapaDetalhe.styles";
 
 export const EtapaDetalhe: React.FC = () => {

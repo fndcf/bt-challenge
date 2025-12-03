@@ -16,7 +16,7 @@ import { useNovoJogador } from "./hooks/useNovoJogador";
 import { InformacoesBasicas } from "./components/InformacoesBasicas";
 import { NivelStatus } from "./components/NivelStatus";
 import { ObservacoesField } from "./components/ObservacoesField";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import * as S from "./NovoJogador.styles";
 
 export const NovoJogador: React.FC = () => {

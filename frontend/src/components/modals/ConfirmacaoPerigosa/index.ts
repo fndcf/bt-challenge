@@ -1,0 +1,1 @@
+export { ConfirmacaoPerigosa } from "./ConfirmacaoPerigosa";

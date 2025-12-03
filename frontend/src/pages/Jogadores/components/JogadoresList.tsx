@@ -7,8 +7,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Jogador } from "@/types/jogador";
-import JogadorCard from "@/components/JogadorCard";
-import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import { JogadorCard } from "@/components/jogadores/JogadorCard";
+import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
 import * as S from "../Jogadores.styles";
 
 export interface JogadoresListProps {

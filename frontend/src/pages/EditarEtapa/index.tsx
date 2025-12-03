@@ -12,7 +12,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { useEditarEtapa } from "./hooks/useEditarEtapa";
 import { FormatoDisplay } from "./components/FormatoDisplay";
 import { RestricoesList } from "./components/RestricoesList";

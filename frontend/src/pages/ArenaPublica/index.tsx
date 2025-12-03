@@ -15,8 +15,8 @@ import { useParams } from "react-router-dom";
 import { useDocumentTitle } from "@/hooks";
 import { useArenaPublica } from "@/hooks/useArenaPublica";
 import { EtapaCardList } from "@/components/arena/EtapaCardList";
-import RankingList from "@/components/RankingList";
-import Footer from "@/components/Footer";
+import { RankingList } from "@/components/jogadores/RankingList";
+import { Footer } from "@/components/layout/Footer";
 import * as S from "./ArenaPublica.styles";
 
 const ArenaPublica: React.FC = () => {

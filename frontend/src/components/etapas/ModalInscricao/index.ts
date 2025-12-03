@@ -1,0 +1,1 @@
+export { ModalInscricao } from "./ModalInscricao";

@@ -15,7 +15,7 @@ import { HeroSection } from "./components/HeroSection";
 import { FeaturesGrid } from "./components/FeaturesGrid";
 import { CTAButtons } from "./components/CTAButtons";
 import { HowItWorks } from "./components/HowItWorks";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import * as S from "./Home.styles";
 
 export const Home: React.FC = () => {

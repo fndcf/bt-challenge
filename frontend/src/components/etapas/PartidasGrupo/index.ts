@@ -1,0 +1,1 @@
+export { PartidasGrupo } from "./PartidasGrupo";

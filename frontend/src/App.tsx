@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ArenaProvider } from "./contexts/ArenaContext";
-import PrivateRoute from "./components/PrivateRoute";
-import AdminLayout from "./components/AdminLayout";
+import PrivateRoute from "./components/auth/PrivateRoute";
+import { AdminLayout } from "./components/layout/AdminLayout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import RegisterArena from "./pages/RegisterArena";

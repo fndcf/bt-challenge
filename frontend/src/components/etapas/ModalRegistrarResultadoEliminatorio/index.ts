@@ -1,0 +1,1 @@
+export { ModalRegistrarResultadoEliminatorio } from "./ModalRegistrarResultadoEliminatorio";

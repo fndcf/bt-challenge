@@ -1,0 +1,1 @@
+export { ModalRegistrarResultadoReiDaPraia } from "./ModalRegistrarResultadoReiDaPraia";

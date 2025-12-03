@@ -12,7 +12,7 @@
 
 import React from "react";
 import { useDocumentTitle } from "@/hooks";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { useListagemJogadores } from "./hooks/useListagemJogadores";
 import { PageHeader } from "./components/PageHeader";
 import { SearchBar } from "./components/SearchBar";

@@ -13,7 +13,7 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useDocumentTitle } from "@/hooks";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { useJogadorPerfil } from "./hooks/useJogadorPerfil";
 import { PageHeader } from "./components/PageHeader";
 import { ProfileHeader } from "./components/ProfileHeader";

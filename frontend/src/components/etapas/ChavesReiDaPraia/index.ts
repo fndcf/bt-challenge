@@ -1,0 +1,1 @@
+export { ChavesReiDaPraia } from "./ChavesReiDaPraia";

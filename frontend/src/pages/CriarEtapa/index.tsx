@@ -13,7 +13,7 @@
 import React, { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FormatoEtapa } from "@/types/etapa";
-import Footer from "@/components/Footer";
+import { Footer } from "@/components/layout/Footer";
 import { useCriarEtapa } from "./hooks/useCriarEtapa";
 import { FormatoSelector } from "./components/FormatoSelector";
 import { ChaveamentoSelector } from "./components/ChaveamentoSelector";

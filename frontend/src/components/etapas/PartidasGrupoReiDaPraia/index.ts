@@ -1,0 +1,1 @@
+export { PartidasGrupoReiDaPraia } from "./PartidasGrupoReiDaPraia";
