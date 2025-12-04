@@ -1,5 +1,4 @@
 /**
- * IEtapaRepository.ts
  * Interface do repository de Etapa
  */
 
@@ -18,7 +17,11 @@ import { IBaseRepository } from "./IBaseRepository";
  * Interface do repository de Etapa
  */
 export interface IEtapaRepository
-  extends IBaseRepository<Etapa, CriarEtapaDTO & { arenaId: string; criadoPor: string }, AtualizarEtapaDTO> {
+  extends IBaseRepository<
+    Etapa,
+    CriarEtapaDTO & { arenaId: string; criadoPor: string },
+    AtualizarEtapaDTO
+  > {
   /**
    * Buscar etapa por ID com validação de arena
    */
@@ -62,7 +65,11 @@ export interface IEtapaRepository
   /**
    * Definir campeão da etapa
    */
-  definirCampeao(id: string, campeaoId: string, campeaoNome: string): Promise<void>;
+  definirCampeao(
+    id: string,
+    campeaoId: string,
+    campeaoNome: string
+  ): Promise<void>;
 
   /**
    * Obter estatísticas das etapas de uma arena

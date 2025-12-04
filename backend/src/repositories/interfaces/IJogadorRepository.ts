@@ -1,5 +1,4 @@
 /**
- * IJogadorRepository.ts
  * Interface do repository de Jogador
  */
 
@@ -19,7 +18,11 @@ import { IBaseRepository } from "./IBaseRepository";
  * Interface do repository de Jogador
  */
 export interface IJogadorRepository
-  extends IBaseRepository<Jogador, CriarJogadorDTO & { arenaId: string; criadoPor: string }, AtualizarJogadorDTO> {
+  extends IBaseRepository<
+    Jogador,
+    CriarJogadorDTO & { arenaId: string; criadoPor: string },
+    AtualizarJogadorDTO
+  > {
   /**
    * Buscar jogador por ID com validação de arena
    */
@@ -100,5 +103,9 @@ export interface IJogadorRepository
   /**
    * Verificar se nome já existe na arena
    */
-  nomeExiste(arenaId: string, nome: string, excluirId?: string): Promise<boolean>;
+  nomeExiste(
+    arenaId: string,
+    nome: string,
+    excluirId?: string
+  ): Promise<boolean>;
 }

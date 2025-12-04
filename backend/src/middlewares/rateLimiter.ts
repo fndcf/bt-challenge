@@ -1,15 +1,9 @@
-/**
- * Rate Limit Middleware
- * backend/src/middlewares/rateLimit.ts
- */
-
 import { Request, Response, NextFunction } from "express";
 import { ResponseHelper } from "../utils/responseHelper";
 import logger from "../utils/logger";
 
 /**
  * Rate Limiter simples baseado em memória
- * Em produção, usar Redis ou similar
  */
 
 interface RateLimitStore {

@@ -1,9 +1,5 @@
 /**
- * ReiDaPraiaService.ts
  * Service para gerenciar formato Rei da Praia
- * REFATORADO: Fase 4 - Usando Repositories via DI
- * REFATORADO: Fase 5.1 - Usando utils compartilhados
- * REFATORADO: Fase 5 - Usando todos os repositories (eliminando db direto)
  */
 
 import { StatusEtapa, FaseEtapa } from "../models/Etapa";
@@ -54,7 +50,6 @@ import cabecaDeChaveService from "./CabecaDeChaveService";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
 
 /**
- * Service para gerenciar formato Rei da Praia
  * Usa injeção de dependência para repositories
  */
 export class ReiDaPraiaService {
@@ -312,7 +307,6 @@ export class ReiDaPraiaService {
 
   /**
    * Gerar partidas (todas as combinações)
-   * REFATORADO: Fase 5 - Usando repository
    */
   private async gerarPartidas(
     etapaId: string,
@@ -376,7 +370,6 @@ export class ReiDaPraiaService {
 
   /**
    * Gerar combinações de partidas DTO (A+B vs C+D, A+C vs B+D, A+D vs B+C)
-   * REFATORADO: Fase 5 - Retorna DTO para uso com repository
    */
   private gerarCombinacoesPartidasDTO(
     etapaId: string,
@@ -446,14 +439,6 @@ export class ReiDaPraiaService {
 
   /**
    * Registrar resultado de partida
-   * REFATORADO: Fase 5 - Usando repository
-   */
-  /**
-   * Registrar resultado de uma partida (fase de grupos)
-   *
-   * CORREÇÃO v2:
-   * - Salva placar, vencedores e vencedoresNomes
-   * - Re-busca partida após reverter estatísticas
    */
   async registrarResultadoPartida(
     partidaId: string,
@@ -735,7 +720,6 @@ export class ReiDaPraiaService {
 
   /**
    * Buscar partidas da etapa
-   * REFATORADO: Fase 5 - Usando repository
    */
   async buscarPartidas(
     etapaId: string,

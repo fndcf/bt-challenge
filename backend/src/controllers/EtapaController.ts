@@ -1,7 +1,5 @@
 /**
- * EtapaController.ts
  * Controller para gerenciar etapas de torneio
- * REFATORADO: Fase 5.2 - Usando ResponseHelper e BaseController
  */
 
 import { Response } from "express";

@@ -1,4 +1,3 @@
-// backend/src/routes/publicRoutes.ts
 import { Router, Request, Response } from "express";
 import { arenaService } from "../services/ArenaService";
 import etapaService from "../services/EtapaService";
@@ -11,7 +10,7 @@ import logger from "../utils/logger";
 const router = Router();
 
 /**
- * 🌍 ROTAS PÚBLICAS - SEM AUTENTICAÇÃO
+ * ROTAS PÚBLICAS - SEM AUTENTICAÇÃO
  * Usam o slug da arena na URL
  */
 

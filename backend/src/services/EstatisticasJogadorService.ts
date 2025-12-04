@@ -1,7 +1,5 @@
 /**
- * EstatisticasJogadorService.ts
  * Service para gerenciar estatísticas individuais de jogadores
- * USADO POR: ChaveService (Dupla Fixa) + ReiDaPraiaService (Rei da Praia)
  */
 
 import { db } from "../config/firebase";

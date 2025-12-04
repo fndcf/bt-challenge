@@ -1,7 +1,6 @@
 /**
  * JogadorService.ts
  * Service para gerenciar jogadores
- * REFATORADO: Fase 4 - Usando IJogadorRepository via DI
  */
 
 import {
@@ -26,7 +25,6 @@ import { JogadorRepository } from "../repositories/firebase/JogadorRepository";
 import { InscricaoRepository } from "../repositories/firebase/InscricaoRepository";
 
 /**
- * Service para gerenciar jogadores
  * Usa injeção de dependência para repositories
  */
 export class JogadorService {

@@ -1,10 +1,5 @@
 /**
  * Converte texto para slug URL-friendly
- *
- * Exemplos:
- * "Arena Praia do Forte" → "arena-praia-do-forte"
- * "Tênis Club São Paulo" → "tenis-club-sao-paulo"
- * "Beach Tennis 123!" → "beach-tennis-123"
  */
 export function slugify(text: string): string {
   return (
@@ -28,11 +23,6 @@ export function slugify(text: string): string {
 
 /**
  * Gera slug único adicionando número incremental se necessário
- *
- * Exemplos:
- * "Arena ABC" (disponível) → "arena-abc"
- * "Arena ABC" (já existe) → "arena-abc-2"
- * "Arena ABC" (existe 2 e 3) → "arena-abc-4"
  */
 export async function generateUniqueSlug(
   baseText: string,

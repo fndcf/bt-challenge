@@ -4,7 +4,6 @@ import { Arena, ArenaType } from "../domain/Arena";
 import { NotFoundError, ConflictError } from "../utils/errors";
 
 /**
- * Interface do repositório de Arena
  * Define o contrato de operações com arenas
  */
 export interface IArenaRepository {
@@ -19,7 +18,6 @@ export interface IArenaRepository {
 }
 
 /**
- * Repositório de Arena
  * Implementa operações de persistência para arenas
  */
 export class ArenaRepository implements IArenaRepository {

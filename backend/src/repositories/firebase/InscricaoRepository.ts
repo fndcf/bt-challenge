@@ -1,12 +1,14 @@
 /**
- * InscricaoRepository.ts
  * Implementação Firebase do repository de Inscricao
  */
 
 import { db } from "../../config/firebase";
 import { Timestamp } from "firebase-admin/firestore";
 import { Inscricao, StatusInscricao } from "../../models/Inscricao";
-import { IInscricaoRepository, CriarInscricaoDTO } from "../interfaces/IInscricaoRepository";
+import {
+  IInscricaoRepository,
+  CriarInscricaoDTO,
+} from "../interfaces/IInscricaoRepository";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
 
@@ -58,7 +60,10 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Buscar inscrição por ID com validação de arena
    */
-  async buscarPorIdEArena(id: string, arenaId: string): Promise<Inscricao | null> {
+  async buscarPorIdEArena(
+    id: string,
+    arenaId: string
+  ): Promise<Inscricao | null> {
     const inscricao = await this.buscarPorId(id);
 
     if (!inscricao || inscricao.arenaId !== arenaId) {
@@ -78,7 +83,11 @@ export class InscricaoRepository implements IInscricaoRepository {
   ): Promise<Inscricao | null> {
     const inscricao = await this.buscarPorId(id);
 
-    if (!inscricao || inscricao.etapaId !== etapaId || inscricao.arenaId !== arenaId) {
+    if (
+      !inscricao ||
+      inscricao.etapaId !== etapaId ||
+      inscricao.arenaId !== arenaId
+    ) {
       return null;
     }
 
@@ -150,7 +159,10 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Buscar inscrições confirmadas de uma etapa
    */
-  async buscarConfirmadas(etapaId: string, arenaId: string): Promise<Inscricao[]> {
+  async buscarConfirmadas(
+    etapaId: string,
+    arenaId: string
+  ): Promise<Inscricao[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -166,7 +178,10 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Buscar inscrição de um jogador em uma etapa
    */
-  async buscarPorJogadorEEtapa(etapaId: string, jogadorId: string): Promise<Inscricao | null> {
+  async buscarPorJogadorEEtapa(
+    etapaId: string,
+    jogadorId: string
+  ): Promise<Inscricao | null> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("jogadorId", "==", jogadorId)
@@ -188,7 +203,10 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Buscar inscrições de um jogador
    */
-  async buscarPorJogador(arenaId: string, jogadorId: string): Promise<Inscricao[]> {
+  async buscarPorJogador(
+    arenaId: string,
+    jogadorId: string
+  ): Promise<Inscricao[]> {
     const snapshot = await this.collection
       .where("arenaId", "==", arenaId)
       .where("jogadorId", "==", jogadorId)
@@ -203,7 +221,10 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Buscar inscrições ativas de um jogador
    */
-  async buscarAtivasPorJogador(arenaId: string, jogadorId: string): Promise<Inscricao[]> {
+  async buscarAtivasPorJogador(
+    arenaId: string,
+    jogadorId: string
+  ): Promise<Inscricao[]> {
     const snapshot = await this.collection
       .where("arenaId", "==", arenaId)
       .where("jogadorId", "==", jogadorId)
@@ -267,7 +288,11 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Atribuir grupo à inscrição
    */
-  async atribuirGrupo(id: string, grupoId: string, grupoNome: string): Promise<void> {
+  async atribuirGrupo(
+    id: string,
+    grupoId: string,
+    grupoNome: string
+  ): Promise<void> {
     await this.collection.doc(id).update({
       grupoId,
       grupoNome,
@@ -370,7 +395,9 @@ export class InscricaoRepository implements IInscricaoRepository {
 
     await batch.commit();
 
-    logger.info("Inscrições criadas em lote", { quantidade: inscricoes.length });
+    logger.info("Inscrições criadas em lote", {
+      quantidade: inscricoes.length,
+    });
 
     return inscricoes;
   }
@@ -395,7 +422,9 @@ export class InscricaoRepository implements IInscricaoRepository {
   /**
    * Atualizar múltiplas inscrições em lote
    */
-  async atualizarEmLote(updates: Array<{ id: string; data: Partial<Inscricao> }>): Promise<void> {
+  async atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<Inscricao> }>
+  ): Promise<void> {
     if (updates.length === 0) return;
 
     const batch = db.batch();
@@ -410,7 +439,9 @@ export class InscricaoRepository implements IInscricaoRepository {
 
     await batch.commit();
 
-    logger.info("Inscrições atualizadas em lote", { quantidade: updates.length });
+    logger.info("Inscrições atualizadas em lote", {
+      quantidade: updates.length,
+    });
   }
 }
 

@@ -1,19 +1,14 @@
 /**
- * ServiceContainer.ts
  * Container de Injeção de Dependência
- * 
  * Centraliza a criação e gerenciamento de todas as instâncias
  * de repositories e services da aplicação.
- * 
- * BENEFÍCIOS:
- * - Ponto único de configuração
- * - Facilita testes (substituição de mocks)
- * - Gerencia ciclo de vida das instâncias
- * - Permite lazy loading
  */
 
 // ==================== REPOSITORIES ====================
-import { IArenaRepository, arenaRepository } from "../repositories/ArenaRepository";
+import {
+  IArenaRepository,
+  arenaRepository,
+} from "../repositories/ArenaRepository";
 
 // Repositories da Fase 2
 import {
@@ -44,9 +39,15 @@ import JogadorService from "./JogadorService";
 // Services da Fase 3
 import DuplaService, { IDuplaService } from "./DuplaService";
 import GrupoService, { IGrupoService } from "./GrupoService";
-import PartidaGrupoService, { IPartidaGrupoService } from "./PartidaGrupoService";
-import ClassificacaoService, { IClassificacaoService } from "./ClassificacaoService";
-import EliminatoriaService, { IEliminatoriaService } from "./EliminatoriaService";
+import PartidaGrupoService, {
+  IPartidaGrupoService,
+} from "./PartidaGrupoService";
+import ClassificacaoService, {
+  IClassificacaoService,
+} from "./ClassificacaoService";
+import EliminatoriaService, {
+  IEliminatoriaService,
+} from "./EliminatoriaService";
 import ChaveService, { IChaveService } from "./ChaveService";
 
 // Services auxiliares

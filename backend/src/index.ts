@@ -1,6 +1,5 @@
 /**
  * Express App Configuration
- * backend/src/app.ts (ou index.ts)
  */
 
 import express, { Request, Response, NextFunction } from "express";

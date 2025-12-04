@@ -1,5 +1,4 @@
 /**
- * mocks/repositories.ts
  * Mocks tipados dos repositories para testes
  *
  * IMPORTANTE: Cada mock implementa a interface real do repository.

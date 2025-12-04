@@ -1,7 +1,3 @@
-/**
- * Mock do EstatisticasJogadorService para testes
- */
-
 const mockEstatisticasJogadorService = {
   atualizarAposPartida: jest.fn().mockResolvedValue(undefined),
   reverterAposPartida: jest.fn().mockResolvedValue(undefined),

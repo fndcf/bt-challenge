@@ -1,5 +1,4 @@
 /**
- * firebase-mock.ts
  * Tipos para mock do Firebase nos testes
  *
  * O Timestamp do Firebase tem métodos específicos que precisamos simular.

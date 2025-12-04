@@ -1,5 +1,4 @@
 /**
- * JogadorRepository.ts
  * Implementação Firebase do repository de Jogador
  */
 
@@ -86,7 +85,10 @@ export class JogadorRepository implements IJogadorRepository {
   /**
    * Buscar jogador por ID com validação de arena
    */
-  async buscarPorIdEArena(id: string, arenaId: string): Promise<Jogador | null> {
+  async buscarPorIdEArena(
+    id: string,
+    arenaId: string
+  ): Promise<Jogador | null> {
     const jogador = await this.buscarPorId(id);
 
     if (!jogador || jogador.arenaId !== arenaId) {
@@ -160,7 +162,9 @@ export class JogadorRepository implements IJogadorRepository {
 
     logger.info("Jogador atualizado", {
       jogadorId: id,
-      camposAtualizados: Object.keys(updateData).filter((k) => k !== "atualizadoEm"),
+      camposAtualizados: Object.keys(updateData).filter(
+        (k) => k !== "atualizadoEm"
+      ),
     });
 
     return updated;
@@ -317,7 +321,10 @@ export class JogadorRepository implements IJogadorRepository {
   /**
    * Buscar jogadores por nível
    */
-  async buscarPorNivel(arenaId: string, nivel: NivelJogador): Promise<Jogador[]> {
+  async buscarPorNivel(
+    arenaId: string,
+    nivel: NivelJogador
+  ): Promise<Jogador[]> {
     const snapshot = await this.collection
       .where("arenaId", "==", arenaId)
       .where("nivel", "==", nivel)
@@ -332,7 +339,10 @@ export class JogadorRepository implements IJogadorRepository {
   /**
    * Buscar jogadores por status
    */
-  async buscarPorStatus(arenaId: string, status: StatusJogador): Promise<Jogador[]> {
+  async buscarPorStatus(
+    arenaId: string,
+    status: StatusJogador
+  ): Promise<Jogador[]> {
     const snapshot = await this.collection
       .where("arenaId", "==", arenaId)
       .where("status", "==", status)
@@ -347,7 +357,10 @@ export class JogadorRepository implements IJogadorRepository {
   /**
    * Buscar jogadores por gênero
    */
-  async buscarPorGenero(arenaId: string, genero: GeneroJogador): Promise<Jogador[]> {
+  async buscarPorGenero(
+    arenaId: string,
+    genero: GeneroJogador
+  ): Promise<Jogador[]> {
     const snapshot = await this.collection
       .where("arenaId", "==", arenaId)
       .where("genero", "==", genero)
@@ -447,7 +460,9 @@ export class JogadorRepository implements IJogadorRepository {
    * Contar jogadores por nível
    */
   async contarPorNivel(arenaId: string): Promise<Record<NivelJogador, number>> {
-    const snapshot = await this.collection.where("arenaId", "==", arenaId).get();
+    const snapshot = await this.collection
+      .where("arenaId", "==", arenaId)
+      .get();
 
     const contagem: Record<NivelJogador, number> = {
       [NivelJogador.INICIANTE]: 0,
@@ -468,8 +483,12 @@ export class JogadorRepository implements IJogadorRepository {
   /**
    * Contar jogadores por gênero
    */
-  async contarPorGenero(arenaId: string): Promise<Record<GeneroJogador, number>> {
-    const snapshot = await this.collection.where("arenaId", "==", arenaId).get();
+  async contarPorGenero(
+    arenaId: string
+  ): Promise<Record<GeneroJogador, number>> {
+    const snapshot = await this.collection
+      .where("arenaId", "==", arenaId)
+      .get();
 
     const contagem: Record<GeneroJogador, number> = {
       [GeneroJogador.MASCULINO]: 0,
@@ -489,7 +508,11 @@ export class JogadorRepository implements IJogadorRepository {
   /**
    * Verificar se nome já existe na arena
    */
-  async nomeExiste(arenaId: string, nome: string, excluirId?: string): Promise<boolean> {
+  async nomeExiste(
+    arenaId: string,
+    nome: string,
+    excluirId?: string
+  ): Promise<boolean> {
     const jogador = await this.buscarPorNome(arenaId, nome);
 
     if (!jogador) {

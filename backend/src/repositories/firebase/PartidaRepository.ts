@@ -1,5 +1,4 @@
 /**
- * PartidaRepository.ts
  * Implementação Firebase do repository de Partida
  */
 
@@ -66,7 +65,10 @@ export class PartidaRepository implements IPartidaRepository {
   /**
    * Buscar partida por ID com validação de arena
    */
-  async buscarPorIdEArena(id: string, arenaId: string): Promise<Partida | null> {
+  async buscarPorIdEArena(
+    id: string,
+    arenaId: string
+  ): Promise<Partida | null> {
     const partida = await this.buscarPorId(id);
 
     if (!partida || partida.arenaId !== arenaId) {
@@ -171,7 +173,11 @@ export class PartidaRepository implements IPartidaRepository {
   /**
    * Buscar partidas por fase
    */
-  async buscarPorFase(etapaId: string, arenaId: string, fase: FaseEtapa): Promise<Partida[]> {
+  async buscarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: FaseEtapa
+  ): Promise<Partida[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -330,7 +336,10 @@ export class PartidaRepository implements IPartidaRepository {
   /**
    * Registrar resultado da partida
    */
-  async registrarResultado(id: string, resultado: RegistrarResultadoDTO): Promise<Partida> {
+  async registrarResultado(
+    id: string,
+    resultado: RegistrarResultadoDTO
+  ): Promise<Partida> {
     const partida = await this.buscarPorId(id);
     if (!partida) {
       throw new NotFoundError("Partida não encontrada");
@@ -349,9 +358,14 @@ export class PartidaRepository implements IPartidaRepository {
   /**
    * Agendar partida
    */
-  async agendar(id: string, dataHora: Date | string, quadra?: string): Promise<void> {
+  async agendar(
+    id: string,
+    dataHora: Date | string,
+    quadra?: string
+  ): Promise<void> {
     const updateData: any = {
-      dataHora: typeof dataHora === "string" ? dataHora : Timestamp.fromDate(dataHora),
+      dataHora:
+        typeof dataHora === "string" ? dataHora : Timestamp.fromDate(dataHora),
       atualizadoEm: Timestamp.now(),
     };
 
@@ -424,7 +438,10 @@ export class PartidaRepository implements IPartidaRepository {
   /**
    * Deletar partidas eliminatórias de uma etapa
    */
-  async deletarEliminatoriasPorEtapa(etapaId: string, arenaId: string): Promise<number> {
+  async deletarEliminatoriasPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<number> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -544,7 +561,9 @@ export class PartidaRepository implements IPartidaRepository {
   /**
    * Atualizar múltiplas partidas em lote
    */
-  async atualizarEmLote(updates: Array<{ id: string; data: Partial<Partida> }>): Promise<void> {
+  async atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<Partida> }>
+  ): Promise<void> {
     if (updates.length === 0) return;
 
     const batch = db.batch();

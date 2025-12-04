@@ -1,8 +1,3 @@
-/**
- * Cabeça de Chave Routes
- * backend/src/routes/cabecaDeChaveRoutes.ts
- */
-
 import { Router } from "express";
 import { AuthRequest, requireAuth } from "../middlewares/auth";
 import cabecaDeChaveService from "../services/CabecaDeChaveService";

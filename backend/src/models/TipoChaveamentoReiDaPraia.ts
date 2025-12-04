@@ -1,6 +1,4 @@
 /**
- * TipoChaveamentoReiDaPraia.ts
- *
  * Tipos de chaveamento para fase eliminatória do Rei da Praia
  */
 

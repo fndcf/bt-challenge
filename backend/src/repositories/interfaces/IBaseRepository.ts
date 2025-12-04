@@ -1,5 +1,4 @@
 /**
- * IBaseRepository.ts
  * Interface base genérica para todos os repositories
  *
  * Define operações CRUD comuns que todos os repositories devem implementar.
@@ -102,5 +101,7 @@ export interface IBatchOperations<T> {
   /**
    * Atualizar múltiplas entidades em uma transação
    */
-  atualizarEmLote(updates: Array<{ id: string; data: Partial<T> }>): Promise<void>;
+  atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<T> }>
+  ): Promise<void>;
 }

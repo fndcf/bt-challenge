@@ -1,7 +1,3 @@
-/**
- * Mock do logger para testes
- */
-
 const mockLogger = {
   info: jest.fn(),
   error: jest.fn(),

@@ -1,9 +1,3 @@
-/**
- * JogadorService.test.ts
- * Testes unitários REAIS para JogadorService
- */
-
-// Mocks devem vir ANTES dos imports
 jest.mock("../../utils/logger", () => ({
   __esModule: true,
   default: {
@@ -200,7 +194,9 @@ describe("JogadorService", () => {
         nivel: NivelJogador.AVANCADO,
       });
 
-      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogadorOriginal);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(
+        jogadorOriginal
+      );
       mockJogadorRepository.nomeExiste.mockResolvedValue(false);
       mockJogadorRepository.atualizar.mockResolvedValue(jogadorAtualizado);
 
@@ -230,11 +226,11 @@ describe("JogadorService", () => {
         nome: "Nome Original",
       });
 
-      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogadorOriginal);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(
+        jogadorOriginal
+      );
       mockJogadorRepository.nomeExiste.mockResolvedValue(true);
 
-      // Nota: O service lança "Falha ao atualizar jogador" porque o check
-      // error.message.includes("já existe") não pega "Já existe" (case-sensitive)
       await expect(
         jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, {
           nome: "Nome Já Existente",
@@ -253,7 +249,9 @@ describe("JogadorService", () => {
 
       await jogadorService.deletar(TEST_JOGADOR_ID, TEST_ARENA_ID);
 
-      expect(mockJogadorRepository.deletar).toHaveBeenCalledWith(TEST_JOGADOR_ID);
+      expect(mockJogadorRepository.deletar).toHaveBeenCalledWith(
+        TEST_JOGADOR_ID
+      );
     });
 
     it("deve lançar erro ao deletar jogador inexistente", async () => {
@@ -359,7 +357,9 @@ describe("JogadorService", () => {
         nivel: NivelJogador.AVANCADO,
       }));
 
-      mockJogadorRepository.buscarPorNivel.mockResolvedValue(jogadoresAvancados);
+      mockJogadorRepository.buscarPorNivel.mockResolvedValue(
+        jogadoresAvancados
+      );
 
       const result = await jogadorService.buscarPorNivel(
         TEST_ARENA_ID,

@@ -1,7 +1,3 @@
-/**
- * Mock do ClassificacaoService para testes
- */
-
 const mockClassificacaoService = {
   recalcularClassificacaoGrupo: jest.fn().mockResolvedValue(undefined),
   calcularClassificacao: jest.fn().mockResolvedValue([]),

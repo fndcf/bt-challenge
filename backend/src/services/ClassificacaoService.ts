@@ -1,7 +1,5 @@
 /**
- * ClassificacaoService.ts
  * Service especializado para cálculos de classificação
- *
  * Responsabilidades:
  * - Recalcular classificação do grupo
  * - Aplicar critérios de desempate

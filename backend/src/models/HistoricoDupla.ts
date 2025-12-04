@@ -1,6 +1,4 @@
 /**
- * HistoricoDupla.ts
- *
  * Model para rastrear duplas já formadas em etapas anteriores
  * Usado para evitar repetir combinações de cabeças de chave
  */

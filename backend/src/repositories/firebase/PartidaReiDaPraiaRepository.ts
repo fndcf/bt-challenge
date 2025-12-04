@@ -1,5 +1,4 @@
 /**
- * PartidaReiDaPraiaRepository.ts
  * Implementação Firebase do repository de PartidaReiDaPraia
  */
 

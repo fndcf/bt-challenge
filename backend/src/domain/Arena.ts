@@ -1,8 +1,3 @@
-/**
- * Entidade de domínio Arena
- * Representa uma arena (local/clube) no sistema
- */
-
 export interface ArenaType {
   id: string;
   nome: string;

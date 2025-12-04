@@ -1,5 +1,4 @@
 /**
- * EstatisticasJogadorRepository.ts
  * Implementação Firebase do repository de EstatisticasJogador
  */
 
@@ -18,13 +17,17 @@ import logger from "../../utils/logger";
 /**
  * Implementação Firebase do repository de EstatisticasJogador
  */
-export class EstatisticasJogadorRepository implements IEstatisticasJogadorRepository {
+export class EstatisticasJogadorRepository
+  implements IEstatisticasJogadorRepository
+{
   private collection = db.collection("estatisticas_jogador");
 
   /**
    * Criar estatísticas para jogador
    */
-  async criar(dados: CriarEstatisticasJogadorDTO): Promise<EstatisticasJogador> {
+  async criar(
+    dados: CriarEstatisticasJogadorDTO
+  ): Promise<EstatisticasJogador> {
     const now = Timestamp.now();
 
     const novaEstatistica: Omit<EstatisticasJogador, "id"> = {
@@ -82,7 +85,10 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Buscar estatísticas por etapa
    */
-  async buscarPorEtapa(etapaId: string, arenaId: string): Promise<EstatisticasJogador[]> {
+  async buscarPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<EstatisticasJogador[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -97,7 +103,10 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Buscar estatísticas de um jogador em uma etapa
    */
-  async buscarPorJogadorEEtapa(jogadorId: string, etapaId: string): Promise<EstatisticasJogador | null> {
+  async buscarPorJogadorEEtapa(
+    jogadorId: string,
+    etapaId: string
+  ): Promise<EstatisticasJogador | null> {
     const snapshot = await this.collection
       .where("jogadorId", "==", jogadorId)
       .where("etapaId", "==", etapaId)
@@ -132,17 +141,24 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Buscar estatísticas por grupo ordenadas por posição
    */
-  async buscarPorGrupoOrdenado(grupoId: string): Promise<EstatisticasJogador[]> {
+  async buscarPorGrupoOrdenado(
+    grupoId: string
+  ): Promise<EstatisticasJogador[]> {
     const estatisticas = await this.buscarPorGrupo(grupoId);
 
     // Ordenar no client-side para evitar índice composto
-    return estatisticas.sort((a, b) => (a.posicaoGrupo || 999) - (b.posicaoGrupo || 999));
+    return estatisticas.sort(
+      (a, b) => (a.posicaoGrupo || 999) - (b.posicaoGrupo || 999)
+    );
   }
 
   /**
    * Atualizar estatísticas
    */
-  async atualizar(id: string, dados: Partial<EstatisticasJogador>): Promise<EstatisticasJogador> {
+  async atualizar(
+    id: string,
+    dados: Partial<EstatisticasJogador>
+  ): Promise<EstatisticasJogador> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -171,7 +187,10 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Atualizar estatísticas após partida (valores absolutos)
    */
-  async atualizarEstatisticasPartida(id: string, dados: AtualizarEstatisticasPartidaDTO): Promise<void> {
+  async atualizarEstatisticasPartida(
+    id: string,
+    dados: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
     const doc = await this.collection.doc(id).get();
 
     if (!doc.exists) {
@@ -191,10 +210,14 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
       updateData.saldoSets = setsVencidos - setsPerdidos;
     }
 
-    if (dados.pontosFeitos !== undefined || dados.pontosSofridos !== undefined) {
+    if (
+      dados.pontosFeitos !== undefined ||
+      dados.pontosSofridos !== undefined
+    ) {
       const currentData = doc.data()!;
       const pontosFeitos = dados.pontosFeitos ?? currentData.pontosFeitos ?? 0;
-      const pontosSofridos = dados.pontosSofridos ?? currentData.pontosSofridos ?? 0;
+      const pontosSofridos =
+        dados.pontosSofridos ?? currentData.pontosSofridos ?? 0;
       updateData.saldoPontos = pontosFeitos - pontosSofridos;
     }
 
@@ -204,7 +227,10 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Incrementar estatísticas (soma aos valores existentes)
    */
-  async incrementarEstatisticas(id: string, dados: AtualizarEstatisticasPartidaDTO): Promise<void> {
+  async incrementarEstatisticas(
+    id: string,
+    dados: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
     const doc = await this.collection.doc(id).get();
 
     if (!doc.exists) {
@@ -260,7 +286,10 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Atualizar pontuação final
    */
-  async atualizarPontuacao(id: string, dados: AtualizarPontuacaoDTO): Promise<void> {
+  async atualizarPontuacao(
+    id: string,
+    dados: AtualizarPontuacaoDTO
+  ): Promise<void> {
     const doc = await this.collection.doc(id).get();
 
     if (!doc.exists) {
@@ -279,7 +308,11 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Atribuir grupo ao jogador
    */
-  async atribuirGrupo(id: string, grupoId: string, grupoNome: string): Promise<void> {
+  async atribuirGrupo(
+    id: string,
+    grupoId: string,
+    grupoNome: string
+  ): Promise<void> {
     const doc = await this.collection.doc(id).get();
 
     if (!doc.exists) {
@@ -383,7 +416,9 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
   /**
    * Criar em lote
    */
-  async criarEmLote(items: CriarEstatisticasJogadorDTO[]): Promise<EstatisticasJogador[]> {
+  async criarEmLote(
+    items: CriarEstatisticasJogadorDTO[]
+  ): Promise<EstatisticasJogador[]> {
     if (items.length === 0) {
       return [];
     }
@@ -444,4 +479,5 @@ export class EstatisticasJogadorRepository implements IEstatisticasJogadorReposi
 }
 
 // Instância singleton
-export const estatisticasJogadorRepository = new EstatisticasJogadorRepository();
+export const estatisticasJogadorRepository =
+  new EstatisticasJogadorRepository();

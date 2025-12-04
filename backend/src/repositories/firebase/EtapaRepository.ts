@@ -1,5 +1,4 @@
 /**
- * EtapaRepository.ts
  * Implementação Firebase do repository de Etapa
  */
 
@@ -31,7 +30,9 @@ export class EtapaRepository implements IEtapaRepository {
   /**
    * Criar nova etapa
    */
-  async criar(data: CriarEtapaDTO & { arenaId: string; criadoPor: string }): Promise<Etapa> {
+  async criar(
+    data: CriarEtapaDTO & { arenaId: string; criadoPor: string }
+  ): Promise<Etapa> {
     const agora = Timestamp.now();
 
     const etapaData = {
@@ -242,7 +243,10 @@ export class EtapaRepository implements IEtapaRepository {
    * Buscar etapas por status
    * NOTA: Ordenação feita no client-side para evitar índices compostos
    */
-  async buscarPorStatus(arenaId: string, status: StatusEtapa): Promise<Etapa[]> {
+  async buscarPorStatus(
+    arenaId: string,
+    status: StatusEtapa
+  ): Promise<Etapa[]> {
     const snapshot = await this.collection
       .where("arenaId", "==", arenaId)
       .where("status", "==", status)
@@ -349,7 +353,9 @@ export class EtapaRepository implements IEtapaRepository {
       throw new NotFoundError("Etapa não encontrada");
     }
 
-    const jogadoresInscritos = etapa.jogadoresInscritos.filter((j) => j !== jogadorId);
+    const jogadoresInscritos = etapa.jogadoresInscritos.filter(
+      (j) => j !== jogadorId
+    );
 
     await this.collection.doc(id).update({
       jogadoresInscritos,
@@ -361,7 +367,11 @@ export class EtapaRepository implements IEtapaRepository {
   /**
    * Definir campeão da etapa
    */
-  async definirCampeao(id: string, campeaoId: string, campeaoNome: string): Promise<void> {
+  async definirCampeao(
+    id: string,
+    campeaoId: string,
+    campeaoNome: string
+  ): Promise<void> {
     await this.collection.doc(id).update({
       campeaoId,
       campeaoNome,
@@ -377,7 +387,9 @@ export class EtapaRepository implements IEtapaRepository {
    * Obter estatísticas das etapas
    */
   async obterEstatisticas(arenaId: string): Promise<EstatisticasEtapa> {
-    const snapshot = await this.collection.where("arenaId", "==", arenaId).get();
+    const snapshot = await this.collection
+      .where("arenaId", "==", arenaId)
+      .get();
 
     const estatisticas: EstatisticasEtapa = {
       totalEtapas: 0,

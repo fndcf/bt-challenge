@@ -1,5 +1,4 @@
 /**
- * IConfrontoEliminatorioRepository.ts
  * Interface do repository de ConfrontoEliminatorio
  */
 
@@ -42,32 +41,53 @@ export interface RegistrarResultadoConfrontoDTO {
  * Interface do repository de ConfrontoEliminatorio
  */
 export interface IConfrontoEliminatorioRepository
-  extends IBaseRepository<ConfrontoEliminatorio, CriarConfrontoDTO, Partial<ConfrontoEliminatorio>>,
+  extends IBaseRepository<
+      ConfrontoEliminatorio,
+      CriarConfrontoDTO,
+      Partial<ConfrontoEliminatorio>
+    >,
     IBatchOperations<ConfrontoEliminatorio> {
   /**
    * Buscar confronto por ID com validação de arena
    */
-  buscarPorIdEArena(id: string, arenaId: string): Promise<ConfrontoEliminatorio | null>;
+  buscarPorIdEArena(
+    id: string,
+    arenaId: string
+  ): Promise<ConfrontoEliminatorio | null>;
 
   /**
    * Buscar confrontos de uma etapa
    */
-  buscarPorEtapa(etapaId: string, arenaId: string): Promise<ConfrontoEliminatorio[]>;
+  buscarPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Buscar confrontos de uma etapa ordenados
    */
-  buscarPorEtapaOrdenado(etapaId: string, arenaId: string): Promise<ConfrontoEliminatorio[]>;
+  buscarPorEtapaOrdenado(
+    etapaId: string,
+    arenaId: string
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Buscar confrontos por fase
    */
-  buscarPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<ConfrontoEliminatorio[]>;
+  buscarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Buscar confrontos por fase ordenados
    */
-  buscarPorFaseOrdenado(etapaId: string, arenaId: string, fase: TipoFase): Promise<ConfrontoEliminatorio[]>;
+  buscarPorFaseOrdenado(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Buscar confrontos por status
@@ -81,22 +101,36 @@ export interface IConfrontoEliminatorioRepository
   /**
    * Buscar confrontos de uma dupla
    */
-  buscarPorDupla(etapaId: string, duplaId: string): Promise<ConfrontoEliminatorio[]>;
+  buscarPorDupla(
+    etapaId: string,
+    duplaId: string
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Buscar confrontos finalizados de uma fase
    */
-  buscarFinalizadosPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<ConfrontoEliminatorio[]>;
+  buscarFinalizadosPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Buscar confrontos pendentes de uma fase
    */
-  buscarPendentesPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<ConfrontoEliminatorio[]>;
+  buscarPendentesPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Registrar resultado do confronto
    */
-  registrarResultado(id: string, resultado: RegistrarResultadoConfrontoDTO): Promise<ConfrontoEliminatorio>;
+  registrarResultado(
+    id: string,
+    resultado: RegistrarResultadoConfrontoDTO
+  ): Promise<ConfrontoEliminatorio>;
 
   /**
    * Atualizar duplas do confronto (para próxima fase)
@@ -121,7 +155,10 @@ export interface IConfrontoEliminatorioRepository
   /**
    * Definir próximo confronto
    */
-  definirProximoConfronto(id: string, proximoConfrontoId: string): Promise<void>;
+  definirProximoConfronto(
+    id: string,
+    proximoConfrontoId: string
+  ): Promise<void>;
 
   /**
    * Deletar todos os confrontos de uma etapa
@@ -131,7 +168,11 @@ export interface IConfrontoEliminatorioRepository
   /**
    * Deletar confrontos de uma fase
    */
-  deletarPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<number>;
+  deletarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<number>;
 
   /**
    * Contar confrontos de uma etapa
@@ -141,17 +182,29 @@ export interface IConfrontoEliminatorioRepository
   /**
    * Contar confrontos por fase
    */
-  contarPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<number>;
+  contarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<number>;
 
   /**
    * Verificar se todos os confrontos de uma fase estão finalizados
    */
-  faseCompleta(etapaId: string, arenaId: string, fase: TipoFase): Promise<boolean>;
+  faseCompleta(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<boolean>;
 
   /**
    * Buscar vencedores de uma fase
    */
-  buscarVencedoresPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<
+  buscarVencedoresPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<
     Array<{
       id: string;
       nome: string;

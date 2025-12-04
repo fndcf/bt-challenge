@@ -1,5 +1,4 @@
 /**
- * CabecaDeChaveRepository.ts
  * Implementação Firebase do repository de CabecaDeChave
  */
 
@@ -65,7 +64,10 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
   /**
    * Buscar cabeças de chave de uma etapa
    */
-  async buscarPorEtapa(etapaId: string, arenaId: string): Promise<CabecaDeChave[]> {
+  async buscarPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<CabecaDeChave[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -80,7 +82,10 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
   /**
    * Buscar cabeças de chave de uma etapa ordenadas por posição
    */
-  async buscarPorEtapaOrdenado(etapaId: string, arenaId: string): Promise<CabecaDeChave[]> {
+  async buscarPorEtapaOrdenado(
+    etapaId: string,
+    arenaId: string
+  ): Promise<CabecaDeChave[]> {
     const cabecas = await this.buscarPorEtapa(etapaId, arenaId);
 
     // Ordenar no client-side para evitar índice composto
@@ -90,7 +95,10 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
   /**
    * Buscar cabeça de chave de um jogador em uma etapa
    */
-  async buscarPorJogadorEEtapa(jogadorId: string, etapaId: string): Promise<CabecaDeChave | null> {
+  async buscarPorJogadorEEtapa(
+    jogadorId: string,
+    etapaId: string
+  ): Promise<CabecaDeChave | null> {
     const snapshot = await this.collection
       .where("jogadorId", "==", jogadorId)
       .where("etapaId", "==", etapaId)
@@ -119,7 +127,10 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
   /**
    * Atualizar cabeça de chave
    */
-  async atualizar(id: string, dados: Partial<CabecaDeChave>): Promise<CabecaDeChave> {
+  async atualizar(
+    id: string,
+    dados: Partial<CabecaDeChave>
+  ): Promise<CabecaDeChave> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -232,7 +243,9 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
   /**
    * Criar em lote
    */
-  async criarEmLote(cabecas: CriarCabecaDeChaveDTO[]): Promise<CabecaDeChave[]> {
+  async criarEmLote(
+    cabecas: CriarCabecaDeChaveDTO[]
+  ): Promise<CabecaDeChave[]> {
     if (cabecas.length === 0) {
       return [];
     }
@@ -257,7 +270,9 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
 
     await batch.commit();
 
-    logger.info("Cabeças de chave criadas em lote", { quantidade: cabecas.length });
+    logger.info("Cabeças de chave criadas em lote", {
+      quantidade: cabecas.length,
+    });
 
     return resultados;
   }
@@ -273,7 +288,9 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
   /**
    * Atualizar em lote
    */
-  async atualizarEmLote(updates: Array<{ id: string; data: Partial<CabecaDeChave> }>): Promise<void> {
+  async atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<CabecaDeChave> }>
+  ): Promise<void> {
     if (updates.length === 0) {
       return;
     }
@@ -289,7 +306,9 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
 
     await batch.commit();
 
-    logger.info("Cabeças de chave atualizadas em lote", { quantidade: updates.length });
+    logger.info("Cabeças de chave atualizadas em lote", {
+      quantidade: updates.length,
+    });
   }
 
   /**
@@ -308,7 +327,9 @@ export class CabecaDeChaveRepository implements ICabecaDeChaveRepository {
 
     await batch.commit();
 
-    logger.info("Cabeças de chave deletadas em lote", { quantidade: ids.length });
+    logger.info("Cabeças de chave deletadas em lote", {
+      quantidade: ids.length,
+    });
   }
 }
 

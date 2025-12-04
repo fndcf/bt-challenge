@@ -1,9 +1,3 @@
-/**
- * Jogador Routes
- * backend/src/routes/jogadores.ts
- * CORRIGIDO: Usando arrow functions para manter contexto 'this'
- */
-
 import { Router } from "express";
 import jogadorController from "../controllers/JogadorController";
 import { requireAuth } from "../middlewares/auth";
@@ -34,14 +28,18 @@ router.get("/", (req, res) => jogadorController.listar(req, res));
  * @desc    Contar total de jogadores
  * @access  Private
  */
-router.get("/stats/total", (req, res) => jogadorController.contarTotal(req, res));
+router.get("/stats/total", (req, res) =>
+  jogadorController.contarTotal(req, res)
+);
 
 /**
  * @route   GET /api/jogadores/stats/por-nivel
  * @desc    Contar jogadores por nível
  * @access  Private
  */
-router.get("/stats/por-nivel", (req, res) => jogadorController.contarPorNivel(req, res));
+router.get("/stats/por-nivel", (req, res) =>
+  jogadorController.contarPorNivel(req, res)
+);
 
 /**
  * @route   GET /api/jogadores/:id

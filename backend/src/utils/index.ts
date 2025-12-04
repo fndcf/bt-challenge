@@ -1,7 +1,5 @@
 /**
  * Utils Index
- * backend/src/utils/index.ts
- *
  * Re-exporta todas as funções utilitárias
  */
 
@@ -21,4 +19,8 @@ export {
 } from "./torneioUtils";
 
 // Response helpers
-export { ResponseHelper, ApiResponse, PaginatedResponse } from "./responseHelper";
+export {
+  ResponseHelper,
+  ApiResponse,
+  PaginatedResponse,
+} from "./responseHelper";

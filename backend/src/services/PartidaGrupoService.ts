@@ -1,15 +1,9 @@
 /**
- * PartidaGrupoService.ts
  * Service especializado para partidas da fase de grupos
- *
  * Responsabilidades:
  * - Gerar partidas de todos contra todos
  * - Registrar resultados de partidas
  * - Atualizar estatísticas de duplas e jogadores
- *
- * CORREÇÕES v2:
- * - Bug 1: vencedoraNome estava vazio - agora preenchemos corretamente
- * - Bug 2: Edição somava valores - agora re-buscamos duplas após reverter
  */
 
 import { Dupla } from "../models/Dupla";
@@ -493,7 +487,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
 
   /**
    * Reverter estatísticas de uma dupla
-   * Adicionado Math.max(0, ...) para evitar valores negativos
    */
   private async reverterEstatisticasDupla(
     duplaId: string,

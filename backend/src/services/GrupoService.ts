@@ -1,7 +1,5 @@
 /**
- * GrupoService.ts
  * Service especializado para criação e gerenciamento de grupos
- *
  * Responsabilidades:
  * - Calcular distribuição de grupos
  * - Criar grupos com duplas distribuídas

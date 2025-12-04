@@ -1,7 +1,5 @@
 /**
- * DuplaService.ts
  * Service especializado para formação e gerenciamento de duplas
- *
  * Responsabilidades:
  * - Formar duplas respeitando cabeças de chave
  * - Criar duplas no banco de dados

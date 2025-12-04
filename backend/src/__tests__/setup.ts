@@ -1,8 +1,3 @@
-/**
- * setup.ts
- * Configuração global dos testes Jest
- */
-
 // Timeout maior para testes assíncronos
 jest.setTimeout(10000);
 

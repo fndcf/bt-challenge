@@ -1,5 +1,4 @@
 /**
- * IPartidaRepository.ts
  * Interface do repository de Partida
  */
 
@@ -71,17 +70,29 @@ export interface IPartidaRepository
   /**
    * Buscar partidas por fase
    */
-  buscarPorFase(etapaId: string, arenaId: string, fase: FaseEtapa): Promise<Partida[]>;
+  buscarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: FaseEtapa
+  ): Promise<Partida[]>;
 
   /**
    * Buscar partidas por tipo (grupos ou eliminatória)
    */
-  buscarPorTipo(etapaId: string, arenaId: string, tipo: "grupos" | "eliminatoria"): Promise<Partida[]>;
+  buscarPorTipo(
+    etapaId: string,
+    arenaId: string,
+    tipo: "grupos" | "eliminatoria"
+  ): Promise<Partida[]>;
 
   /**
    * Buscar partidas por status
    */
-  buscarPorStatus(etapaId: string, arenaId: string, status: StatusPartida): Promise<Partida[]>;
+  buscarPorStatus(
+    etapaId: string,
+    arenaId: string,
+    status: StatusPartida
+  ): Promise<Partida[]>;
 
   /**
    * Buscar partidas de uma dupla
@@ -101,12 +112,19 @@ export interface IPartidaRepository
   /**
    * Buscar confronto direto entre duas duplas
    */
-  buscarConfrontoDireto(grupoId: string, dupla1Id: string, dupla2Id: string): Promise<Partida | null>;
+  buscarConfrontoDireto(
+    grupoId: string,
+    dupla1Id: string,
+    dupla2Id: string
+  ): Promise<Partida | null>;
 
   /**
    * Registrar resultado da partida
    */
-  registrarResultado(id: string, resultado: RegistrarResultadoDTO): Promise<Partida>;
+  registrarResultado(
+    id: string,
+    resultado: RegistrarResultadoDTO
+  ): Promise<Partida>;
 
   /**
    * Agendar partida
@@ -131,7 +149,10 @@ export interface IPartidaRepository
   /**
    * Deletar partidas eliminatórias de uma etapa
    */
-  deletarEliminatoriasPorEtapa(etapaId: string, arenaId: string): Promise<number>;
+  deletarEliminatoriasPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<number>;
 
   /**
    * Contar partidas de uma etapa

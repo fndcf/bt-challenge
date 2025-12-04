@@ -1,7 +1,5 @@
 /**
- * ResponseHelper.ts
  * Helper para padronizar respostas HTTP da API
- * REFATORADO: Fase 5.2 - Correções e melhorias
  */
 
 import { Response } from "express";
@@ -167,10 +165,7 @@ export class ResponseHelper {
   /**
    * Resposta de conflito (409)
    */
-  static conflict(
-    res: Response,
-    error: string
-  ): Response<ApiResponse> {
+  static conflict(res: Response, error: string): Response<ApiResponse> {
     return res.status(409).json({
       success: false,
       error,
@@ -185,12 +180,8 @@ export class ResponseHelper {
     error: string | any[],
     details?: any
   ): Response<ApiResponse> {
-    const errorMessage = Array.isArray(error) 
-      ? "Erro de validação" 
-      : error;
-    const errorDetails = Array.isArray(error) 
-      ? error 
-      : details;
+    const errorMessage = Array.isArray(error) ? "Erro de validação" : error;
+    const errorDetails = Array.isArray(error) ? error : details;
 
     return res.status(422).json({
       success: false,

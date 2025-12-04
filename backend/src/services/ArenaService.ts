@@ -1,5 +1,3 @@
-// backend/src/services/ArenaService.ts
-
 import {
   arenaRepository,
   IArenaRepository,
@@ -22,7 +20,6 @@ export interface CreateArenaDTO {
 }
 
 /**
- * Serviço de Arena
  * Contém a lógica de negócio para gerenciar arenas
  */
 export class ArenaService {

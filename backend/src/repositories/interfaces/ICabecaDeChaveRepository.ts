@@ -1,5 +1,4 @@
 /**
- * ICabecaDeChaveRepository.ts
  * Interface do repository de CabecaDeChave
  */
 
@@ -34,9 +33,15 @@ export interface CriarCabecaDeChaveDTO {
  * Interface do repository de CabecaDeChave
  */
 export interface ICabecaDeChaveRepository
-  extends Omit<IBaseRepository<CabecaDeChave, CriarCabecaDeChaveDTO, Partial<CabecaDeChave>>, 'listar'>,
+  extends Omit<
+      IBaseRepository<
+        CabecaDeChave,
+        CriarCabecaDeChaveDTO,
+        Partial<CabecaDeChave>
+      >,
+      "listar"
+    >,
     IBatchOperations<CabecaDeChave> {
-  
   /**
    * Buscar cabeças de chave de uma etapa
    */
@@ -45,12 +50,18 @@ export interface ICabecaDeChaveRepository
   /**
    * Buscar cabeças de chave de uma etapa ordenadas por posição
    */
-  buscarPorEtapaOrdenado(etapaId: string, arenaId: string): Promise<CabecaDeChave[]>;
+  buscarPorEtapaOrdenado(
+    etapaId: string,
+    arenaId: string
+  ): Promise<CabecaDeChave[]>;
 
   /**
    * Buscar cabeça de chave de um jogador em uma etapa
    */
-  buscarPorJogadorEEtapa(jogadorId: string, etapaId: string): Promise<CabecaDeChave | null>;
+  buscarPorJogadorEEtapa(
+    jogadorId: string,
+    etapaId: string
+  ): Promise<CabecaDeChave | null>;
 
   /**
    * Verificar se jogador é cabeça de chave na etapa

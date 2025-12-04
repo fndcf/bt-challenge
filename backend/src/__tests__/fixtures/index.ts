@@ -1,9 +1,7 @@
 /**
- * fixtures/index.ts
  * Dados de teste tipados usando os models reais
  *
  * IMPORTANTE: Todos os fixtures usam os tipos reais importados dos models.
- * Isso garante que mudanças nos models quebrem os testes (comportamento desejado).
  */
 
 import { createMockTimestamp, timestampFuture } from "../types/firebase-mock";

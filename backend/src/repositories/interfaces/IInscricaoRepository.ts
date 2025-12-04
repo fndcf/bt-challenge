@@ -1,5 +1,4 @@
 /**
- * IInscricaoRepository.ts
  * Interface do repository de Inscricao
  */
 
@@ -33,7 +32,11 @@ export interface IInscricaoRepository
   /**
    * Buscar inscrição por ID, etapa e arena
    */
-  buscarPorIdEtapaArena(id: string, etapaId: string, arenaId: string): Promise<Inscricao | null>;
+  buscarPorIdEtapaArena(
+    id: string,
+    etapaId: string,
+    arenaId: string
+  ): Promise<Inscricao | null>;
 
   /**
    * Buscar inscrições de uma etapa
@@ -48,7 +51,10 @@ export interface IInscricaoRepository
   /**
    * Buscar inscrição de um jogador em uma etapa
    */
-  buscarPorJogadorEEtapa(etapaId: string, jogadorId: string): Promise<Inscricao | null>;
+  buscarPorJogadorEEtapa(
+    etapaId: string,
+    jogadorId: string
+  ): Promise<Inscricao | null>;
 
   /**
    * Buscar inscrições de um jogador
@@ -58,7 +64,10 @@ export interface IInscricaoRepository
   /**
    * Buscar inscrições ativas de um jogador (confirmadas)
    */
-  buscarAtivasPorJogador(arenaId: string, jogadorId: string): Promise<Inscricao[]>;
+  buscarAtivasPorJogador(
+    arenaId: string,
+    jogadorId: string
+  ): Promise<Inscricao[]>;
 
   /**
    * Verificar se jogador está inscrito em uma etapa
@@ -78,7 +87,12 @@ export interface IInscricaoRepository
   /**
    * Atribuir dupla à inscrição
    */
-  atribuirDupla(id: string, duplaId: string, parceiroId: string, parceiroNome: string): Promise<void>;
+  atribuirDupla(
+    id: string,
+    duplaId: string,
+    parceiroId: string,
+    parceiroNome: string
+  ): Promise<void>;
 
   /**
    * Atribuir grupo à inscrição

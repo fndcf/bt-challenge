@@ -1,86 +1,83 @@
-# 🎾 Challenge BT - Sistema de Torneio de Beach Tennis
+# Challenge BT - Sistema de Torneio de Beach Tennis
 
 Sistema completo para gerenciamento de torneios de Beach Tennis com suporte a múltiplas arenas.
 
-## 📋 Índice
-
-- [Sobre](#sobre)
-- [Funcionalidades](#funcionalidades)
-- [Tecnologias](#tecnologias)
-- [Requisitos](#requisitos)
-- [Instalação](#instalação)
-- [Configuração](#configuração)
-- [Executando o Projeto](#executando-o-projeto)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Documentação](#documentação)
-- [Testes](#testes)
-- [Troubleshooting](#troubleshooting)
-- [Licença](#licença)
-
-## 🎯 Sobre
+## Sobre
 
 Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach Tennis, permitindo:
 
 - Cadastro de jogadores por categoria e nível
-- Geração automática de duplas e grupos
+- Dois formatos de torneio: **Dupla Fixa** e **Rei da Praia**
+- Geração automática de grupos e chaves eliminatórias
 - Sistema de pontuação individual
 - Rankings dinâmicos
 - Histórico de etapas e estatísticas
 - Suporte para múltiplas arenas (multi-tenancy)
+- Página pública por arena com visualização de etapas
 
-## ✨ Funcionalidades
+## Funcionalidades
 
 ### Para Administradores
 
-- ✅ Cadastro e gestão de jogadores
-- ✅ Criação de etapas/challenges
-- ✅ Geração automática de chaves (mínimo 12 jogadores, números pares)
-- ✅ Organização em grupos de 3-4 duplas
-- ✅ Registro de resultados
-- ✅ Controle de parceiros (não repetição entre etapas)
-- ✅ Sistema de desempate (vitórias, saldo de games, confronto direto, sorteio)
-- ✅ URL exclusiva por arena
+- Cadastro e gestão de jogadores (com status ativo/inativo)
+- Criação de etapas com dois formatos:
+  - **Dupla Fixa**: Duplas permanecem juntas durante toda a etapa
+  - **Rei da Praia**: Jogadores individuais formam duplas rotativas
+- Geração automática de grupos e chaves
+- Registro de resultados (placar por games)
+- Gerenciamento de cabeças de chave
+- Controle de inscrições
+- Fase de grupos + Fase eliminatória
+- Sistema de desempate (vitórias, saldo de games, confronto direto)
 
 ### Para Jogadores/Espectadores
 
-- ✅ Visualização de rankings
-- ✅ Histórico de participações
-- ✅ Estatísticas individuais
-- ✅ Acompanhamento de etapas em andamento
+- Visualização de rankings
+- Histórico de participações
+- Estatísticas individuais
+- Acompanhamento de etapas em andamento
+- Página pública da arena
 
-## 🚀 Tecnologias
+## Tecnologias
 
 ### Backend
 
-- Node.js + Express + TypeScript
-- Firebase Admin SDK
-- Firestore Database
-- JWT Authentication
-- Express Validator
+| Tecnologia         | Versão | Uso                      |
+| ------------------ | ------ | ------------------------ |
+| Node.js            | 18+    | Runtime                  |
+| Express            | 4.18   | Framework HTTP           |
+| TypeScript         | 5.3    | Tipagem estática         |
+| Firebase Admin SDK | 12.0   | Autenticação e Firestore |
+| Zod                | 4.1    | Validação de schemas     |
+| Jest               | 29.7   | Testes unitários         |
 
 ### Frontend
 
-- React 18 + TypeScript
-- Vite (build tool)
-- React Router v6
-- Context API (gerenciamento de estado)
-- Axios (HTTP client)
-- Firebase Client SDK
+| Tecnologia        | Versão | Uso                     |
+| ----------------- | ------ | ----------------------- |
+| React             | 18.2   | UI Library              |
+| TypeScript        | 5.3    | Tipagem estática        |
+| Vite              | 5.0    | Build tool              |
+| React Router      | 6.21   | Roteamento              |
+| Styled Components | 6.1    | Estilização             |
+| Axios             | 1.6    | HTTP Client             |
+| React Query       | 3.39   | Cache e estado servidor |
+| Firebase          | 10.7   | Autenticação cliente    |
 
-### Database & Hosting
+### Infraestrutura
 
-- Firebase Firestore
+- Firebase Firestore (Database)
 - Firebase Authentication
 - Firebase Hosting
 
-## 📋 Requisitos
+## Requisitos
 
-- Node.js v18+ ([Download](https://nodejs.org))
+- Node.js v18+
 - npm ou yarn
-- Conta no [Firebase](https://firebase.google.com)
+- Conta no Firebase
 - Git
 
-## 🔧 Instalação
+## Instalação
 
 ### 1. Clonar o repositório
 
@@ -89,13 +86,7 @@ git clone https://github.com/seu-usuario/challenge-bt.git
 cd challenge-bt
 ```
 
-### 2. Instalar todas as dependências
-
-```bash
-npm run install:all
-```
-
-Ou manualmente:
+### 2. Instalar dependências
 
 ```bash
 # Backend
@@ -107,29 +98,11 @@ cd ../frontend
 npm install
 ```
 
-## ⚙️ Configuração
+## Configuração
 
-### 1. Configurar Firebase
+### Variáveis de Ambiente
 
-Siga o guia detalhado: [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
-
-**Resumo:**
-
-1. Criar projeto no Firebase Console
-2. Ativar Firestore Database
-3. Ativar Authentication (Email/Password)
-4. Obter credenciais (Admin SDK e Client SDK)
-
-### 2. Variáveis de Ambiente
-
-#### Backend (.env)
-
-```bash
-cd backend
-cp .env.example .env
-```
-
-Editar `backend/.env`:
+#### Backend (`backend/.env`)
 
 ```env
 PORT=5000
@@ -139,18 +112,10 @@ FIREBASE_PROJECT_ID=seu-project-id
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk@seu-project.iam.gserviceaccount.com
 
-ALLOWED_ORIGINS=http://localhost:3000
-JWT_SECRET=sua-chave-secreta-aqui
+FRONTEND_URL=http://localhost:3000
 ```
 
-#### Frontend (.env)
-
-```bash
-cd frontend
-cp .env.example .env
-```
-
-Editar `frontend/.env`:
+#### Frontend (`frontend/.env`)
 
 ```env
 VITE_FIREBASE_API_KEY=sua-api-key
@@ -163,211 +128,206 @@ VITE_FIREBASE_APP_ID=1:123456789012:web:abcdef123456
 VITE_API_URL=http://localhost:5000/api
 ```
 
-### 3. Verificar Configuração
+## Executando o Projeto
 
-```bash
-./check-setup.sh
-```
-
-## 🏃 Executando o Projeto
-
-### Opção 1: Tudo junto (Recomendado)
-
-```bash
-npm run dev
-```
-
-Isso iniciará:
-
-- Backend em `http://localhost:5000`
-- Frontend em `http://localhost:3000`
-
-### Opção 2: Separadamente
-
-**Terminal 1 - Backend:**
+### Backend
 
 ```bash
 cd backend
 npm run dev
 ```
 
-**Terminal 2 - Frontend:**
+Servidor disponível em `http://localhost:5000`
+
+### Frontend
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-### Acessar a Aplicação
+Aplicação disponível em `http://localhost:3000`
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:5000/api
-- **Health Check:** http://localhost:5000/api/health
+### Endpoints da API
 
-## 📁 Estrutura do Projeto
+| Método | Endpoint                  | Descrição               |
+| ------ | ------------------------- | ----------------------- |
+| GET    | `/api/health`             | Health check            |
+| GET    | `/api/arenas`             | Listar arenas           |
+| GET    | `/api/jogadores`          | Listar jogadores        |
+| GET    | `/api/etapas`             | Listar etapas           |
+| GET    | `/api/partidas`           | Listar partidas         |
+| GET    | `/api/public/arena/:slug` | Dados públicos da arena |
+
+## Estrutura do Projeto
 
 ```
 challenge-bt/
-├── backend/               # API Node.js + Express
+├── backend/
 │   ├── src/
-│   │   ├── config/       # Configurações (Firebase, Firestore)
-│   │   ├── controllers/  # Controladores REST
-│   │   ├── domain/       # Entidades de negócio
-│   │   ├── middlewares/  # Autenticação, validação, etc
-│   │   ├── repositories/ # Acesso a dados
-│   │   ├── routes/       # Rotas da API
-│   │   ├── services/     # Lógica de negócio
-│   │   └── utils/        # Utilitários
-│   └── MIDDLEWARES.md    # Documentação dos middlewares
+│   │   ├── __tests__/          # Testes unitários
+│   │   │   ├── fixtures/       # Dados de teste
+│   │   │   ├── mocks/          # Mocks para testes
+│   │   │   └── services/       # Testes dos services
+│   │   ├── config/             # Configuração Firebase
+│   │   ├── controllers/        # Controllers REST
+│   │   ├── domain/             # Entidades de domínio
+│   │   ├── middlewares/        # Auth, validation, error handling
+│   │   ├── models/             # Modelos de dados
+│   │   ├── repositories/
+│   │   │   ├── firebase/       # Implementações Firebase
+│   │   │   └── interfaces/     # Contratos/interfaces
+│   │   ├── routes/             # Rotas da API
+│   │   ├── services/           # Lógica de negócio
+│   │   └── utils/              # Logger, errors, helpers
+│   ├── package.json
+│   └── tsconfig.json
 │
-├── frontend/             # Interface React
+├── frontend/
 │   ├── src/
-│   │   ├── components/   # Componentes reutilizáveis
-│   │   ├── contexts/     # Context API (Auth, Arena)
-│   │   ├── hooks/        # Custom hooks
-│   │   ├── pages/        # Páginas da aplicação
-│   │   ├── services/     # Chamadas à API
-│   │   └── types/        # Types TypeScript
-│   └── FRONTEND_SETUP.md # Documentação do frontend
+│   │   ├── components/
+│   │   │   ├── auth/           # Componentes de autenticação
+│   │   │   ├── etapas/         # Componentes de etapas
+│   │   │   ├── jogadores/      # Componentes de jogadores
+│   │   │   ├── layout/         # Layout (AdminLayout, etc)
+│   │   │   ├── modals/         # Modais reutilizáveis
+│   │   │   ├── ui/             # Componentes UI genéricos
+│   │   │   └── visualizadores/ # BracketViewer, GruposViewer
+│   │   ├── contexts/           # AuthContext, ArenaContext
+│   │   ├── hooks/              # Custom hooks
+│   │   ├── pages/              # Páginas da aplicação
+│   │   ├── services/           # Chamadas à API
+│   │   ├── types/              # Types TypeScript
+│   │   └── utils/              # Utilitários
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── index.html
 │
-├── shared/               # Código compartilhado
-│   └── types/           # Types TypeScript compartilhados
-│
-├── FIREBASE_SETUP.md    # Guia de configuração Firebase
-├── QUICK_START.md       # Guia de início rápido
-├── TROUBLESHOOTING.md   # Soluções para problemas comuns
-├── check-setup.sh       # Script de verificação
-└── test-integration.sh  # Testes de integração
+└── README.md
 ```
 
-## 📚 Documentação
+## Arquitetura
 
-- **[QUICK_START.md](./QUICK_START.md)** - Guia de início rápido
-- **[FIREBASE_SETUP.md](./FIREBASE_SETUP.md)** - Como configurar o Firebase
-- **[backend/MIDDLEWARES.md](./backend/MIDDLEWARES.md)** - Documentação dos middlewares
-- **[frontend/FRONTEND_SETUP.md](./frontend/FRONTEND_SETUP.md)** - Documentação do frontend
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Resolução de problemas
+### Backend
 
-## 🧪 Testes
+O backend segue os princípios SOLID com arquitetura em camadas:
 
-### Verificar Setup
+- **Controllers**: Recebem requisições HTTP e delegam para services
+- **Services**: Contêm a lógica de negócio
+- **Repositories**: Abstraem o acesso ao banco de dados (Firebase)
+- **Middlewares**: Auth, validação, tratamento de erros
+
+#### Padrões Utilizados
+
+- **Repository Pattern**: Interfaces (`IEtapaRepository`, `IJogadorRepository`) com implementações Firebase
+- **Dependency Injection**: Container de serviços (`ServiceContainer`)
+- **Error Handling**: Classes de erro customizadas (`AppError`, `ValidationError`, `NotFoundError`)
+- **Structured Logging**: Logger profissional com suporte a Cloud Logging
+
+### Frontend
+
+O frontend utiliza React com TypeScript e styled-components:
+
+- **Pages**: Páginas completas da aplicação
+- **Components**: Componentes reutilizáveis organizados por domínio
+- **Hooks**: Custom hooks para lógica reutilizável
+- **Services**: Camada de comunicação com a API
+- **Contexts**: Gerenciamento de estado global (Auth, Arena)
+
+## Testes
+
+### Backend
 
 ```bash
-./check-setup.sh
-```
-
-### Testar Integração
-
-```bash
-# Com backend e frontend rodando
-./test-integration.sh
-```
-
-### Rodar Testes Unitários
-
-```bash
-# Backend
 cd backend
+
+# Rodar testes
 npm test
 
-# Frontend
-cd frontend
-npm test
+# Rodar testes em watch mode
+npm run test:watch
+
+# Gerar coverage
+npm run test:coverage
 ```
 
-## 🔍 Troubleshooting
+### Scripts Disponíveis
 
-Problemas comuns e soluções: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+#### Backend
 
-**Problemas frequentes:**
+| Script                  | Descrição                       |
+| ----------------------- | ------------------------------- |
+| `npm run dev`           | Iniciar em modo desenvolvimento |
+| `npm run build`         | Compilar TypeScript             |
+| `npm start`             | Iniciar versão compilada        |
+| `npm test`              | Rodar testes                    |
+| `npm run test:coverage` | Testes com coverage             |
 
-- Porta já em uso → `lsof -ti:5000 | xargs kill -9`
-- Dependências corrompidas → `npm run clean && npm run install:all`
-- Firebase não configurado → Ver [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
-- CORS error → Verificar `ALLOWED_ORIGINS` em `backend/.env`
+#### Frontend
 
-## 📊 Status do Projeto
+| Script            | Descrição                       |
+| ----------------- | ------------------------------- |
+| `npm run dev`     | Iniciar em modo desenvolvimento |
+| `npm run build`   | Build de produção               |
+| `npm run preview` | Preview do build                |
 
-### ✅ Etapa 1: Arquitetura e Setup Inicial (COMPLETA)
+## Status do Projeto
 
-- ✅ Estrutura de pastas
-- ✅ Configuração Firebase
-- ✅ Setup Backend (Express + TypeScript)
-- ✅ Setup Frontend (React + TypeScript)
-- ✅ Integração e testes
+### Funcionalidades Implementadas
 
-### ⏳ Próximas Etapas
+- [x] Sistema de autenticação (Firebase Auth)
+- [x] Multi-tenancy (múltiplas arenas)
+- [x] CRUD de jogadores
+- [x] CRUD de etapas
+- [x] Formato Dupla Fixa
+- [x] Formato Rei da Praia
+- [x] Geração de grupos
+- [x] Geração de chaves eliminatórias
+- [x] Registro de resultados
+- [x] Fase de grupos
+- [x] Fase eliminatória
+- [x] Cabeças de chave
+- [x] Página pública da arena
+- [x] Visualizador de grupos (GruposViewer)
+- [x] Visualizador de chaves (BracketViewer)
+- [x] Rankings
 
-- Etapa 2: Autenticação e Multi-tenancy
-- Etapa 3: Gestão de Jogadores
-- Etapa 4: Sistema de Geração de Chaves
-- Etapa 5: Sistema de Jogos e Resultados
-- Etapa 6: Ranking e Estatísticas
-- Etapa 7: Regra de Não Repetição de Parceiros
-- Etapa 8: Interface Pública
+### Em Desenvolvimento
 
-## 🤝 Contribuindo
+- [ ] Novo formato de torneio chamado "TEAMS"
+- [ ] Jogadores se inscrevem sozinhos
+- [ ] Sistema de pagamento de inscrições
+- [ ] Notificações
+- [ ] PWA / Mobile
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+## Troubleshooting
 
-## 📄 Licença
+### Porta já em uso
 
-MIT License - veja o arquivo [LICENSE](LICENSE) para detalhes.
+```bash
+# Linux/Mac
+lsof -ti:5000 | xargs kill -9
 
----
+# Windows
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+```
 
-## 🎾 Roadmap Completo
+### Erro de CORS
 
-### Fase 1: Fundação ✅
+Verificar se `FRONTEND_URL` no backend corresponde à URL do frontend.
 
-- [x] Setup inicial do projeto
-- [x] Configuração Firebase
-- [x] Backend básico com Express
-- [x] Frontend básico com React
-- [x] Sistema de autenticação
-- [x] Documentação inicial
+### Firebase não conecta
 
-### Fase 2: Core Features (Em Andamento)
+1. Verificar se as variáveis de ambiente estão corretas
+2. Verificar se o projeto Firebase existe
+3. Verificar se o Firestore está habilitado
 
-- [ ] Sistema completo de autenticação
-- [ ] Multi-tenancy (múltiplas arenas)
-- [ ] CRUD de jogadores
-- [ ] CRUD de challenges
-- [ ] Geração de chaves e grupos
+## Licença
 
-### Fase 3: Lógica de Torneio
-
-- [ ] Sistema de jogos
-- [ ] Registro de resultados
-- [ ] Fase de grupos
-- [ ] Fase eliminatória
-- [ ] Sistema de desempate
-
-### Fase 4: Rankings e Estatísticas
-
-- [ ] Cálculo de pontuação
-- [ ] Rankings individuais
-- [ ] Estatísticas por jogador
-- [ ] Histórico de etapas
-
-### Fase 5: Interface Pública
-
-- [ ] Página pública por arena
-- [ ] Visualização de rankings
-- [ ] Acompanhamento de etapas
-- [ ] Estatísticas públicas
-
-### Fase 6: Polimento
-
-- [ ] Testes automatizados
-- [ ] Deploy em produção
-- [ ] Otimizações de performance
-- [ ] SEO e acessibilidade
+MIT License
 
 ---
 
-**Feito com ❤️ para a comunidade de Beach Tennis** 🎾
+**Feito para a comunidade de Beach Tennis**

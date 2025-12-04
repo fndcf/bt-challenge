@@ -1,7 +1,5 @@
 /**
  * Controllers Index
- * backend/src/controllers/index.ts
- *
  * Re-exporta todos os controllers
  */
 

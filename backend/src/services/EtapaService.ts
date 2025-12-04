@@ -1,8 +1,5 @@
 /**
- * EtapaService.ts
  * Service para gerenciar etapas
- * REFATORADO: Fase 4 - Usando IEtapaRepository via DI
- * REFATORADO: Fase 5 - Usando todos os repositories (eliminando db direto)
  */
 
 import { Timestamp } from "firebase-admin/firestore";
@@ -46,7 +43,6 @@ import { DuplaRepository } from "../repositories/firebase/DuplaRepository";
 import { ConfrontoEliminatorioRepository } from "../repositories/firebase/ConfrontoEliminatorioRepository";
 
 /**
- * Service para gerenciar etapas
  * Usa injeção de dependência para repositories
  */
 export class EtapaService {
@@ -602,8 +598,6 @@ export class EtapaService {
 
   /**
    * Encerrar etapa e atribuir pontos
-   * MÉTODO CRÍTICO - Distribui pontos finais
-   * REFATORADO: Fase 5 - Usando repositories
    */
   async encerrarEtapa(id: string, arenaId: string): Promise<void> {
     try {
@@ -842,7 +836,6 @@ export class EtapaService {
 
   /**
    * Atribuir pontos de colocação para os 2 jogadores de uma dupla
-   * REFATORADO: Fase 5 - Usando repositories
    */
   private async atribuirPontosParaDupla(
     duplaId: string,
@@ -897,7 +890,6 @@ export class EtapaService {
 
   /**
    * Atribuir pontos de colocação para um jogador individual
-   * REFATORADO: Fase 5 - Usando repository
    */
   private async atribuirPontosParaJogador(
     jogadorId: string,

@@ -1,7 +1,5 @@
 /**
- * BaseController.ts
  * Classe base para controllers com métodos utilitários
- * Fase 5.2 - Padronização de Controllers
  */
 
 import { Response, NextFunction } from "express";
@@ -45,7 +43,10 @@ export abstract class BaseController {
    * Verifica se o usuário está autenticado e retorna os dados
    * @throws Retorna 401 se não autenticado
    */
-  protected checkAuth(req: AuthRequest, res: Response): req is AuthRequest & { user: NonNullable<AuthRequest['user']> } {
+  protected checkAuth(
+    req: AuthRequest,
+    res: Response
+  ): req is AuthRequest & { user: NonNullable<AuthRequest["user"]> } {
     if (!req.user?.arenaId || !req.user?.uid) {
       ResponseHelper.unauthorized(res, "Usuário não autenticado");
       return false;
@@ -88,9 +89,10 @@ export abstract class BaseController {
     const message = error.message.toLowerCase();
 
     for (const { pattern, status } of patterns) {
-      const matches = typeof pattern === "string"
-        ? message.includes(pattern.toLowerCase())
-        : pattern.test(message);
+      const matches =
+        typeof pattern === "string"
+          ? message.includes(pattern.toLowerCase())
+          : pattern.test(message);
 
       if (matches) {
         logger.warn(`${this.controllerName}: ${error.message}`);

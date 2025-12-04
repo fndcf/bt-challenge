@@ -1,5 +1,4 @@
 /**
- * IEstatisticasJogadorRepository.ts
  * Interface do repository de EstatisticasJogador
  */
 
@@ -81,17 +80,29 @@ export interface AtualizarPontuacaoDTO {
  * Interface do repository de EstatisticasJogador
  */
 export interface IEstatisticasJogadorRepository
-  extends Omit<IBaseRepository<EstatisticasJogador, CriarEstatisticasJogadorDTO, Partial<EstatisticasJogador>>, 'listar'> {
-  
+  extends Omit<
+    IBaseRepository<
+      EstatisticasJogador,
+      CriarEstatisticasJogadorDTO,
+      Partial<EstatisticasJogador>
+    >,
+    "listar"
+  > {
   /**
    * Buscar estatísticas por etapa
    */
-  buscarPorEtapa(etapaId: string, arenaId: string): Promise<EstatisticasJogador[]>;
+  buscarPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<EstatisticasJogador[]>;
 
   /**
    * Buscar estatísticas de um jogador em uma etapa
    */
-  buscarPorJogadorEEtapa(jogadorId: string, etapaId: string): Promise<EstatisticasJogador | null>;
+  buscarPorJogadorEEtapa(
+    jogadorId: string,
+    etapaId: string
+  ): Promise<EstatisticasJogador | null>;
 
   /**
    * Buscar estatísticas por grupo
@@ -106,12 +117,18 @@ export interface IEstatisticasJogadorRepository
   /**
    * Atualizar estatísticas após partida
    */
-  atualizarEstatisticasPartida(id: string, dados: AtualizarEstatisticasPartidaDTO): Promise<void>;
+  atualizarEstatisticasPartida(
+    id: string,
+    dados: AtualizarEstatisticasPartidaDTO
+  ): Promise<void>;
 
   /**
    * Incrementar estatísticas (soma aos valores existentes)
    */
-  incrementarEstatisticas(id: string, dados: AtualizarEstatisticasPartidaDTO): Promise<void>;
+  incrementarEstatisticas(
+    id: string,
+    dados: AtualizarEstatisticasPartidaDTO
+  ): Promise<void>;
 
   /**
    * Atualizar posição no grupo

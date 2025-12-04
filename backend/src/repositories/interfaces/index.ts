@@ -1,5 +1,4 @@
 /**
- * index.ts
  * Exporta todas as interfaces de repository
  */
 

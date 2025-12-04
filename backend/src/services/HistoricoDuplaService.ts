@@ -1,7 +1,5 @@
 /**
- * HistoricoDuplaService.ts
  * Service para rastrear histórico de duplas formadas
- * Essencial para lógica de Dupla Fixa com cabeças de chave
  */
 
 import { db } from "../config/firebase";

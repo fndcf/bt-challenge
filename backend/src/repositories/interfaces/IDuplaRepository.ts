@@ -1,5 +1,4 @@
 /**
- * IDuplaRepository.ts
  * Interface do repository de Dupla
  */
 
@@ -76,7 +75,10 @@ export interface IDuplaRepository
   /**
    * Buscar duplas classificadas de um grupo
    */
-  buscarClassificadasPorGrupo(grupoId: string, limite?: number): Promise<Dupla[]>;
+  buscarClassificadasPorGrupo(
+    grupoId: string,
+    limite?: number
+  ): Promise<Dupla[]>;
 
   /**
    * Buscar dupla por jogador
@@ -91,7 +93,10 @@ export interface IDuplaRepository
   /**
    * Atualizar estatísticas da dupla
    */
-  atualizarEstatisticas(id: string, stats: AtualizarEstatisticasDuplaDTO): Promise<void>;
+  atualizarEstatisticas(
+    id: string,
+    stats: AtualizarEstatisticasDuplaDTO
+  ): Promise<void>;
 
   /**
    * Incrementar estatísticas após partida

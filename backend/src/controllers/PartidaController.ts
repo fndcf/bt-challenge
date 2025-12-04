@@ -1,7 +1,5 @@
 /**
- * PartidaController.ts
  * Controller para gerenciar partidas
- * REFATORADO: Fase 5.2 - Usando ResponseHelper e BaseController
  */
 
 import { Response } from "express";
@@ -28,7 +26,8 @@ class PartidaController extends BaseController {
 
       // Validação do placar
       if (!placar || !Array.isArray(placar) || placar.length === 0) {
-        ResponseHelper.badRequest(res, "Placar inválido"); return;
+        ResponseHelper.badRequest(res, "Placar inválido");
+        return;
       }
 
       await chaveService.registrarResultadoPartida(id, arenaId, placar);
@@ -45,7 +44,11 @@ class PartidaController extends BaseController {
         return;
       }
 
-      logger.error("Erro ao registrar resultado", { partidaId: req.params.id }, error);
+      logger.error(
+        "Erro ao registrar resultado",
+        { partidaId: req.params.id },
+        error
+      );
       this.handleGenericError(res, error, "registrar resultado");
     }
   }

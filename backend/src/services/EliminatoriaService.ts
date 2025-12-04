@@ -1,5 +1,4 @@
 /**
- * EliminatoriaService.ts
  * Service especializado para fase eliminatória
  *
  * FORMATO COPA DO MUNDO:

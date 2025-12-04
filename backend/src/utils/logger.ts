@@ -42,14 +42,6 @@ const shouldLog = (severity: LogSeverity): boolean => {
   return severityLevels[severity] >= severityLevels[config.minLevel];
 };
 
-/**
- * Logger Profissional para Cloud Functions
- *
- * IMPORTANTE:
- * - Em produção: Usa structured logging (JSON) para Cloud Logging
- * - Em desenvolvimento: Usa console colorido
- * - Logs são AUTOMATICAMENTE capturados pelo Firebase
- */
 class CloudLogger {
   /**
    * Logar com structured logging (Cloud Logging format)

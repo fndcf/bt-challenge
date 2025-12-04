@@ -1,5 +1,4 @@
 /**
- * ConfigRepository.ts
  * Implementação Firebase do repository de Config (configurações globais)
  */
 
@@ -99,13 +98,17 @@ export class ConfigRepository implements IConfigRepository {
       });
     }
 
-    logger.info("Configuração global atualizada", { chaves: Object.keys(dados) });
+    logger.info("Configuração global atualizada", {
+      chaves: Object.keys(dados),
+    });
   }
 
   /**
    * Atualizar pontuação
    */
-  async atualizarPontuacao(pontuacao: Partial<PontuacaoColocacao>): Promise<void> {
+  async atualizarPontuacao(
+    pontuacao: Partial<PontuacaoColocacao>
+  ): Promise<void> {
     const docRef = this.collection.doc(this.docId);
     const doc = await docRef.get();
 

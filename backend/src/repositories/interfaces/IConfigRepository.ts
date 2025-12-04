@@ -1,5 +1,4 @@
 /**
- * IConfigRepository.ts
  * Interface do repository de Config (configurações globais)
  */
 

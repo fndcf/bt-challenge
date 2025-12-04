@@ -1,8 +1,5 @@
 /**
- * IPartidaReiDaPraiaRepository.ts
  * Interface do repository de Partida Rei da Praia
- *
- * CORREÇÃO v2: DTO de resultado agora inclui placar e vencedores
  */
 
 import { IBaseRepository, IBatchOperations } from "./IBaseRepository";

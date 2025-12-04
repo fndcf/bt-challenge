@@ -1,5 +1,4 @@
 /**
- * DuplaRepository.ts
  * Implementação Firebase do repository de Dupla
  */
 
@@ -180,7 +179,10 @@ export class DuplaRepository implements IDuplaRepository {
   /**
    * Buscar duplas classificadas de uma etapa
    */
-  async buscarClassificadas(etapaId: string, arenaId: string): Promise<Dupla[]> {
+  async buscarClassificadas(
+    etapaId: string,
+    arenaId: string
+  ): Promise<Dupla[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -196,7 +198,10 @@ export class DuplaRepository implements IDuplaRepository {
   /**
    * Buscar duplas classificadas de um grupo
    */
-  async buscarClassificadasPorGrupo(grupoId: string, limite?: number): Promise<Dupla[]> {
+  async buscarClassificadasPorGrupo(
+    grupoId: string,
+    limite?: number
+  ): Promise<Dupla[]> {
     let query = this.collection
       .where("grupoId", "==", grupoId)
       .orderBy("posicaoGrupo", "asc");
@@ -216,7 +221,10 @@ export class DuplaRepository implements IDuplaRepository {
   /**
    * Buscar dupla por jogador
    */
-  async buscarPorJogador(etapaId: string, jogadorId: string): Promise<Dupla | null> {
+  async buscarPorJogador(
+    etapaId: string,
+    jogadorId: string
+  ): Promise<Dupla | null> {
     // Buscar como jogador1
     let snapshot = await this.collection
       .where("etapaId", "==", etapaId)
@@ -247,7 +255,11 @@ export class DuplaRepository implements IDuplaRepository {
   /**
    * Atribuir dupla a um grupo
    */
-  async atribuirGrupo(id: string, grupoId: string, grupoNome: string): Promise<void> {
+  async atribuirGrupo(
+    id: string,
+    grupoId: string,
+    grupoNome: string
+  ): Promise<void> {
     await this.collection.doc(id).update({
       grupoId,
       grupoNome,
@@ -258,7 +270,10 @@ export class DuplaRepository implements IDuplaRepository {
   /**
    * Atualizar estatísticas da dupla
    */
-  async atualizarEstatisticas(id: string, stats: AtualizarEstatisticasDuplaDTO): Promise<void> {
+  async atualizarEstatisticas(
+    id: string,
+    stats: AtualizarEstatisticasDuplaDTO
+  ): Promise<void> {
     const updateData: any = {
       ...stats,
       atualizadoEm: Timestamp.now(),
@@ -439,7 +454,9 @@ export class DuplaRepository implements IDuplaRepository {
   /**
    * Atualizar múltiplas duplas em lote
    */
-  async atualizarEmLote(updates: Array<{ id: string; data: Partial<Dupla> }>): Promise<void> {
+  async atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<Dupla> }>
+  ): Promise<void> {
     if (updates.length === 0) return;
 
     const batch = db.batch();

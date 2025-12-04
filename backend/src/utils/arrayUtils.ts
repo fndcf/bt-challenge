@@ -1,9 +1,6 @@
 /**
  * Array Utilities
- * backend/src/utils/arrayUtils.ts
- *
  * Funções utilitárias para manipulação de arrays.
- * Centraliza lógica comum usada em múltiplos services.
  */
 
 /**
@@ -55,7 +52,10 @@ export function dividirEmChunks<T>(array: T[], tamanho: number): T[][] {
  * const jogadores = [{id: 1, nome: 'A'}, {id: 1, nome: 'A'}, {id: 2, nome: 'B'}];
  * const unicos = removerDuplicatas(jogadores, j => j.id); // [{id: 1}, {id: 2}]
  */
-export function removerDuplicatas<T>(array: T[], chave: (item: T) => string | number): T[] {
+export function removerDuplicatas<T>(
+  array: T[],
+  chave: (item: T) => string | number
+): T[] {
   const vistos = new Set<string | number>();
   return array.filter((item) => {
     const k = chave(item);

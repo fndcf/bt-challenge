@@ -1,12 +1,14 @@
 /**
- * GrupoRepository.ts
  * Implementação Firebase do repository de Grupo
  */
 
 import { db } from "../../config/firebase";
 import { Timestamp } from "firebase-admin/firestore";
 import { Grupo } from "../../models/Grupo";
-import { IGrupoRepository, CriarGrupoDTO } from "../interfaces/IGrupoRepository";
+import {
+  IGrupoRepository,
+  CriarGrupoDTO,
+} from "../interfaces/IGrupoRepository";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
 
@@ -139,7 +141,10 @@ export class GrupoRepository implements IGrupoRepository {
   /**
    * Buscar grupos de uma etapa ordenados
    */
-  async buscarPorEtapaOrdenado(etapaId: string, arenaId: string): Promise<Grupo[]> {
+  async buscarPorEtapaOrdenado(
+    etapaId: string,
+    arenaId: string
+  ): Promise<Grupo[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -428,7 +433,9 @@ export class GrupoRepository implements IGrupoRepository {
   /**
    * Atualizar múltiplos grupos em lote
    */
-  async atualizarEmLote(updates: Array<{ id: string; data: Partial<Grupo> }>): Promise<void> {
+  async atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<Grupo> }>
+  ): Promise<void> {
     if (updates.length === 0) return;
 
     const batch = db.batch();

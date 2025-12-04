@@ -1,7 +1,5 @@
 /**
  * Torneio Utilities
- * backend/src/utils/torneioUtils.ts
- *
  * Funções utilitárias para cálculos de torneio.
  * Centraliza lógica de distribuição de grupos, BYEs e fases.
  */
@@ -61,7 +59,6 @@ export function calcularDistribuicaoGrupos(totalDuplas: number): number[] {
     }
   }
 
-  // Fallback (não deveria chegar aqui)
   return [totalDuplas];
 }
 

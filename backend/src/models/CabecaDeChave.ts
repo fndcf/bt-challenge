@@ -1,6 +1,4 @@
 /**
- * CabecaDeChave.ts
- *
  * Model para gerenciar cabeças de chave (seeding)
  */
 

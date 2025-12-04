@@ -1,5 +1,4 @@
 /**
- * ConfrontoEliminatorioRepository.ts
  * Implementação Firebase do repository de ConfrontoEliminatorio
  */
 
@@ -23,7 +22,9 @@ const COLLECTION = "confrontos_eliminatorios";
 /**
  * Repository de ConfrontoEliminatorio - Implementação Firebase
  */
-export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRepository {
+export class ConfrontoEliminatorioRepository
+  implements IConfrontoEliminatorioRepository
+{
   private collection = db.collection(COLLECTION);
 
   /**
@@ -69,7 +70,10 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Buscar confronto por ID com validação de arena
    */
-  async buscarPorIdEArena(id: string, arenaId: string): Promise<ConfrontoEliminatorio | null> {
+  async buscarPorIdEArena(
+    id: string,
+    arenaId: string
+  ): Promise<ConfrontoEliminatorio | null> {
     const confronto = await this.buscarPorId(id);
 
     if (!confronto || confronto.arenaId !== arenaId) {
@@ -82,7 +86,10 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Atualizar confronto
    */
-  async atualizar(id: string, data: Partial<ConfrontoEliminatorio>): Promise<ConfrontoEliminatorio> {
+  async atualizar(
+    id: string,
+    data: Partial<ConfrontoEliminatorio>
+  ): Promise<ConfrontoEliminatorio> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -129,7 +136,10 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Buscar confrontos de uma etapa
    */
-  async buscarPorEtapa(etapaId: string, arenaId: string): Promise<ConfrontoEliminatorio[]> {
+  async buscarPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<ConfrontoEliminatorio[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -144,7 +154,10 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Buscar confrontos de uma etapa ordenados
    */
-  async buscarPorEtapaOrdenado(etapaId: string, arenaId: string): Promise<ConfrontoEliminatorio[]> {
+  async buscarPorEtapaOrdenado(
+    etapaId: string,
+    arenaId: string
+  ): Promise<ConfrontoEliminatorio[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -221,7 +234,10 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Buscar confrontos de uma dupla
    */
-  async buscarPorDupla(etapaId: string, duplaId: string): Promise<ConfrontoEliminatorio[]> {
+  async buscarPorDupla(
+    etapaId: string,
+    duplaId: string
+  ): Promise<ConfrontoEliminatorio[]> {
     // Buscar como dupla1
     const snapshot1 = await this.collection
       .where("etapaId", "==", etapaId)
@@ -367,7 +383,10 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Definir próximo confronto
    */
-  async definirProximoConfronto(id: string, proximoConfrontoId: string): Promise<void> {
+  async definirProximoConfronto(
+    id: string,
+    proximoConfrontoId: string
+  ): Promise<void> {
     await this.collection.doc(id).update({
       proximoConfrontoId,
       atualizadoEm: Timestamp.now(),
@@ -405,7 +424,11 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Deletar confrontos de uma fase
    */
-  async deletarPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<number> {
+  async deletarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<number> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -441,7 +464,11 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Contar confrontos por fase
    */
-  async contarPorFase(etapaId: string, arenaId: string, fase: TipoFase): Promise<number> {
+  async contarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<number> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -455,7 +482,11 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Verificar se fase está completa
    */
-  async faseCompleta(etapaId: string, arenaId: string, fase: TipoFase): Promise<boolean> {
+  async faseCompleta(
+    etapaId: string,
+    arenaId: string,
+    fase: TipoFase
+  ): Promise<boolean> {
     const pendentes = await this.buscarPendentesPorFase(etapaId, arenaId, fase);
     return pendentes.length === 0;
   }
@@ -476,7 +507,11 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
       confrontoId: string;
     }>
   > {
-    const finalizados = await this.buscarFinalizadosPorFase(etapaId, arenaId, fase);
+    const finalizados = await this.buscarFinalizadosPorFase(
+      etapaId,
+      arenaId,
+      fase
+    );
 
     return finalizados
       .filter((c) => c.vencedoraId && c.vencedoraNome)
@@ -494,7 +529,9 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
   /**
    * Criar múltiplos confrontos em lote
    */
-  async criarEmLote(items: Partial<ConfrontoEliminatorio>[]): Promise<ConfrontoEliminatorio[]> {
+  async criarEmLote(
+    items: Partial<ConfrontoEliminatorio>[]
+  ): Promise<ConfrontoEliminatorio[]> {
     const batch = db.batch();
     const agora = Timestamp.now();
     const confrontos: ConfrontoEliminatorio[] = [];
@@ -515,7 +552,9 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
 
     await batch.commit();
 
-    logger.info("Confrontos criados em lote", { quantidade: confrontos.length });
+    logger.info("Confrontos criados em lote", {
+      quantidade: confrontos.length,
+    });
 
     return confrontos;
   }
@@ -557,9 +596,12 @@ export class ConfrontoEliminatorioRepository implements IConfrontoEliminatorioRe
 
     await batch.commit();
 
-    logger.info("Confrontos atualizados em lote", { quantidade: updates.length });
+    logger.info("Confrontos atualizados em lote", {
+      quantidade: updates.length,
+    });
   }
 }
 
 // Exportar instância única
-export const confrontoEliminatorioRepository = new ConfrontoEliminatorioRepository();
+export const confrontoEliminatorioRepository =
+  new ConfrontoEliminatorioRepository();

@@ -1,5 +1,4 @@
 /**
- * IGrupoRepository.ts
  * Interface do repository de Grupo
  */
 

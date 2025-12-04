@@ -1,8 +1,3 @@
-/**
- * Database Initialization
- * backend/src/config/initDatabase.ts
- */
-
 import { db } from "./firebase";
 import { COLLECTIONS } from "./firestore";
 import logger from "../utils/logger";

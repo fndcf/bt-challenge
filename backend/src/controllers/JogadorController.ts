@@ -1,7 +1,5 @@
 /**
- * JogadorController.ts
  * Controller para gerenciar jogadores
- * REFATORADO: Fase 5.2 - Usando ResponseHelper e BaseController
  */
 
 import { Response } from "express";
@@ -45,7 +43,13 @@ class JogadorController extends BaseController {
         return this.handleZodError(res, error);
       }
 
-      if (this.handleBusinessError(res, error, BaseController.ERROR_PATTERNS.CONFLICT)) {
+      if (
+        this.handleBusinessError(
+          res,
+          error,
+          BaseController.ERROR_PATTERNS.CONFLICT
+        )
+      ) {
         return;
       }
 
@@ -68,7 +72,8 @@ class JogadorController extends BaseController {
       const jogador = await jogadorService.buscarPorId(id, arenaId);
 
       if (!jogador) {
-        ResponseHelper.notFound(res, "Jogador não encontrado"); return;
+        ResponseHelper.notFound(res, "Jogador não encontrado");
+        return;
       }
 
       ResponseHelper.success(res, jogador);
@@ -131,7 +136,11 @@ class JogadorController extends BaseController {
         dadosValidados
       );
 
-      ResponseHelper.success(res, jogadorAtualizado, "Jogador atualizado com sucesso");
+      ResponseHelper.success(
+        res,
+        jogadorAtualizado,
+        "Jogador atualizado com sucesso"
+      );
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         return this.handleZodError(res, error);
@@ -141,7 +150,11 @@ class JogadorController extends BaseController {
         return;
       }
 
-      logger.error("Erro ao atualizar jogador", { jogadorId: req.params.id }, error);
+      logger.error(
+        "Erro ao atualizar jogador",
+        { jogadorId: req.params.id },
+        error
+      );
       this.handleGenericError(res, error, "atualizar jogador");
     }
   }
@@ -167,7 +180,11 @@ class JogadorController extends BaseController {
         return;
       }
 
-      logger.error("Erro ao deletar jogador", { jogadorId: req.params.id }, error);
+      logger.error(
+        "Erro ao deletar jogador",
+        { jogadorId: req.params.id },
+        error
+      );
       this.handleGenericError(res, error, "deletar jogador");
     }
   }

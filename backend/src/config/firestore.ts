@@ -2,7 +2,6 @@
  * Estrutura de Coleções do Firestore
  *
  * Este arquivo define todas as coleções e subcoleções
- * utilizadas no banco de dados Firebase Firestore
  */
 
 export const COLLECTIONS = {

@@ -1,14 +1,3 @@
-/**
- * Etapa Routes
- * backend/src/routes/etapas.ts
- *
- * REFATORADO:
- * - Removidas 5 rotas duplicadas
- * - Removidos imports dinâmicos
- * - Todas as rotas delegam para o controller
- * - Organizado por seções lógicas
- */
-
 import { Router } from "express";
 import etapaController from "../controllers/EtapaController";
 import { requireAuth } from "../middlewares/auth";

@@ -1,8 +1,3 @@
-/**
- * Arena Controller
- * backend/src/controllers/ArenaController.ts
- */
-
 import { Request, Response, NextFunction } from "express";
 import { arenaService } from "../services/ArenaService";
 import { ResponseHelper } from "../utils/responseHelper";

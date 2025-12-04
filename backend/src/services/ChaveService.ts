@@ -1,9 +1,5 @@
 /**
- * ChaveService.ts (REFATORADO)
  * Service orquestrador para geração de chaves
- *
- * Este service agora é APENAS um orquestrador que delega
- * para services especializados seguindo o princípio SRP.
  *
  * Services utilizados:
  * - DuplaService: formação de duplas

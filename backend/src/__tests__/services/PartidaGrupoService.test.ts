@@ -1,9 +1,3 @@
-/**
- * PartidaGrupoService.test.ts
- * Testes unitários REAIS para PartidaGrupoService
- */
-
-// Mocks devem vir ANTES dos imports
 jest.mock("../../utils/logger", () => ({
   __esModule: true,
   default: {
@@ -35,7 +29,7 @@ jest.mock("../../repositories/firebase/GrupoRepository", () => ({
   GrupoRepository: jest.fn(),
 }));
 
-// Mock explícito do EstatisticasJogadorService - DEVE VIR ANTES DO IMPORT
+// Mock explícito do EstatisticasJogadorService
 jest.mock("../../services/EstatisticasJogadorService", () => {
   return {
     __esModule: true,
@@ -57,7 +51,10 @@ jest.mock("../../services/ClassificacaoService", () => {
   };
 });
 
-import { PartidaGrupoService, PlacarSet } from "../../services/PartidaGrupoService";
+import {
+  PartidaGrupoService,
+  PlacarSet,
+} from "../../services/PartidaGrupoService";
 import {
   createMockPartidaRepository,
   createMockDuplaRepository,
@@ -100,9 +97,21 @@ describe("PartidaGrupoService", () => {
     it("deve gerar partidas todos contra todos para cada grupo", async () => {
       const grupos = [createGrupoFixture({ id: "grupo-1" })];
       const duplas = [
-        createDuplaFixture({ id: "dupla-1", jogador1Nome: "João", jogador2Nome: "Pedro" }),
-        createDuplaFixture({ id: "dupla-2", jogador1Nome: "Maria", jogador2Nome: "Ana" }),
-        createDuplaFixture({ id: "dupla-3", jogador1Nome: "Carlos", jogador2Nome: "Lucas" }),
+        createDuplaFixture({
+          id: "dupla-1",
+          jogador1Nome: "João",
+          jogador2Nome: "Pedro",
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          jogador1Nome: "Maria",
+          jogador2Nome: "Ana",
+        }),
+        createDuplaFixture({
+          id: "dupla-3",
+          jogador1Nome: "Carlos",
+          jogador2Nome: "Lucas",
+        }),
       ];
 
       mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
@@ -213,7 +222,9 @@ describe("PartidaGrupoService", () => {
       );
 
       // Verifica que atualizou estatísticas das duplas
-      expect(mockDuplaRepository.atualizarEstatisticas).toHaveBeenCalledTimes(2);
+      expect(mockDuplaRepository.atualizarEstatisticas).toHaveBeenCalledTimes(
+        2
+      );
     });
 
     it("deve preencher vencedoraNome corretamente (bug fix)", async () => {
@@ -316,8 +327,18 @@ describe("PartidaGrupoService", () => {
         setsPerdidos: 2,
       });
 
-      const dupla1Zerada = { ...dupla1, jogos: 0, vitorias: 0, setsVencidos: 0 };
-      const dupla2Zerada = { ...dupla2, jogos: 0, derrotas: 0, setsPerdidos: 0 };
+      const dupla1Zerada = {
+        ...dupla1,
+        jogos: 0,
+        vitorias: 0,
+        setsVencidos: 0,
+      };
+      const dupla2Zerada = {
+        ...dupla2,
+        jogos: 0,
+        derrotas: 0,
+        setsPerdidos: 0,
+      };
 
       // Novo placar (invertendo vencedor)
       const novoPlacar: PlacarSet[] = [
@@ -325,18 +346,20 @@ describe("PartidaGrupoService", () => {
         { numero: 2, gamesDupla1: 4, gamesDupla2: 6 },
       ];
 
-      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partidaFinalizada);
-      
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(
+        partidaFinalizada
+      );
+
       // O fluxo de buscarPorId:
       // 1. Busca inicial: dupla1, dupla2
       // 2. reverterEstatisticasDupla chama buscarPorId internamente: dupla1, dupla2
       // 3. Re-busca após reversão: dupla1Zerada, dupla2Zerada
       mockDuplaRepository.buscarPorId
-        .mockResolvedValueOnce(dupla1)        // Busca inicial dupla1
-        .mockResolvedValueOnce(dupla2)        // Busca inicial dupla2
-        .mockResolvedValueOnce(dupla1)        // reverterEstatisticasDupla dupla1
-        .mockResolvedValueOnce(dupla2)        // reverterEstatisticasDupla dupla2
-        .mockResolvedValueOnce(dupla1Zerada)  // Re-busca após reversão dupla1
+        .mockResolvedValueOnce(dupla1) // Busca inicial dupla1
+        .mockResolvedValueOnce(dupla2) // Busca inicial dupla2
+        .mockResolvedValueOnce(dupla1) // reverterEstatisticasDupla dupla1
+        .mockResolvedValueOnce(dupla2) // reverterEstatisticasDupla dupla2
+        .mockResolvedValueOnce(dupla1Zerada) // Re-busca após reversão dupla1
         .mockResolvedValueOnce(dupla2Zerada); // Re-busca após reversão dupla2
 
       mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);

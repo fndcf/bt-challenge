@@ -1,5 +1,4 @@
 /**
- * CabecaDeChaveService.ts
  * Service para gerenciar cabeças de chave (seeding)
  */
 

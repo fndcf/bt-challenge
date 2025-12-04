@@ -1,8 +1,3 @@
-/**
- * Error Handler Middleware
- * backend/src/middlewares/errorHandler.ts
- */
-
 import { Request, Response, NextFunction } from "express";
 import { AppError, ValidationError } from "../utils/errors";
 import { ResponseHelper } from "../utils/responseHelper";

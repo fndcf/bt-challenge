@@ -1,6 +1,5 @@
 /**
  * Configuração do Firebase Admin SDK
- * backend/src/config/firebase.ts
  */
 
 import admin from "firebase-admin";
