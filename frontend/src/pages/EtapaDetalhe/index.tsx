@@ -16,7 +16,6 @@ import { useEtapaDetalhe } from "./hooks/useEtapaDetalhe";
 import { EtapaHeader } from "./components/EtapaHeader";
 import { EtapaInfo } from "./components/EtapaInfo";
 import { JogadoresList } from "./components/JogadoresList";
-import { ArenaInfo } from "./components/ArenaInfo";
 import { BracketViewer } from "@/components/visualizadores/BracketViewer";
 import { GruposViewer } from "@/components/visualizadores/GruposViewer";
 import * as S from "./EtapaDetalhe.styles";
@@ -92,11 +91,6 @@ export const EtapaDetalhe: React.FC = () => {
             {/* Chaves (se existirem) */}
             {chaves && <BracketViewer chaves={chaves} />}
           </S.Main>
-
-          {/* Sidebar */}
-          <S.Aside>
-            <ArenaInfo arena={arena} />
-          </S.Aside>
         </S.Layout>
       </S.Container>
     </S.Page>

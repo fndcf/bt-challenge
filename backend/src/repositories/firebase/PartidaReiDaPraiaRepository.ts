@@ -19,7 +19,9 @@ import logger from "../../utils/logger";
 /**
  * Implementação Firebase do repository de PartidaReiDaPraia
  */
-export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository {
+export class PartidaReiDaPraiaRepository
+  implements IPartidaReiDaPraiaRepository
+{
   private collection = db.collection("partidas_rei_da_praia");
 
   /**
@@ -73,7 +75,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partida por ID e arena
    */
-  async buscarPorIdEArena(id: string, arenaId: string): Promise<PartidaReiDaPraia | null> {
+  async buscarPorIdEArena(
+    id: string,
+    arenaId: string
+  ): Promise<PartidaReiDaPraia | null> {
     const partida = await this.buscarPorId(id);
 
     if (!partida || partida.arenaId !== arenaId) {
@@ -86,7 +91,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Listar partidas (com filtros básicos)
    */
-  async listar(filtros?: { arenaId?: string; etapaId?: string }): Promise<PartidaReiDaPraia[]> {
+  async listar(filtros?: {
+    arenaId?: string;
+    etapaId?: string;
+  }): Promise<PartidaReiDaPraia[]> {
     let query: FirebaseFirestore.Query = this.collection;
 
     if (filtros?.arenaId) {
@@ -108,7 +116,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas de uma etapa
    */
-  async buscarPorEtapa(etapaId: string, arenaId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarPorEtapa(
+    etapaId: string,
+    arenaId: string
+  ): Promise<PartidaReiDaPraia[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -137,7 +148,11 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas por fase
    */
-  async buscarPorFase(etapaId: string, arenaId: string, fase: FaseEtapa): Promise<PartidaReiDaPraia[]> {
+  async buscarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: FaseEtapa
+  ): Promise<PartidaReiDaPraia[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -153,7 +168,11 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas por status
    */
-  async buscarPorStatus(etapaId: string, arenaId: string, status: StatusPartida): Promise<PartidaReiDaPraia[]> {
+  async buscarPorStatus(
+    etapaId: string,
+    arenaId: string,
+    status: StatusPartida
+  ): Promise<PartidaReiDaPraia[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -169,7 +188,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas de um jogador
    */
-  async buscarPorJogador(etapaId: string, jogadorId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarPorJogador(
+    etapaId: string,
+    jogadorId: string
+  ): Promise<PartidaReiDaPraia[]> {
     // Buscar todas as partidas da etapa e filtrar no client
     // (Firebase não suporta OR em queries compostas)
     const partidas = await this.listar({ etapaId });
@@ -186,7 +208,9 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas finalizadas de um grupo
    */
-  async buscarFinalizadasPorGrupo(grupoId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarFinalizadasPorGrupo(
+    grupoId: string
+  ): Promise<PartidaReiDaPraia[]> {
     const snapshot = await this.collection
       .where("grupoId", "==", grupoId)
       .where("status", "==", StatusPartida.FINALIZADA)
@@ -201,7 +225,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas pendentes de uma etapa
    */
-  async buscarPendentes(etapaId: string, arenaId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarPendentes(
+    etapaId: string,
+    arenaId: string
+  ): Promise<PartidaReiDaPraia[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -217,7 +244,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Atualizar partida
    */
-  async atualizar(id: string, dados: Partial<PartidaReiDaPraia>): Promise<PartidaReiDaPraia> {
+  async atualizar(
+    id: string,
+    dados: Partial<PartidaReiDaPraia>
+  ): Promise<PartidaReiDaPraia> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -250,7 +280,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
    * Registrar resultado da partida
    * CORREÇÃO v2: Agora salva placar, vencedores e vencedoresNomes
    */
-  async registrarResultado(id: string, resultado: RegistrarResultadoReiDaPraiaDTO): Promise<PartidaReiDaPraia> {
+  async registrarResultado(
+    id: string,
+    resultado: RegistrarResultadoReiDaPraiaDTO
+  ): Promise<PartidaReiDaPraia> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -264,7 +297,6 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
       setsDupla1: resultado.setsDupla1,
       setsDupla2: resultado.setsDupla2,
       sets: resultado.sets,
-      // ⚠️ CORREÇÃO: Campos adicionados
       placar: resultado.placar,
       vencedores: resultado.vencedores,
       vencedoresNomes: resultado.vencedoresNomes,
@@ -416,7 +448,9 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Criar em lote
    */
-  async criarEmLote(items: CriarPartidaReiDaPraiaDTO[]): Promise<PartidaReiDaPraia[]> {
+  async criarEmLote(
+    items: CriarPartidaReiDaPraiaDTO[]
+  ): Promise<PartidaReiDaPraia[]> {
     if (items.length === 0) {
       return [];
     }
@@ -444,7 +478,9 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
 
     await batch.commit();
 
-    logger.info("Partidas Rei da Praia criadas em lote", { quantidade: items.length });
+    logger.info("Partidas Rei da Praia criadas em lote", {
+      quantidade: items.length,
+    });
 
     return resultados;
   }
@@ -460,7 +496,9 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Atualizar em lote
    */
-  async atualizarEmLote(updates: Array<{ id: string; data: Partial<PartidaReiDaPraia> }>): Promise<void> {
+  async atualizarEmLote(
+    updates: Array<{ id: string; data: Partial<PartidaReiDaPraia> }>
+  ): Promise<void> {
     if (updates.length === 0) {
       return;
     }
@@ -476,7 +514,9 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
 
     await batch.commit();
 
-    logger.info("Partidas Rei da Praia atualizadas em lote", { quantidade: updates.length });
+    logger.info("Partidas Rei da Praia atualizadas em lote", {
+      quantidade: updates.length,
+    });
   }
 
   /**
@@ -495,7 +535,9 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
 
     await batch.commit();
 
-    logger.info("Partidas Rei da Praia deletadas em lote", { quantidade: ids.length });
+    logger.info("Partidas Rei da Praia deletadas em lote", {
+      quantidade: ids.length,
+    });
   }
 
   // ========================================
@@ -505,14 +547,20 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas da fase de grupos
    */
-  async buscarPartidasGrupos(etapaId: string, arenaId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarPartidasGrupos(
+    etapaId: string,
+    arenaId: string
+  ): Promise<PartidaReiDaPraia[]> {
     return this.buscarPorFase(etapaId, arenaId, FaseEtapa.GRUPOS);
   }
 
   /**
    * Buscar partidas da fase eliminatória
    */
-  async buscarPartidasEliminatorias(etapaId: string, arenaId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarPartidasEliminatorias(
+    etapaId: string,
+    arenaId: string
+  ): Promise<PartidaReiDaPraia[]> {
     const snapshot = await this.collection
       .where("etapaId", "==", etapaId)
       .where("arenaId", "==", arenaId)
@@ -533,7 +581,10 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Buscar partidas finalizadas
    */
-  async buscarFinalizadas(etapaId: string, arenaId: string): Promise<PartidaReiDaPraia[]> {
+  async buscarFinalizadas(
+    etapaId: string,
+    arenaId: string
+  ): Promise<PartidaReiDaPraia[]> {
     return this.buscarPorStatus(etapaId, arenaId, StatusPartida.FINALIZADA);
   }
 
@@ -554,15 +605,18 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Deletar partidas de grupos
    */
-  async deletarPartidasGrupos(etapaId: string, arenaId: string): Promise<number> {
+  async deletarPartidasGrupos(
+    etapaId: string,
+    arenaId: string
+  ): Promise<number> {
     const partidas = await this.buscarPartidasGrupos(etapaId, arenaId);
-    
+
     if (partidas.length === 0) {
       return 0;
     }
 
     await this.deletarEmLote(partidas.map((p) => p.id));
-    
+
     logger.info("Partidas de grupos deletadas", {
       etapaId,
       quantidade: partidas.length,
@@ -574,15 +628,18 @@ export class PartidaReiDaPraiaRepository implements IPartidaReiDaPraiaRepository
   /**
    * Deletar partidas eliminatórias
    */
-  async deletarPartidasEliminatorias(etapaId: string, arenaId: string): Promise<number> {
+  async deletarPartidasEliminatorias(
+    etapaId: string,
+    arenaId: string
+  ): Promise<number> {
     const partidas = await this.buscarPartidasEliminatorias(etapaId, arenaId);
-    
+
     if (partidas.length === 0) {
       return 0;
     }
 
     await this.deletarEmLote(partidas.map((p) => p.id));
-    
+
     logger.info("Partidas eliminatórias deletadas", {
       etapaId,
       quantidade: partidas.length,

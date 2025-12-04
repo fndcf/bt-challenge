@@ -9,6 +9,7 @@ import { apiClient } from "./apiClient";
 import { Arena } from "../types/arena";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger";
+import { IArenaAdminService } from "./interfaces/IArenaAdminService";
 
 // ============================================
 // DTOs
@@ -31,7 +32,7 @@ export interface CreateArenaResponse {
 // SERVICE
 // ============================================
 
-class ArenaAdminService {
+class ArenaAdminService implements IArenaAdminService {
   private readonly basePath = "/arenas";
 
   /**

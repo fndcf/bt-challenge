@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
-import cabecaDeChaveService from "@/services/cabecaDeChaveService";
+import { getCabecaDeChaveService } from "@/services";
 import { CabecaDeChave } from "@/types/cabecaDeChave";
 import { Inscricao } from "@/types/etapa";
 import { FormatoEtapa } from "@/types/etapa";
@@ -243,6 +243,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
   onUpdate,
   readOnly = false,
 }) => {
+  const cabecaDeChaveService = getCabecaDeChaveService();
   const [cabecas, setCabecas] = useState<CabecaDeChave[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -276,10 +277,8 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     try {
       setLoading(true);
       const data = await cabecaDeChaveService.listarAtivas(arenaId, etapaId);
-      // ✅ Service já loga warning se falhar
       setCabecas(data || []);
     } catch (error) {
-      // ✅ Service já loga, apenas fallback silencioso
       setCabecas([]);
     } finally {
       setLoading(false);
@@ -310,7 +309,6 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
           etapaId,
           inscricao.jogadorId
         );
-        // ✅ Service já logou: logger.info("Cabeça de chave removida", ...)
         setCabecas(cabecas.filter((c) => c.jogadorId !== inscricao.jogadorId));
       } else {
         if (cabecas.length >= limiteCabecas) {
@@ -330,13 +328,11 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
           jogadorNome: inscricao.jogadorNome,
           ordem: maiorOrdem + 1,
         });
-        // ✅ Service já logou: logger.info("Cabeça de chave criada", ...)
         setCabecas([...cabecas, novaCabeca]);
       }
 
       onUpdate();
     } catch (error: any) {
-      // ✅ Service já logou
       alert(error.message || "Erro ao atualizar cabeças");
     } finally {
       setLoading(false);
@@ -369,11 +365,9 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     try {
       setLoading(true);
       await cabecaDeChaveService.reordenar(arenaId, etapaId, ordens);
-      // ✅ Service já logou: logger.info("Cabeças reordenadas", ...)
       await carregarCabecas();
       onUpdate();
     } catch (error: any) {
-      // ✅ Service já logou
       alert("Erro ao reordenar cabeças");
     } finally {
       setLoading(false);
@@ -390,7 +384,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     <Container>
       <Header>
         <HeaderContent>
-          <Title>🏆 Cabeças de Chave</Title>
+          <Title>Cabeças de Chave</Title>
           <Subtitle>
             {cabecas.length} / {limiteCabecas} selecionado(s)
             {readOnly && " (Somente visualização)"}
@@ -402,12 +396,12 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
         <p>
           {isReiDaPraia ? (
             <>
-              <strong>👑 Rei da Praia:</strong> Cabeças de chave ficam em grupos
+              <strong>Rei da Praia:</strong> Cabeças de chave ficam em grupos
               separados (1 por grupo). Máximo: {limiteCabecas} cabeça(s).
             </>
           ) : (
             <>
-              <strong>👥 Dupla Fixa:</strong> Cabeças de chave não podem formar
+              <strong>Dupla Fixa:</strong> Cabeças de chave não podem formar
               dupla juntas. Máximo: {limiteCabecas} cabeça(s) (2 por grupo).
             </>
           )}
@@ -428,7 +422,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
                 <CabecaOrdem>#{cabeca.ordem}</CabecaOrdem>
                 <CabecaNome>{cabeca.jogadorNome}</CabecaNome>
 
-                {/* ✅ OCULTAR botões completamente quando readOnly */}
+                {/* OCULTAR botões completamente quando readOnly */}
                 {!readOnly && (
                   <CabecaActions>
                     <ActionButton
@@ -464,7 +458,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
         </CabecasLista>
       )}
 
-      {/* ✅ OCULTAR completamente lista de jogadores quando readOnly */}
+      {/* OCULTAR completamente lista de jogadores quando readOnly */}
       {!readOnly && (
         <>
           <Divider />
@@ -489,10 +483,10 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
                   <JogadorInfo>
                     <JogadorNome>{inscricao.jogadorNome}</JogadorNome>
                     <JogadorNivel>
-                      {inscricao.jogadorNivel === "iniciante" && "🟢 Iniciante"}
+                      {inscricao.jogadorNivel === "iniciante" && "Iniciante"}
                       {inscricao.jogadorNivel === "intermediario" &&
-                        "🟡 Intermediário"}
-                      {inscricao.jogadorNivel === "avancado" && "🔴 Avançado"}
+                        "Intermediário"}
+                      {inscricao.jogadorNivel === "avancado" && "Avançado"}
                     </JogadorNivel>
                   </JogadorInfo>
                   {ehCabeca && <Badge>#{ordem}</Badge>}

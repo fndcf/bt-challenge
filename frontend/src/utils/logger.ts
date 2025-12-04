@@ -13,13 +13,13 @@ export enum LogLevel {
 
 // Configuração
 const config = {
-  // ✅ Logs só aparecem em desenvolvimento
+  // Logs só aparecem em desenvolvimento
   enabled: import.meta.env.MODE === "development",
 
-  // ✅ Nível mínimo a ser exibido
+  // Nível mínimo a ser exibido
   level: (import.meta.env.VITE_LOG_LEVEL as LogLevel) || LogLevel.INFO,
 
-  // ✅ Enviar erros para Sentry (produção)
+  // Enviar erros para Sentry (produção)
   sendToSentry: import.meta.env.MODE === "production",
 };
 
@@ -72,7 +72,7 @@ class Logger {
       console.error("Stack:", error.stack);
     }
 
-    // ✅ Enviar para Sentry (produção)
+    // Enviar para Sentry (produção)
     if (config.sendToSentry && typeof window !== "undefined") {
       // @ts-ignore
       window.Sentry?.captureException(error || new Error(message), {

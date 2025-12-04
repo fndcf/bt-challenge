@@ -4,11 +4,10 @@
 
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import chaveService from "@/services/chaveService";
+import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo } from "@/types/chave";
 import { PartidasGrupo } from "../PartidasGrupo";
 import { FaseEliminatoria } from "../FaseEliminatoria";
-import etapaService from "@/services/etapaService";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -436,6 +435,8 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   etapaId,
   arenaId,
 }) => {
+  const chaveService = getChaveService();
+  const etapaService = getEtapaService();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [duplas, setDuplas] = useState<Dupla[]>([]);
   const [loading, setLoading] = useState(true);
@@ -570,7 +571,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                             return a.posicaoGrupo - b.posicaoGrupo;
                           }
 
-                          // ⚠️ FALLBACK: Se posicaoGrupo não existe ainda
+                          // FALLBACK: Se posicaoGrupo não existe ainda
                           // 1. Pontos
                           if (a.pontos !== b.pontos) {
                             return b.pontos - a.pontos;
@@ -671,7 +672,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
 
                     <VerPartidasButton onClick={() => toggleGrupo(grupo.id)}>
                       {grupoSelecionado === grupo.id
-                        ? " Ocultar Partidas"
+                        ? " ▼ Ocultar Partidas"
                         : " Ver Partidas"}
                     </VerPartidasButton>
 

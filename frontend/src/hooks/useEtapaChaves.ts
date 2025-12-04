@@ -1,0 +1,122 @@
+/**
+ * useEtapaChaves.ts
+ *
+ * Responsabilidade única: Gerenciar ações de chaveamento de etapas
+ *
+ * SOLID aplicado:
+ * - SRP: Hook focado apenas em operações de chaves
+ * - DIP: Depende de IChaveService e IReiDaPraiaService (abstrações)
+ * - OCP: Aberto para extensão (novos formatos podem ser adicionados)
+ */
+
+import { useCallback } from "react";
+import { Etapa, FormatoEtapa } from "@/types/etapa";
+import { getChaveService, getReiDaPraiaService } from "@/services";
+import logger from "@/utils/logger";
+
+export interface UseEtapaChavesParams {
+  etapa: Etapa | null;
+  onSuccess?: (
+    aba?: "inscricoes" | "chaves" | "cabeças"
+  ) => void | Promise<void>;
+}
+
+export interface UseEtapaChavesReturn {
+  handleGerarChaves: () => Promise<void>;
+  handleApagarChaves: () => Promise<void>;
+}
+
+/**
+ * Hook para gerenciar ações relacionadas a chaves
+ *
+ * @param params - Parâmetros contendo etapa e callback de sucesso
+ * @returns Funções para gerenciar chaves
+ */
+export const useEtapaChaves = ({
+  etapa,
+  onSuccess,
+}: UseEtapaChavesParams): UseEtapaChavesReturn => {
+  const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
+
+  /**
+   * Gerar chaves
+   */
+  const handleGerarChaves = useCallback(async () => {
+    if (!etapa) return;
+
+    const formatoNome = isReiDaPraia ? "Rei da Praia" : "Dupla Fixa";
+    const detalhes = isReiDaPraia
+      ? `• ${etapa.totalInscritos / 4} grupos de 4 jogadores\n` +
+        `• ${(etapa.totalInscritos / 4) * 3} partidas na fase de grupos\n` +
+        `• Estatísticas individuais por jogador`
+      : `• ${etapa.qtdGrupos} grupos\n` +
+        `• ${Math.floor(etapa.totalInscritos / 2)} duplas\n` +
+        `• Todos os confrontos da fase de grupos`;
+
+    const confirmar = window.confirm(
+      `Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
+        `Formato: ${formatoNome}\n\n` +
+        `Isso criará:\n${detalhes}\n\n` +
+        `Esta ação não pode ser desfeita!`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      if (isReiDaPraia) {
+        const reiDaPraiaService = getReiDaPraiaService();
+        await reiDaPraiaService.gerarChaves(etapa.id);
+      } else {
+        const chaveService = getChaveService();
+        await chaveService.gerarChaves(etapa.id);
+      }
+
+      if (onSuccess) await onSuccess("chaves");
+
+      alert("Chaves geradas com sucesso!");
+    } catch (err: any) {
+      logger.error("Erro ao gerar chaves", { etapaId: etapa.id }, err);
+      alert(err.message || "Erro ao gerar chaves");
+      throw err;
+    }
+  }, [etapa, isReiDaPraia, onSuccess]);
+
+  /**
+   * Apagar chaves
+   */
+  const handleApagarChaves = useCallback(async () => {
+    if (!etapa) return;
+
+    const confirmar = window.confirm(
+      `ATENÇÃO: Deseja apagar todas as chaves desta etapa?\n\n` +
+        `Isso removerá:\n` +
+        `• Todos os grupos\n` +
+        `• Todas as partidas\n` +
+        `• Todos os resultados\n\n` +
+        `Esta ação não pode ser desfeita!`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      // O endpoint DELETE /etapas/:id/chaves funciona para ambos os formatos
+      const chaveService = getChaveService();
+      await chaveService.excluirChaves(etapa.id);
+
+      if (onSuccess) await onSuccess("inscricoes");
+
+      alert("Chaves apagadas com sucesso!");
+    } catch (err: any) {
+      logger.error("Erro ao apagar chaves", { etapaId: etapa.id }, err);
+      alert(err.message || "Erro ao apagar chaves");
+      throw err;
+    }
+  }, [etapa, onSuccess]);
+
+  return {
+    handleGerarChaves,
+    handleApagarChaves,
+  };
+};
+
+export default useEtapaChaves;

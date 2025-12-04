@@ -13,11 +13,12 @@ import {
 } from "../types/jogador";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import { IJogadorService } from "./interfaces/IJogadorService";
 
 /**
  * Service para comunicação com API de Jogadores
  */
-class JogadorService {
+class JogadorService implements IJogadorService {
   private readonly basePath = "/jogadores";
 
   /**

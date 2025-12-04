@@ -29,44 +29,26 @@ const Card = styled.div`
 `;
 
 const Header = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
   margin-bottom: 1.5rem;
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-  min-width: 0;
 `;
 
 const Title = styled.h3`
   font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.75rem 0;
 
   @media (min-width: 768px) {
     font-size: 1.25rem;
   }
 `;
 
-const Description = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
 const HeaderBadges = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 `;
 
 const FormatoBadge = styled.span<{ $formato: string }>`
@@ -80,6 +62,16 @@ const FormatoBadge = styled.span<{ $formato: string }>`
   white-space: nowrap;
   background: #f3f4f6;
   color: #4b5563;
+`;
+
+const Description = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const InfoSection = styled.div`
@@ -294,21 +286,17 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
     <Card onClick={handleClick}>
       {/* Header */}
       <Header>
-        <HeaderContent>
-          <Title>
-            {isReiDaPraia ? "👑 " : "👥 "}
-            {etapa.nome}
-          </Title>
-          {etapa.descricao && <Description>{etapa.descricao}</Description>}
-        </HeaderContent>
+        <Title>{etapa.nome}</Title>
 
-        {/*  Badges empilhados */}
+        {/* Badges abaixo do nome */}
         <HeaderBadges>
           <StatusBadge status={etapa.status} />
           <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
-            {isReiDaPraia ? "👑 Rei da Praia" : "👥 Dupla Fixa"}
+            {isReiDaPraia ? " Rei da Praia" : " Dupla Fixa"}
           </FormatoBadge>
         </HeaderBadges>
+
+        {etapa.descricao && <Description>{etapa.descricao}</Description>}
       </Header>
 
       {/* Info Principal */}

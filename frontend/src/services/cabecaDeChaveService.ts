@@ -1,14 +1,15 @@
 /**
  * cabecaDeChaveService.ts
  * Service frontend para gerenciar cabeças de chave
- * ✅ COM LOGGER - Operações críticas rastreadas
+ * COM LOGGER - Operações críticas rastreadas
  */
 
 import { apiClient } from "./apiClient";
 import logger from "../utils/logger"; // ← IMPORTAR LOGGER
 import { CabecaDeChave, CriarCabecaDeChaveDTO } from "@/types/cabecaDeChave";
+import { ICabecaDeChaveService } from "./interfaces/ICabecaDeChaveService";
 
-class CabecaDeChaveService {
+class CabecaDeChaveService implements ICabecaDeChaveService {
   /**
    * Criar cabeça de chave
    */

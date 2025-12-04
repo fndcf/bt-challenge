@@ -288,58 +288,6 @@ const MatchStatus = styled.div<{ $status: string }>`
   }
 `;
 
-const ScoreDetails = styled.div`
-  display: flex;
-  gap: 8px;
-  padding: 10px 14px;
-  background: white;
-  border-top: 1px solid #e5e7eb;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  @media (min-width: 768px) {
-    padding: 12px 16px;
-  }
-`;
-
-const SetBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 10px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  min-width: 48px;
-
-  @media (min-width: 768px) {
-    padding: 8px 12px;
-    min-width: 52px;
-  }
-`;
-
-const SetLabel = styled.div`
-  font-size: 10px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-
-  @media (min-width: 768px) {
-    font-size: 11px;
-  }
-`;
-
-const SetScore = styled.div`
-  font-size: 14px;
-  font-weight: 700;
-  color: #1f2937;
-
-  @media (min-width: 768px) {
-    font-size: 15px;
-  }
-`;
-
 const EmptyBox = styled.div`
   text-align: center;
   padding: 48px 24px;
@@ -423,18 +371,18 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                   <Match key={match.id} $offset={matchIdx % 2 === 1}>
                     <Team $winner={winner1} $active={!finished || winner1}>
                       <TeamName>{match.jogador1.nome}</TeamName>
-                      {finished && match.placar && (
+                      {finished && match.placarDetalhado && match.placarDetalhado.length > 0 && (
                         <Score $winner={winner1}>
-                          {match.placar.split("-")[0]}
+                          {match.placarDetalhado[0].gamesDupla1}
                         </Score>
                       )}
                     </Team>
 
                     <Team $winner={winner2} $active={!finished || winner2}>
                       <TeamName>{match.jogador2!.nome}</TeamName>
-                      {finished && match.placar && (
+                      {finished && match.placarDetalhado && match.placarDetalhado.length > 0 && (
                         <Score $winner={winner2}>
-                          {match.placar.split("-")[1]}
+                          {match.placarDetalhado[0].gamesDupla2}
                         </Score>
                       )}
                     </Team>
@@ -446,21 +394,6 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                           : "Aguardando"}
                       </MatchStatus>
                     )}
-
-                    {finished &&
-                      match.placarDetalhado &&
-                      match.placarDetalhado.length > 0 && (
-                        <ScoreDetails>
-                          {match.placarDetalhado.map((set) => (
-                            <SetBox key={`${match.id}-set-${set.numero}`}>
-                              <SetLabel>Set {set.numero}</SetLabel>
-                              <SetScore>
-                                {set.gamesDupla1}-{set.gamesDupla2}
-                              </SetScore>
-                            </SetBox>
-                          ))}
-                        </ScoreDetails>
-                      )}
                   </Match>
                 );
               })}

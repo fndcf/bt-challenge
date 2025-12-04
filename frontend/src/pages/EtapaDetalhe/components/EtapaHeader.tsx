@@ -6,7 +6,7 @@
 
 import React from "react";
 import { EtapaPublica } from "@/services/arenaPublicService";
-import { getStatusLabel } from "../utils/formatters";
+import { getStatusLabel } from "@/utils/formatters";
 import * as S from "../EtapaDetalhe.styles";
 
 export interface EtapaHeaderProps {

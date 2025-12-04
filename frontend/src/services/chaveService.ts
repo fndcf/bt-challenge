@@ -4,7 +4,7 @@
  *
  * Responsabilidade única: Operações de chaves para Dupla Fixa
  *
- * ⚠️ Para formato Rei da Praia, use reiDaPraiaService
+ *  Para formato Rei da Praia, use reiDaPraiaService
  */
 
 import { apiClient } from "./apiClient";
@@ -19,8 +19,9 @@ import {
 } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger";
+import { IChaveService } from "./interfaces/IChaveService";
 
-class ChaveService {
+class ChaveService implements IChaveService {
   private baseURL = "/etapas";
 
   // ============================================

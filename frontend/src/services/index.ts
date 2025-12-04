@@ -1,35 +1,66 @@
 /**
- * Arena Services - Index
+ * Services - Index
  *
- * Exporta os services de arena organizados por responsabilidade:
+ * Exporta services, interfaces e container (DI)
  *
- * ┌─────────────────────────────────────────────────────────────┐
- * │                      ARENA SERVICES                         │
- * ├─────────────────────────────────────────────────────────────┤
- * │                                                             │
- * │  arenaAdminService     →  Operações administrativas         │
- * │  (autenticado)            - criar, atualizar, deletar       │
- * │                           - buscar por ID/slug              │
- * │                           - listar arenas                   │
- * │                                                             │
- * │  arenaPublicService    →  Operações públicas                │
- * │  (sem auth)               - ranking                         │
- * │                           - estatísticas                    │
- * │                           - etapas públicas                 │
- * │                           - jogadores públicos              │
- * │                                                             │
- * └─────────────────────────────────────────────────────────────┘
- *
+ * IMPORTANTE:
+ * - Use o container para obter services (DIP)
+ * - Importe interfaces, não implementações
+ * - Facilita testes e mocking
  */
 
-// Services principais
-export { arenaAdminService } from "./arenaAdminService";
-export { arenaPublicService } from "./arenaPublicService";
+// ============================================
+// DEPENDENCY INJECTION CONTAINER
+// ============================================
 
-// Tipos do Admin
+export {
+  container,
+  getArenaAdminService,
+  getArenaPublicService,
+  getEtapaService,
+  getJogadorService,
+  getChaveService,
+  getCabecaDeChaveService,
+  getPartidaService,
+  getReiDaPraiaService,
+} from "./container";
+
+// ============================================
+// INTERFACES (recomendado usar estas)
+// ============================================
+
+export type {
+  IArenaAdminService,
+  IArenaPublicService,
+  IEtapaService,
+  IJogadorService,
+  IChaveService,
+  ICabecaDeChaveService,
+  IPartidaService,
+  IReiDaPraiaService,
+} from "./interfaces";
+
+// ============================================
+// SERVICES (backward compatibility)
+// ============================================
+
+export { default as arenaAdminService } from "./arenaAdminService";
+export { default as arenaPublicService } from "./arenaPublicService";
+export { default as etapaService } from "./etapaService";
+export { default as jogadorService } from "./jogadorService";
+export { default as chaveService } from "./chaveService";
+export { default as cabecaDeChaveService } from "./cabecaDeChaveService";
+export { default as partidaService } from "./partidaService";
+export { default as reiDaPraiaService } from "./reiDaPraiaService";
+
+// ============================================
+// TYPES & DTOs
+// ============================================
+
+// Arena Admin
 export type { CreateArenaDTO, CreateArenaResponse } from "./arenaAdminService";
 
-// Tipos do Public
+// Arena Public
 export type {
   EtapaPublica,
   JogadorPublico,

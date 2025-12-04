@@ -42,7 +42,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
       {/* Rei da Praia */}
       <S.StatCard>
         <S.StatContent>
-          <S.StatLabel>👑 Rei da Praia</S.StatLabel>
+          <S.StatLabel> Rei da Praia</S.StatLabel>
           <S.StatValue>{stats.reiDaPraia}</S.StatValue>
         </S.StatContent>
       </S.StatCard>
@@ -50,7 +50,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
       {/* Dupla Fixa */}
       <S.StatCard>
         <S.StatContent>
-          <S.StatLabel>👥 Dupla Fixa</S.StatLabel>
+          <S.StatLabel>Dupla Fixa</S.StatLabel>
           <S.StatValue>{stats.duplaFixa}</S.StatValue>
         </S.StatContent>
       </S.StatCard>

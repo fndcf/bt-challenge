@@ -10,7 +10,7 @@
 
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import jogadorService from "@/services/jogadorService";
+import { getJogadorService } from "@/services";
 import {
   CriarJogadorDTO,
   GeneroJogador,
@@ -178,6 +178,7 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
           }
         });
 
+        const jogadorService = getJogadorService();
         await jogadorService.criar(dataToSend);
 
         setSuccessMessage("Jogador cadastrado com sucesso!");
@@ -193,7 +194,7 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
         }
 
         if (mensagem.toLowerCase().includes("já existe")) {
-          mensagem = "⚠️ " + mensagem;
+          mensagem = mensagem;
         }
 
         setErrorMessage(mensagem);

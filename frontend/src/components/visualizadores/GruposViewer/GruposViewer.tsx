@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 
 // ============== TYPES ==============
@@ -84,7 +84,12 @@ const Wrapper = styled.section`
 `;
 
 const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
 
   @media (min-width: 768px) {
     margin-bottom: 32px;
@@ -102,6 +107,73 @@ const Title = styled.h2`
 
   @media (min-width: 768px) {
     font-size: 20px;
+  }
+`;
+
+const ToggleButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #eff6ff;
+  }
+
+  @media (min-width: 768px) {
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+`;
+
+const CollapsedSummary = styled.div`
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    padding: 24px;
+  }
+`;
+
+const SummaryItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+`;
+
+const SummaryLabel = styled.span`
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+`;
+
+const SummaryValue = styled.span`
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+
+  @media (min-width: 768px) {
+    font-size: 28px;
   }
 `;
 
@@ -140,11 +212,6 @@ const GroupCard = styled.div`
   border-radius: 12px;
   overflow: hidden;
   background: white;
-  transition: border-color 0.2s;
-
-  &:hover {
-    border-color: #3b82f6;
-  }
 `;
 
 const GroupHeader = styled.div<{ $formato?: string }>`
@@ -195,22 +262,7 @@ const SectionTitle = styled.h4`
 
 // Standings Table
 const TableWrapper = styled.div`
-  overflow-x: auto;
   margin-bottom: 24px;
-  -webkit-overflow-scrolling: touch;
-
-  &::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f3f4f6;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 2px;
-  }
 
   @media (min-width: 768px) {
     margin-bottom: 28px;
@@ -219,16 +271,15 @@ const TableWrapper = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 400px;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 
   @media (min-width: 768px) {
     font-size: 14px;
   }
 
   @media (min-width: 1024px) {
-    min-width: 100%;
     font-size: 13px;
   }
 `;
@@ -362,17 +413,21 @@ const Position = styled.div<{ $qualified?: boolean }>`
 const TeamName = styled.div`
   font-weight: 600;
   color: #1f2937;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 180px;
 
-  @media (min-width: 768px) and (max-width: 1023px) {
-    max-width: none;
+  @media (min-width: 768px) {
+    max-width: 180px;
   }
 
   @media (min-width: 1024px) {
-    max-width: 140px;
+    max-width: 250px;
+  }
+
+  @media (min-width: 1200px) {
+    max-width: 280px;
   }
 `;
 
@@ -554,58 +609,6 @@ const TeamScore = styled.span<{ $winner?: boolean }>`
   }
 `;
 
-const SetDetails = styled.div`
-  display: flex;
-  gap: 8px;
-  padding: 10px 14px;
-  background: #fafafa;
-  border-top: 1px solid #e5e7eb;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  @media (min-width: 768px) {
-    padding: 12px 16px;
-  }
-`;
-
-const SetBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 10px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  min-width: 48px;
-
-  @media (min-width: 768px) {
-    padding: 8px 12px;
-    min-width: 52px;
-  }
-`;
-
-const SetLabel = styled.div`
-  font-size: 10px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-
-  @media (min-width: 768px) {
-    font-size: 11px;
-  }
-`;
-
-const SetScore = styled.div`
-  font-size: 14px;
-  font-weight: 700;
-  color: #1f2937;
-
-  @media (min-width: 768px) {
-    font-size: 15px;
-  }
-`;
-
 const EmptyBox = styled.div`
   text-align: center;
   padding: 32px 16px;
@@ -624,6 +627,8 @@ const EmptyText = styled.p`
 // ============== COMPONENT ==============
 
 const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   if (!grupos?.length) {
     return (
       <Wrapper>
@@ -642,37 +647,162 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
     (grupos[0]?.jogadores?.length ? "rei_da_praia" : "dupla_fixa");
   const isReiDaPraia = formato === "rei_da_praia";
 
+  // Calcular estatísticas resumidas
+  const totalGrupos = grupos.length;
+  const totalPartidas = grupos.reduce(
+    (acc, g) => acc + (g.partidas?.length || 0),
+    0
+  );
+  const partidasFinalizadas = grupos.reduce(
+    (acc, g) =>
+      acc +
+      (g.partidas?.filter((p) => p.status?.toUpperCase() === "FINALIZADA")
+        .length || 0),
+    0
+  );
+
   return (
     <Wrapper>
       <Header>
         <Title>
-          {isReiDaPraia ? "👑" : "👥"} Fase de Grupos
+          Fase de Grupos
           <FormatoBadge $formato={formato}>
             {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
           </FormatoBadge>
         </Title>
+        <ToggleButton onClick={() => setIsExpanded(!isExpanded)}>
+          {isExpanded ? "▲ Recolher" : "▼ Expandir"}
+        </ToggleButton>
       </Header>
 
-      <GroupsGrid>
-        {grupos.map((group) => (
-          <GroupCard key={group.id}>
-            <GroupHeader $formato={formato}>
-              <GroupName>{group.nome}</GroupName>
-            </GroupHeader>
+      {!isExpanded && (
+        <CollapsedSummary>
+          <SummaryItem>
+            <SummaryLabel>Grupos</SummaryLabel>
+            <SummaryValue>{totalGrupos}</SummaryValue>
+          </SummaryItem>
+          <SummaryItem>
+            <SummaryLabel>Partidas</SummaryLabel>
+            <SummaryValue>{totalPartidas}</SummaryValue>
+          </SummaryItem>
+          <SummaryItem>
+            <SummaryLabel>Finalizadas</SummaryLabel>
+            <SummaryValue>{partidasFinalizadas}</SummaryValue>
+          </SummaryItem>
+          <SummaryItem>
+            <SummaryLabel>Progresso</SummaryLabel>
+            <SummaryValue>
+              {totalPartidas > 0
+                ? Math.round((partidasFinalizadas / totalPartidas) * 100)
+                : 0}
+              %
+            </SummaryValue>
+          </SummaryItem>
+        </CollapsedSummary>
+      )}
 
-            <GroupContent>
-              {/*  CLASSIFICAÇÃO REI DA PRAIA - Jogadores individuais */}
-              {isReiDaPraia &&
-                group.jogadores &&
-                group.jogadores.length > 0 && (
+      {isExpanded && (
+        <GroupsGrid>
+          {grupos.map((group) => (
+            <GroupCard key={group.id}>
+              <GroupHeader $formato={formato}>
+                <GroupName>{group.nome}</GroupName>
+              </GroupHeader>
+
+              <GroupContent>
+                {/*  CLASSIFICAÇÃO REI DA PRAIA - Jogadores individuais */}
+                {isReiDaPraia &&
+                  group.jogadores &&
+                  group.jogadores.length > 0 && (
+                    <>
+                      <SectionTitle>Classificação</SectionTitle>
+                      <TableWrapper>
+                        <Table>
+                          <colgroup>
+                            <col style={{ width: "40px" }} />
+                            <col style={{ width: "auto" }} />
+                            <col style={{ width: "25px" }} />
+                            <col style={{ width: "25px" }} />
+                            <col style={{ width: "25px" }} />
+                            <col style={{ width: "35px" }} />
+                            <col style={{ width: "35px" }} />
+                          </colgroup>
+                          <THead>
+                            <tr>
+                              <Th>#</Th>
+                              <Th>Jogador</Th>
+                              <Th>J</Th>
+                              <Th>V</Th>
+                              <Th>D</Th>
+                              <Th>Pts</Th>
+                              <Th>SG</Th>
+                            </tr>
+                          </THead>
+                          <TBody>
+                            {group.jogadores.map((jogador, index) => (
+                              <Tr
+                                key={jogador.id}
+                                $qualified={jogador.classificado}
+                              >
+                                <Td>
+                                  <Position $qualified={jogador.classificado}>
+                                    {jogador.posicaoGrupo || index + 1}
+                                  </Position>
+                                </Td>
+                                <Td>
+                                  <TeamName>{jogador.jogadorNome}</TeamName>
+                                </Td>
+                                <Td>{jogador.jogosGrupo || 0}</Td>
+                                <Td>{jogador.vitoriasGrupo || 0}</Td>
+                                <Td>{jogador.derrotasGrupo || 0}</Td>
+                                <Td>
+                                  <StatBadge>
+                                    {jogador.pontosGrupo || 0}
+                                  </StatBadge>
+                                </Td>
+                                <Td>
+                                  <StatBadge
+                                    $type={
+                                      (jogador.saldoGamesGrupo || 0) > 0
+                                        ? "positive"
+                                        : (jogador.saldoGamesGrupo || 0) < 0
+                                        ? "negative"
+                                        : "neutral"
+                                    }
+                                  >
+                                    {(jogador.saldoGamesGrupo || 0) > 0
+                                      ? "+"
+                                      : ""}
+                                    {jogador.saldoGamesGrupo || 0}
+                                  </StatBadge>
+                                </Td>
+                              </Tr>
+                            ))}
+                          </TBody>
+                        </Table>
+                      </TableWrapper>
+                    </>
+                  )}
+
+                {/*  CLASSIFICAÇÃO DUPLA FIXA - Manter código existente */}
+                {!isReiDaPraia && group.duplas && group.duplas.length > 0 && (
                   <>
                     <SectionTitle>Classificação</SectionTitle>
                     <TableWrapper>
                       <Table>
+                        <colgroup>
+                          <col style={{ width: "40px" }} />
+                          <col style={{ width: "auto" }} />
+                          <col style={{ width: "20px" }} />
+                          <col style={{ width: "20px" }} />
+                          <col style={{ width: "20px" }} />
+                          <col style={{ width: "30px" }} />
+                          <col style={{ width: "32px" }} />
+                        </colgroup>
                         <THead>
                           <tr>
                             <Th>#</Th>
-                            <Th>Jogador</Th>
+                            <Th>Dupla</Th>
                             <Th>J</Th>
                             <Th>V</Th>
                             <Th>D</Th>
@@ -681,41 +811,36 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                           </tr>
                         </THead>
                         <TBody>
-                          {group.jogadores.map((jogador, index) => (
-                            <Tr
-                              key={jogador.id}
-                              $qualified={jogador.classificado}
-                            >
+                          {group.duplas.map((team) => (
+                            <Tr key={team.id} $qualified={team.classificada}>
                               <Td>
-                                <Position $qualified={jogador.classificado}>
-                                  {jogador.posicaoGrupo || index + 1}
+                                <Position $qualified={team.classificada}>
+                                  {team.posicaoGrupo}
                                 </Position>
                               </Td>
                               <Td>
-                                <TeamName>{jogador.jogadorNome}</TeamName>
+                                <TeamName>
+                                  {team.jogador1Nome} & {team.jogador2Nome}
+                                </TeamName>
                               </Td>
-                              <Td>{jogador.jogosGrupo || 0}</Td>
-                              <Td>{jogador.vitoriasGrupo || 0}</Td>
-                              <Td>{jogador.derrotasGrupo || 0}</Td>
+                              <Td>{team.jogos}</Td>
+                              <Td>{team.vitorias}</Td>
+                              <Td>{team.derrotas}</Td>
                               <Td>
-                                <StatBadge>
-                                  {jogador.pontosGrupo || 0}
-                                </StatBadge>
+                                <StatBadge>{team.pontos}</StatBadge>
                               </Td>
                               <Td>
                                 <StatBadge
                                   $type={
-                                    (jogador.saldoGamesGrupo || 0) > 0
+                                    team.saldoGames > 0
                                       ? "positive"
-                                      : (jogador.saldoGamesGrupo || 0) < 0
+                                      : team.saldoGames < 0
                                       ? "negative"
                                       : "neutral"
                                   }
                                 >
-                                  {(jogador.saldoGamesGrupo || 0) > 0
-                                    ? "+"
-                                    : ""}
-                                  {jogador.saldoGamesGrupo || 0}
+                                  {team.saldoGames > 0 ? "+" : ""}
+                                  {team.saldoGames}
                                 </StatBadge>
                               </Td>
                             </Tr>
@@ -726,147 +851,76 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                   </>
                 )}
 
-              {/*  CLASSIFICAÇÃO DUPLA FIXA - Manter código existente */}
-              {!isReiDaPraia && group.duplas && group.duplas.length > 0 && (
-                <>
-                  <SectionTitle>Classificação</SectionTitle>
-                  <TableWrapper>
-                    <Table>
-                      <THead>
-                        <tr>
-                          <Th>#</Th>
-                          <Th>Dupla</Th>
-                          <Th>J</Th>
-                          <Th>V</Th>
-                          <Th>D</Th>
-                          <Th>Pts</Th>
-                          <Th>SG</Th>
-                        </tr>
-                      </THead>
-                      <TBody>
-                        {group.duplas.map((team) => (
-                          <Tr key={team.id} $qualified={team.classificada}>
-                            <Td>
-                              <Position $qualified={team.classificada}>
-                                {team.posicaoGrupo}
-                              </Position>
-                            </Td>
-                            <Td>
-                              <TeamName>
-                                {team.jogador1Nome} & {team.jogador2Nome}
-                              </TeamName>
-                            </Td>
-                            <Td>{team.jogos}</Td>
-                            <Td>{team.vitorias}</Td>
-                            <Td>{team.derrotas}</Td>
-                            <Td>
-                              <StatBadge>{team.pontos}</StatBadge>
-                            </Td>
-                            <Td>
-                              <StatBadge
-                                $type={
-                                  team.saldoGames > 0
-                                    ? "positive"
-                                    : team.saldoGames < 0
-                                    ? "negative"
-                                    : "neutral"
-                                }
-                              >
-                                {team.saldoGames > 0 ? "+" : ""}
-                                {team.saldoGames}
-                              </StatBadge>
-                            </Td>
-                          </Tr>
-                        ))}
-                      </TBody>
-                    </Table>
-                  </TableWrapper>
-                </>
-              )}
+                {/*  PARTIDAS - Adaptar por formato */}
+                {group.partidas?.length > 0 && (
+                  <>
+                    <SectionTitle>Partidas</SectionTitle>
+                    <MatchesList>
+                      {group.partidas.map((match) => {
+                        const finished =
+                          match.status?.toUpperCase() === "FINALIZADA";
 
-              {/*  PARTIDAS - Adaptar por formato */}
-              {group.partidas?.length > 0 && (
-                <>
-                  <SectionTitle>Partidas</SectionTitle>
-                  <MatchesList>
-                    {group.partidas.map((match) => {
-                      const finished =
-                        match.status?.toUpperCase() === "FINALIZADA";
+                        //  Detectar vencedor por formato
+                        const winner1 = isReiDaPraia
+                          ? match.vencedoresNomes === match.dupla1Nome
+                          : match.vencedoraNome === match.dupla1Nome;
+                        const winner2 = isReiDaPraia
+                          ? match.vencedoresNomes === match.dupla2Nome
+                          : match.vencedoraNome === match.dupla2Nome;
 
-                      //  Detectar vencedor por formato
-                      const winner1 = isReiDaPraia
-                        ? match.vencedoresNomes === match.dupla1Nome
-                        : match.vencedoraNome === match.dupla1Nome;
-                      const winner2 = isReiDaPraia
-                        ? match.vencedoresNomes === match.dupla2Nome
-                        : match.vencedoraNome === match.dupla2Nome;
+                        return (
+                          <MatchCard key={match.id} $finished={finished}>
+                            <MatchHeader>
+                              <Status $status={match.status || "agendada"}>
+                                {finished
+                                  ? "Finalizada"
+                                  : match.status?.toUpperCase() ===
+                                    "EM_ANDAMENTO"
+                                  ? "Ao vivo"
+                                  : "Agendada"}
+                              </Status>
+                            </MatchHeader>
 
-                      return (
-                        <MatchCard key={match.id} $finished={finished}>
-                          <MatchHeader>
-                            <Status $status={match.status || "agendada"}>
-                              {finished
-                                ? "Finalizada"
-                                : match.status?.toUpperCase() === "EM_ANDAMENTO"
-                                ? "Ao vivo"
-                                : "Agendada"}
-                            </Status>
-                          </MatchHeader>
+                            <MatchBody>
+                              <TeamRow $winner={winner1}>
+                                <TeamNameInMatch>
+                                  {match.dupla1Nome}
+                                </TeamNameInMatch>
+                                {finished &&
+                                  match.placar &&
+                                  match.placar.length > 0 && (
+                                    <TeamScore $winner={winner1}>
+                                      {match.placar[0].gamesDupla1}
+                                    </TeamScore>
+                                  )}
+                              </TeamRow>
 
-                          <MatchBody>
-                            <TeamRow $winner={winner1}>
-                              <TeamNameInMatch>
-                                {match.dupla1Nome}
-                              </TeamNameInMatch>
-                              {finished && (
-                                <TeamScore $winner={winner1}>
-                                  {match.setsDupla1}
-                                </TeamScore>
-                              )}
-                            </TeamRow>
+                              <VS>VS</VS>
 
-                            <VS>VS</VS>
-
-                            <TeamRow $winner={winner2}>
-                              <TeamNameInMatch>
-                                {match.dupla2Nome}
-                              </TeamNameInMatch>
-                              {finished && (
-                                <TeamScore $winner={winner2}>
-                                  {match.setsDupla2}
-                                </TeamScore>
-                              )}
-                            </TeamRow>
-                          </MatchBody>
-
-                          {finished &&
-                            match.placar &&
-                            match.placar.length > 0 && (
-                              <SetDetails>
-                                {match.placar.map((set, idx) => (
-                                  <SetBox
-                                    key={`${match.id}-set-${set.numero || idx}`}
-                                  >
-                                    <SetLabel>
-                                      Set {set.numero || idx + 1}
-                                    </SetLabel>
-                                    <SetScore>
-                                      {set.gamesDupla1}-{set.gamesDupla2}
-                                    </SetScore>
-                                  </SetBox>
-                                ))}
-                              </SetDetails>
-                            )}
-                        </MatchCard>
-                      );
-                    })}
-                  </MatchesList>
-                </>
-              )}
-            </GroupContent>
-          </GroupCard>
-        ))}
-      </GroupsGrid>
+                              <TeamRow $winner={winner2}>
+                                <TeamNameInMatch>
+                                  {match.dupla2Nome}
+                                </TeamNameInMatch>
+                                {finished &&
+                                  match.placar &&
+                                  match.placar.length > 0 && (
+                                    <TeamScore $winner={winner2}>
+                                      {match.placar[0].gamesDupla2}
+                                    </TeamScore>
+                                  )}
+                              </TeamRow>
+                            </MatchBody>
+                          </MatchCard>
+                        );
+                      })}
+                    </MatchesList>
+                  </>
+                )}
+              </GroupContent>
+            </GroupCard>
+          ))}
+        </GroupsGrid>
+      )}
     </Wrapper>
   );
 };

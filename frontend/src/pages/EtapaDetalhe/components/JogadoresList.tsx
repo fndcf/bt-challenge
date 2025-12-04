@@ -17,7 +17,7 @@ export interface JogadoresListProps {
 export const JogadoresList: React.FC<JogadoresListProps> = ({
   slug,
   jogadores,
-  itensPorPagina = 10,
+  itensPorPagina = 5,
 }) => {
   const [paginaAtual, setPaginaAtual] = useState(1);
 

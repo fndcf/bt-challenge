@@ -1,331 +1,164 @@
 /**
  * useDetalhesEtapa.ts
  *
- * Responsabilidade única: Gerenciar estado e operações da página de detalhes de etapa
+ * Responsabilidade única: Compor hooks especializados para gerenciar página de detalhes
+ *
+ * SOLID aplicado:
+ * - SRP: Hook compositor que delega responsabilidades
+ * - OCP: Aberto para extensão (novos hooks podem ser adicionados)
+ * - DIP: Depende de abstrações (hooks especializados)
+ * - ISP: Cada hook tem interface segregada
+ *
+ * Composição de hooks:
+ * - useEtapaData: Gerencia dados da etapa
+ * - useEtapaInscricoes: Gerencia ações de inscrição
+ * - useEtapaChaves: Gerencia ações de chaves
+ * - useEtapaUI: Gerencia estado da UI
  */
 
-import { useState, useEffect, useCallback } from "react";
-import { Etapa, Inscricao, FormatoEtapa } from "../types/etapa";
-import etapaService from "../services/etapaService";
-import chaveService from "../services/chaveService";
-import reiDaPraiaService from "../services/reiDaPraiaService";
-import logger from "../utils/logger";
+import { useCallback } from "react";
+import { useEtapaData, type EtapaComInscricoes } from "./useEtapaData";
+import { useEtapaInscricoes } from "./useEtapaInscricoes";
+import { useEtapaChaves } from "./useEtapaChaves";
+import { useEtapaUI, type AbaEtapa } from "./useEtapaUI";
 
-// Etapa estendida com inscrições
-export interface EtapaComInscricoes extends Etapa {
-  inscricoes?: Inscricao[];
-}
+export type { EtapaComInscricoes, AbaEtapa };
 
 interface UseDetalhesEtapaReturn {
-  // Estado
+  // Estado de dados
   etapa: EtapaComInscricoes | null;
   loading: boolean;
   error: string;
-  abaAtiva: "inscricoes" | "chaves" | "cabeças";
-  modalInscricaoAberto: boolean;
-  modalConfirmacaoAberto: boolean;
 
   // Flags derivadas
   isReiDaPraia: boolean;
   progresso: number;
 
-  // Actions
+  // Estado de UI
+  abaAtiva: AbaEtapa;
+  modalInscricaoAberto: boolean;
+  modalConfirmacaoAberto: boolean;
+
+  // Actions - Dados
   carregarEtapa: () => Promise<void>;
+
+  // Actions - Inscrições
   handleAbrirInscricoes: () => Promise<void>;
   handleEncerrarInscricoes: () => Promise<void>;
   handleFinalizarEtapa: () => Promise<void>;
   handleCancelarInscricao: (inscricaoId: string, jogadorNome: string) => Promise<void>;
   handleCancelarMultiplosInscricoes: (inscricaoIds: string[]) => Promise<void>;
+
+  // Actions - Chaves
   handleGerarChaves: () => Promise<void>;
   handleApagarChaves: () => Promise<void>;
 
-  // Modal handlers
-  setAbaAtiva: (aba: "inscricoes" | "chaves" | "cabeças") => void;
+  // UI Handlers
+  setAbaAtiva: (aba: AbaEtapa) => void;
   setModalInscricaoAberto: (aberto: boolean) => void;
   setModalConfirmacaoAberto: (aberto: boolean) => void;
 }
 
 /**
- * Hook para gerenciar detalhes de uma etapa
+ * Hook compositor para gerenciar detalhes de uma etapa
+ *
+ * Este hook segue o padrão de composição, delegando responsabilidades
+ * para hooks especializados menores. Isso melhora:
+ * - Testabilidade (cada hook pode ser testado isoladamente)
+ * - Manutenibilidade (mudanças em uma área não afetam outras)
+ * - Reusabilidade (hooks podem ser usados em outros contextos)
+ *
+ * @param etapaId - ID da etapa a ser gerenciada
+ * @returns Interface completa para gerenciar detalhes da etapa
  */
 export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
-  // Estado
-  const [etapa, setEtapa] = useState<EtapaComInscricoes | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [abaAtiva, setAbaAtiva] = useState<"inscricoes" | "chaves" | "cabeças">("inscricoes");
-  const [modalInscricaoAberto, setModalInscricaoAberto] = useState(false);
-  const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
-
-  // Flags derivadas
-  const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
-  const progresso = etapa && etapa.maxJogadores > 0
-    ? Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100)
-    : 0;
-
-  /**
-   * Carregar dados da etapa
-   */
-  const carregarEtapa = useCallback(async () => {
-    if (!etapaId) {
-      setError("ID da etapa não fornecido");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-
-      // Carregar etapa e inscrições em paralelo
-      const [etapaData, inscricoesData] = await Promise.all([
-        etapaService.buscarPorId(etapaId),
-        etapaService.listarInscricoes(etapaId)
-      ]);
-
-      // Adicionar inscrições ao objeto da etapa
-      const etapaComInscricoes: EtapaComInscricoes = {
-        ...etapaData,
-        inscricoes: inscricoesData
-      };
-
-      setEtapa(etapaComInscricoes);
-    } catch (err: any) {
-      logger.error("Erro ao carregar etapa", { etapaId }, err);
-      setError(err.message || "Erro ao carregar etapa");
-    } finally {
-      setLoading(false);
-    }
-  }, [etapaId]);
-
-  /**
-   * Abrir/Reabrir inscrições
-   */
-  const handleAbrirInscricoes = useCallback(async () => {
-    if (!etapa) return;
-
-    const confirmar = window.confirm(
-      `🎾 Deseja reabrir as inscrições para "${etapa.nome}"?\n\n` +
-        `Os jogadores poderão se inscrever novamente.`
-    );
-
-    if (!confirmar) return;
-
-    try {
-      setLoading(true);
-      await etapaService.reabrirInscricoes(etapa.id);
-      await carregarEtapa();
-      alert("Inscrições reabertas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao reabrir inscrições", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao reabrir inscrições");
-      setLoading(false);
-    }
-  }, [etapa, carregarEtapa]);
-
-  /**
-   * Encerrar inscrições
-   */
-  const handleEncerrarInscricoes = useCallback(async () => {
-    if (!etapa) return;
-
-    const confirmar = window.confirm(
-      `⚠️ Deseja encerrar as inscrições para "${etapa.nome}"?\n\n` +
-        `Após encerrar, novos jogadores não poderão se inscrever.`
-    );
-
-    if (!confirmar) return;
-
-    try {
-      setLoading(true);
-      await etapaService.encerrarInscricoes(etapa.id);
-      await carregarEtapa();
-      alert("Inscrições encerradas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao encerrar inscrições", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao encerrar inscrições");
-      setLoading(false);
-    }
-  }, [etapa, carregarEtapa]);
-
-  /**
-   * Finalizar etapa
-   */
-  const handleFinalizarEtapa = useCallback(async () => {
-    if (!etapa) return;
-
-    const confirmar = window.confirm(
-      `🏆 Deseja finalizar a etapa "${etapa.nome}"?\n\n` +
-        `Isso marcará a etapa como concluída.`
-    );
-
-    if (!confirmar) return;
-
-    try {
-      setLoading(true);
-      await etapaService.encerrarEtapa(etapa.id);
-      await carregarEtapa();
-      alert("Etapa finalizada com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao finalizar etapa", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao finalizar etapa");
-      setLoading(false);
-    }
-  }, [etapa, carregarEtapa]);
-
-  /**
-   * Cancelar inscrição
-   */
-  const handleCancelarInscricao = useCallback(
-    async (inscricaoId: string, jogadorNome: string) => {
-      if (!etapa) return;
-
-      const confirmar = window.confirm(
-        `Deseja cancelar a inscrição de ${jogadorNome}?`
-      );
-
-      if (!confirmar) return;
-
-      try {
-        await etapaService.cancelarInscricao(etapa.id, inscricaoId);
-        await carregarEtapa();
-        alert("Inscrição cancelada com sucesso!");
-      } catch (err: any) {
-        logger.error("Erro ao cancelar inscrição", { etapaId: etapa.id, inscricaoId }, err);
-        alert(err.message || "Erro ao cancelar inscrição");
-      }
-    },
-    [etapa, carregarEtapa]
-  );
-
-  /**
-   * Cancelar múltiplas inscrições
-   */
-  const handleCancelarMultiplosInscricoes = useCallback(
-    async (inscricaoIds: string[]) => {
-      if (!etapa) return;
-
-      try {
-        // Cancelar sequencialmente para evitar sobrecarga
-        for (const inscricaoId of inscricaoIds) {
-          await etapaService.cancelarInscricao(etapa.id, inscricaoId);
-        }
-
-        await carregarEtapa();
-        alert(`${inscricaoIds.length} inscrição(ões) cancelada(s) com sucesso!`);
-      } catch (err: any) {
-        logger.error("Erro ao cancelar múltiplas inscrições", { etapaId: etapa.id, count: inscricaoIds.length }, err);
-        throw err; // Re-throw para o componente tratar
-      }
-    },
-    [etapa, carregarEtapa]
-  );
-
-  /**
-   * Gerar chaves
-   */
-  const handleGerarChaves = useCallback(async () => {
-    if (!etapa) return;
-
-    const formatoNome = isReiDaPraia ? "Rei da Praia" : "Dupla Fixa";
-    const detalhes = isReiDaPraia
-      ? `• ${etapa.totalInscritos / 4} grupos de 4 jogadores\n` +
-        `• ${(etapa.totalInscritos / 4) * 3} partidas na fase de grupos\n` +
-        `• Estatísticas individuais por jogador`
-      : `• ${etapa.qtdGrupos} grupos\n` +
-        `• ${Math.floor(etapa.totalInscritos / 2)} duplas\n` +
-        `• Todos os confrontos da fase de grupos`;
-
-    const confirmar = window.confirm(
-      `🎾 Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
-        `Formato: ${formatoNome}\n\n` +
-        `Isso criará:\n${detalhes}\n\n` +
-        `⚠️ Esta ação não pode ser desfeita!`
-    );
-
-    if (!confirmar) return;
-
-    try {
-      setLoading(true);
-
-      if (isReiDaPraia) {
-        await reiDaPraiaService.gerarChaves(etapa.id);
-      } else {
-        await chaveService.gerarChaves(etapa.id);
-      }
-
-      await carregarEtapa();
-      alert("Chaves geradas com sucesso!");
-      setAbaAtiva("chaves");
-    } catch (err: any) {
-      logger.error("Erro ao gerar chaves", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao gerar chaves");
-      setLoading(false);
-    }
-  }, [etapa, isReiDaPraia, carregarEtapa]);
-
-  /**
-   * Apagar chaves
-   */
-  const handleApagarChaves = useCallback(async () => {
-    if (!etapa) return;
-
-    const confirmar = window.confirm(
-      `⚠️ ATENÇÃO: Deseja apagar todas as chaves desta etapa?\n\n` +
-        `Isso removerá:\n` +
-        `• Todos os grupos\n` +
-        `• Todas as partidas\n` +
-        `• Todos os resultados\n\n` +
-        `Esta ação não pode ser desfeita!`
-    );
-
-    if (!confirmar) return;
-
-    try {
-      setLoading(true);
-
-      // O endpoint DELETE /etapas/:id/chaves funciona para ambos os formatos
-      await chaveService.excluirChaves(etapa.id);
-
-      await carregarEtapa();
-      alert("Chaves apagadas com sucesso!");
-      setAbaAtiva("inscricoes");
-    } catch (err: any) {
-      logger.error("Erro ao apagar chaves", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao apagar chaves");
-      setLoading(false);
-    }
-  }, [etapa, carregarEtapa]);
-
-  // Carregar etapa ao montar
-  useEffect(() => {
-    carregarEtapa();
-  }, [carregarEtapa]);
-
-  return {
-    // Estado
+  // ============================================
+  // 1. DADOS DA ETAPA
+  // ============================================
+  const {
     etapa,
     loading,
     error,
+    isReiDaPraia,
+    progresso,
+    recarregar,
+  } = useEtapaData(etapaId);
+
+  // ============================================
+  // 2. ESTADO DA UI
+  // ============================================
+  const {
     abaAtiva,
     modalInscricaoAberto,
     modalConfirmacaoAberto,
+    setAbaAtiva,
+    setModalInscricaoAberto,
+    setModalConfirmacaoAberto,
+  } = useEtapaUI();
 
-    // Flags derivadas
-    isReiDaPraia,
-    progresso,
-
-    // Actions
-    carregarEtapa,
+  // ============================================
+  // 3. AÇÕES DE INSCRIÇÃO
+  // ============================================
+  const {
     handleAbrirInscricoes,
     handleEncerrarInscricoes,
     handleFinalizarEtapa,
     handleCancelarInscricao,
     handleCancelarMultiplosInscricoes,
+  } = useEtapaInscricoes({
+    etapa,
+    onSuccess: recarregar,
+  });
+
+  // ============================================
+  // 4. AÇÕES DE CHAVES
+  // ============================================
+  const onSuccessChaves = useCallback(
+    async (aba?: AbaEtapa) => {
+      await recarregar();
+      if (aba) setAbaAtiva(aba);
+    },
+    [recarregar, setAbaAtiva]
+  );
+
+  const { handleGerarChaves, handleApagarChaves } = useEtapaChaves({
+    etapa,
+    onSuccess: onSuccessChaves,
+  });
+
+  // ============================================
+  // RETORNO COMPLETO
+  // ============================================
+  return {
+    // Estado de dados
+    etapa,
+    loading,
+    error,
+
+    // Flags derivadas
+    isReiDaPraia,
+    progresso,
+
+    // Estado de UI
+    abaAtiva,
+    modalInscricaoAberto,
+    modalConfirmacaoAberto,
+
+    // Actions - Dados
+    carregarEtapa: recarregar,
+
+    // Actions - Inscrições
+    handleAbrirInscricoes,
+    handleEncerrarInscricoes,
+    handleFinalizarEtapa,
+    handleCancelarInscricao,
+    handleCancelarMultiplosInscricoes,
+
+    // Actions - Chaves
     handleGerarChaves,
     handleApagarChaves,
 
-    // Modal handlers
+    // UI Handlers
     setAbaAtiva,
     setModalInscricaoAberto,
     setModalConfirmacaoAberto,

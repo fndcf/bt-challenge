@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Etapa, StatusEtapa, FiltrosEtapa, FormatoEtapa } from "@/types/etapa";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import etapaService from "@/services/etapaService";
+import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
 
 export interface EstatisticasEtapas {
@@ -141,6 +141,7 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
         filtros.formato = filtroFormato;
       }
 
+      const etapaService = getEtapaService();
       const [resultado, estatisticas, todasEtapas] = await Promise.all([
         etapaService.listar(filtros),
         etapaService.obterEstatisticas(),

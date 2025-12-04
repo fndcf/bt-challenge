@@ -3,7 +3,7 @@
  *
  * Responsabilidade única: Gerenciar estado da arena atual
  *
- * ✅ Lógica de roteamento movida para hooks/useArenaLoader.ts
+ * Lógica de roteamento movida para hooks/useArenaLoader.ts
  */
 
 import React, {
@@ -17,7 +17,7 @@ import { ArenaContextType } from "../types";
 import { Arena } from "../types/arena";
 import { useArenaLoader } from "../hooks/useArenaLoader";
 import logger from "../utils/logger";
-import arenaAdminService from "@/services/arenaAdminService";
+import { getArenaAdminService } from "@/services";
 
 const ArenaContext = createContext<ArenaContextType | undefined>(undefined);
 
@@ -42,6 +42,7 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
 
+      const arenaAdminService = getArenaAdminService();
       const arenaData = await arenaAdminService.buscarPorSlug(slug);
 
       if (!arenaData) {
@@ -68,6 +69,7 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
 
+      const arenaAdminService = getArenaAdminService();
       const arenaData = await arenaAdminService.obterMinhaArena();
 
       if (!arenaData) {

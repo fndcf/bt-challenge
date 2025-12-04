@@ -6,8 +6,7 @@ import {
   NivelJogador,
   StatusJogador,
 } from "@/types/jogador";
-import jogadorService from "@/services/jogadorService";
-import etapaService from "@/services/etapaService";
+import { getJogadorService, getEtapaService } from "@/services";
 
 interface ModalInscricaoProps {
   etapaId: string;
@@ -503,6 +502,8 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const jogadorService = getJogadorService();
+  const etapaService = getEtapaService();
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
   const [jogadoresInscritosIds, setJogadoresInscritosIds] = useState<string[]>(
     []
@@ -538,7 +539,6 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const carregarJogadores = async () => {
     try {
       setLoadingJogadores(true);
-      // ✅ CORRIGIDO: Filtrar por nível E gênero
       const data = await jogadorService.listar({
         nivel: etapaNivel,
         genero: etapaGenero,
@@ -595,7 +595,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
       let mensagemErro = err.message || "Erro ao cadastrar jogador";
 
       if (mensagemErro.toLowerCase().includes("já existe")) {
-        mensagemErro = "⚠️ " + mensagemErro;
+        mensagemErro = mensagemErro;
       }
 
       setError(mensagemErro);
@@ -606,7 +606,9 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   };
 
   const jogadoresDisponiveis = (jogadores || []).filter(
-    (jogador) => !jogadoresInscritosIds.includes(jogador.id)
+    (jogador) =>
+      !jogadoresInscritosIds.includes(jogador.id) &&
+      jogador.status === StatusJogador.ATIVO
   );
 
   const jogadoresFiltrados = jogadoresDisponiveis.filter(

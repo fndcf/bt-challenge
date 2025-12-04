@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { arenaAdminService } from "@/services/arenaAdminService";
+import { getArenaAdminService } from "@/services";
 import { useForm, useDebounce } from "@/hooks";
 
 export interface RegisterArenaForm {
@@ -67,6 +67,7 @@ export const useRegisterArena = (): UseRegisterArenaReturn => {
       if (debouncedSlug && debouncedSlug.length >= 3) {
         setCheckingSlug(true);
         try {
+          const arenaAdminService = getArenaAdminService();
           const available = await arenaAdminService.verificarSlugDisponivel(
             debouncedSlug
           );
@@ -159,6 +160,7 @@ export const useRegisterArena = (): UseRegisterArenaReturn => {
           payload.slug = values.slug;
         }
 
+        const arenaAdminService = getArenaAdminService();
         const result = await arenaAdminService.criar(payload);
 
         setSuccessMessage(

@@ -12,11 +12,12 @@ import {
 } from "../types/etapa";
 import { handleError } from "@/utils/errorHandler";
 import logger from "@/utils/logger"; // ← IMPORTAR LOGGER
+import { IEtapaService } from "./interfaces/IEtapaService";
 
 /**
  * Service para gerenciar etapas
  */
-class EtapaService {
+class EtapaService implements IEtapaService {
   private baseURL = "/etapas";
 
   /**

@@ -8,8 +8,8 @@ import { useState, useEffect } from "react";
 import {
   ArenaPublica,
   EtapaPublica,
-  arenaPublicService,
 } from "../services/arenaPublicService";
+import { getArenaPublicService } from "../services";
 import logger from "../utils/logger";
 
 interface UseArenaPublicaReturn {
@@ -39,6 +39,8 @@ export const useArenaPublica = (slug?: string): UseArenaPublicaReturn => {
       try {
         setLoading(true);
         setError("");
+
+        const arenaPublicService = getArenaPublicService();
 
         // Buscar arena pública
         const arenaData = await arenaPublicService.buscarArena(slug);

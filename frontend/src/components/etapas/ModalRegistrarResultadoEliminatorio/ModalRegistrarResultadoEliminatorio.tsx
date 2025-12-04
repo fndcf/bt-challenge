@@ -4,7 +4,7 @@ import {
   ConfrontoEliminatorio,
   StatusConfrontoEliminatorio,
 } from "@/types/chave";
-import chaveService from "@/services/chaveService";
+import { getChaveService } from "@/services";
 
 interface ModalRegistrarResultadoEliminatorioProps {
   confronto: ConfrontoEliminatorio;
@@ -275,6 +275,7 @@ const WarningText = styled.div`
 export const ModalRegistrarResultadoEliminatorio: React.FC<
   ModalRegistrarResultadoEliminatorioProps
 > = ({ confronto, onClose, onSuccess }) => {
+  const chaveService = getChaveService();
   const isEdicao = confronto.status === StatusConfrontoEliminatorio.FINALIZADA;
 
   const [gamesDupla1, setGamesDupla1] = useState<number | undefined>(undefined);

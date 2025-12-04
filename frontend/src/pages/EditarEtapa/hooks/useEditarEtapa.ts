@@ -11,7 +11,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Etapa, AtualizarEtapaDTO, FormatoEtapa } from "@/types/etapa";
-import etapaService from "@/services/etapaService";
+import { getEtapaService } from "@/services";
 import { format } from "date-fns";
 
 export interface UseEditarEtapaReturn {
@@ -81,6 +81,7 @@ export const useEditarEtapa = (id: string | undefined): UseEditarEtapaReturn => 
         return;
       }
 
+      const etapaService = getEtapaService();
       const data = await etapaService.buscarPorId(id);
       setEtapa(data);
 
@@ -234,6 +235,7 @@ export const useEditarEtapa = (id: string | undefined): UseEditarEtapaReturn => 
             : undefined,
         };
 
+        const etapaService = getEtapaService();
         await etapaService.atualizar(id, dadosParaEnviar);
         navigate(`/admin/etapas/${id}`);
       } catch (err: any) {

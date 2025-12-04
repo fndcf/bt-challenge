@@ -20,7 +20,7 @@ import { ChavesEtapa } from "@/components/etapas/ChavesEtapa";
 import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 import { Footer } from "@/components/layout/Footer";
-import etapaService from "@/services/etapaService";
+import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
 
 // Componentes extraídos
@@ -36,6 +36,7 @@ import * as S from "./DetalhesEtapa.styles";
 const DetalhesEtapa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const etapaService = getEtapaService();
 
   // Hook customizado gerencia todo o estado e lógica
   const {
@@ -92,7 +93,7 @@ const DetalhesEtapa: React.FC = () => {
 
   const handleExcluir = async () => {
     const confirmar = window.confirm(
-      `⚠️ ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
+      `ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
         `Esta ação não pode ser desfeita!`
     );
 
@@ -100,7 +101,10 @@ const DetalhesEtapa: React.FC = () => {
 
     try {
       await etapaService.deletar(etapa.id);
-      logger.info("Etapa excluída com sucesso", { etapaId: etapa.id, nome: etapa.nome });
+      logger.info("Etapa excluída com sucesso", {
+        etapaId: etapa.id,
+        nome: etapa.nome,
+      });
       alert("Etapa excluída com sucesso!");
       navigate("/admin/etapas");
     } catch (err: any) {
@@ -147,7 +151,7 @@ const DetalhesEtapa: React.FC = () => {
                 $active={abaAtiva === "inscricoes"}
                 onClick={() => setAbaAtiva("inscricoes")}
               >
-                📋 Inscrições
+                Inscrições
                 <S.TabBadge>{etapa.totalInscritos}</S.TabBadge>
               </S.Tab>
 
@@ -155,7 +159,7 @@ const DetalhesEtapa: React.FC = () => {
                 $active={abaAtiva === "cabeças"}
                 onClick={() => setAbaAtiva("cabeças")}
               >
-                👑 Cabeças de Chave
+                Cabeças de Chave
               </S.Tab>
 
               {etapa.chavesGeradas && (
@@ -163,7 +167,7 @@ const DetalhesEtapa: React.FC = () => {
                   $active={abaAtiva === "chaves"}
                   onClick={() => setAbaAtiva("chaves")}
                 >
-                  🎾 Chaves/Grupos
+                  Chaves/Grupos
                   <S.TabBadge>{etapa.qtdGrupos || 0}</S.TabBadge>
                 </S.Tab>
               )}

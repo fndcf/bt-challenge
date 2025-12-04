@@ -30,55 +30,57 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   onVerChaves,
 }) => {
   const inscricoesAbertas = etapa.status === StatusEtapa.INSCRICOES_ABERTAS;
-  const inscricoesEncerradas = etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS;
+  const inscricoesEncerradas =
+    etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS;
   const podeGerarChaves =
     inscricoesEncerradas && !etapa.chavesGeradas && etapa.totalInscritos >= 4;
   const podeEncerrar = inscricoesAbertas && etapa.totalInscritos >= 4;
 
   return (
     <S.ActionsSection>
-      <S.CardTitle>🎮 Ações Administrativas</S.CardTitle>
+      <S.CardTitle>Ações Administrativas</S.CardTitle>
 
       <S.ActionsGrid>
         {/* Abrir inscrições */}
-        {etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS && !etapa.chavesGeradas && (
-          <S.Button $variant="green" onClick={onAbrirInscricoes}>
-            <span>🔓 Reabrir Inscrições</span>
-          </S.Button>
-        )}
+        {etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS &&
+          !etapa.chavesGeradas && (
+            <S.Button $variant="green" onClick={onAbrirInscricoes}>
+              <span>Reabrir Inscrições</span>
+            </S.Button>
+          )}
 
         {/* Encerrar inscrições */}
         {podeEncerrar && (
           <S.Button $variant="orange" onClick={onEncerrarInscricoes}>
-            <span>🔒 Encerrar Inscrições</span>
+            <span>Encerrar Inscrições</span>
           </S.Button>
         )}
 
         {/* Gerar chaves */}
         {podeGerarChaves && (
           <S.Button $variant="blue" onClick={onGerarChaves}>
-            <span>🎾 Gerar Chaves</span>
+            <span>Gerar Chaves</span>
           </S.Button>
         )}
 
         {/* Ver chaves */}
         {etapa.chavesGeradas && (
           <S.Button $variant="blue" onClick={onVerChaves}>
-            <span>👁️ Ver Chaves</span>
+            <span>Ver Chaves</span>
           </S.Button>
         )}
 
         {/* Apagar chaves */}
         {etapa.chavesGeradas && etapa.status !== StatusEtapa.FINALIZADA && (
           <S.Button $variant="red" onClick={onApagarChaves}>
-            <span>🗑️ Apagar Chaves</span>
+            <span>Apagar Chaves</span>
           </S.Button>
         )}
 
         {/* Finalizar etapa */}
         {etapa.chavesGeradas && etapa.status === StatusEtapa.EM_ANDAMENTO && (
           <S.Button $variant="green" onClick={onFinalizarEtapa}>
-            <span>🏆 Finalizar Etapa</span>
+            <span>Finalizar Etapa</span>
           </S.Button>
         )}
       </S.ActionsGrid>
@@ -87,7 +89,7 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
       {inscricoesAbertas && isReiDaPraia && etapa.totalInscritos < 8 && (
         <S.Alert $variant="purple">
           <p>
-            <strong>👑 Rei da Praia:</strong> Você precisa de pelo menos 8
+            <strong>Rei da Praia:</strong> Você precisa de pelo menos 8
             jogadores inscritos (múltiplo de 4) para encerrar as inscrições.
           </p>
         </S.Alert>
@@ -99,7 +101,7 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         etapa.totalInscritos % 4 !== 0 && (
           <S.Alert $variant="purple">
             <p>
-              <strong>👑 Rei da Praia:</strong> Você tem {etapa.totalInscritos}{" "}
+              <strong>Rei da Praia:</strong> Você tem {etapa.totalInscritos}{" "}
               jogadores. O número deve ser múltiplo de 4 para formar grupos
               completos.
             </p>

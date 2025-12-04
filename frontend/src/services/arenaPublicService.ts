@@ -8,6 +8,7 @@
 
 import { apiClient } from "./apiClient";
 import logger from "../utils/logger";
+import { IArenaPublicService } from "./interfaces/IArenaPublicService";
 
 // ============================================
 // TIPOS
@@ -123,7 +124,7 @@ interface InscricaoBackend {
 // SERVICE
 // ============================================
 
-class ArenaPublicService {
+class ArenaPublicService implements IArenaPublicService {
   private readonly basePath = "/public";
 
   // ============================================

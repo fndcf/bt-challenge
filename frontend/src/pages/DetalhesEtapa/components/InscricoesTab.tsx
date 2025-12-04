@@ -25,12 +25,16 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
   onCancelar,
   onCancelarMultiplos,
 }) => {
-  const [jogadoresSelecionados, setJogadoresSelecionados] = useState<Set<string>>(new Set());
+  const [jogadoresSelecionados, setJogadoresSelecionados] = useState<
+    Set<string>
+  >(new Set());
   const [excluindo, setExcluindo] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  const podeInscrever = etapa.status === "inscricoes_abertas" && etapa.totalInscritos < etapa.maxJogadores;
+  const podeInscrever =
+    etapa.status === "inscricoes_abertas" &&
+    etapa.totalInscritos < etapa.maxJogadores;
   const podeEditar = etapa.status !== "finalizada" && !etapa.chavesGeradas;
 
   // Paginação
@@ -91,7 +95,7 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
         <p>Nenhum jogador inscrito ainda</p>
         {podeInscrever && (
           <S.Button $variant="blue" onClick={onInscricao}>
-            ➕ Inscrever Jogador
+            Inscrever Jogador
           </S.Button>
         )}
       </S.InscricoesEmpty>
@@ -104,7 +108,7 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
       {podeInscrever && (
         <S.InscricoesHeader>
           <S.Button $variant="blue" onClick={onInscricao}>
-            ➕ Inscrever Jogador
+            Inscrever Jogador
           </S.Button>
         </S.InscricoesHeader>
       )}
@@ -130,7 +134,6 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
             onClick={handleExcluirSelecionados}
             disabled={jogadoresSelecionados.size === 0 || excluindo}
           >
-            <span>🗑️</span>
             <span>{excluindo ? "Excluindo..." : "Excluir Selecionados"}</span>
           </S.DeleteSelectedButton>
         </S.SelectionBar>
@@ -159,7 +162,9 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
                 {inscricao.jogadorNome || "Jogador"}
               </S.InscricaoNome>
               <S.InscricaoNivel>
-                {inscricao.jogadorNivel ? getNivelLabel(inscricao.jogadorNivel) : ""}
+                {inscricao.jogadorNivel
+                  ? getNivelLabel(inscricao.jogadorNivel)
+                  : ""}
               </S.InscricaoNivel>
             </S.InscricaoInfo>
 

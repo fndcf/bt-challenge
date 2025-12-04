@@ -79,8 +79,8 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
             }
           >
             <option value="">Todos os formatos</option>
-            <option value={FormatoEtapa.DUPLA_FIXA}>👥 Dupla Fixa</option>
-            <option value={FormatoEtapa.REI_DA_PRAIA}>👑 Rei da Praia</option>
+            <option value={FormatoEtapa.DUPLA_FIXA}> Dupla Fixa</option>
+            <option value={FormatoEtapa.REI_DA_PRAIA}> Rei da Praia</option>
           </S.Select>
         </S.FilterGroup>
 

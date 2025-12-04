@@ -24,7 +24,8 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const formatoLabel = etapa.formato === FormatoEtapa.REI_DA_PRAIA ? "Rei da Praia" : "Dupla Fixa";
+  const formatoLabel =
+    etapa.formato === FormatoEtapa.REI_DA_PRAIA ? "Rei da Praia" : "Dupla Fixa";
 
   return (
     <S.Header>
@@ -48,9 +49,9 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
         </S.HeaderContent>
 
         <S.HeaderActions>
-          <S.ActionButton onClick={onEditar}>✏️ Editar</S.ActionButton>
+          <S.ActionButton onClick={onEditar}>Editar</S.ActionButton>
           <S.ActionButton $variant="danger" onClick={onExcluir}>
-            🗑️ Excluir
+            Excluir
           </S.ActionButton>
         </S.HeaderActions>
       </S.HeaderRow>

@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import jogadorService from "@/services/jogadorService";
+import { getJogadorService } from "@/services";
 import {
   AtualizarJogadorDTO,
   Jogador,
@@ -80,6 +80,7 @@ export const useEditarJogador = (): UseEditarJogadorReturn => {
 
       try {
         setLoading(true);
+        const jogadorService = getJogadorService();
         const data = await jogadorService.buscarPorId(id);
 
         setJogador(data);
@@ -245,6 +246,7 @@ export const useEditarJogador = (): UseEditarJogadorReturn => {
           return;
         }
 
+        const jogadorService = getJogadorService();
         await jogadorService.atualizar(id, dataToSend);
 
         setSuccessMessage("Jogador atualizado com sucesso!");

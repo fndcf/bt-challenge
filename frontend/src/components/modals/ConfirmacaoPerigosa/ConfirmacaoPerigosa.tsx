@@ -46,21 +46,6 @@ const ModalContainer = styled.div`
   padding: 1.5rem;
 `;
 
-const IconWarning = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  margin: 0 auto 1rem;
-  background: #fee2e2;
-  border-radius: 50%;
-
-  span {
-    font-size: 1.5rem;
-  }
-`;
-
 const Title = styled.h3`
   font-size: 1.125rem;
   font-weight: 700;
@@ -215,10 +200,6 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
 
       <ModalWrapper>
         <ModalContainer>
-          <IconWarning>
-            <span>⚠️</span>
-          </IconWarning>
-
           <Title>{titulo}</Title>
 
           <Message>{mensagem}</Message>

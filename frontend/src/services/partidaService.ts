@@ -4,15 +4,16 @@
  *
  * Responsabilidade única: Registrar resultados de partidas Dupla Fixa
  *
- * ⚠️ Para formato Rei da Praia, use reiDaPraiaService.registrarResultado()
+ * Para formato Rei da Praia, use reiDaPraiaService.registrarResultado()
  */
 
 import { apiClient } from "./apiClient";
 import { SetPartida } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger";
+import { IPartidaService } from "./interfaces/IPartidaService";
 
-class PartidaService {
+class PartidaService implements IPartidaService {
   private baseURL = "/partidas";
 
   /**

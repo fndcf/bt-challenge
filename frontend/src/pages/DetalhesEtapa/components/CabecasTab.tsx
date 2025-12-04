@@ -19,16 +19,17 @@ export const CabecasTab: React.FC<CabecasTabProps> = ({ etapa, onUpdate }) => {
   if (etapa.status === StatusEtapa.INSCRICOES_ABERTAS) {
     return (
       <S.Card>
-        <S.CardTitle>👑 Cabeças de Chave</S.CardTitle>
+        <S.CardTitle>Cabeças de Chave</S.CardTitle>
         <S.CardContent>
           <p style={{ color: "#6b7280", marginBottom: "1rem" }}>
-            As cabeças de chave podem ser gerenciadas após encerrar as inscrições.
+            As cabeças de chave podem ser gerenciadas após encerrar as
+            inscrições.
           </p>
           <p style={{ color: "#9ca3af", fontSize: "0.875rem" }}>
-            💡 <strong>O que são cabeças de chave?</strong>
+            <strong>O que são cabeças de chave?</strong>
             <br />
-            São os jogadores mais fortes que serão distribuídos em grupos diferentes
-            para equilibrar a competição.
+            São os jogadores mais fortes que serão distribuídos em grupos
+            diferentes para equilibrar a competição.
           </p>
         </S.CardContent>
       </S.Card>

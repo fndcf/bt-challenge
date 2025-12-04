@@ -6,7 +6,11 @@
 
 import React from "react";
 import { Etapa, TipoChaveamentoReiDaPraia } from "@/types/etapa";
-import { formatarData, getNivelLabel, getGeneroLabel } from "@/utils/formatters";
+import {
+  formatarData,
+  getNivelLabel,
+  getGeneroLabel,
+} from "@/utils/formatters";
 import * as S from "../DetalhesEtapa.styles";
 
 interface EtapaInfoCardsProps {
@@ -21,7 +25,9 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
   isReiDaPraia,
 }) => {
   // Helper para formatar tipo de chaveamento
-  const getTipoChaveamentoLabel = (tipo?: TipoChaveamentoReiDaPraia): string => {
+  const getTipoChaveamentoLabel = (
+    tipo?: TipoChaveamentoReiDaPraia
+  ): string => {
     if (!tipo) return "Não definido";
     switch (tipo) {
       case TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES:
@@ -130,7 +136,8 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                marginBottom: isReiDaPraia && etapa.tipoChaveamento ? "0.5rem" : "0",
+                marginBottom:
+                  isReiDaPraia && etapa.tipoChaveamento ? "0.5rem" : "0",
               }}
             >
               <span style={{ fontWeight: 500 }}>Nível:</span>
@@ -157,7 +164,7 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
       <S.Grid $cols={2}>
         {/* Datas */}
         <S.Card>
-          <S.CardTitle>📅 Datas Importantes</S.CardTitle>
+          <S.CardTitle>Datas Importantes</S.CardTitle>
 
           <S.InfoList>
             <S.InfoRow>
@@ -181,7 +188,7 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
 
         {/* Estatísticas */}
         <S.Card>
-          <S.CardTitle>📊 Estatísticas</S.CardTitle>
+          <S.CardTitle> Estatísticas</S.CardTitle>
 
           <S.InfoList>
             <S.InfoRow>
@@ -209,7 +216,7 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
       {/* Descrição */}
       {etapa.descricao && (
         <S.Card>
-          <S.CardTitle>📝 Descrição</S.CardTitle>
+          <S.CardTitle>Descrição</S.CardTitle>
           <S.CardContent>
             <p>{etapa.descricao}</p>
           </S.CardContent>

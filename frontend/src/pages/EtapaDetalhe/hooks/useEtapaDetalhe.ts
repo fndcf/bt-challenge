@@ -11,10 +11,10 @@
 import { useState, useEffect } from "react";
 import {
   ArenaPublica,
-  arenaPublicService,
   EtapaPublica,
   JogadorPublico,
 } from "@/services/arenaPublicService";
+import { getArenaPublicService } from "@/services";
 
 export interface UseEtapaDetalheReturn {
   // Dados
@@ -52,6 +52,8 @@ export const useEtapaDetalhe = (
       try {
         setLoading(true);
         setError("");
+
+        const arenaPublicService = getArenaPublicService();
 
         // Buscar arena
         const arenaData = await arenaPublicService.buscarArena(slug);

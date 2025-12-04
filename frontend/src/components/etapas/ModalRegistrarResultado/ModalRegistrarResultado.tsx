@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Partida, SetPartida, StatusPartida } from "@/types/chave";
-import partidaService from "@/services/partidaService";
+import { getPartidaService } from "@/services";
 
 interface ModalRegistrarResultadoProps {
   partida: Partida;
@@ -304,6 +304,7 @@ const HintsBox = styled.div`
 export const ModalRegistrarResultado: React.FC<
   ModalRegistrarResultadoProps
 > = ({ partida, onClose, onSuccess }) => {
+  const partidaService = getPartidaService();
   const isEdicao = partida.status === StatusPartida.FINALIZADA;
 
   const [set, setSet] = useState<SetPartida>({

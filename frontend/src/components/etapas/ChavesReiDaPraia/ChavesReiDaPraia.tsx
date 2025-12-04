@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import reiDaPraiaService from "@/services/reiDaPraiaService";
+import { getReiDaPraiaService } from "@/services";
 import { Grupo } from "@/types/chave";
 import {
   EstatisticasJogador,
@@ -40,9 +40,10 @@ const Container = styled.div`
 `;
 
 const TabsContainer = styled.div`
-  border-bottom: 2px solid #e9d5ff;
+  border-bottom: 2px solid #e5e7eb;
   margin-bottom: 2rem;
 
+  /* MOBILE: Remove borda */
   @media (max-width: 768px) {
     border-bottom: none;
   }
@@ -58,6 +59,7 @@ const TabsList = styled.nav`
     display: none;
   }
 
+  /* MOBILE: Layout vertical */
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 0.5rem;
@@ -80,6 +82,7 @@ const Tab = styled.button<{ $isActive: boolean }>`
     color: #7c3aed;
   }
 
+  /* MOBILE: Botões verticais */
   @media (max-width: 768px) {
     width: 100%;
     padding: 0.875rem 1rem;
@@ -130,6 +133,7 @@ const GruposGrid = styled.div`
   gap: 1.5rem;
   grid-template-columns: 1fr;
 
+  /* TABLET: Também 2 colunas */
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -140,7 +144,7 @@ const GrupoCard = styled.div`
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  border: 1px solid #e9d5ff;
+  border: 1px solid #e5e7eb;
 `;
 
 const GrupoHeader = styled.div`
@@ -157,9 +161,6 @@ const GrupoNome = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 
   @media (min-width: 768px) {
     font-size: 1.5rem;
@@ -181,16 +182,15 @@ const JogadoresList = styled.div`
   }
 `;
 
-const JogadorItem = styled.div<{ $classificado?: boolean }>`
+const JogadorItem = styled.div`
   padding: 1.25rem;
   display: flex;
   gap: 1rem;
   align-items: flex-start;
   transition: background 0.2s;
-  background: ${(props) => (props.$classificado ? "#faf5ff" : "transparent")};
 
   &:hover {
-    background: ${(props) => (props.$classificado ? "#f3e8ff" : "#f9fafb")};
+    background: #f9fafb;
   }
 
   @media (min-width: 768px) {
@@ -199,22 +199,12 @@ const JogadorItem = styled.div<{ $classificado?: boolean }>`
   }
 `;
 
-const PosicaoBadge = styled.div<{ $posicao: number }>`
+const PosicaoBadge = styled.div`
   flex-shrink: 0;
   width: 2rem;
   height: 2rem;
-  background: ${(props) => {
-    if (props.$posicao === 1) return "#fef08a"; // Ouro
-    if (props.$posicao === 2) return "#e5e7eb"; // Prata
-    if (props.$posicao === 3) return "#fed7aa"; // Bronze
-    return "#ddd6fe"; // Roxo claro
-  }};
-  color: ${(props) => {
-    if (props.$posicao === 1) return "#854d0e";
-    if (props.$posicao === 2) return "#374151";
-    if (props.$posicao === 3) return "#9a3412";
-    return "#6d28d9";
-  }};
+  background: #dbeafe;
+  color: #2563eb;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -236,9 +226,9 @@ const JogadorContent = styled.div`
   flex-direction: column;
   gap: 0.75rem;
 
+  /* DESKTOP: Só fica horizontal a partir de 1024px */
   @media (min-width: 1025px) {
-    flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 2rem;
   }
@@ -248,8 +238,8 @@ const JogadorInfo = styled.div`
   min-width: 0;
 
   @media (min-width: 1024px) {
-    flex: 1 1 40%;
-    max-width: 50%;
+    flex: 1 1 65%;
+    max-width: 75%;
   }
 `;
 
@@ -260,9 +250,23 @@ const JogadorNome = styled.div`
   margin-bottom: 0.25rem;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  hyphens: auto;
 
   @media (min-width: 768px) {
     font-size: 1rem;
+  }
+
+  /* TABLET: Linha única se couber */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* DESKTOP: Pode quebrar normalmente */
+  @media (min-width: 1024px) {
+    white-space: normal;
   }
 `;
 
@@ -273,67 +277,21 @@ const JogadorMeta = styled.div`
   flex-wrap: wrap;
 `;
 
-const NivelBadge = styled.span<{ $nivel?: string }>`
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  font-weight: 500;
-
-  ${(props) => {
-    if (!props.$nivel) {
-      return `
-        background: #f3f4f6;
-        color: #6b7280;
-      `;
-    }
-
-    switch (props.$nivel) {
-      case "iniciante":
-        return `
-          background: #dcfce7;
-          color: #166534;
-        `;
-      case "intermediario":
-        return `
-          background: #fef9c3;
-          color: #854d0e;
-        `;
-      case "avancado":
-        return `
-          background: #fee2e2;
-          color: #991b1b;
-        `;
-      default:
-        return `
-          background: #f3f4f6;
-          color: #6b7280;
-        `;
-    }
-  }}
+const NivelText = styled.div`
+  font-size: 0.8125rem;
+  color: #6b7280;
 `;
 
-const ClassificadoBadge = styled.span`
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  background: #ddd6fe;
-  color: #6d28d9;
-  font-weight: 600;
-`;
-
-// Estatísticas em GRID no mobile, inline no desktop
+// Estatísticas em GRID 2x2 no mobile, inline no desktop
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
 
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(5, 1fr);
-  }
-
+  /* DESKTOP: Inline só a partir de 1024px */
   @media (min-width: 1024px) {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
   }
 `;
 
@@ -341,27 +299,19 @@ const StatItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.125rem;
-  min-width: 45px;
-  padding: 0.375rem;
-  background: #faf5ff;
-  border-radius: 0.375rem;
-
-  @media (min-width: 1024px) {
-    background: transparent;
-    padding: 0;
-  }
+  gap: 0.25rem;
+  min-width: 60px;
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   color: #9ca3af;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 
   @media (min-width: 768px) {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -370,12 +320,12 @@ const StatValue = styled.div<{
 }>`
   font-weight: 700;
   font-size: ${(props) =>
-    props.$variant === "primary" ? "1.125rem" : "0.875rem"};
+    props.$variant === "primary" ? "1.25rem" : "0.9375rem"};
 
   color: ${(props) => {
     switch (props.$variant) {
       case "primary":
-        return "#7c3aed";
+        return "#2563eb";
       case "success":
         return "#16a34a";
       case "error":
@@ -387,14 +337,14 @@ const StatValue = styled.div<{
 
   @media (min-width: 768px) {
     font-size: ${(props) =>
-      props.$variant === "primary" ? "1.25rem" : "1rem"};
+      props.$variant === "primary" ? "1.5rem" : "1.125rem"};
   }
 `;
 
 const GrupoFooter = styled.div`
-  background: #faf5ff;
+  background: #f9fafb;
   padding: 1rem 1.25rem;
-  border-top: 1px solid #e9d5ff;
+  border-top: 1px solid #e5e7eb;
 `;
 
 const FooterInfo = styled.div`
@@ -409,8 +359,8 @@ const FooterInfo = styled.div`
 `;
 
 const CompletoBadge = styled.span`
-  background: #ddd6fe;
-  color: #6d28d9;
+  background: #dcfce7;
+  color: #15803d;
   padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -452,8 +402,8 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 2.5rem;
   height: 2.5rem;
-  border: 3px solid #ede9fe;
-  border-top-color: #7c3aed;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 
@@ -480,24 +430,21 @@ const EmptyState = styled.div`
 `;
 
 const InfoCard = styled.div`
-  background: #faf5ff;
-  border: 1px solid #e9d5ff;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
   border-radius: 0.5rem;
   padding: 1rem;
   margin-top: 1.5rem;
 
   h4 {
-    color: #6d28d9;
+    color: #1e40af;
     font-weight: 600;
     margin: 0 0 0.5rem 0;
     font-size: 0.9375rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
   p {
-    color: #7c3aed;
+    color: #1e40af;
     margin: 0;
     font-size: 0.875rem;
     line-height: 1.5;
@@ -506,59 +453,13 @@ const InfoCard = styled.div`
   ul {
     margin: 0.5rem 0 0 0;
     padding-left: 1.25rem;
-    color: #7c3aed;
+    color: #1e40af;
     font-size: 0.875rem;
   }
 
   li {
     margin-top: 0.25rem;
   }
-`;
-
-const CombinacoesInfo = styled.div`
-  background: white;
-  border: 1px solid #e9d5ff;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-top: 1rem;
-`;
-
-const CombinacoesTitle = styled.h4`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6d28d9;
-  margin: 0 0 0.75rem 0;
-`;
-
-const CombinacoesList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const CombinacaoItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.8125rem;
-  color: #374151;
-  padding: 0.5rem;
-  background: #faf5ff;
-  border-radius: 0.375rem;
-`;
-
-const CombinacaoNumero = styled.span`
-  background: #7c3aed;
-  color: white;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 600;
-  flex-shrink: 0;
 `;
 
 // ============== HELPERS ==============
@@ -587,6 +488,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   arenaId,
   tipoChaveamento,
 }) => {
+  const reiDaPraiaService = getReiDaPraiaService();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [jogadores, setJogadores] = useState<EstatisticasJogador[]>([]);
   const [loading, setLoading] = useState(true);
@@ -652,7 +554,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   if (grupos.length === 0) {
     return (
       <Container>
-        <EmptyState>👑 Nenhuma chave gerada ainda</EmptyState>
+        <EmptyState>Nenhuma chave gerada ainda</EmptyState>
       </Container>
     );
   }
@@ -668,13 +570,13 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
             $isActive={abaAtiva === "grupos"}
             onClick={() => setAbaAtiva("grupos")}
           >
-            👑 Fase de Grupos
+            Fase de Grupos
           </Tab>
           <Tab
             $isActive={abaAtiva === "eliminatoria"}
             onClick={() => setAbaAtiva("eliminatoria")}
           >
-            🏆 Eliminatória
+            Eliminatória
           </Tab>
         </TabsList>
       </TabsContainer>
@@ -682,7 +584,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
       {abaAtiva === "grupos" ? (
         <>
           <Header>
-            <Title>👑 Grupos Rei da Praia</Title>
+            <Title>Grupos Rei da Praia</Title>
             <Stats>
               {grupos.length} grupos • {jogadores.length} jogadores •{" "}
               {totalPartidas} partidas
@@ -698,10 +600,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
               return (
                 <GrupoCard key={grupo.id}>
                   <GrupoHeader>
-                    <GrupoNome>
-                      <span>👑</span>
-                      {grupo.nome}
-                    </GrupoNome>
+                    <GrupoNome>{grupo.nome}</GrupoNome>
                     <GrupoBadge>{jogadoresDoGrupo.length} jogadores</GrupoBadge>
                   </GrupoHeader>
 
@@ -751,25 +650,18 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                               jogador.jogadorId ||
                               `${grupo.id}-${index}`
                             }
-                            $classificado={jogador.classificado}
                           >
-                            <PosicaoBadge $posicao={index + 1}>
-                              {index + 1}
-                            </PosicaoBadge>
+                            <PosicaoBadge>{index + 1}</PosicaoBadge>
 
                             <JogadorContent>
                               <JogadorInfo>
                                 <JogadorNome>{jogador.jogadorNome}</JogadorNome>
                                 <JogadorMeta>
                                   {jogador.jogadorNivel && (
-                                    <NivelBadge $nivel={jogador.jogadorNivel}>
+                                    <NivelText>
+                                      Nível:{" "}
                                       {getNivelLabel(jogador.jogadorNivel)}
-                                    </NivelBadge>
-                                  )}
-                                  {jogador.classificado && (
-                                    <ClassificadoBadge>
-                                      ✓ Classificado
-                                    </ClassificadoBadge>
+                                    </NivelText>
                                   )}
                                 </JogadorMeta>
                               </JogadorInfo>
@@ -792,15 +684,9 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                                   </StatItem>
 
                                   <StatItem>
-                                    <StatLabel>GF</StatLabel>
+                                    <StatLabel>GF-GC</StatLabel>
                                     <StatValue>
-                                      {jogador.gamesVencidosGrupo}
-                                    </StatValue>
-                                  </StatItem>
-
-                                  <StatItem>
-                                    <StatLabel>GC</StatLabel>
-                                    <StatValue>
+                                      {jogador.gamesVencidosGrupo}-
                                       {jogador.gamesPerdidosGrupo}
                                     </StatValue>
                                   </StatItem>
@@ -828,65 +714,6 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                     )}
                   </JogadoresList>
 
-                  {/* Mostrar combinações de partidas */}
-                  {jogadoresDoGrupo.length === 4 && (
-                    <CombinacoesInfo>
-                      <CombinacoesTitle>
-                        🎾 Combinações de Partidas
-                      </CombinacoesTitle>
-                      <CombinacoesList>
-                        <CombinacaoItem>
-                          <CombinacaoNumero>1</CombinacaoNumero>
-                          <span>
-                            <strong>
-                              {jogadoresDoGrupo[0]?.jogadorNome?.split(" ")[0]}{" "}
-                              +{" "}
-                              {jogadoresDoGrupo[1]?.jogadorNome?.split(" ")[0]}
-                            </strong>{" "}
-                            vs{" "}
-                            <strong>
-                              {jogadoresDoGrupo[2]?.jogadorNome?.split(" ")[0]}{" "}
-                              +{" "}
-                              {jogadoresDoGrupo[3]?.jogadorNome?.split(" ")[0]}
-                            </strong>
-                          </span>
-                        </CombinacaoItem>
-                        <CombinacaoItem>
-                          <CombinacaoNumero>2</CombinacaoNumero>
-                          <span>
-                            <strong>
-                              {jogadoresDoGrupo[0]?.jogadorNome?.split(" ")[0]}{" "}
-                              +{" "}
-                              {jogadoresDoGrupo[2]?.jogadorNome?.split(" ")[0]}
-                            </strong>{" "}
-                            vs{" "}
-                            <strong>
-                              {jogadoresDoGrupo[1]?.jogadorNome?.split(" ")[0]}{" "}
-                              +{" "}
-                              {jogadoresDoGrupo[3]?.jogadorNome?.split(" ")[0]}
-                            </strong>
-                          </span>
-                        </CombinacaoItem>
-                        <CombinacaoItem>
-                          <CombinacaoNumero>3</CombinacaoNumero>
-                          <span>
-                            <strong>
-                              {jogadoresDoGrupo[0]?.jogadorNome?.split(" ")[0]}{" "}
-                              +{" "}
-                              {jogadoresDoGrupo[3]?.jogadorNome?.split(" ")[0]}
-                            </strong>{" "}
-                            vs{" "}
-                            <strong>
-                              {jogadoresDoGrupo[1]?.jogadorNome?.split(" ")[0]}{" "}
-                              +{" "}
-                              {jogadoresDoGrupo[2]?.jogadorNome?.split(" ")[0]}
-                            </strong>
-                          </span>
-                        </CombinacaoItem>
-                      </CombinacoesList>
-                    </CombinacoesInfo>
-                  )}
-
                   <GrupoFooter>
                     <FooterInfo>
                       <span>{grupo.partidasFinalizadas || 0} / 3 partidas</span>
@@ -897,8 +724,8 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
 
                     <VerPartidasButton onClick={() => toggleGrupo(grupo.id)}>
                       {grupoSelecionado === grupo.id
-                        ? "🔼 Ocultar Partidas"
-                        : "🎾 Ver Partidas"}
+                        ? " ▼ Ocultar Partidas"
+                        : " Ver Partidas"}
                     </VerPartidasButton>
 
                     {grupoSelecionado === grupo.id && (
@@ -919,7 +746,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           </GruposGrid>
 
           <InfoCard>
-            <h4>👑 Formato Rei da Praia</h4>
+            <h4>Formato Rei da Praia</h4>
             <p>
               Cada grupo tem 4 jogadores que formam duplas diferentes em cada
               partida. São 3 partidas por grupo, garantindo que cada jogador

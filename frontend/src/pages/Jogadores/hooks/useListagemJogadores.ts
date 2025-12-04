@@ -5,8 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import jogadorService from "@/services/jogadorService";
-import { arenaAdminService } from "@/services/arenaAdminService";
+import { getJogadorService, getArenaAdminService } from "@/services";
 import logger from "@/utils/logger";
 import {
   Jogador,
@@ -95,9 +94,12 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
     const carregarArena = async () => {
       try {
         logger.info("Carregando arena do usuário logado");
+        const arenaAdminService = getArenaAdminService();
         const arenaData = await arenaAdminService.obterMinhaArena();
         setArena(arenaData);
-        logger.info("Arena carregada com sucesso", { arena: arenaData.nome });
+        logger.info("Arena carregada com sucesso", {
+          arena: arenaData?.nome || "Arena sem nome"
+        });
       } catch (error: any) {
         logger.warn("Erro ao carregar arena via API, tentando localStorage", {
           error: error.message,
@@ -113,7 +115,8 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
               arena: arenaParsed.nome,
             });
           } catch (e) {
-            logger.error("Erro ao parsear arena do localStorage", {}, e);
+            const error = e instanceof Error ? e : new Error(String(e));
+            logger.error("Erro ao parsear arena do localStorage", {}, error);
           }
         }
       }
@@ -150,6 +153,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
         ordem: "asc",
       };
 
+      const jogadorService = getJogadorService();
       const resultado = await jogadorService.listar(filtros);
 
       setJogadores(resultado.jogadores);
@@ -213,6 +217,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
       try {
         logger.info("Deletando jogador", { jogadorId: jogador.id });
 
+        const jogadorService = getJogadorService();
         await jogadorService.deletar(jogador.id);
 
         setSuccessMessage(`${jogador.nome} foi deletado com sucesso`);

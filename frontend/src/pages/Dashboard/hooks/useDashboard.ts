@@ -5,8 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import etapaService from "@/services/etapaService";
-import jogadorService from "@/services/jogadorService";
+import { getEtapaService, getJogadorService } from "@/services";
 import logger from "@/utils/logger";
 
 export interface DashboardStats {
@@ -41,6 +40,9 @@ export const useDashboard = (): UseDashboardReturn => {
       setError(null);
 
       logger.info("Carregando estatísticas do dashboard");
+
+      const etapaService = getEtapaService();
+      const jogadorService = getJogadorService();
 
       // Buscar estatísticas em paralelo
       const [estatisticasEtapas, listagemJogadores] = await Promise.all([

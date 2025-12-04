@@ -6,11 +6,11 @@
 
 import { useState, useEffect } from "react";
 import {
-  arenaPublicService,
   JogadorPublico,
   EstatisticasAgregadas,
   ArenaPublica,
 } from "@/services/arenaPublicService";
+import { getArenaPublicService } from "@/services";
 import logger from "@/utils/logger";
 
 export interface UseJogadorPerfilReturn {
@@ -115,6 +115,8 @@ export const useJogadorPerfil = (
         setError("");
 
         logger.info("Carregando perfil do jogador", { slug, jogadorId });
+
+        const arenaPublicService = getArenaPublicService();
 
         // Buscar arena
         const arenaData = await arenaPublicService.buscarArena(slug);

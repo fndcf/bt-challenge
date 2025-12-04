@@ -10,11 +10,11 @@ export interface Dupla {
   jogador1Id: string;
   jogador1Nome: string;
   jogador1Nivel: NivelJogador;
-  jogador1Genero?: string; // ✅ ADICIONADO
+  jogador1Genero?: string;
   jogador2Id: string;
   jogador2Nome: string;
   jogador2Nivel: NivelJogador;
-  jogador2Genero?: string; // ✅ ADICIONADO
+  jogador2Genero?: string;
   grupoId: string;
   grupoNome: string;
   jogos: number;
@@ -29,8 +29,8 @@ export interface Dupla {
   saldoGames: number;
   posicaoGrupo?: number;
   classificada: boolean;
-  criadoEm: any;
-  atualizadoEm: any;
+  criadoEm: string;
+  atualizadoEm: string;
 }
 
 /**
@@ -49,8 +49,8 @@ export interface Grupo {
   partidasFinalizadas: number;
   completo: boolean;
   classificadas: string[];
-  criadoEm: any;
-  atualizadoEm: any;
+  criadoEm: string;
+  atualizadoEm: string;
 }
 
 /**
@@ -71,7 +71,7 @@ export enum FaseEtapa {
   GRUPOS = "grupos",
   OITAVAS = "oitavas",
   QUARTAS = "quartas",
-  SEMIFINAL = "semifinal", // ✅ CORRIGIDO (estava "semi")
+  SEMIFINAL = "semifinal",
   FINAL = "final",
   TERCEIRO_LUGAR = "terceiro_lugar",
 }
@@ -94,7 +94,7 @@ export interface Partida {
   id: string;
   etapaId: string;
   arenaId: string;
-  tipo?: "dupla_fixa" | "eliminatoria"; // ✅ ADICIONADO
+  tipo?: "dupla_fixa" | "eliminatoria";
   fase: FaseEtapa;
   grupoId?: string;
   grupoNome?: string;
@@ -102,7 +102,7 @@ export interface Partida {
   dupla1Nome: string;
   dupla2Id: string;
   dupla2Nome: string;
-  dataHora?: any;
+  dataHora?: string;
   quadra?: string;
   status: StatusPartida;
   setsDupla1: number;
@@ -110,9 +110,9 @@ export interface Partida {
   placar: SetPartida[];
   vencedoraId?: string;
   vencedoraNome?: string;
-  criadoEm: any;
-  atualizadoEm: any;
-  finalizadoEm?: any;
+  criadoEm: string;
+  atualizadoEm: string;
+  finalizadoEm?: string;
 }
 
 /**
@@ -164,8 +164,8 @@ export interface ConfrontoEliminatorio {
   vencedoraNome?: string;
   placar?: string; // Ex: "6-4"
   proximoConfrontoId?: string;
-  criadoEm: any;
-  atualizadoEm: any;
+  criadoEm: string;
+  atualizadoEm: string;
 }
 
 /**
@@ -183,6 +183,6 @@ export interface FaseEliminatoria {
   classificados: string[];
   totalClassificados: number;
   byes: number;
-  criadoEm: any;
-  atualizadoEm: any;
+  criadoEm: string;
+  atualizadoEm: string;
 }

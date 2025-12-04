@@ -7,9 +7,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import arenaPublicService, {
-  JogadorPublico,
-} from "@/services/arenaPublicService";
+import { getArenaPublicService } from "@/services";
+import { JogadorPublico } from "@/services/arenaPublicService";
 
 // ============== TIPOS ==============
 
@@ -417,6 +416,7 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
   showPagination = false,
   itensPorPagina = 20,
 }) => {
+  const arenaPublicService = getArenaPublicService();
   const [nivelAtivo, setNivelAtivo] = useState<NivelJogador>(
     NivelJogador.INTERMEDIARIO
   );
@@ -588,9 +588,9 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
                   <RankingPosicao $posicao={posicaoReal}>
                     {posicaoReal <= 3 ? (
                       <>
-                        {posicaoReal === 1 && "🥇"}
-                        {posicaoReal === 2 && "🥈"}
-                        {posicaoReal === 3 && "🥉"}
+                        {posicaoReal === 1 && "1"}
+                        {posicaoReal === 2 && "2"}
+                        {posicaoReal === 3 && "3"}
                       </>
                     ) : (
                       posicaoReal

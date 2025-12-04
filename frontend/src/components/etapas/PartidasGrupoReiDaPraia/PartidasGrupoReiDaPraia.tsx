@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import reiDaPraiaService from "@/services/reiDaPraiaService";
+import { getReiDaPraiaService } from "@/services";
 import { PartidaReiDaPraia } from "@/types/reiDaPraia";
 import { ModalRegistrarResultadoReiDaPraia } from "../ModalRegistrarResultadoReiDaPraia";
 
@@ -43,9 +43,6 @@ const Title = styled.h3`
   font-weight: 700;
   color: #581c87;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 `;
 
 const Counter = styled.span`
@@ -61,13 +58,13 @@ const PartidasList = styled.div`
 
 const PartidaCard = styled.div`
   background: white;
-  border: 1px solid #e9d5ff;
+  border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   padding: 1rem;
   transition: box-shadow 0.2s;
 
   &:hover {
-    box-shadow: 0 4px 6px rgba(124, 58, 237, 0.15);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -89,7 +86,7 @@ const PartidaInfo = styled.div`
 const PartidaLabel = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
-  color: #7c3aed;
+  color: #6b7280;
 `;
 
 const StatusBadge = styled.span<{ $status: string }>`
@@ -103,7 +100,7 @@ const StatusBadge = styled.span<{ $status: string }>`
       case "agendada":
         return `background: #fef3c7; color: #92400e;`;
       case "em_andamento":
-        return `background: #ede9fe; color: #6d28d9;`;
+        return `background: #dbeafe; color: #1e40af;`;
       case "finalizada":
         return `background: #dcfce7; color: #166534;`;
       case "cancelada":
@@ -119,46 +116,18 @@ const StatusBadge = styled.span<{ $status: string }>`
 const PartidaContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const DuplaBox = styled.div<{ $isWinner?: boolean }>`
-  background: ${(props) => (props.$isWinner ? "#f0fdf4" : "#faf5ff")};
-  border: 1px solid ${(props) => (props.$isWinner ? "#86efac" : "#e9d5ff")};
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-`;
-
-const DuplaHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-`;
-
-const DuplaLabel = styled.span<{ $isWinner?: boolean }>`
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: ${(props) => (props.$isWinner ? "#166534" : "#7c3aed")};
-`;
-
-const Score = styled.span<{ $isWinner?: boolean }>`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: ${(props) => (props.$isWinner ? "#16a34a" : "#374151")};
-`;
-
-const JogadoresRow = styled.div`
-  display: flex;
-  align-items: center;
   gap: 0.5rem;
 `;
 
-const JogadorNome = styled.span<{ $isWinner?: boolean }>`
-  font-weight: ${(props) => (props.$isWinner ? 600 : 500)};
-  color: ${(props) => (props.$isWinner ? "#166534" : "#374151")};
+const DuplaRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const DuplaNome = styled.span<{ $isWinner?: boolean }>`
+  font-weight: ${(props) => (props.$isWinner ? 700 : 500)};
+  color: ${(props) => (props.$isWinner ? "#16a34a" : "#374151")};
   font-size: 0.875rem;
 
   @media (min-width: 768px) {
@@ -166,78 +135,22 @@ const JogadorNome = styled.span<{ $isWinner?: boolean }>`
   }
 `;
 
-const JogadorSeparator = styled.span`
-  color: #9ca3af;
-  font-weight: 600;
+const Score = styled.span`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
 `;
 
 const VsSeparator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem 0;
 
   span {
     font-size: 0.75rem;
-    color: #7c3aed;
-    font-weight: 700;
-    background: #ede9fe;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
+    color: #9ca3af;
+    font-weight: 600;
   }
-`;
-
-const PlacarDetalhado = styled.div`
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e9d5ff;
-`;
-
-const PlacarInfo = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const PlacarLabel = styled.span`
-  font-weight: 600;
-  color: #7c3aed;
-`;
-
-const SetScore = styled.span`
-  font-family: monospace;
-  font-size: 1rem;
-  font-weight: 700;
-  background: #faf5ff;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.375rem;
-  color: #581c87;
-`;
-
-const VencedoresInfo = styled.div`
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  background: #dcfce7;
-  border: 1px solid #86efac;
-  border-radius: 0.5rem;
-  text-align: center;
-`;
-
-const VencedoresLabel = styled.span`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #166534;
-  display: block;
-  margin-bottom: 0.25rem;
-`;
-
-const VencedoresNomes = styled.span`
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #15803d;
 `;
 
 const ActionSection = styled.div`
@@ -312,8 +225,8 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 2rem;
   height: 2rem;
-  border: 3px solid #ede9fe;
-  border-top-color: #7c3aed;
+  border: 3px solid #dbeafe;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 
@@ -333,27 +246,12 @@ const ErrorBox = styled.div`
 `;
 
 const EmptyState = styled.div`
-  background: #faf5ff;
-  border: 1px solid #e9d5ff;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   padding: 1.5rem;
   text-align: center;
   color: #6b7280;
-`;
-
-const InfoCard = styled.div`
-  background: #faf5ff;
-  border: 1px solid #e9d5ff;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  margin-top: 1rem;
-
-  p {
-    font-size: 0.8125rem;
-    color: #7c3aed;
-    margin: 0;
-    text-align: center;
-  }
 `;
 
 // ============== HELPERS ==============
@@ -369,11 +267,6 @@ const getStatusLabel = (status: string): string => {
   return labels[status] || status;
 };
 
-const getPartidaDescricao = (index: number): string => {
-  const descricoes = ["A+B vs C+D", "A+C vs B+D", "A+D vs B+C"];
-  return descricoes[index] || `Partida ${index + 1}`;
-};
-
 // ============== COMPONENTE ==============
 
 export const PartidasGrupoReiDaPraia: React.FC<
@@ -385,6 +278,7 @@ export const PartidasGrupoReiDaPraia: React.FC<
   onAtualizarGrupos,
   eliminatoriaExiste = false,
 }) => {
+  const reiDaPraiaService = getReiDaPraiaService();
   const [partidas, setPartidas] = useState<PartidaReiDaPraia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -442,10 +336,7 @@ export const PartidasGrupoReiDaPraia: React.FC<
   return (
     <Container>
       <Header>
-        <Title>
-          <span>🎾</span>
-          Partidas - {grupoNome}
-        </Title>
+        <Title>Partidas - {grupoNome}</Title>
         <Counter>
           {partidasFinalizadas} / {partidas.length} finalizadas
         </Counter>
@@ -462,7 +353,7 @@ export const PartidasGrupoReiDaPraia: React.FC<
               <PartidaHeader>
                 <PartidaInfo>
                   <PartidaLabel>
-                    PARTIDA {index + 1} • {getPartidaDescricao(index)}
+                    PARTIDA {index + 1}
                   </PartidaLabel>
                   <StatusBadge $status={partida.status}>
                     {getStatusLabel(partida.status)}
@@ -471,87 +362,36 @@ export const PartidasGrupoReiDaPraia: React.FC<
               </PartidaHeader>
 
               <PartidaContent>
-                {/* DUPLA 1 */}
-                <DuplaBox $isWinner={isFinalizada && isDupla1Winner}>
-                  <DuplaHeader>
-                    <DuplaLabel $isWinner={isFinalizada && isDupla1Winner}>
-                      {partida.dupla1Nome || "Dupla 1"}
-                    </DuplaLabel>
-                    {isFinalizada && (
-                      <Score $isWinner={isDupla1Winner}>
-                        {partida.placar?.[0]?.gamesDupla1 || 0}
-                      </Score>
-                    )}
-                  </DuplaHeader>
-                  <JogadoresRow>
-                    <JogadorNome $isWinner={isFinalizada && isDupla1Winner}>
-                      {partida.jogador1ANome}
-                    </JogadorNome>
-                    <JogadorSeparator>&</JogadorSeparator>
-                    <JogadorNome $isWinner={isFinalizada && isDupla1Winner}>
-                      {partida.jogador1BNome}
-                    </JogadorNome>
-                  </JogadoresRow>
-                </DuplaBox>
+                <DuplaRow>
+                  <DuplaNome $isWinner={isFinalizada && isDupla1Winner}>
+                    {partida.jogador1ANome} & {partida.jogador1BNome}
+                  </DuplaNome>
+                  {isFinalizada && (
+                    <Score>{partida.placar?.[0]?.gamesDupla1 || 0}</Score>
+                  )}
+                </DuplaRow>
 
-                {/* VS */}
                 <VsSeparator>
                   <span>VS</span>
                 </VsSeparator>
 
-                {/* DUPLA 2 */}
-                <DuplaBox $isWinner={isFinalizada && isDupla2Winner}>
-                  <DuplaHeader>
-                    <DuplaLabel $isWinner={isFinalizada && isDupla2Winner}>
-                      {partida.dupla2Nome || "Dupla 2"}
-                    </DuplaLabel>
-                    {isFinalizada && (
-                      <Score $isWinner={isDupla2Winner}>
-                        {partida.placar?.[0]?.gamesDupla2 || 0}
-                      </Score>
-                    )}
-                  </DuplaHeader>
-                  <JogadoresRow>
-                    <JogadorNome $isWinner={isFinalizada && isDupla2Winner}>
-                      {partida.jogador2ANome}
-                    </JogadorNome>
-                    <JogadorSeparator>&</JogadorSeparator>
-                    <JogadorNome $isWinner={isFinalizada && isDupla2Winner}>
-                      {partida.jogador2BNome}
-                    </JogadorNome>
-                  </JogadoresRow>
-                </DuplaBox>
+                <DuplaRow>
+                  <DuplaNome $isWinner={isFinalizada && isDupla2Winner}>
+                    {partida.jogador2ANome} & {partida.jogador2BNome}
+                  </DuplaNome>
+                  {isFinalizada && (
+                    <Score>{partida.placar?.[0]?.gamesDupla2 || 0}</Score>
+                  )}
+                </DuplaRow>
               </PartidaContent>
 
-              {/* PLACAR DETALHADO */}
-              {isFinalizada && partida.placar && partida.placar.length > 0 && (
-                <PlacarDetalhado>
-                  <PlacarInfo>
-                    <PlacarLabel>Placar:</PlacarLabel>
-                    <SetScore>
-                      {partida.placar[0].gamesDupla1} x{" "}
-                      {partida.placar[0].gamesDupla2}
-                    </SetScore>
-                  </PlacarInfo>
-                </PlacarDetalhado>
-              )}
-
-              {/* VENCEDORES */}
-              {isFinalizada && partida.vencedoresNomes && (
-                <VencedoresInfo>
-                  <VencedoresLabel>🏆 Vencedores</VencedoresLabel>
-                  <VencedoresNomes>{partida.vencedoresNomes}</VencedoresNomes>
-                </VencedoresInfo>
-              )}
-
-              {/* AÇÕES */}
               {partida.status === "agendada" && (
                 <ActionSection>
                   <ActionButton
                     $variant="register"
                     onClick={() => setPartidaSelecionada(partida)}
                   >
-                    <span>🎾 Registrar Resultado</span>
+                    <span>Registrar Resultado</span>
                   </ActionButton>
                 </ActionSection>
               )}
@@ -560,15 +400,15 @@ export const PartidasGrupoReiDaPraia: React.FC<
                 <ActionSection>
                   <ActionButton
                     $variant={eliminatoriaExiste ? "disabled" : "edit"}
-                    onClick={() => setPartidaSelecionada(partida)}
+                    onClick={() => !eliminatoriaExiste && setPartidaSelecionada(partida)}
                     disabled={eliminatoriaExiste}
                     title={
                       eliminatoriaExiste
-                        ? "Não é possível editar após gerar a eliminatória"
+                        ? "Não é possível editar após gerar a eliminatória. Cancele a eliminatória primeiro."
                         : "Editar resultado desta partida"
                     }
                   >
-                    <span>✏️ Editar Resultado</span>
+                    <span>Editar Resultado</span>
                   </ActionButton>
                   {eliminatoriaExiste && (
                     <WarningText>
@@ -582,14 +422,6 @@ export const PartidasGrupoReiDaPraia: React.FC<
         })}
       </PartidasList>
 
-      <InfoCard>
-        <p>
-          👑 <strong>Rei da Praia:</strong> Cada partida tem apenas 1 set. Os 2
-          jogadores da dupla vencedora ganham 3 pontos cada.
-        </p>
-      </InfoCard>
-
-      {/* Modal de Resultado */}
       {partidaSelecionada && (
         <ModalRegistrarResultadoReiDaPraia
           partida={partidaSelecionada}

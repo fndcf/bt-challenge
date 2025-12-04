@@ -43,14 +43,10 @@ export const Container = styled.div`
 `;
 
 export const Layout = styled.div`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-  grid-template-columns: 1fr;
-
-  @media (min-width: 1024px) {
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 32px;
-  }
+  width: 100%;
 `;
 
 export const Main = styled.div`
@@ -58,20 +54,7 @@ export const Main = styled.div`
   flex-direction: column;
   gap: 24px;
   min-width: 0;
-  overflow: hidden;
-`;
-
-export const Aside = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-
-  @media (min-width: 1024px) {
-    position: sticky;
-    top: 80px;
-    align-self: start;
-  }
+  width: 100%;
 `;
 
 // ============== BREADCRUMBS ==============

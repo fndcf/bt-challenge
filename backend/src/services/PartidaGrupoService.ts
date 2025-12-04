@@ -170,7 +170,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
       if (isEdicao && partida.placar && partida.placar.length > 0) {
         await this.reverterEstatisticas(partida, dupla1, dupla2);
 
-        // ⚠️ CORREÇÃO: Re-buscar duplas após reverter para ter valores atualizados
         dupla1 = await this.duplaRepo.buscarPorId(partida.dupla1Id);
         dupla2 = await this.duplaRepo.buscarPorId(partida.dupla2Id);
 
@@ -192,7 +191,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         partida.dupla2Id
       );
 
-      // ⚠️ CORREÇÃO: Preencher vencedoraNome corretamente
       const vencedoraNome = stats.dupla1Venceu
         ? `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`
         : `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`;
@@ -204,7 +202,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         setsDupla2: stats.setsDupla2,
         placar: stats.placarComVencedor,
         vencedoraId: stats.vencedoraId,
-        vencedoraNome: vencedoraNome, // ⚠️ CORREÇÃO: Agora preenchido!
+        vencedoraNome: vencedoraNome,
       });
 
       // Atualizar estatísticas das duplas

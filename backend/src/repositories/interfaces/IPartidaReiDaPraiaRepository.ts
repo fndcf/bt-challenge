@@ -90,7 +90,6 @@ export interface RegistrarResultadoReiDaPraiaDTO {
     pontosDupla1: number;
     pontosDupla2: number;
   }>;
-  // ⚠️ CORREÇÃO: Campos adicionados para exibição e reversão
   placar: Array<{
     numero: number;
     gamesDupla1: number;

@@ -1,13 +1,51 @@
 /**
- * Types do Frontend
- * Importa types compartilhados e adiciona types específicos do frontend
+ * types/index.ts
+ *
+ * Exportações centralizadas do sistema de tipos
+ *
+ * Estrutura organizada com SOLID:
+ * ├── arena.ts           - Types de arena
+ * ├── jogador.ts         - Types de jogadores (enums, interfaces, DTOs)
+ * ├── etapa.ts           - Types de etapas
+ * ├── chave.ts           - Types de chaves e partidas (Dupla Fixa)
+ * ├── reiDaPraia.ts      - Types específicos do formato Rei da Praia
+ * └── cabecaDeChave.ts   - Types de cabeças de chave
  */
 
-// Re-exportar types compartilhados
-export * from "../../../shared/types";
+// ============================================
+// IMPORTS (for internal use)
+// ============================================
+import type { Arena } from "./arena";
 
-// Types específicos do frontend
+// ============================================
+// DOMAIN TYPES (Business Logic)
+// ============================================
 
+// Arena
+export * from "./arena";
+
+// Jogadores
+export * from "./jogador";
+
+// Etapas
+export * from "./etapa";
+
+// Chaves e Partidas (Dupla Fixa)
+export * from "./chave";
+
+// Rei da Praia
+export * from "./reiDaPraia";
+
+// Cabeças de Chave
+export * from "./cabecaDeChave";
+
+// ============================================
+// APPLICATION TYPES (Frontend-specific)
+// ============================================
+
+/**
+ * User authentication
+ */
 export interface User {
   uid: string;
   email: string;
@@ -21,13 +59,19 @@ export interface AuthState {
   error: string | null;
 }
 
+/**
+ * Arena context
+ */
 export interface ArenaContextType {
-  arena: any | null; // Será tipado corretamente depois
+  arena: Arena | null;
   loading: boolean;
   error: string | null;
-  setArena: (arena: any) => void;
+  setArena: (arena: Arena) => void;
 }
 
+/**
+ * API Response
+ */
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -36,6 +80,9 @@ export interface ApiResponse<T = any> {
   timestamp: string;
 }
 
+/**
+ * UI State
+ */
 export interface LoadingState {
   [key: string]: boolean;
 }
@@ -44,7 +91,9 @@ export interface FormErrors {
   [key: string]: string;
 }
 
-// Route types
+/**
+ * Route configuration
+ */
 export interface RouteConfig {
   path: string;
   element: React.ReactNode;

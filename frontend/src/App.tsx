@@ -32,7 +32,12 @@ function App() {
     <ToastProvider position="top-right">
       {" "}
       {/* ← Adicionar */}
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AuthProvider>
           <ArenaProvider>
             <Routes>

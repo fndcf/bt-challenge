@@ -742,7 +742,6 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
 
     let ranking: any[];
 
-    // ✅ CORREÇÃO: Usar buscarRankingPorNivel quando nível for especificado
     // Isso garante que os pontos sejam calculados APENAS para o nível solicitado
     if (nivel) {
       ranking = await estatisticasJogadorService.buscarRankingPorNivel(
@@ -758,7 +757,7 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
       });
     } else {
       // Sem nível especificado: ranking global (todos os níveis somados)
-      // ⚠️ ATENÇÃO: Este método soma pontos de todos os níveis!
+      // ATENÇÃO: Este método soma pontos de todos os níveis!
       ranking = await estatisticasJogadorService.buscarRankingGlobalAgregado(
         arena.id,
         999
@@ -858,7 +857,7 @@ router.get(
       let stats;
 
       if (nivelAtual) {
-        // ✅ Buscar estatísticas apenas do nível atual
+        // Buscar estatísticas apenas do nível atual
         stats =
           await estatisticasJogadorService.buscarEstatisticasAgregadasPorNivel(
             jogadorId,

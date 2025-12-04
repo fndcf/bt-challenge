@@ -28,8 +28,15 @@ import { IInscricaoRepository } from "../repositories/interfaces/IInscricaoRepos
 import { IGrupoRepository } from "../repositories/interfaces/IGrupoRepository";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { IConfrontoEliminatorioRepository } from "../repositories/interfaces/IConfrontoEliminatorioRepository";
-import { IPartidaReiDaPraiaRepository, PartidaReiDaPraia, CriarPartidaReiDaPraiaDTO } from "../repositories/interfaces/IPartidaReiDaPraiaRepository";
-import { IEstatisticasJogadorRepository, EstatisticasJogador } from "../repositories/interfaces/IEstatisticasJogadorRepository";
+import {
+  IPartidaReiDaPraiaRepository,
+  PartidaReiDaPraia,
+  CriarPartidaReiDaPraiaDTO,
+} from "../repositories/interfaces/IPartidaReiDaPraiaRepository";
+import {
+  IEstatisticasJogadorRepository,
+  EstatisticasJogador,
+} from "../repositories/interfaces/IEstatisticasJogadorRepository";
 import { IPartidaRepository } from "../repositories/interfaces/IPartidaRepository";
 
 // Implementações Firebase (para instância default)
@@ -74,7 +81,10 @@ export class ReiDaPraiaService {
     partidas: PartidaReiDaPraia[];
   }> {
     try {
-      const etapa = await this.etapaRepository.buscarPorIdEArena(etapaId, arenaId);
+      const etapa = await this.etapaRepository.buscarPorIdEArena(
+        etapaId,
+        arenaId
+      );
       if (!etapa) throw new Error("Etapa não encontrada");
 
       if (etapa.status !== StatusEtapa.INSCRICOES_ENCERRADAS) {
@@ -100,7 +110,10 @@ export class ReiDaPraiaService {
       }
 
       // Buscar inscrições via repository
-      const inscricoes = await this.inscricaoRepository.buscarConfirmadas(etapaId, arenaId);
+      const inscricoes = await this.inscricaoRepository.buscarConfirmadas(
+        etapaId,
+        arenaId
+      );
 
       const jogadores = await this.distribuirJogadoresEmGrupos(
         etapaId,
@@ -311,9 +324,8 @@ export class ReiDaPraiaService {
 
       for (const grupo of grupos) {
         // Buscar jogadores via repository
-        const jogadores = await this.estatisticasJogadorRepository.buscarPorGrupo(
-          grupo.id
-        );
+        const jogadores =
+          await this.estatisticasJogadorRepository.buscarPorGrupo(grupo.id);
 
         if (jogadores.length !== 4) {
           throw new Error(`Grupo ${grupo.nome} deve ter 4 jogadores`);
@@ -330,7 +342,9 @@ export class ReiDaPraiaService {
 
         // Criar partidas via repository
         for (const partidaDTO of partidasDTO) {
-          const partida = await this.partidaReiDaPraiaRepository.criar(partidaDTO);
+          const partida = await this.partidaReiDaPraiaRepository.criar(
+            partidaDTO
+          );
           todasPartidas.push(partida);
           partidasIds.push(partida.id);
         }
@@ -436,7 +450,7 @@ export class ReiDaPraiaService {
    */
   /**
    * Registrar resultado de uma partida (fase de grupos)
-   * 
+   *
    * CORREÇÃO v2:
    * - Salva placar, vencedores e vencedoresNomes
    * - Re-busca partida após reverter estatísticas
@@ -460,18 +474,19 @@ export class ReiDaPraiaService {
       const isEdicao = partida.status === StatusPartida.FINALIZADA;
       if (isEdicao && partida.placar && partida.placar.length > 0) {
         await this.reverterEstatisticasJogadores(partida);
-        
-        // ⚠️ CORREÇÃO: Re-buscar partida após reverter para ter dados atualizados
+
         partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
           partidaId,
           arenaId
         );
-        
+
         if (!partida) {
           throw new Error("Partida não encontrada após reversão");
         }
-        
-        logger.info("Estatísticas revertidas, partida re-buscada", { partidaId });
+
+        logger.info("Estatísticas revertidas, partida re-buscada", {
+          partidaId,
+        });
       }
 
       // Validar placar (apenas 1 set no Rei da Praia)
@@ -490,7 +505,6 @@ export class ReiDaPraiaService {
           ? [partida.jogador1AId, partida.jogador1BId]
           : [partida.jogador2AId, partida.jogador2BId];
 
-      // ⚠️ CORREÇÃO: Montar nome dos vencedores para exibição
       const vencedoresNomes =
         setsDupla1 > setsDupla2
           ? `${partida.jogador1ANome} & ${partida.jogador1BNome}`
@@ -500,8 +514,10 @@ export class ReiDaPraiaService {
       await this.partidaReiDaPraiaRepository.registrarResultado(partidaId, {
         setsDupla1,
         setsDupla2,
-        sets: [{ pontosDupla1: set.gamesDupla1, pontosDupla2: set.gamesDupla2 }],
-        // ⚠️ CORREÇÃO: Campos adicionados
+        sets: [
+          { pontosDupla1: set.gamesDupla1, pontosDupla2: set.gamesDupla2 },
+        ],
+
         placar: placar,
         vencedores: vencedores,
         vencedoresNomes: vencedoresNomes,
@@ -693,7 +709,8 @@ export class ReiDaPraiaService {
     }
 
     // Verificar se grupo está completo via repository
-    const partidasFinalizadas = await this.partidaReiDaPraiaRepository.contarFinalizadasPorGrupo(grupoId);
+    const partidasFinalizadas =
+      await this.partidaReiDaPraiaRepository.contarFinalizadasPorGrupo(grupoId);
     const completo = partidasFinalizadas === 3;
 
     // Usar repository para marcar grupo como completo
@@ -710,7 +727,10 @@ export class ReiDaPraiaService {
     etapaId: string,
     arenaId: string
   ): Promise<EstatisticasJogador[]> {
-    return await this.estatisticasJogadorRepository.buscarPorEtapa(etapaId, arenaId);
+    return await this.estatisticasJogadorRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
   }
 
   /**
@@ -721,7 +741,10 @@ export class ReiDaPraiaService {
     etapaId: string,
     arenaId: string
   ): Promise<PartidaReiDaPraia[]> {
-    return await this.partidaReiDaPraiaRepository.buscarPorEtapa(etapaId, arenaId);
+    return await this.partidaReiDaPraiaRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
   }
 
   /**
@@ -738,7 +761,10 @@ export class ReiDaPraiaService {
   }> {
     try {
       // Buscar grupos completos via repository
-      const grupos = await this.grupoRepository.buscarCompletos(etapaId, arenaId);
+      const grupos = await this.grupoRepository.buscarCompletos(
+        etapaId,
+        arenaId
+      );
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo completo encontrado");
@@ -766,7 +792,9 @@ export class ReiDaPraiaService {
         }
 
         // Cast necessário pois o service retorna o model e não a interface do repository
-        todosClassificados.push(...(classificados as unknown as EstatisticasJogador[]));
+        todosClassificados.push(
+          ...(classificados as unknown as EstatisticasJogador[])
+        );
       }
 
       // Marcar jogadores como classificados
@@ -822,7 +850,10 @@ export class ReiDaPraiaService {
       );
 
       // Atualizar status da etapa via repository
-      await this.etapaRepository.atualizarStatus(etapaId, StatusEtapa.FASE_ELIMINATORIA);
+      await this.etapaRepository.atualizarStatus(
+        etapaId,
+        StatusEtapa.FASE_ELIMINATORIA
+      );
 
       logger.info("Fase eliminatória Rei da Praia gerada", {
         etapaId,
@@ -877,7 +908,7 @@ export class ReiDaPraiaService {
       const bVitorias = b.vitoriasGrupo ?? 0;
       const aSaldoGames = a.saldoGamesGrupo ?? 0;
       const bSaldoGames = b.saldoGamesGrupo ?? 0;
-      
+
       if (aPontos !== bPontos) {
         return bPontos - aPontos;
       }
@@ -1017,7 +1048,7 @@ export class ReiDaPraiaService {
       const bGamesVencidos = b.gamesVencidosGrupo ?? 0;
       const aSaldoSets = a.saldoSetsGrupo ?? 0;
       const bSaldoSets = b.saldoSetsGrupo ?? 0;
-      
+
       if (aPontos !== bPontos) {
         return bPontos - aPontos;
       }
@@ -1145,11 +1176,15 @@ export class ReiDaPraiaService {
       jogador1Id: jogador1.jogadorId,
       jogador1Nome: jogador1.jogadorNome,
       jogador1Nivel: jogador1.jogadorNivel ? String(jogador1.jogadorNivel) : "",
-      jogador1Genero: jogador1.jogadorGenero ? String(jogador1.jogadorGenero) : "",
+      jogador1Genero: jogador1.jogadorGenero
+        ? String(jogador1.jogadorGenero)
+        : "",
       jogador2Id: jogador2.jogadorId,
       jogador2Nome: jogador2.jogadorNome,
       jogador2Nivel: jogador2.jogadorNivel ? String(jogador2.jogadorNivel) : "",
-      jogador2Genero: jogador2.jogadorGenero ? String(jogador2.jogadorGenero) : "",
+      jogador2Genero: jogador2.jogadorGenero
+        ? String(jogador2.jogadorGenero)
+        : "",
       grupoId: "",
       grupoNome: "Eliminatória",
     });
@@ -1242,7 +1277,10 @@ export class ReiDaPraiaService {
     arenaId: string
   ): Promise<void> {
     try {
-      const etapa = await this.etapaRepository.buscarPorIdEArena(etapaId, arenaId);
+      const etapa = await this.etapaRepository.buscarPorIdEArena(
+        etapaId,
+        arenaId
+      );
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
@@ -1252,7 +1290,10 @@ export class ReiDaPraiaService {
       }
 
       // Buscar confrontos via repository
-      const confrontos = await this.confrontoRepository.buscarPorEtapa(etapaId, arenaId);
+      const confrontos = await this.confrontoRepository.buscarPorEtapa(
+        etapaId,
+        arenaId
+      );
 
       if (confrontos.length === 0) {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
@@ -1274,8 +1315,12 @@ export class ReiDaPraiaService {
             partida.placar &&
             partida.placar.length > 0
           ) {
-            const dupla1 = await this.duplaRepository.buscarPorId(partida.dupla1Id);
-            const dupla2 = await this.duplaRepository.buscarPorId(partida.dupla2Id);
+            const dupla1 = await this.duplaRepository.buscarPorId(
+              partida.dupla1Id
+            );
+            const dupla2 = await this.duplaRepository.buscarPorId(
+              partida.dupla2Id
+            );
 
             if (dupla1 && dupla2) {
               let setsDupla1 = 0;
@@ -1353,25 +1398,39 @@ export class ReiDaPraiaService {
         }
 
         // Excluir partidas eliminatórias via repository
-        await this.partidaRepository.deletarEliminatoriasPorEtapa(etapaId, arenaId);
+        await this.partidaRepository.deletarEliminatoriasPorEtapa(
+          etapaId,
+          arenaId
+        );
       }
 
       // Excluir confrontos via repository
-      const confrontosRemovidos = await this.confrontoRepository.deletarPorEtapa(etapaId, arenaId);
+      const confrontosRemovidos =
+        await this.confrontoRepository.deletarPorEtapa(etapaId, arenaId);
 
       // Excluir duplas via repository
-      const duplasRemovidas = await this.duplaRepository.deletarPorEtapa(etapaId, arenaId);
+      const duplasRemovidas = await this.duplaRepository.deletarPorEtapa(
+        etapaId,
+        arenaId
+      );
 
       // Desmarcar jogadores como classificados via repository
-      const estatisticas = await this.estatisticasJogadorRepository.buscarPorEtapa(etapaId, arenaId);
+      const estatisticas =
+        await this.estatisticasJogadorRepository.buscarPorEtapa(
+          etapaId,
+          arenaId
+        );
       for (const est of estatisticas) {
-        await this.estatisticasJogadorRepository.atualizar(est.id, { 
-          posicaoGrupo: undefined 
+        await this.estatisticasJogadorRepository.atualizar(est.id, {
+          posicaoGrupo: undefined,
         });
       }
 
       // Voltar status da etapa via repository
-      await this.etapaRepository.atualizarStatus(etapaId, StatusEtapa.CHAVES_GERADAS);
+      await this.etapaRepository.atualizarStatus(
+        etapaId,
+        StatusEtapa.CHAVES_GERADAS
+      );
 
       logger.info("Fase eliminatória Rei da Praia cancelada", {
         etapaId,
@@ -1403,7 +1462,8 @@ const grupoRepositoryInstance = new GrupoRepository();
 const duplaRepositoryInstance = new DuplaRepository();
 const confrontoRepositoryInstance = new ConfrontoEliminatorioRepository();
 const partidaReiDaPraiaRepositoryInstance = new PartidaReiDaPraiaRepository();
-const estatisticasJogadorRepositoryInstance = new EstatisticasJogadorRepository();
+const estatisticasJogadorRepositoryInstance =
+  new EstatisticasJogadorRepository();
 const partidaRepositoryInstance = new PartidaRepository();
 
 export default new ReiDaPraiaService(

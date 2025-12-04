@@ -9,8 +9,8 @@ export interface CabecaDeChave {
   ordem: number;
   ativo: boolean;
   motivoDesativacao?: string;
-  criadoEm: any;
-  atualizadoEm: any;
+  criadoEm: string;
+  atualizadoEm: string;
 }
 
 export interface CriarCabecaDeChaveDTO {

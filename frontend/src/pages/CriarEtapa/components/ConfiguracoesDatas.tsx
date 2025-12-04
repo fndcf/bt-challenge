@@ -45,7 +45,7 @@ export const ConfiguracoesDatas: React.FC<ConfiguracoesDataProps> = ({
             onChange={(e) => onDataInicioChange(e.target.value)}
           />
           {errosDatas.dataInicio && (
-            <S.HelperText $error>⚠️ {errosDatas.dataInicio}</S.HelperText>
+            <S.HelperText $error>{errosDatas.dataInicio}</S.HelperText>
           )}
         </S.Field>
 
@@ -60,7 +60,7 @@ export const ConfiguracoesDatas: React.FC<ConfiguracoesDataProps> = ({
             onChange={(e) => onDataFimChange(e.target.value)}
           />
           {errosDatas.dataFim && (
-            <S.HelperText $error>⚠️ {errosDatas.dataFim}</S.HelperText>
+            <S.HelperText $error>{errosDatas.dataFim}</S.HelperText>
           )}
         </S.Field>
 
@@ -75,7 +75,7 @@ export const ConfiguracoesDatas: React.FC<ConfiguracoesDataProps> = ({
             onChange={(e) => onDataRealizacaoChange(e.target.value)}
           />
           {errosDatas.dataRealizacao && (
-            <S.HelperText $error>⚠️ {errosDatas.dataRealizacao}</S.HelperText>
+            <S.HelperText $error>{errosDatas.dataRealizacao}</S.HelperText>
           )}
         </S.Field>
       </S.GridContainer>

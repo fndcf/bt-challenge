@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { CriarEtapaDTO, FormatoEtapa } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import etapaService from "@/services/etapaService";
+import { getEtapaService } from "@/services";
 
 // Interface estendida para incluir tipoChaveamento
 export interface CriarEtapaFormData extends CriarEtapaDTO {
@@ -379,6 +379,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
           delete dadosFormatados.tipoChaveamento;
         }
 
+        const etapaService = getEtapaService();
         await etapaService.criar(dadosFormatados);
         navigate("/admin/etapas");
       } catch (err: any) {

@@ -14,11 +14,12 @@ import {
   TipoChaveamentoReiDaPraia,
 } from "../types/reiDaPraia";
 import { Grupo } from "../types/chave";
+import { IReiDaPraiaService } from "./interfaces/IReiDaPraiaService";
 
 /**
  * Service para comunicação com API do Rei da Praia
  */
-class ReiDaPraiaService {
+class ReiDaPraiaService implements IReiDaPraiaService {
   private readonly basePath = "/etapas";
   private readonly reiDaPraiaPath = "/rei-da-praia";
 

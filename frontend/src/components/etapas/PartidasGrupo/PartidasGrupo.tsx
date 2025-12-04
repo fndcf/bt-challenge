@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import chaveService from "@/services/chaveService";
+import { getChaveService } from "@/services";
 import { Partida, StatusPartida } from "@/types/chave";
 import { ModalRegistrarResultado } from "../ModalRegistrarResultado";
 
@@ -144,29 +144,6 @@ const VsSeparator = styled.div`
   }
 `;
 
-const PlacarDetalhado = styled.div`
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f3f4f6;
-`;
-
-const PlacarInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-
-  span:first-child {
-    font-weight: 600;
-  }
-`;
-
-const SetScore = styled.span`
-  font-family: monospace;
-  font-size: 0.75rem;
-`;
-
 const ActionSection = styled.div`
   margin-top: 1rem;
 `;
@@ -278,6 +255,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
   eliminatoriaExiste = false,
   etapaFinalizada = false,
 }) => {
+  const chaveService = getChaveService();
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -390,20 +368,6 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
               </DuplaRow>
             </PartidaContent>
 
-            {partida.status === StatusPartida.FINALIZADA &&
-              partida.placar.length > 0 && (
-                <PlacarDetalhado>
-                  <PlacarInfo>
-                    <span>Placar:</span>
-                    {partida.placar.map((set, idx) => (
-                      <SetScore key={idx}>
-                        {set.gamesDupla1}-{set.gamesDupla2}
-                      </SetScore>
-                    ))}
-                  </PlacarInfo>
-                </PlacarDetalhado>
-              )}
-
             {partida.status === StatusPartida.AGENDADA && (
               <ActionSection>
                 <ActionButton
@@ -430,9 +394,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
                   }
                 >
                   <span>
-                    {etapaFinalizada
-                      ? "🔒 Etapa Finalizada"
-                      : "Editar Resultado"}
+                    {etapaFinalizada ? "Etapa Finalizada" : "Editar Resultado"}
                   </span>{" "}
                 </ActionButton>
                 {eliminatoriaExiste && !etapaFinalizada && (
