@@ -44,4 +44,5 @@ firestore-debug.log
 *.tsbuildinfo
 
 # Testing
-coverage/.claude/settings.local.json
+coverage/
+.claude/settings.local.json
