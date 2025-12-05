@@ -21,12 +21,30 @@ const initializeFirebase = () => {
       return admin.app();
     }
 
-    // Configuração usando variáveis de ambiente
+    // Em produção (Firebase Functions), usar inicialização automática
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      process.env.FIREBASE_CONFIG ||
+      process.env.GCLOUD_PROJECT;
+
+    if (isProduction) {
+      logger.info("Inicializando Firebase Admin em modo produção (automático)");
+      admin.initializeApp();
+
+      logger.info("Firebase Admin inicializado com sucesso", {
+        projectId: process.env.GCLOUD_PROJECT || "auto-detected",
+        environment: "production",
+      });
+
+      return admin.app();
+    }
+
+    // Em desenvolvimento, usar variáveis de ambiente locais
     const privateKey = process.env.FIREBASE_PRIVATE_KEY
       ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
       : undefined;
 
-    // Validar credenciais
+    // Validar credenciais para desenvolvimento
     if (
       !privateKey ||
       !process.env.FIREBASE_PROJECT_ID ||
@@ -40,7 +58,7 @@ const initializeFirebase = () => {
       throw new Error("Credenciais do Firebase não configuradas corretamente");
     }
 
-    logger.debug("Inicializando Firebase Admin", {
+    logger.debug("Inicializando Firebase Admin em modo desenvolvimento", {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     });

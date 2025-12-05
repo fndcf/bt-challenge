@@ -44,7 +44,7 @@ Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach 
 
 | Tecnologia         | Versão | Uso                      |
 | ------------------ | ------ | ------------------------ |
-| Node.js            | 18+    | Runtime                  |
+| Node.js            | 20+    | Runtime                  |
 | Express            | 4.18   | Framework HTTP           |
 | TypeScript         | 5.3    | Tipagem estática         |
 | Firebase Admin SDK | 12.0   | Autenticação e Firestore |
@@ -72,9 +72,10 @@ Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach 
 
 ## Requisitos
 
-- Node.js v18+
+- Node.js v20+
 - npm ou yarn
 - Conta no Firebase
+- Firebase CLI (`npm install -g firebase-tools`)
 - Git
 
 ## Instalação
@@ -271,6 +272,50 @@ npm run test:coverage
 | `npm run dev`     | Iniciar em modo desenvolvimento |
 | `npm run build`   | Build de produção               |
 | `npm run preview` | Preview do build                |
+
+## Deploy
+
+### Firebase
+
+O projeto está configurado para deploy no Firebase (Hosting + Functions).
+
+#### URLs de Produção
+
+| Componente | URL |
+| ---------- | --- |
+| Frontend   | https://torneio-challenge.web.app |
+| Backend    | https://us-central1-torneio-challenge.cloudfunctions.net/api |
+
+#### Comandos de Deploy
+
+```bash
+# Build do backend
+cd backend && npm run build
+
+# Build do frontend
+cd frontend && npm run build
+
+# Deploy completo (na raiz do projeto)
+firebase deploy
+
+# Deploy apenas do hosting
+firebase deploy --only hosting
+
+# Deploy apenas das functions
+firebase deploy --only functions
+```
+
+#### Configuração
+
+Os arquivos de configuração do Firebase estão na raiz do projeto:
+
+- `.firebaserc` - Projeto Firebase
+- `firebase.json` - Configuração de hosting e functions
+
+#### Variáveis de Ambiente em Produção
+
+- **Backend**: Em produção, o Firebase Functions injeta automaticamente as credenciais do Firebase Admin SDK
+- **Frontend**: Usar `frontend/.env.production` com `VITE_API_URL=/api`
 
 ## Status do Projeto
 
