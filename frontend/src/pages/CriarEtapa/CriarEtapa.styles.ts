@@ -123,6 +123,7 @@ export const FieldsContainer = styled.div`
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
+  min-width: 0; /* Permite que o campo encolha dentro do grid */
 `;
 
 export const Label = styled.label`
@@ -135,10 +136,21 @@ export const Label = styled.label`
 
 export const Input = styled.input<{ $hasError?: boolean }>`
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid ${(props) => (props.$hasError ? "#fca5a5" : "#d1d5db")};
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+  min-height: 2.75rem;
+
+  /* Fix para inputs de data no mobile não estourarem o container */
+  &[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: 1.5;
+  }
 
   &:focus {
     outline: none;
@@ -197,6 +209,7 @@ export const GridContainer = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  overflow: hidden; /* Previne overflow de inputs de data no iOS */
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);

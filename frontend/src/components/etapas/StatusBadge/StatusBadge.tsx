@@ -12,12 +12,19 @@ interface StatusBadgeProps {
 const Badge = styled.span<{ $status: StatusEtapa }>`
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.75rem;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   font-weight: 600;
   border: 1px solid;
+  white-space: nowrap;
+
+  @media (min-width: 480px) {
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+  }
 
   ${(props) => {
     switch (props.$status) {

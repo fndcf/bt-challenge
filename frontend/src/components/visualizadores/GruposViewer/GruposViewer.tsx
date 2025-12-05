@@ -136,11 +136,11 @@ const ToggleButton = styled.button`
   }
 `;
 
-const CollapsedSummary = styled.div`
+const CollapsedSummary = styled.div<{ $visible: boolean }>`
   padding: 16px;
   background: #f9fafb;
   border-radius: 12px;
-  display: flex;
+  display: ${(props) => (props.$visible ? "flex" : "none")};
   flex-direction: column;
   gap: 12px;
 
@@ -197,8 +197,8 @@ const FormatoBadge = styled.span<{ $formato: string }>`
   `}
 `;
 
-const GroupsGrid = styled.div`
-  display: grid;
+const GroupsGrid = styled.div<{ $visible: boolean }>`
+  display: ${(props) => (props.$visible ? "grid" : "none")};
   gap: 24px;
 
   @media (min-width: 1200px) {
@@ -675,8 +675,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
         </ToggleButton>
       </Header>
 
-      {!isExpanded && (
-        <CollapsedSummary>
+      <CollapsedSummary $visible={!isExpanded}>
           <SummaryItem>
             <SummaryLabel>Grupos</SummaryLabel>
             <SummaryValue>{totalGrupos}</SummaryValue>
@@ -699,10 +698,8 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
             </SummaryValue>
           </SummaryItem>
         </CollapsedSummary>
-      )}
 
-      {isExpanded && (
-        <GroupsGrid>
+      <GroupsGrid $visible={isExpanded}>
           {grupos.map((group) => (
             <GroupCard key={group.id}>
               <GroupHeader $formato={formato}>
@@ -920,7 +917,6 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
             </GroupCard>
           ))}
         </GroupsGrid>
-      )}
     </Wrapper>
   );
 };

@@ -103,18 +103,34 @@ export const HeaderContent = styled.div`
   flex: 1;
 `;
 
+export const TitleWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  @media (min-width: 480px) {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+`;
+
 export const Title = styled.h1`
-  font-size: 1.875rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #111827;
   margin: 0;
+
+  @media (min-width: 480px) {
+    font-size: 1.875rem;
+  }
+`;
+
+export const BadgesRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    font-size: 1.5rem;
-  }
+  gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 export const Subtitle = styled.p`
@@ -165,13 +181,20 @@ export const ActionButton = styled.button<{ $variant?: "primary" | "danger" }>`
 export const FormatoBadge = styled.span<{ $formato: string }>`
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.75rem;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   font-weight: 600;
   background: #f3f4f6;
   color: #4b5563;
+  white-space: nowrap;
+
+  @media (min-width: 480px) {
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+  }
 `;
 
 // ============== TABS ==============
@@ -562,6 +585,10 @@ export const InscricoesEmpty = styled.div`
   border-radius: 0.5rem;
   padding: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
   p {
     color: #6b7280;

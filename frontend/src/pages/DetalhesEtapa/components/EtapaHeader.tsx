@@ -33,13 +33,15 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
 
       <S.HeaderRow>
         <S.HeaderContent>
-          <S.Title>
-            {etapa.nome}
-            <StatusBadge status={etapa.status} />
-            <S.FormatoBadge $formato={etapa.formato}>
-              {formatoLabel}
-            </S.FormatoBadge>
-          </S.Title>
+          <S.TitleWrapper>
+            <S.Title>{etapa.nome}</S.Title>
+            <S.BadgesRow>
+              <StatusBadge status={etapa.status} />
+              <S.FormatoBadge $formato={etapa.formato}>
+                {formatoLabel}
+              </S.FormatoBadge>
+            </S.BadgesRow>
+          </S.TitleWrapper>
           <S.Subtitle>
             {formatarData(etapa.dataRealizacao)}
             {etapa.local && ` • ${etapa.local}`}

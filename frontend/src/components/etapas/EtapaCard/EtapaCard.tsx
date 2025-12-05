@@ -32,11 +32,25 @@ const Header = styled.div`
   margin-bottom: 1.5rem;
 `;
 
+const TitleRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+
+  @media (min-width: 480px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+`;
+
 const Title = styled.h3`
   font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 0.75rem 0;
+  margin: 0;
 
   @media (min-width: 768px) {
     font-size: 1.25rem;
@@ -46,8 +60,7 @@ const Title = styled.h3`
 const HeaderBadges = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 0.375rem;
   flex-wrap: wrap;
 `;
 
@@ -55,13 +68,18 @@ const FormatoBadge = styled.span<{ $formato: string }>`
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.1875rem 0.375rem;
   border-radius: 9999px;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 600;
   white-space: nowrap;
   background: #f3f4f6;
   color: #4b5563;
+
+  @media (min-width: 480px) {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+  }
 `;
 
 const Description = styled.p`
@@ -286,15 +304,15 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
     <Card onClick={handleClick}>
       {/* Header */}
       <Header>
-        <Title>{etapa.nome}</Title>
-
-        {/* Badges abaixo do nome */}
-        <HeaderBadges>
-          <StatusBadge status={etapa.status} />
-          <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
-            {isReiDaPraia ? " Rei da Praia" : " Dupla Fixa"}
-          </FormatoBadge>
-        </HeaderBadges>
+        <TitleRow>
+          <Title>{etapa.nome}</Title>
+          <HeaderBadges>
+            <StatusBadge status={etapa.status} />
+            <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
+              {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
+            </FormatoBadge>
+          </HeaderBadges>
+        </TitleRow>
 
         {etapa.descricao && <Description>{etapa.descricao}</Description>}
       </Header>
