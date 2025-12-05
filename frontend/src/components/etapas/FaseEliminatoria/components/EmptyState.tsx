@@ -96,13 +96,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
               </>
             ) : (
               <AlertBox $variant="warning">
-                <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-                  Finalize todas as partidas do grupo primeiro
-                </p>
-                <p style={{ fontSize: "0.875rem", margin: 0 }}>
-                  Ainda há {partidasPendentes} partida(s) pendente(s).
-                  <br />
-                  Complete todos os jogos para definir o campeão.
+                <h4>Finalize todas as partidas do grupo primeiro</h4>
+                <p>
+                  Ainda há {partidasPendentes} partida(s) pendente(s). Complete
+                  todos os jogos para definir o campeão.
                 </p>
               </AlertBox>
             )}
@@ -114,16 +111,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         ) : !todosGruposCompletos ? (
           <>
             <AlertBox $variant="warning">
-              <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-                Finalize todas as partidas da fase de grupos primeiro
-              </p>
-              <p style={{ fontSize: "0.875rem", margin: 0 }}>
+              <h4>Finalize todas as partidas da fase de grupos primeiro</h4>
+              <p>
                 Ainda há {partidasPendentes} partida(s) pendente(s) nos grupos.
-                <br />
                 Complete todos os jogos para gerar a fase eliminatória.
               </p>
             </AlertBox>
-            <Button disabled>Gerar Fase Eliminatória</Button>
+            <ButtonGroup>
+              <Button disabled>Gerar Fase Eliminatória</Button>
+            </ButtonGroup>
           </>
         ) : (
           <>

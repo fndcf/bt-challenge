@@ -7,9 +7,11 @@ interface ConfirmacaoPerigosaProps {
   onConfirm: () => void;
   titulo: string;
   mensagem: string;
-  palavraConfirmacao: string;
+  palavraConfirmacao?: string; // Opcional - quando não fornecido, não exige digitação
   textoBotao?: string;
+  textoBotaoConfirmar?: string; // Alias para textoBotao
   loading?: boolean;
+  variante?: "danger" | "warning"; // warning não exige digitação
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -29,11 +31,14 @@ const OverlayBackground = styled.div`
 `;
 
 const ModalWrapper = styled.div`
+  position: relative;
+  z-index: 51;
   display: flex;
   min-height: 100%;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  pointer-events: none;
 `;
 
 const ModalContainer = styled.div`
@@ -44,6 +49,7 @@ const ModalContainer = styled.div`
   max-width: 28rem;
   width: 100%;
   padding: 1.5rem;
+  pointer-events: auto;
 `;
 
 const Title = styled.h3`
@@ -174,12 +180,18 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
   mensagem,
   palavraConfirmacao,
   textoBotao = "Confirmar",
+  textoBotaoConfirmar,
   loading = false,
+  variante = "danger",
 }) => {
   const [inputValue, setInputValue] = useState("");
 
-  const isConfirmacaoCorreta =
-    inputValue.toUpperCase() === palavraConfirmacao.toUpperCase();
+  // Se variante é warning ou não há palavraConfirmacao, não exige digitação
+  const exigeDigitacao = variante === "danger" && !!palavraConfirmacao;
+
+  const isConfirmacaoCorreta = exigeDigitacao
+    ? inputValue.toUpperCase() === palavraConfirmacao!.toUpperCase()
+    : true;
 
   const handleConfirm = () => {
     if (isConfirmacaoCorreta) {
@@ -194,6 +206,8 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
 
   if (!isOpen) return null;
 
+  const botaoTexto = textoBotaoConfirmar || textoBotao;
+
   return (
     <Overlay>
       <OverlayBackground onClick={handleClose} />
@@ -204,30 +218,32 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
 
           <Message>{mensagem}</Message>
 
-          <InputSection>
-            <Label>
-              Para confirmar, digite{" "}
-              <RequiredWord>{palavraConfirmacao}</RequiredWord>
-            </Label>
-            <Input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={`Digite "${palavraConfirmacao}"`}
-              disabled={loading}
-              autoFocus
-            />
-            {inputValue && !isConfirmacaoCorreta && (
-              <ValidationMessage $isValid={false}>
-                Texto incorreto
-              </ValidationMessage>
-            )}
-            {isConfirmacaoCorreta && (
-              <ValidationMessage $isValid={true}>
-                Texto correto
-              </ValidationMessage>
-            )}
-          </InputSection>
+          {exigeDigitacao && (
+            <InputSection>
+              <Label>
+                Para confirmar, digite{" "}
+                <RequiredWord>{palavraConfirmacao}</RequiredWord>
+              </Label>
+              <Input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={`Digite "${palavraConfirmacao}"`}
+                disabled={loading}
+                autoFocus
+              />
+              {inputValue && !isConfirmacaoCorreta && (
+                <ValidationMessage $isValid={false}>
+                  Texto incorreto
+                </ValidationMessage>
+              )}
+              {isConfirmacaoCorreta && inputValue && (
+                <ValidationMessage $isValid={true}>
+                  Texto correto
+                </ValidationMessage>
+              )}
+            </InputSection>
+          )}
 
           <ButtonsRow>
             <Button
@@ -250,7 +266,7 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
                   <span>Processando...</span>
                 </>
               ) : (
-                <span>{textoBotao}</span>
+                <span>{botaoTexto}</span>
               )}
             </Button>
           </ButtonsRow>

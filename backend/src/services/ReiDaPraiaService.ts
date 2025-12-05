@@ -457,6 +457,20 @@ export class ReiDaPraiaService {
       }
 
       const isEdicao = partida.status === StatusPartida.FINALIZADA;
+
+      // Se for edição, verificar se a eliminatória já foi gerada
+      if (isEdicao) {
+        const confrontos = await this.confrontoRepository.buscarPorEtapa(
+          partida.etapaId,
+          arenaId
+        );
+        if (confrontos.length > 0) {
+          throw new Error(
+            "Não é possível editar resultados após gerar a fase eliminatória. Cancele a eliminatória primeiro."
+          );
+        }
+      }
+
       if (isEdicao && partida.placar && partida.placar.length > 0) {
         await this.reverterEstatisticasJogadores(partida);
 

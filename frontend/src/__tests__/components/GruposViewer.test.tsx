@@ -211,14 +211,20 @@ describe("GruposViewer", () => {
       expect(screen.getByText("Dupla Fixa")).toBeInTheDocument();
     });
 
-    it("deve mostrar nome do grupo", () => {
+    it("deve mostrar nome do grupo após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Componente inicia colapsado, expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("Grupo A")).toBeInTheDocument();
     });
 
-    it("deve mostrar classificação de duplas", () => {
+    it("deve mostrar classificação de duplas após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("Classificação")).toBeInTheDocument();
       // Os nomes aparecem tanto na tabela quanto nas partidas
@@ -227,8 +233,11 @@ describe("GruposViewer", () => {
       expect(screen.getAllByText("Carlos & Lucia").length).toBeGreaterThan(0);
     });
 
-    it("deve mostrar estatísticas das duplas", () => {
+    it("deve mostrar estatísticas das duplas após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       // Verificar cabeçalhos da tabela
       expect(screen.getByText("Dupla")).toBeInTheDocument();
@@ -239,15 +248,21 @@ describe("GruposViewer", () => {
       expect(screen.getAllByText("SG").length).toBeGreaterThan(0);
     });
 
-    it("deve mostrar saldo de games positivo e negativo", () => {
+    it("deve mostrar saldo de games positivo e negativo após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("+4")).toBeInTheDocument();
       expect(screen.getByText("-4")).toBeInTheDocument();
     });
 
-    it("deve mostrar partidas do grupo", () => {
+    it("deve mostrar partidas do grupo após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("Partidas")).toBeInTheDocument();
     });
@@ -260,16 +275,22 @@ describe("GruposViewer", () => {
       expect(screen.getByText("Rei da Praia")).toBeInTheDocument();
     });
 
-    it("deve mostrar nome do jogador individual", () => {
+    it("deve mostrar nome do jogador individual após expandir", () => {
       render(<GruposViewer grupos={mockGruposReiDaPraia} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getAllByText("Fernando").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Ricardo").length).toBeGreaterThan(0);
       expect(screen.getByText("Lucas")).toBeInTheDocument();
     });
 
-    it("deve mostrar estatísticas do jogador", () => {
+    it("deve mostrar estatísticas do jogador após expandir", () => {
       render(<GruposViewer grupos={mockGruposReiDaPraia} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("Jogador")).toBeInTheDocument();
       expect(screen.getByText("+12")).toBeInTheDocument();
@@ -277,93 +298,103 @@ describe("GruposViewer", () => {
   });
 
   describe("toggle expandir/recolher", () => {
-    it("deve mostrar botão de recolher quando expandido", () => {
+    it("deve mostrar botão de expandir inicialmente (componente inicia colapsado)", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
-
-      expect(screen.getByText("▲ Recolher")).toBeInTheDocument();
-    });
-
-    it("deve recolher ao clicar no botão", () => {
-      render(<GruposViewer grupos={mockGruposDuplaFixa} />);
-
-      fireEvent.click(screen.getByText("▲ Recolher"));
 
       expect(screen.getByText("▼ Expandir")).toBeInTheDocument();
     });
 
-    it("deve mostrar resumo quando recolhido", () => {
+    it("deve expandir ao clicar no botão", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
 
-      fireEvent.click(screen.getByText("▲ Recolher"));
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
+      expect(screen.getByText("▲ Recolher")).toBeInTheDocument();
+    });
+
+    it("deve mostrar resumo quando colapsado (estado inicial)", () => {
+      render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Componente inicia colapsado, resumo já está visível
       expect(screen.getByText("Grupos")).toBeInTheDocument();
       expect(screen.getByText("Partidas")).toBeInTheDocument();
       expect(screen.getByText("Finalizadas")).toBeInTheDocument();
       expect(screen.getByText("Progresso")).toBeInTheDocument();
     });
 
-    it("deve expandir novamente ao clicar", () => {
+    it("deve recolher novamente ao clicar após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
 
-      fireEvent.click(screen.getByText("▲ Recolher"));
+      // Expandir
       fireEvent.click(screen.getByText("▼ Expandir"));
-
-      expect(screen.getByText("▲ Recolher")).toBeInTheDocument();
       expect(screen.getByText("Classificação")).toBeInTheDocument();
+
+      // Recolher
+      fireEvent.click(screen.getByText("▲ Recolher"));
+      expect(screen.getByText("▼ Expandir")).toBeInTheDocument();
     });
   });
 
   describe("estatísticas resumidas", () => {
-    it("deve mostrar total de grupos quando recolhido", () => {
+    it("deve mostrar total de grupos (componente inicia colapsado)", () => {
       render(<GruposViewer grupos={mockMultiplosGrupos} />);
 
-      fireEvent.click(screen.getByText("▲ Recolher"));
-
+      // Componente já inicia colapsado, resumo está visível
       expect(screen.getByText("2")).toBeInTheDocument();
     });
 
-    it("deve mostrar total de partidas quando recolhido", () => {
+    it("deve mostrar total de partidas (componente inicia colapsado)", () => {
       render(<GruposViewer grupos={mockMultiplosGrupos} />);
 
-      fireEvent.click(screen.getByText("▲ Recolher"));
-
+      // Componente já inicia colapsado
       // 3 partidas no grupo A + 1 partida no grupo B = 4
       expect(screen.getByText("4")).toBeInTheDocument();
     });
 
-    it("deve mostrar progresso corretamente", () => {
+    it("deve mostrar progresso corretamente (componente inicia colapsado)", () => {
       render(<GruposViewer grupos={mockMultiplosGrupos} />);
 
-      fireEvent.click(screen.getByText("▲ Recolher"));
-
+      // Componente já inicia colapsado
       // 3 finalizadas de 4 = 75%
       expect(screen.getByText("75%")).toBeInTheDocument();
     });
   });
 
   describe("status das partidas", () => {
-    it("deve mostrar status Finalizada", () => {
+    it("deve mostrar status Finalizada após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes das partidas
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getAllByText("Finalizada").length).toBeGreaterThan(0);
     });
 
-    it("deve mostrar status Agendada", () => {
+    it("deve mostrar status Agendada após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("Agendada")).toBeInTheDocument();
     });
 
-    it("deve mostrar VS entre duplas", () => {
+    it("deve mostrar VS entre duplas após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getAllByText("VS").length).toBeGreaterThan(0);
     });
   });
 
   describe("múltiplos grupos", () => {
-    it("deve renderizar todos os grupos", () => {
+    it("deve renderizar todos os grupos após expandir", () => {
       render(<GruposViewer grupos={mockMultiplosGrupos} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       expect(screen.getByText("Grupo A")).toBeInTheDocument();
       expect(screen.getByText("Grupo B")).toBeInTheDocument();
@@ -371,8 +402,11 @@ describe("GruposViewer", () => {
   });
 
   describe("placar das partidas", () => {
-    it("deve mostrar placar quando partida finalizada", () => {
+    it("deve mostrar placar quando partida finalizada após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes das partidas
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       // Partida 1: 6-4
       expect(screen.getAllByText("6").length).toBeGreaterThan(0);
@@ -381,8 +415,11 @@ describe("GruposViewer", () => {
   });
 
   describe("classificação", () => {
-    it("deve mostrar posição no grupo", () => {
+    it("deve mostrar posição no grupo após expandir", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
 
       // Posições 1, 2, 3
       expect(screen.getAllByText("1").length).toBeGreaterThan(0);

@@ -13,9 +13,11 @@ import { FaseEtapa } from "../models/Etapa";
 import { IPartidaRepository } from "../repositories/interfaces/IPartidaRepository";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { IGrupoRepository } from "../repositories/interfaces/IGrupoRepository";
+import { IConfrontoEliminatorioRepository } from "../repositories/interfaces/IConfrontoEliminatorioRepository";
 import { partidaRepository } from "../repositories/firebase/PartidaRepository";
 import { duplaRepository } from "../repositories/firebase/DuplaRepository";
 import { grupoRepository } from "../repositories/firebase/GrupoRepository";
+import { confrontoEliminatorioRepository } from "../repositories/firebase/ConfrontoEliminatorioRepository";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
 import classificacaoService from "./ClassificacaoService";
 import logger from "../utils/logger";
@@ -57,7 +59,8 @@ export class PartidaGrupoService implements IPartidaGrupoService {
   constructor(
     private partidaRepo: IPartidaRepository = partidaRepository,
     private duplaRepo: IDuplaRepository = duplaRepository,
-    private grupoRepo: IGrupoRepository = grupoRepository
+    private grupoRepo: IGrupoRepository = grupoRepository,
+    private confrontoRepo: IConfrontoEliminatorioRepository = confrontoEliminatorioRepository
   ) {}
 
   /**
@@ -159,6 +162,19 @@ export class PartidaGrupoService implements IPartidaGrupoService {
       }
 
       const isEdicao = partida.status === StatusPartida.FINALIZADA;
+
+      // Se for edição, verificar se a eliminatória já foi gerada
+      if (isEdicao) {
+        const confrontos = await this.confrontoRepo.buscarPorEtapa(
+          partida.etapaId,
+          arenaId
+        );
+        if (confrontos.length > 0) {
+          throw new Error(
+            "Não é possível editar resultados após gerar a fase eliminatória. Cancele a eliminatória primeiro."
+          );
+        }
+      }
 
       // Se for edição, reverter estatísticas anteriores
       if (isEdicao && partida.placar && partida.placar.length > 0) {

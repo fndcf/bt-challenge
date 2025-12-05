@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArena } from "@/contexts/ArenaContext";
+import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 
 // ===========================
 // LAYOUT PRINCIPAL
@@ -11,6 +12,7 @@ import { useArena } from "@/contexts/ArenaContext";
 const Layout = styled.div`
   display: flex;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - resolve problema da barra de endereço no mobile */
   overflow: hidden;
   background: #f5f7fa;
 `;
@@ -276,6 +278,7 @@ const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth > 768 : true
   );
+  const [modalLogoutAberto, setModalLogoutAberto] = useState(false);
 
   // adiciona classe "admin-area" no body ao montar
   useEffect(() => {
@@ -305,10 +308,14 @@ const AdminLayout: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleLogout = () => {
-    if (window.confirm("Deseja realmente sair?")) {
-      logout();
-    }
+  const handleLogoutClick = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setModalLogoutAberto(true);
+  };
+
+  const handleConfirmarLogout = () => {
+    setModalLogoutAberto(false);
+    logout();
   };
 
   return (
@@ -355,7 +362,7 @@ const AdminLayout: React.FC = () => {
             </NavLink>
           )}
 
-          <NavButton $open={sidebarOpen} onClick={handleLogout}>
+          <NavButton $open={sidebarOpen} onPointerDown={handleLogoutClick}>
             <span>Sair</span>
           </NavButton>
         </Nav>
@@ -375,6 +382,16 @@ const AdminLayout: React.FC = () => {
       <Main>
         <Outlet />
       </Main>
+
+      <ConfirmacaoPerigosa
+        isOpen={modalLogoutAberto}
+        onClose={() => setModalLogoutAberto(false)}
+        onConfirm={handleConfirmarLogout}
+        titulo="Sair do Sistema"
+        mensagem="Deseja realmente sair do painel administrativo?"
+        textoBotaoConfirmar="Sair"
+        variante="warning"
+      />
     </Layout>
   );
 };

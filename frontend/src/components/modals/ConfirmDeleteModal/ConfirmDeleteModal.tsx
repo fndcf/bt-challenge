@@ -25,6 +25,8 @@ const Overlay = styled.div`
 `;
 
 const ModalContent = styled.div`
+  position: relative;
+  z-index: 51;
   background: white;
   border-radius: 0.75rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);

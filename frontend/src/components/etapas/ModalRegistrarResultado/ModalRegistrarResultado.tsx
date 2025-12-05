@@ -143,15 +143,22 @@ const PlacarGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: end;
 `;
 
-const InputGroup = styled.div``;
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
 
 const InputLabel = styled.label`
   display: block;
   font-size: 0.875rem;
   color: #6b7280;
   margin-bottom: 0.25rem;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: flex-end;
 `;
 
 const ScoreInput = styled.input`
@@ -177,40 +184,6 @@ const ScoreInput = styled.input`
   &::placeholder {
     color: #d1d5db;
   }
-`;
-
-const ResultBox = styled.div`
-  margin-top: 1.5rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 0.5rem;
-  padding: 1rem;
-`;
-
-const ResultContent = styled.div`
-  text-align: center;
-`;
-
-const ResultLabel = styled.span`
-  font-size: 0.875rem;
-  color: #166534;
-`;
-
-const WinnerName = styled.p`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #166534;
-  margin: 0.25rem 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const ResultScore = styled.p`
-  font-size: 0.875rem;
-  color: #166534;
-  margin: 0.25rem 0 0 0;
 `;
 
 const ErrorBox = styled.div`
@@ -278,23 +251,6 @@ const Spinner = styled.div`
   @keyframes spin {
     to {
       transform: rotate(360deg);
-    }
-  }
-`;
-
-const HintsBox = styled.div`
-  margin-top: 1rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-
-  p {
-    margin: 0;
-
-    strong {
-      font-weight: 600;
     }
   }
 `;
@@ -507,16 +463,6 @@ export const ModalRegistrarResultado: React.FC<
               </PlacarGrid>
             </PlacarSection>
 
-            {resultado && (
-              <ResultBox>
-                <ResultContent>
-                  <ResultLabel>Vencedor:</ResultLabel>
-                  <WinnerName>{resultado.vencedor}</WinnerName>
-                  <ResultScore>Placar: {resultado.placar}</ResultScore>
-                </ResultContent>
-              </ResultBox>
-            )}
-
             {erro && (
               <ErrorBox>
                 <ErrorText>❌ {erro}</ErrorText>
@@ -552,16 +498,6 @@ export const ModalRegistrarResultado: React.FC<
               </Button>
             </ButtonsRow>
           </Form>
-
-          <HintsBox>
-            <p>
-              <strong>Placares válidos:</strong> 6-0, 6-1, 6-2, 6-3, 6-4, 7-5,
-              7-6
-            </p>
-            <p>
-              <strong>Set único:</strong> Vencedor do set vence a partida
-            </p>
-          </HintsBox>
         </ModalContainer>
       </ModalWrapper>
     </Overlay>

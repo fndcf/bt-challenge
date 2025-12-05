@@ -541,18 +541,19 @@ describe("DetalhesEtapa - Renderização", () => {
       expect(mockSetAbaAtiva).toHaveBeenCalledWith("chaves");
     });
 
-    it("deve chamar handleApagarChaves", () => {
-      const mockHandleApagarChaves = jest.fn();
+    it("deve abrir modal de confirmação ao clicar em Apagar Chaves", () => {
+      const mockSetModalConfirmacaoAberto = jest.fn();
       mockUseDetalhesEtapa.mockReturnValue({
         ...defaultMockReturn,
-        handleApagarChaves: mockHandleApagarChaves,
+        setModalConfirmacaoAberto: mockSetModalConfirmacaoAberto,
       });
 
       renderWithRouter(<DetalhesEtapa />);
 
       fireEvent.click(screen.getByTestId("btn-apagar-chaves"));
 
-      expect(mockHandleApagarChaves).toHaveBeenCalled();
+      // Deve chamar setModalConfirmacaoAberto(true) para abrir o modal
+      expect(mockSetModalConfirmacaoAberto).toHaveBeenCalledWith(true);
     });
 
     it("deve chamar handleFinalizarEtapa", () => {

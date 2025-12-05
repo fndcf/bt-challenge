@@ -28,6 +28,7 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [modalLogoutAberto, setModalLogoutAberto] = useState(false);
 
   useEffect(() => {
     document.body.classList.add("admin-area");
@@ -47,10 +48,14 @@ const AdminLayout: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleLogout = () => {
-    if (window.confirm("Deseja realmente sair?")) {
-      logout();
-    }
+  const handleLogoutClick = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setModalLogoutAberto(true);
+  };
+
+  const handleConfirmarLogout = () => {
+    setModalLogoutAberto(false);
+    logout();
   };
 
   return (
@@ -88,7 +93,7 @@ const AdminLayout: React.FC = () => {
             </Link>
           )}
 
-          <button data-testid="logout-button" onClick={handleLogout}>
+          <button data-testid="logout-button" onPointerDown={handleLogoutClick}>
             Sair
           </button>
         </nav>
@@ -109,6 +114,22 @@ const AdminLayout: React.FC = () => {
       <main data-testid="main-content">
         <Outlet />
       </main>
+
+      {modalLogoutAberto && (
+        <div data-testid="modal-confirmacao-logout">
+          <span>Sair do Sistema</span>
+          <span>Deseja realmente sair do painel administrativo?</span>
+          <button
+            data-testid="btn-cancelar-logout"
+            onClick={() => setModalLogoutAberto(false)}
+          >
+            Cancelar
+          </button>
+          <button data-testid="btn-confirmar-logout" onClick={handleConfirmarLogout}>
+            Sair
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -131,8 +152,6 @@ const renderWithRouter = (
 describe("AdminLayout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock window.confirm
-    window.confirm = jest.fn(() => true);
   });
 
   afterEach(() => {
@@ -245,25 +264,52 @@ describe("AdminLayout", () => {
       expect(screen.getByTestId("logout-button")).toBeInTheDocument();
     });
 
-    it("deve chamar logout quando confirmar", () => {
+    it("deve abrir modal de confirmação ao clicar em sair", () => {
       renderWithRouter();
       const logoutButton = screen.getByTestId("logout-button");
 
-      fireEvent.click(logoutButton);
+      fireEvent.pointerDown(logoutButton);
 
-      expect(window.confirm).toHaveBeenCalledWith("Deseja realmente sair?");
-      expect(mockLogout).toHaveBeenCalled();
+      // Modal deve aparecer
+      expect(screen.getByTestId("modal-confirmacao-logout")).toBeInTheDocument();
+      expect(screen.getByText("Sair do Sistema")).toBeInTheDocument();
+      expect(
+        screen.getByText("Deseja realmente sair do painel administrativo?")
+      ).toBeInTheDocument();
     });
 
-    it("não deve chamar logout quando cancelar", () => {
-      window.confirm = jest.fn(() => false);
+    it("deve chamar logout quando confirmar no modal", () => {
       renderWithRouter();
       const logoutButton = screen.getByTestId("logout-button");
 
-      fireEvent.click(logoutButton);
+      // Abre o modal
+      fireEvent.pointerDown(logoutButton);
 
-      expect(window.confirm).toHaveBeenCalled();
+      // Confirma no modal
+      fireEvent.click(screen.getByTestId("btn-confirmar-logout"));
+
+      expect(mockLogout).toHaveBeenCalled();
+      // Modal deve fechar
+      expect(
+        screen.queryByTestId("modal-confirmacao-logout")
+      ).not.toBeInTheDocument();
+    });
+
+    it("não deve chamar logout quando cancelar no modal", () => {
+      renderWithRouter();
+      const logoutButton = screen.getByTestId("logout-button");
+
+      // Abre o modal
+      fireEvent.pointerDown(logoutButton);
+
+      // Cancela no modal
+      fireEvent.click(screen.getByTestId("btn-cancelar-logout"));
+
       expect(mockLogout).not.toHaveBeenCalled();
+      // Modal deve fechar
+      expect(
+        screen.queryByTestId("modal-confirmacao-logout")
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -8,6 +8,9 @@ import { MemoryRouter } from "react-router-dom";
 import { useListagemJogadores } from "@/pages/Jogadores/hooks/useListagemJogadores";
 import ListagemJogadores from "@/pages/Jogadores";
 
+// Mock do scrollIntoView (não suportado pelo jsdom)
+Element.prototype.scrollIntoView = jest.fn();
+
 // Mock do logger
 jest.mock("@/utils/logger", () => ({
   __esModule: true,

@@ -146,7 +146,7 @@ describe("ModalRegistrarResultadoReiDaPraia", () => {
       expect(screen.getByText("Salvar Resultado")).toBeInTheDocument();
     });
 
-    it("deve mostrar dicas de placar válido", () => {
+    it("deve ter formulário de placar estruturado", () => {
       render(
         <ModalRegistrarResultadoReiDaPraia
           partida={mockPartidaNova}
@@ -155,10 +155,10 @@ describe("ModalRegistrarResultadoReiDaPraia", () => {
         />
       );
 
-      expect(screen.getByText(/Placares válidos:/)).toBeInTheDocument();
-      expect(
-        screen.getByText(/6-0, 6-1, 6-2, 6-3, 6-4, 7-5, 7-6/)
-      ).toBeInTheDocument();
+      // Verificar estrutura básica do formulário
+      expect(screen.getByText("Placar")).toBeInTheDocument();
+      const inputs = screen.getAllByRole("spinbutton");
+      expect(inputs.length).toBe(2);
     });
   });
 
@@ -191,7 +191,7 @@ describe("ModalRegistrarResultadoReiDaPraia", () => {
   });
 
   describe("cálculo de vencedor", () => {
-    it("deve mostrar vencedor quando placar válido", () => {
+    it("deve habilitar botão quando placar válido (dupla1 vence)", () => {
       render(
         <ModalRegistrarResultadoReiDaPraia
           partida={mockPartidaNova}
@@ -204,11 +204,12 @@ describe("ModalRegistrarResultadoReiDaPraia", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      expect(screen.getByText("Vencedor:")).toBeInTheDocument();
-      expect(screen.getByText("Placar: 6 x 4")).toBeInTheDocument();
+      // Botão deve estar habilitado quando há vencedor válido
+      const submitButton = screen.getByText("Salvar Resultado").closest("button");
+      expect(submitButton).not.toBeDisabled();
     });
 
-    it("deve identificar dupla2 como vencedora quando ela ganha", () => {
+    it("deve habilitar botão quando dupla2 vence", () => {
       render(
         <ModalRegistrarResultadoReiDaPraia
           partida={mockPartidaNova}
@@ -221,10 +222,12 @@ describe("ModalRegistrarResultadoReiDaPraia", () => {
       fireEvent.change(inputs[0], { target: { value: "3" } });
       fireEvent.change(inputs[1], { target: { value: "6" } });
 
-      expect(screen.getByText("Placar: 3 x 6")).toBeInTheDocument();
+      // Botão deve estar habilitado quando há vencedor válido
+      const submitButton = screen.getByText("Salvar Resultado").closest("button");
+      expect(submitButton).not.toBeDisabled();
     });
 
-    it("não deve mostrar vencedor quando placar empatado", () => {
+    it("não deve habilitar botão quando placar empatado", () => {
       render(
         <ModalRegistrarResultadoReiDaPraia
           partida={mockPartidaNova}
@@ -237,7 +240,9 @@ describe("ModalRegistrarResultadoReiDaPraia", () => {
       fireEvent.change(inputs[0], { target: { value: "5" } });
       fireEvent.change(inputs[1], { target: { value: "5" } });
 
-      expect(screen.queryByText("Vencedor:")).not.toBeInTheDocument();
+      // Botão deve estar desabilitado para placar empatado
+      const submitButton = screen.getByText("Salvar Resultado").closest("button");
+      expect(submitButton).toBeDisabled();
     });
   });
 

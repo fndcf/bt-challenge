@@ -129,10 +129,6 @@ export const useFaseEliminatoria = ({
    * Gera a fase eliminatória
    */
   const gerarEliminatoria = async () => {
-    if (!confirm("Gerar fase eliminatória? Esta ação não pode ser desfeita!")) {
-      return;
-    }
-
     try {
       setLoading(true);
       await chaveService.gerarFaseEliminatoria(etapaId, 2);
@@ -150,30 +146,10 @@ export const useFaseEliminatoria = ({
    * Cancela a fase eliminatória
    */
   const cancelarEliminatoria = async () => {
-    if (
-      !confirm(
-        "ATENÇÃO!\n\n" +
-          "Cancelar a fase eliminatória irá:\n" +
-          "• Excluir TODOS os confrontos eliminatórios\n" +
-          "• Excluir TODAS as partidas da eliminatória\n" +
-          "• Permitir ajustar resultados da fase de grupos\n" +
-          "• Permitir gerar a eliminatória novamente\n\n" +
-          "Esta ação NÃO pode ser desfeita!\n\n" +
-          "Deseja continuar?"
-      )
-    ) {
-      return;
-    }
-
     try {
       setLoading(true);
       await chaveService.cancelarFaseEliminatoria(etapaId);
-      alert(
-        "Fase eliminatória cancelada!\n\n" +
-          "Você pode agora:\n" +
-          "• Ajustar resultados da fase de grupos\n" +
-          "• Gerar a eliminatória novamente"
-      );
+      alert("Fase eliminatória cancelada!");
       await carregarConfrontos();
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
@@ -186,24 +162,13 @@ export const useFaseEliminatoria = ({
    * Encerra a etapa
    */
   const encerrarEtapa = async () => {
-    if (
-      !confirm(
-        "Encerrar Etapa?\n\n" +
-          "Isso irá marcar a etapa como finalizada.\n" +
-          "O campeão foi definido!\n\n" +
-          "Deseja continuar?"
-      )
-    ) {
-      return;
-    }
-
     try {
       setLoading(true);
       await etapaService.encerrarEtapa(etapaId);
       alert("Etapa encerrada com sucesso!");
       window.location.reload();
     } catch (err: any) {
-      alert(`❌ Erro: ${err.message}`);
+      alert(`Erro: ${err.message}`);
     } finally {
       setLoading(false);
     }

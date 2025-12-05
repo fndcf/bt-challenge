@@ -53,9 +53,16 @@ const mockConfrontoFinalizado = {
 describe("ModalRegistrarResultadoEliminatorio", () => {
   const mockOnClose = jest.fn();
   const mockOnSuccess = jest.fn();
+  const originalAlert = window.alert;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock window.alert globalmente para evitar erros no jsdom
+    window.alert = jest.fn();
+  });
+
+  afterAll(() => {
+    window.alert = originalAlert;
   });
 
   describe("renderização", () => {
@@ -147,7 +154,7 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       expect(screen.getByText("Salvar Resultado")).toBeInTheDocument();
     });
 
-    it("deve mostrar aviso sobre avanço automático", () => {
+    it("deve mostrar formulário de placar", () => {
       render(
         <ModalRegistrarResultadoEliminatorio
           confronto={mockConfrontoNovo}
@@ -156,10 +163,9 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
         />
       );
 
-      expect(screen.getByText(/Importante:/)).toBeInTheDocument();
-      expect(
-        screen.getByText(/O vencedor avançará automaticamente/)
-      ).toBeInTheDocument();
+      // Verifica que o formulário está presente
+      expect(screen.getByText("Placar do Set")).toBeInTheDocument();
+      expect(screen.getAllByRole("spinbutton").length).toBe(2);
     });
   });
 
@@ -192,7 +198,9 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
   });
 
   describe("cálculo de vencedor", () => {
-    it("deve mostrar vencedor quando placar válido", () => {
+    // O componente foi simplificado e não exibe mais "Vencedor" e "Placar:" na tela
+    // A validação de vencedor é feita internamente e reflete no estado do botão
+    it("deve habilitar botão de salvar quando placar válido com vencedor", () => {
       render(
         <ModalRegistrarResultadoEliminatorio
           confronto={mockConfrontoNovo}
@@ -205,11 +213,11 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      expect(screen.getByText("Vencedor")).toBeInTheDocument();
-      expect(screen.getByText("Placar: 6 x 4")).toBeInTheDocument();
+      const submitButton = screen.getByText("Salvar Resultado").closest("button");
+      expect(submitButton).not.toBeDisabled();
     });
 
-    it("deve identificar dupla2 como vencedora quando ela ganha", () => {
+    it("deve habilitar botão quando dupla2 ganha", () => {
       render(
         <ModalRegistrarResultadoEliminatorio
           confronto={mockConfrontoNovo}
@@ -222,10 +230,11 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       fireEvent.change(inputs[0], { target: { value: "3" } });
       fireEvent.change(inputs[1], { target: { value: "6" } });
 
-      expect(screen.getByText("Placar: 3 x 6")).toBeInTheDocument();
+      const submitButton = screen.getByText("Salvar Resultado").closest("button");
+      expect(submitButton).not.toBeDisabled();
     });
 
-    it("não deve mostrar vencedor quando placar empatado", () => {
+    it("deve manter botão desabilitado quando placar empatado", () => {
       render(
         <ModalRegistrarResultadoEliminatorio
           confronto={mockConfrontoNovo}
@@ -238,7 +247,8 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       fireEvent.change(inputs[0], { target: { value: "5" } });
       fireEvent.change(inputs[1], { target: { value: "5" } });
 
-      expect(screen.queryByText("Vencedor")).not.toBeInTheDocument();
+      const submitButton = screen.getByText("Salvar Resultado").closest("button");
+      expect(submitButton).toBeDisabled();
     });
   });
 

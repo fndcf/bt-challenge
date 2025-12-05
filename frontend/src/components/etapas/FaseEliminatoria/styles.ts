@@ -46,7 +46,8 @@ export const Header = styled.div`
 
 export const ActionsRow = styled.div`
   display: flex;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.5rem;
   flex-wrap: wrap;
 `;
 
@@ -55,14 +56,19 @@ export const Button = styled.button<{
 }>`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0.375rem;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s;
+
+  @media (min-width: 768px) {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
 
   ${(props) => {
     switch (props.$variant) {
@@ -100,10 +106,6 @@ export const Button = styled.button<{
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 0.9375rem;
   }
 `;
 
@@ -210,20 +212,24 @@ export const EmptyStateContent = styled.div`
 `;
 
 export const EmptyTitle = styled.h3`
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 1rem 0;
 
   @media (min-width: 768px) {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 `;
 
 export const AlertBox = styled.div<{ $variant: "success" | "warning" }>`
   border-radius: 0.5rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  padding: 1rem;
+  text-align: left;
+
+  & + & {
+    margin-top: 1rem;
+  }
 
   ${(props) =>
     props.$variant === "success"
@@ -239,23 +245,19 @@ export const AlertBox = styled.div<{ $variant: "success" | "warning" }>`
   `}
 
   h4 {
-    font-size: 1.125rem;
-    font-weight: 700;
-    margin: 0 0 0.75rem 0;
-
-    @media (min-width: 768px) {
-      font-size: 1.25rem;
-    }
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
   }
 
   p {
-    margin: 0 0 1rem 0;
-    font-size: 0.875rem;
+    margin: 0;
+    font-size: 0.8125rem;
     line-height: 1.5;
+  }
 
-    @media (min-width: 768px) {
-      font-size: 0.9375rem;
-    }
+  p + p {
+    margin-top: 0.25rem;
   }
 `;
 

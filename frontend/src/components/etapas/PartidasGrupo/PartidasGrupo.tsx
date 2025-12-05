@@ -350,7 +350,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
                   {partida.dupla1Nome}
                 </DuplaNome>
                 {partida.status === StatusPartida.FINALIZADA && (
-                  <Score>{partida.setsDupla1}</Score>
+                  <Score>{partida.placar?.[0]?.gamesDupla1 ?? partida.setsDupla1}</Score>
                 )}
               </DuplaRow>
 
@@ -363,7 +363,7 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
                   {partida.dupla2Nome}
                 </DuplaNome>
                 {partida.status === StatusPartida.FINALIZADA && (
-                  <Score>{partida.setsDupla2}</Score>
+                  <Score>{partida.placar?.[0]?.gamesDupla2 ?? partida.setsDupla2}</Score>
                 )}
               </DuplaRow>
             </PartidaContent>

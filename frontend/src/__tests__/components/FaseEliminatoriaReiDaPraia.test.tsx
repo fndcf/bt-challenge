@@ -2,7 +2,7 @@
  * Testes do componente FaseEliminatoriaReiDaPraia
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { StatusConfrontoEliminatorio, TipoFase } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 
@@ -16,7 +16,7 @@ jest.mock(
   })
 );
 
-// Mock do modal
+// Mock do modal de resultado
 jest.mock(
   "@/components/etapas/ModalRegistrarResultadoEliminatorio",
   () => ({
@@ -35,6 +35,28 @@ jest.mock(
     ),
   })
 );
+
+// Mock do modal de confirmação
+jest.mock("@/components/modals/ConfirmacaoPerigosa", () => ({
+  ConfirmacaoPerigosa: ({
+    isOpen,
+    onConfirm,
+    onClose,
+    titulo,
+  }: {
+    isOpen: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+    titulo: string;
+  }) =>
+    isOpen ? (
+      <div data-testid={`modal-confirmacao-${titulo.toLowerCase().replace(/\s/g, "-")}`}>
+        <span>{titulo}</span>
+        <button onClick={onClose} data-testid="btn-cancelar-modal">Cancelar</button>
+        <button onClick={onConfirm} data-testid="btn-confirmar-modal">Confirmar</button>
+      </div>
+    ) : null,
+}));
 
 import { FaseEliminatoriaReiDaPraia } from "@/components/etapas/FaseEliminatoriaReiDaPraia/FaseEliminatoriaReiDaPraia";
 
@@ -318,8 +340,23 @@ describe("FaseEliminatoriaReiDaPraia", () => {
       expect(screen.getByText("Cancelar Eliminatória")).toBeInTheDocument();
     });
 
-    it("deve chamar cancelarEliminatoria ao clicar", () => {
-      const mockCancelar = jest.fn();
+    it("deve abrir modal de confirmação ao clicar em Cancelar Eliminatória", () => {
+      render(
+        <FaseEliminatoriaReiDaPraia
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          grupos={mockGrupos}
+        />
+      );
+
+      fireEvent.click(screen.getByText("Cancelar Eliminatória"));
+
+      // Deve abrir o modal de confirmação
+      expect(screen.getByTestId("modal-confirmacao-cancelar-eliminatória")).toBeInTheDocument();
+    });
+
+    it("deve chamar cancelarEliminatoria ao confirmar no modal", async () => {
+      const mockCancelar = jest.fn().mockResolvedValue(undefined);
       mockUseFaseEliminatoriaReiDaPraia.mockReturnValue({
         ...defaultHookReturn,
         cancelarEliminatoria: mockCancelar,
@@ -333,8 +370,15 @@ describe("FaseEliminatoriaReiDaPraia", () => {
         />
       );
 
+      // Abre o modal
       fireEvent.click(screen.getByText("Cancelar Eliminatória"));
-      expect(mockCancelar).toHaveBeenCalled();
+
+      // Confirma no modal
+      fireEvent.click(screen.getByTestId("btn-confirmar-modal"));
+
+      await waitFor(() => {
+        expect(mockCancelar).toHaveBeenCalled();
+      });
     });
   });
 
@@ -368,7 +412,7 @@ describe("FaseEliminatoriaReiDaPraia", () => {
       expect(screen.getAllByText("1").length).toBeGreaterThan(0);
     });
 
-    it("deve mostrar vencedor", () => {
+    it("deve destacar vencedor via estilo", () => {
       render(
         <FaseEliminatoriaReiDaPraia
           etapaId="etapa-1"
@@ -377,7 +421,9 @@ describe("FaseEliminatoriaReiDaPraia", () => {
         />
       );
 
-      expect(screen.getByText("Vencedor:")).toBeInTheDocument();
+      // O vencedor é destacado via prop $isWinner no styled component
+      // Verificamos que o nome do vencedor está presente
+      expect(screen.getAllByText("João & Maria").length).toBeGreaterThan(0);
     });
   });
 
@@ -574,8 +620,28 @@ describe("FaseEliminatoriaReiDaPraia", () => {
   });
 
   describe("chamar encerrarEtapa", () => {
-    it("deve chamar encerrarEtapa ao clicar no botão", () => {
-      const mockEncerrar = jest.fn();
+    it("deve abrir modal de confirmação ao clicar em Encerrar Etapa", () => {
+      mockUseFaseEliminatoriaReiDaPraia.mockReturnValue({
+        ...defaultHookReturn,
+        finalFinalizada: true,
+      });
+
+      render(
+        <FaseEliminatoriaReiDaPraia
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          grupos={mockGrupos}
+        />
+      );
+
+      fireEvent.click(screen.getByText("Encerrar Etapa"));
+
+      // Deve abrir o modal de confirmação
+      expect(screen.getByTestId("modal-confirmacao-encerrar-etapa-rei-da-praia")).toBeInTheDocument();
+    });
+
+    it("deve chamar encerrarEtapa ao confirmar no modal", async () => {
+      const mockEncerrar = jest.fn().mockResolvedValue(undefined);
       mockUseFaseEliminatoriaReiDaPraia.mockReturnValue({
         ...defaultHookReturn,
         finalFinalizada: true,
@@ -590,8 +656,15 @@ describe("FaseEliminatoriaReiDaPraia", () => {
         />
       );
 
+      // Abre o modal
       fireEvent.click(screen.getByText("Encerrar Etapa"));
-      expect(mockEncerrar).toHaveBeenCalled();
+
+      // Confirma no modal
+      fireEvent.click(screen.getByTestId("btn-confirmar-modal"));
+
+      await waitFor(() => {
+        expect(mockEncerrar).toHaveBeenCalled();
+      });
     });
   });
 

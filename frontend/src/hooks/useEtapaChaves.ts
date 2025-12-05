@@ -75,21 +75,10 @@ export const useEtapaChaves = ({
   }, [etapa, isReiDaPraia, onSuccess]);
 
   /**
-   * Apagar chaves
+   * Apagar chaves (sem confirmação - a confirmação deve ser feita pelo componente)
    */
   const handleApagarChaves = useCallback(async () => {
     if (!etapa) return;
-
-    const confirmar = window.confirm(
-      `ATENÇÃO: Deseja apagar todas as chaves desta etapa?\n\n` +
-        `Isso removerá:\n` +
-        `• Todos os grupos\n` +
-        `• Todas as partidas\n` +
-        `• Todos os resultados\n\n` +
-        `Esta ação não pode ser desfeita!`
-    );
-
-    if (!confirmar) return;
 
     try {
       // O endpoint DELETE /etapas/:id/chaves funciona para ambos os formatos

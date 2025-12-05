@@ -278,9 +278,10 @@ const RankingNome = styled.div`
 const RankingStats = styled.div`
   display: flex;
   gap: 1rem;
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
-    gap: 0.75rem;
+    gap: 0.375rem;
   }
 `;
 
@@ -292,7 +293,7 @@ const StatItem = styled.div`
   min-width: 50px;
 
   @media (max-width: 768px) {
-    min-width: 45px;
+    min-width: 28px;
   }
 `;
 
@@ -302,7 +303,7 @@ const StatValue = styled.div`
   color: #111827;
 
   @media (max-width: 768px) {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -314,7 +315,7 @@ const StatLabel = styled.div`
   letter-spacing: 0.025em;
 
   @media (max-width: 768px) {
-    font-size: 0.5625rem;
+    font-size: 0.5rem;
   }
 `;
 

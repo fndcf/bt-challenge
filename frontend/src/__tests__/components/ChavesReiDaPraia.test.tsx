@@ -397,13 +397,17 @@ describe("ChavesReiDaPraia", () => {
       });
     });
 
-    it("deve mostrar regras de pontuação", async () => {
+    it("deve mostrar regras de classificação", async () => {
       render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
 
       await waitFor(() => {
-        expect(screen.getAllByText(/3 pontos/).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/1 set/).length).toBeGreaterThan(0);
-        expect(screen.getByText(/Classificação por pontos/)).toBeInTheDocument();
+        // Texto atualizado do InfoCard
+        expect(
+          screen.getByText(/Classificação por pontos, depois saldo de games/)
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(/São 3 partidas por grupo/)
+        ).toBeInTheDocument();
       });
     });
   });

@@ -15,7 +15,7 @@ export interface JogadoresListProps {
   total: number;
   arenaSlug?: string;
   temFiltrosAtivos: boolean;
-  onDeletar: (jogador: Jogador) => Promise<void>;
+  onDeletar: (jogador: Jogador) => Promise<boolean>;
 }
 
 export const JogadoresList: React.FC<JogadoresListProps> = ({
@@ -50,13 +50,11 @@ export const JogadoresList: React.FC<JogadoresListProps> = ({
   const confirmarDelecao = async () => {
     if (!deleteModal.jogador) return;
 
-    try {
-      setDeleteModal((prev) => ({ ...prev, loading: true }));
-      await onDeletar(deleteModal.jogador);
-      setDeleteModal({ isOpen: false, jogador: null, loading: false });
-    } catch (error) {
-      setDeleteModal({ isOpen: false, jogador: null, loading: false });
-    }
+    setDeleteModal((prev) => ({ ...prev, loading: true }));
+    await onDeletar(deleteModal.jogador);
+    // Fecha o modal independente de sucesso ou erro
+    // O scroll para o topo é feito no hook
+    setDeleteModal({ isOpen: false, jogador: null, loading: false });
   };
 
   const cancelarDelecao = () => {

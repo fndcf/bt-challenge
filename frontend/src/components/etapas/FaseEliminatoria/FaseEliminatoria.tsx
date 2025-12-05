@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ConfrontoEliminatorio,
   TipoFase,
@@ -6,6 +6,7 @@ import {
   Grupo,
 } from "@/types/chave";
 import { ModalRegistrarResultadoEliminatorio } from "../ModalRegistrarResultadoEliminatorio";
+import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 import { useFaseEliminatoria } from "./hooks/useFaseEliminatoria";
 import { getNomeFase, agruparPorFase, contarStatus } from "./utils/faseHelpers";
 import { EmptyState } from "./components/EmptyState";
@@ -44,8 +45,6 @@ import {
   DuplaOrigemText,
   Score,
   VsSeparator,
-  PlacarDetalhado,
-  PlacarInfo,
   ActionSection,
   ActionButton,
 } from "./styles";
@@ -60,6 +59,9 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   etapaId,
   grupos,
 }) => {
+  const [modalCancelarAberto, setModalCancelarAberto] = useState(false);
+  const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
+
   const {
     // Estado
     confrontos,
@@ -152,34 +154,31 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       <ActionsRow>
         <Button
           $variant="danger"
-          onClick={cancelarEliminatoria}
+          onClick={() => setModalCancelarAberto(true)}
           disabled={loading || etapaFinalizada}
         >
-          <span> Cancelar Eliminatória</span>
+          Cancelar Eliminatória
         </Button>
         {finalFinalizada && (
-          <>
-            <Button
-              $variant="warning"
-              onClick={encerrarEtapa}
-              disabled={loading || etapaFinalizada}
-            >
-              <span>
-                {etapaFinalizada ? " Etapa Encerrada " : " Encerrar Etapa"}
-              </span>
-            </Button>
-            {etapaFinalizada && (
-              <AlertBox $variant="success">
-                <h4> Etapa Finalizada!</h4>
-                <p>
-                  Esta etapa já foi encerrada. O campeão foi definido e os
-                  pontos foram atribuídos.
-                </p>
-              </AlertBox>
-            )}
-          </>
+          <Button
+            $variant="warning"
+            onClick={() => setModalEncerrarAberto(true)}
+            disabled={loading || etapaFinalizada}
+          >
+            {etapaFinalizada ? "Etapa Encerrada" : "Encerrar Etapa"}
+          </Button>
         )}
       </ActionsRow>
+
+      {etapaFinalizada && (
+        <AlertBox $variant="success">
+          <h4>Etapa Finalizada!</h4>
+          <p>
+            Esta etapa já foi encerrada. O campeão foi definido e os pontos
+            foram atribuídos.
+          </p>
+        </AlertBox>
+      )}
 
       <Controls>
         <Select
@@ -212,6 +211,34 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
             setConfrontoSelecionado(null);
             carregarConfrontos();
           }}
+        />
+      )}
+
+      {modalCancelarAberto && (
+        <ConfirmacaoPerigosa
+          isOpen={modalCancelarAberto}
+          titulo="Cancelar Eliminatória"
+          mensagem="Tem certeza que deseja cancelar a fase eliminatória? Todos os confrontos e resultados serão perdidos. Esta ação não pode ser desfeita!"
+          palavraConfirmacao="CANCELAR"
+          onConfirm={async () => {
+            await cancelarEliminatoria();
+            setModalCancelarAberto(false);
+          }}
+          onClose={() => setModalCancelarAberto(false)}
+        />
+      )}
+
+      {modalEncerrarAberto && (
+        <ConfirmacaoPerigosa
+          isOpen={modalEncerrarAberto}
+          titulo="Encerrar Etapa"
+          mensagem="Tem certeza que deseja encerrar esta etapa? O campeão será definido e os pontos serão atribuídos. Esta ação não pode ser desfeita!"
+          palavraConfirmacao="ENCERRAR"
+          onConfirm={async () => {
+            await encerrarEtapa();
+            setModalEncerrarAberto(false);
+          }}
+          onClose={() => setModalEncerrarAberto(false)}
         />
       )}
     </Container>
@@ -303,19 +330,6 @@ const VisualizacaoLista: React.FC<{
                           )}
                       </DuplaRow>
                     </ConfrontoContent>
-
-                    {/* PLACAR DETALHADO */}
-                    {confronto.status ===
-                      StatusConfrontoEliminatorio.FINALIZADA && (
-                      <PlacarDetalhado>
-                        <PlacarInfo>
-                          <span>Vencedor:</span>
-                          <span style={{ fontWeight: 700, color: "#16a34a" }}>
-                            {confronto.vencedoraNome}
-                          </span>
-                        </PlacarInfo>
-                      </PlacarDetalhado>
-                    )}
 
                     {/* ACTION SECTION */}
                     {confronto.status ===

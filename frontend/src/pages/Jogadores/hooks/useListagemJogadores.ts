@@ -50,7 +50,7 @@ export interface UseListagemJogadoresReturn {
 
   // Ações
   carregarJogadores: () => void;
-  handleDeletarJogador: (jogador: Jogador) => Promise<void>;
+  handleDeletarJogador: (jogador: Jogador) => Promise<boolean>;
 }
 
 export const useListagemJogadores = (): UseListagemJogadoresReturn => {
@@ -209,9 +209,10 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
 
   /**
    * Handler de deletar jogador
+   * Retorna true se sucesso, false se erro
    */
   const handleDeletarJogador = useCallback(
-    async (jogador: Jogador) => {
+    async (jogador: Jogador): Promise<boolean> => {
       try {
         logger.info("Deletando jogador", { jogadorId: jogador.id });
 
@@ -223,6 +224,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
 
         // Recarregar lista
         carregarJogadores();
+        return true;
       } catch (error: any) {
         const mensagemErro = error.message || "Erro ao deletar jogador";
         setErrorMessage(mensagemErro);
@@ -231,6 +233,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
           { jogadorId: jogador.id },
           error
         );
+        return false;
       }
     },
     [carregarJogadores]

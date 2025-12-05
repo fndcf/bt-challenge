@@ -742,15 +742,9 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
               partida. São 3 partidas por grupo, garantindo que cada jogador
               jogue com todos os outros.
             </p>
-            <ul>
-              <li>
-                <strong>3 pontos</strong> por vitória
-              </li>
-              <li>
-                <strong>1 set</strong> por partida (apenas 1 set)
-              </li>
-              <li>Classificação por pontos, depois saldo de games</li>
-            </ul>
+            <p>
+              Classificação por pontos, depois saldo de games e por fim sorteio
+            </p>
           </InfoCard>
         </>
       ) : (

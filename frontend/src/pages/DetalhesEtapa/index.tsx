@@ -2,7 +2,7 @@
  * Responsabilidade única: Orquestrar e renderizar página de detalhes da etapa
  */
 
-import React from "react";
+import React, { useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import { ModalInscricao } from "@/components/etapas/ModalInscricao";
@@ -27,6 +27,7 @@ const DetalhesEtapa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const etapaService = getEtapaService();
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   // Hook customizado gerencia todo o estado e lógica
   const {
@@ -128,13 +129,18 @@ const DetalhesEtapa: React.FC = () => {
           onAbrirInscricoes={handleAbrirInscricoes}
           onEncerrarInscricoes={handleEncerrarInscricoes}
           onGerarChaves={handleGerarChaves}
-          onApagarChaves={handleApagarChaves}
+          onApagarChaves={() => setModalConfirmacaoAberto(true)}
           onFinalizarEtapa={handleFinalizarEtapa}
-          onVerChaves={() => setAbaAtiva("chaves")}
+          onVerChaves={() => {
+            setAbaAtiva("chaves");
+            setTimeout(() => {
+              tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+          }}
         />
 
         {/* Tabs */}
-        <S.TabsContainer>
+        <S.TabsContainer ref={tabsRef}>
           <S.TabsNav>
             <S.TabsList>
               <S.Tab

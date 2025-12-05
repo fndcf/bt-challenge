@@ -379,8 +379,9 @@ describe("useFaseEliminatoria", () => {
   });
 
   describe("gerarEliminatoria", () => {
-    it("deve gerar eliminatória quando confirmado", async () => {
-      mockConfirm.mockReturnValue(true);
+    // A confirmação agora é feita pelo componente (ConfirmacaoPerigosa modal)
+    // O hook apenas executa a ação diretamente
+    it("deve gerar eliminatória diretamente", async () => {
       mockGerarFaseEliminatoria.mockResolvedValue({});
 
       const { result } = renderHook(() =>
@@ -401,26 +402,7 @@ describe("useFaseEliminatoria", () => {
       );
     });
 
-    it("não deve gerar eliminatória quando cancelado", async () => {
-      mockConfirm.mockReturnValue(false);
-
-      const { result } = renderHook(() =>
-        useFaseEliminatoria({ etapaId: "etapa-1", grupos: mockGrupos })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.gerarEliminatoria();
-      });
-
-      expect(mockGerarFaseEliminatoria).not.toHaveBeenCalled();
-    });
-
     it("deve tratar erro ao gerar eliminatória", async () => {
-      mockConfirm.mockReturnValue(true);
       mockGerarFaseEliminatoria.mockRejectedValue(new Error("Erro ao gerar"));
 
       const { result } = renderHook(() =>
@@ -440,8 +422,9 @@ describe("useFaseEliminatoria", () => {
   });
 
   describe("cancelarEliminatoria", () => {
-    it("deve cancelar eliminatória quando confirmado", async () => {
-      mockConfirm.mockReturnValue(true);
+    // A confirmação agora é feita pelo componente (ConfirmacaoPerigosa modal)
+    // O hook apenas executa a ação diretamente
+    it("deve cancelar eliminatória diretamente", async () => {
       mockCancelarFaseEliminatoria.mockResolvedValue({});
 
       const { result } = renderHook(() =>
@@ -457,29 +440,10 @@ describe("useFaseEliminatoria", () => {
       });
 
       expect(mockCancelarFaseEliminatoria).toHaveBeenCalledWith("etapa-1");
-      expect(mockAlert).toHaveBeenCalled();
-    });
-
-    it("não deve cancelar eliminatória quando usuário cancela", async () => {
-      mockConfirm.mockReturnValue(false);
-
-      const { result } = renderHook(() =>
-        useFaseEliminatoria({ etapaId: "etapa-1", grupos: mockGrupos })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.cancelarEliminatoria();
-      });
-
-      expect(mockCancelarFaseEliminatoria).not.toHaveBeenCalled();
+      expect(mockAlert).toHaveBeenCalledWith("Fase eliminatória cancelada!");
     });
 
     it("deve tratar erro ao cancelar eliminatória", async () => {
-      mockConfirm.mockReturnValue(true);
       mockCancelarFaseEliminatoria.mockRejectedValue(
         new Error("Erro ao cancelar")
       );
@@ -501,8 +465,9 @@ describe("useFaseEliminatoria", () => {
   });
 
   describe("encerrarEtapa", () => {
-    it("deve encerrar etapa quando confirmado", async () => {
-      mockConfirm.mockReturnValue(true);
+    // A confirmação agora é feita pelo componente (ConfirmacaoPerigosa modal)
+    // O hook apenas executa a ação diretamente
+    it("deve encerrar etapa diretamente", async () => {
       mockEncerrarEtapa.mockResolvedValue({});
 
       const { result } = renderHook(() =>
@@ -523,26 +488,7 @@ describe("useFaseEliminatoria", () => {
       // O importante é que encerrarEtapa foi chamado com sucesso
     });
 
-    it("não deve encerrar etapa quando usuário cancela", async () => {
-      mockConfirm.mockReturnValue(false);
-
-      const { result } = renderHook(() =>
-        useFaseEliminatoria({ etapaId: "etapa-1", grupos: mockGrupos })
-      );
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.encerrarEtapa();
-      });
-
-      expect(mockEncerrarEtapa).not.toHaveBeenCalled();
-    });
-
     it("deve tratar erro ao encerrar etapa", async () => {
-      mockConfirm.mockReturnValue(true);
       mockEncerrarEtapa.mockRejectedValue(new Error("Erro ao encerrar"));
 
       const { result } = renderHook(() =>
@@ -557,7 +503,7 @@ describe("useFaseEliminatoria", () => {
         await result.current.encerrarEtapa();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("❌ Erro: Erro ao encerrar");
+      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao encerrar");
     });
   });
 

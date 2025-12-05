@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 
 export const PageContainer = styled.div`
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
 `;
 

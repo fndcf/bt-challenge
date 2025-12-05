@@ -170,7 +170,9 @@ describe("useEtapaChaves", () => {
   });
 
   describe("handleApagarChaves", () => {
-    it("deve apagar chaves quando confirmado", async () => {
+    // Nota: A confirmação agora é feita pelo componente (ConfirmacaoPerigosa modal)
+    // O hook apenas executa a ação diretamente
+    it("deve apagar chaves diretamente (sem confirm - confirmação feita pelo componente)", async () => {
       const { result } = renderHook(() =>
         useEtapaChaves({ etapa: mockEtapaDuplaFixa, onSuccess: mockOnSuccess })
       );
@@ -179,25 +181,11 @@ describe("useEtapaChaves", () => {
         await result.current.handleApagarChaves();
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      // Não deve chamar window.confirm - a confirmação é feita pelo componente
+      expect(window.confirm).not.toHaveBeenCalled();
       expect(mockExcluirChaves).toHaveBeenCalledWith("etapa-123");
       expect(mockOnSuccess).toHaveBeenCalledWith("inscricoes");
       expect(window.alert).toHaveBeenCalledWith("Chaves apagadas com sucesso!");
-    });
-
-    it("não deve apagar chaves quando cancelado", async () => {
-      (window.confirm as jest.Mock).mockReturnValue(false);
-
-      const { result } = renderHook(() =>
-        useEtapaChaves({ etapa: mockEtapaDuplaFixa, onSuccess: mockOnSuccess })
-      );
-
-      await act(async () => {
-        await result.current.handleApagarChaves();
-      });
-
-      expect(mockExcluirChaves).not.toHaveBeenCalled();
-      expect(mockOnSuccess).not.toHaveBeenCalled();
     });
 
     it("não deve fazer nada quando etapa é null", async () => {
@@ -209,7 +197,6 @@ describe("useEtapaChaves", () => {
         await result.current.handleApagarChaves();
       });
 
-      expect(window.confirm).not.toHaveBeenCalled();
       expect(mockExcluirChaves).not.toHaveBeenCalled();
     });
 
@@ -227,22 +214,6 @@ describe("useEtapaChaves", () => {
       ).rejects.toThrow("Erro ao apagar");
 
       expect(window.alert).toHaveBeenCalledWith("Erro ao apagar");
-    });
-
-    it("deve mostrar mensagem de alerta no confirm de apagar", async () => {
-      const { result } = renderHook(() =>
-        useEtapaChaves({ etapa: mockEtapaDuplaFixa, onSuccess: mockOnSuccess })
-      );
-
-      await act(async () => {
-        await result.current.handleApagarChaves();
-      });
-
-      const confirmCall = (window.confirm as jest.Mock).mock.calls[0][0];
-      expect(confirmCall).toContain("ATENÇÃO");
-      expect(confirmCall).toContain("Todos os grupos");
-      expect(confirmCall).toContain("Todas as partidas");
-      expect(confirmCall).toContain("Todos os resultados");
     });
   });
 

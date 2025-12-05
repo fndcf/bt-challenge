@@ -4,9 +4,13 @@
 
 import admin from "firebase-admin";
 import dotenv from "dotenv";
+import path from "path";
 import logger from "../utils/logger";
 
-dotenv.config();
+// Em desenvolvimento, carregar .env.local (credenciais locais)
+// Em produção, Firebase Functions injeta as credenciais automaticamente
+dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
+dotenv.config(); // Fallback para .env se existir
 
 /**
  * Inicializar Firebase Admin SDK

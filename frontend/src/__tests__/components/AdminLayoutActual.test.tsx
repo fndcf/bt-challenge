@@ -45,8 +45,6 @@ describe("AdminLayout", () => {
     mockUseArena.mockReturnValue({
       arena: { slug: "arena-teste", nome: "Arena Teste" },
     });
-    // Mock window.confirm
-    window.confirm = jest.fn(() => true);
     // Mock innerWidth for desktop
     Object.defineProperty(window, "innerWidth", {
       writable: true,
@@ -111,18 +109,40 @@ describe("AdminLayout", () => {
   });
 
   describe("logout", () => {
-    it("deve chamar logout ao clicar em sair e confirmar", () => {
+    it("deve abrir modal de confirmação ao clicar em sair", () => {
       renderWithRouter();
-      fireEvent.click(screen.getByText("Sair"));
-      expect(window.confirm).toHaveBeenCalledWith("Deseja realmente sair?");
+      fireEvent.pointerDown(screen.getByText("Sair"));
+
+      // Modal deve aparecer
+      expect(screen.getByText("Sair do Sistema")).toBeInTheDocument();
+      expect(
+        screen.getByText("Deseja realmente sair do painel administrativo?")
+      ).toBeInTheDocument();
+    });
+
+    it("deve chamar logout ao confirmar no modal", () => {
+      renderWithRouter();
+      fireEvent.pointerDown(screen.getByText("Sair"));
+
+      // Confirma no modal - o botão do modal está dentro do ModalContainer
+      // Há dois botões "Sair" - um na sidebar e outro no modal
+      const buttons = screen.getAllByText("Sair");
+      // O segundo botão é o do modal (dentro do span)
+      const modalButton = buttons.find(
+        (btn) => btn.closest("button")?.getAttribute("type") === "button"
+      );
+      fireEvent.click(modalButton!.closest("button")!);
+
       expect(mockLogout).toHaveBeenCalled();
     });
 
-    it("não deve chamar logout ao cancelar confirmação", () => {
-      window.confirm = jest.fn(() => false);
+    it("não deve chamar logout ao cancelar no modal", () => {
       renderWithRouter();
-      fireEvent.click(screen.getByText("Sair"));
-      expect(window.confirm).toHaveBeenCalled();
+      fireEvent.pointerDown(screen.getByText("Sair"));
+
+      // Cancela no modal
+      fireEvent.click(screen.getByText("Cancelar"));
+
       expect(mockLogout).not.toHaveBeenCalled();
     });
   });

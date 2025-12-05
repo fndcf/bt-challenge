@@ -28,6 +28,7 @@ body {
 body:not(.admin-area) {
   background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height - resolve problema da barra de endereço no mobile */
 }
 
 /* Background para área administrativa */
@@ -35,6 +36,7 @@ body.admin-area {
   background: #f5f7fa;
   overflow: hidden;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - resolve problema da barra de endereço no mobile */
 }
 
 /* ==============================
@@ -119,6 +121,7 @@ code {
 
 .app:not(.admin-area) {
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height */
   display: flex;
   flex-direction: column;
 }

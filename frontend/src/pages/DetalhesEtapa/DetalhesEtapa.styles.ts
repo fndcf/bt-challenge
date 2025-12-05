@@ -29,6 +29,7 @@ export const LoadingContainer = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
 `;
 
 export const LoadingContent = styled.div`
@@ -551,8 +552,8 @@ export const Alert = styled.div<{
 // ============== INSCRICOES ==============
 
 export const InscricoesHeader = styled.div`
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 `;
 
 export const InscricoesEmpty = styled.div`
@@ -576,9 +577,11 @@ export const InscricoesGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  margin-top: 1rem;
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
   }
 
   @media (min-width: 1024px) {
@@ -593,7 +596,8 @@ export const InscricaoCard = styled.div`
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 `;
 
 export const InscricaoInfo = styled.div`

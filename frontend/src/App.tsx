@@ -3,6 +3,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ArenaProvider } from "./contexts/ArenaContext";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import { AdminLayout } from "./components/layout/AdminLayout";
+import { ScrollToTop } from "./components/utils/ScrollToTop";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import RegisterArena from "./pages/RegisterArena";
@@ -38,6 +39,7 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
+        <ScrollToTop />
         <AuthProvider>
           <ArenaProvider>
             <Routes>

@@ -15,7 +15,7 @@ jest.mock(
   })
 );
 
-// Mock do modal
+// Mock do modal de resultado
 jest.mock(
   "@/components/etapas/ModalRegistrarResultadoEliminatorio",
   () => ({
@@ -34,6 +34,28 @@ jest.mock(
     ),
   })
 );
+
+// Mock do modal de confirmação
+jest.mock("@/components/modals/ConfirmacaoPerigosa", () => ({
+  ConfirmacaoPerigosa: ({
+    isOpen,
+    onConfirm,
+    onClose,
+    titulo,
+  }: {
+    isOpen: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+    titulo: string;
+  }) =>
+    isOpen ? (
+      <div data-testid={`modal-confirmacao-${titulo.toLowerCase().replace(/\s/g, "-")}`}>
+        <span>{titulo}</span>
+        <button onClick={onClose} data-testid="btn-cancelar-modal">Cancelar</button>
+        <button onClick={onConfirm} data-testid="btn-confirmar-modal">Confirmar</button>
+      </div>
+    ) : null,
+}));
 
 import { FaseEliminatoria } from "@/components/etapas/FaseEliminatoria/FaseEliminatoria";
 
@@ -316,8 +338,23 @@ describe("FaseEliminatoria", () => {
       expect(screen.getByText("Cancelar Eliminatória")).toBeInTheDocument();
     });
 
-    it("deve chamar cancelarEliminatoria ao clicar", () => {
-      const mockCancelar = jest.fn();
+    it("deve abrir modal de confirmação ao clicar em Cancelar Eliminatória", () => {
+      render(
+        <FaseEliminatoria
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          grupos={mockGrupos}
+        />
+      );
+
+      fireEvent.click(screen.getByText("Cancelar Eliminatória"));
+
+      // Deve abrir o modal de confirmação
+      expect(screen.getByTestId("modal-confirmacao-cancelar-eliminatória")).toBeInTheDocument();
+    });
+
+    it("deve chamar cancelarEliminatoria ao confirmar no modal", async () => {
+      const mockCancelar = jest.fn().mockResolvedValue(undefined);
       mockUseFaseEliminatoria.mockReturnValue({
         ...defaultHookReturn,
         cancelarEliminatoria: mockCancelar,
@@ -331,8 +368,15 @@ describe("FaseEliminatoria", () => {
         />
       );
 
+      // Abre o modal
       fireEvent.click(screen.getByText("Cancelar Eliminatória"));
-      expect(mockCancelar).toHaveBeenCalled();
+
+      // Confirma no modal
+      fireEvent.click(screen.getByTestId("btn-confirmar-modal"));
+
+      await waitFor(() => {
+        expect(mockCancelar).toHaveBeenCalled();
+      });
     });
 
     it("deve desabilitar cancelar quando etapa finalizada", () => {
@@ -408,7 +452,7 @@ describe("FaseEliminatoria", () => {
       expect(screen.getAllByText("1").length).toBeGreaterThan(0);
     });
 
-    it("deve mostrar vencedor da partida finalizada", () => {
+    it("deve destacar vencedor da partida finalizada via estilo", () => {
       render(
         <FaseEliminatoria
           etapaId="etapa-1"
@@ -417,7 +461,9 @@ describe("FaseEliminatoria", () => {
         />
       );
 
-      expect(screen.getByText("Vencedor:")).toBeInTheDocument();
+      // O vencedor é destacado via prop $isWinner no styled component
+      // Verificamos que o nome do vencedor está presente
+      expect(screen.getAllByText("João / Maria").length).toBeGreaterThan(0);
     });
 
     it("deve mostrar botão Editar Resultado", () => {

@@ -627,7 +627,7 @@ const EmptyText = styled.p`
 // ============== COMPONENT ==============
 
 const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (!grupos?.length) {
     return (

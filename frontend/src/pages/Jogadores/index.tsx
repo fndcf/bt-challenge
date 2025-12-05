@@ -2,7 +2,7 @@
  * Responsabilidade única: Orquestrar componentes da página de listagem de jogadores
  */
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { useDocumentTitle } from "@/hooks";
 import { Footer } from "@/components/layout/Footer";
 import { useListagemJogadores } from "./hooks/useListagemJogadores";
@@ -15,6 +15,7 @@ import * as S from "./Jogadores.styles";
 
 export const ListagemJogadores: React.FC = () => {
   useDocumentTitle("Jogadores");
+  const alertRef = useRef<HTMLDivElement>(null);
 
   // Hook centralizado com toda a lógica de negócio
   const {
@@ -45,6 +46,13 @@ export const ListagemJogadores: React.FC = () => {
     handleDeletarJogador,
   } = useListagemJogadores();
 
+  // Scroll para o alert quando aparecer mensagem
+  useEffect(() => {
+    if ((errorMessage || successMessage) && alertRef.current) {
+      alertRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [errorMessage, successMessage]);
+
   return (
     <S.Container>
       {/* Header */}
@@ -55,7 +63,7 @@ export const ListagemJogadores: React.FC = () => {
 
       {/* Mensagens de Sucesso */}
       {successMessage && (
-        <S.Alert $type="success">
+        <S.Alert ref={alertRef} $type="success">
           <S.AlertContent>{successMessage}</S.AlertContent>
           <S.AlertClose onClick={() => setSuccessMessage("")}>×</S.AlertClose>
         </S.Alert>
@@ -63,7 +71,7 @@ export const ListagemJogadores: React.FC = () => {
 
       {/* Mensagens de Erro */}
       {errorMessage && (
-        <S.Alert $type="error">
+        <S.Alert ref={alertRef} $type="error">
           <S.AlertContent>{errorMessage}</S.AlertContent>
           <S.AlertClose onClick={() => setErrorMessage("")}>×</S.AlertClose>
         </S.Alert>

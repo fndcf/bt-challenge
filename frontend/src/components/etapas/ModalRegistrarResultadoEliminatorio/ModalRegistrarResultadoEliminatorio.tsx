@@ -123,15 +123,22 @@ const PlacarGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: end;
 `;
 
-const InputGroup = styled.div``;
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
 
 const InputLabel = styled.label`
   display: block;
   font-size: 0.875rem;
   color: #6b7280;
   margin-bottom: 0.25rem;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: flex-end;
 `;
 
 const ScoreInput = styled.input`
@@ -157,36 +164,6 @@ const ScoreInput = styled.input`
   &::placeholder {
     color: #d1d5db;
   }
-`;
-
-const ResultBox = styled.div`
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #f0fdf4;
-  border-radius: 0.5rem;
-`;
-
-const ResultLabel = styled.div`
-  font-size: 0.875rem;
-  color: #166534;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-`;
-
-const WinnerName = styled.div`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #166534;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const ResultScore = styled.div`
-  font-size: 0.875rem;
-  color: #16a34a;
-  margin-top: 0.25rem;
 `;
 
 const ErrorBox = styled.div`
@@ -250,23 +227,6 @@ const Spinner = styled.div`
     to {
       transform: rotate(360deg);
     }
-  }
-`;
-
-const WarningBox = styled.div`
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-  border-radius: 0.5rem;
-`;
-
-const WarningText = styled.div`
-  font-size: 0.75rem;
-  color: #92400e;
-
-  strong {
-    font-weight: 600;
   }
 `;
 
@@ -473,14 +433,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
               </PlacarGrid>
             </PlacarSection>
 
-            {resultado && (
-              <ResultBox>
-                <ResultLabel>Vencedor</ResultLabel>
-                <WinnerName>{resultado.vencedor}</WinnerName>
-                <ResultScore>Placar: {resultado.placar}</ResultScore>
-              </ResultBox>
-            )}
-
             {erro && <ErrorBox>❌ {erro}</ErrorBox>}
 
             <ButtonsRow>
@@ -512,13 +464,6 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
               </Button>
             </ButtonsRow>
           </Form>
-
-          <WarningBox>
-            <WarningText>
-              <strong>Importante:</strong> O vencedor avançará automaticamente
-              para a próxima fase!
-            </WarningText>
-          </WarningBox>
         </ModalContainer>
       </ModalWrapper>
     </Overlay>
