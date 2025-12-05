@@ -1,6 +1,4 @@
 /**
- * ProfileHeader.tsx
- *
  * Responsabilidade única: Cabeçalho do perfil com avatar, nome, badges e posição
  */
 

@@ -1,6 +1,4 @@
 /**
- * FiltersBar.tsx
- *
  * Responsabilidade única: Renderizar barra de filtros
  */
 

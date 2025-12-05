@@ -1,6 +1,4 @@
 /**
- * HeroSection.tsx
- *
  * Responsabilidade única: Seção hero da landing page com título e subtitle
  */
 

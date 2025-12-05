@@ -1,13 +1,3 @@
-/**
- * schemas.ts
- *
- * Schemas de validação pré-definidos
- *
- * SOLID aplicado:
- * - SRP: Arquivo focado em definir schemas
- * - DRY: Schemas reutilizáveis
- */
-
 import { ValidationSchema } from "./types";
 import { coreValidators } from "./core";
 import { businessValidators } from "./business";

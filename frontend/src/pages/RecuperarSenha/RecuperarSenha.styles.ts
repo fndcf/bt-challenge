@@ -1,9 +1,3 @@
-/**
- * RecuperarSenha.styles.ts
- *
- * Estilos centralizados para a página de recuperação de senha
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

@@ -1,6 +1,4 @@
 /**
- * EtapaHeader.tsx
- *
  * Responsabilidade única: Renderizar cabeçalho da etapa com ações
  */
 

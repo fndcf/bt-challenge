@@ -1,7 +1,3 @@
-/**
- * Types para Jogadores no Frontend
- */
-
 export enum NivelJogador {
   INICIANTE = "iniciante",
   INTERMEDIARIO = "intermediario",

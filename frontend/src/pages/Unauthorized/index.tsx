@@ -1,11 +1,5 @@
 /**
- * Unauthorized/index.tsx
- *
  * Responsabilidade única: Página 403 - Acesso não autorizado
- *
- * SOLID aplicado:
- * - SRP: Apenas renderiza a estrutura da página 403
- * - OCP: Estilos e animações são extensíveis via styled-components
  */
 
 import React from "react";

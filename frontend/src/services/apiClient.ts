@@ -5,7 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 import { ApiResponse } from "../types";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import logger from "../utils/logger";
 
 /**
  * Cliente HTTP configurado para a API

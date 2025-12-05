@@ -1,11 +1,5 @@
 /**
- * useEtapaDetalhe.ts
- *
  * Responsabilidade única: Gerenciar estado e dados da página de detalhes da etapa
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar dados da etapa
- * - DIP: Depende de abstrações (arenaPublicService), não de implementações
  */
 
 import { useState, useEffect } from "react";

@@ -1,19 +1,5 @@
 /**
- * useDetalhesEtapa.ts
- *
  * Responsabilidade única: Compor hooks especializados para gerenciar página de detalhes
- *
- * SOLID aplicado:
- * - SRP: Hook compositor que delega responsabilidades
- * - OCP: Aberto para extensão (novos hooks podem ser adicionados)
- * - DIP: Depende de abstrações (hooks especializados)
- * - ISP: Cada hook tem interface segregada
- *
- * Composição de hooks:
- * - useEtapaData: Gerencia dados da etapa
- * - useEtapaInscricoes: Gerencia ações de inscrição
- * - useEtapaChaves: Gerencia ações de chaves
- * - useEtapaUI: Gerencia estado da UI
  */
 
 import { useCallback } from "react";
@@ -46,7 +32,10 @@ interface UseDetalhesEtapaReturn {
   handleAbrirInscricoes: () => Promise<void>;
   handleEncerrarInscricoes: () => Promise<void>;
   handleFinalizarEtapa: () => Promise<void>;
-  handleCancelarInscricao: (inscricaoId: string, jogadorNome: string) => Promise<void>;
+  handleCancelarInscricao: (
+    inscricaoId: string,
+    jogadorNome: string
+  ) => Promise<void>;
   handleCancelarMultiplosInscricoes: (inscricaoIds: string[]) => Promise<void>;
 
   // Actions - Chaves
@@ -62,12 +51,6 @@ interface UseDetalhesEtapaReturn {
 /**
  * Hook compositor para gerenciar detalhes de uma etapa
  *
- * Este hook segue o padrão de composição, delegando responsabilidades
- * para hooks especializados menores. Isso melhora:
- * - Testabilidade (cada hook pode ser testado isoladamente)
- * - Manutenibilidade (mudanças em uma área não afetam outras)
- * - Reusabilidade (hooks podem ser usados em outros contextos)
- *
  * @param etapaId - ID da etapa a ser gerenciada
  * @returns Interface completa para gerenciar detalhes da etapa
  */
@@ -75,14 +58,8 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   // ============================================
   // 1. DADOS DA ETAPA
   // ============================================
-  const {
-    etapa,
-    loading,
-    error,
-    isReiDaPraia,
-    progresso,
-    recarregar,
-  } = useEtapaData(etapaId);
+  const { etapa, loading, error, isReiDaPraia, progresso, recarregar } =
+    useEtapaData(etapaId);
 
   // ============================================
   // 2. ESTADO DA UI

@@ -1,9 +1,3 @@
-/**
- * EtapaDetalhe.styles.ts
- *
- * Estilos centralizados para a página de detalhes da etapa
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

@@ -1,13 +1,12 @@
 /**
- * Alert Component
  * Componente de alerta/notificação inline
  */
 
-import React from 'react';
-import styled, { css } from 'styled-components';
-import { theme } from '@/styles/theme';
+import React from "react";
+import styled, { css } from "styled-components";
+import { theme } from "@/styles/theme";
 
-export type AlertVariant = 'info' | 'success' | 'warning' | 'error';
+export type AlertVariant = "info" | "success" | "warning" | "error";
 
 interface AlertProps {
   variant?: AlertVariant;
@@ -27,25 +26,25 @@ const AlertContainer = styled.div<{ $variant: AlertVariant }>`
 
   ${({ $variant }) => {
     switch ($variant) {
-      case 'success':
+      case "success":
         return css`
           background: ${theme.colors.success[50]};
           border-color: ${theme.colors.success[500]};
           color: ${theme.colors.success[700]};
         `;
-      case 'warning':
+      case "warning":
         return css`
           background: ${theme.colors.warning[50]};
           border-color: ${theme.colors.warning[500]};
           color: ${theme.colors.warning[700]};
         `;
-      case 'error':
+      case "error":
         return css`
           background: ${theme.colors.error[50]};
           border-color: ${theme.colors.error[500]};
           color: ${theme.colors.error[700]};
         `;
-      case 'info':
+      case "info":
       default:
         return css`
           background: ${theme.colors.info[50]};
@@ -106,7 +105,7 @@ const CloseButton = styled.button`
 
 const getDefaultIcon = (variant: AlertVariant) => {
   switch (variant) {
-    case 'success':
+    case "success":
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -122,7 +121,7 @@ const getDefaultIcon = (variant: AlertVariant) => {
           />
         </svg>
       );
-    case 'warning':
+    case "warning":
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -138,7 +137,7 @@ const getDefaultIcon = (variant: AlertVariant) => {
           />
         </svg>
       );
-    case 'error':
+    case "error":
       return (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -154,7 +153,7 @@ const getDefaultIcon = (variant: AlertVariant) => {
           />
         </svg>
       );
-    case 'info':
+    case "info":
     default:
       return (
         <svg
@@ -175,7 +174,7 @@ const getDefaultIcon = (variant: AlertVariant) => {
 };
 
 export const Alert: React.FC<AlertProps> = ({
-  variant = 'info',
+  variant = "info",
   title,
   children,
   icon,
@@ -186,7 +185,7 @@ export const Alert: React.FC<AlertProps> = ({
   return (
     <AlertContainer $variant={variant}>
       <IconWrapper>{displayIcon}</IconWrapper>
-      
+
       <Content>
         {title && <AlertTitle>{title}</AlertTitle>}
         <AlertMessage>{children}</AlertMessage>

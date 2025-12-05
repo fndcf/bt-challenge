@@ -1,8 +1,3 @@
-/**
- * GerenciarCabecasDeChave.tsx
- * Componente para gerenciar cabeças de chave dentro da aba de inscrições
- */
-
 import React, { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
 import { getCabecaDeChaveService } from "@/services";

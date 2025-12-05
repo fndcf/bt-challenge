@@ -1,7 +1,3 @@
-/**
- * Types específicos do formato REI DA PRAIA
- */
-
 import { FaseEtapa, StatusPartida } from "./chave";
 
 /**

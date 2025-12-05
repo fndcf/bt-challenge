@@ -1,12 +1,5 @@
 /**
- * useEtapaChaves.ts
- *
  * Responsabilidade única: Gerenciar ações de chaveamento de etapas
- *
- * SOLID aplicado:
- * - SRP: Hook focado apenas em operações de chaves
- * - DIP: Depende de IChaveService e IReiDaPraiaService (abstrações)
- * - OCP: Aberto para extensão (novos formatos podem ser adicionados)
  */
 
 import { useCallback } from "react";

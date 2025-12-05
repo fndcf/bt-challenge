@@ -2,8 +2,6 @@ import styled from "styled-components";
 
 /**
  * Styles específicos do Rei da Praia
- * Reutiliza a maioria dos styles de FaseEliminatoria,
- * sobrescreve apenas o Header com cores roxas
  */
 
 export const Header = styled.div`

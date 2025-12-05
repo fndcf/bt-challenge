@@ -14,7 +14,7 @@ import EditarJogador from "./pages/EditarJogador";
 import JogadorPerfil from "./pages/JogadorPerfil";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
-import "./config/firebase"; // Inicializar Firebase
+import "./config/firebase";
 import { ToastProvider } from "./components/ui";
 
 // Pages - Etapas

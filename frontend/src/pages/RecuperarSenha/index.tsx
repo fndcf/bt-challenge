@@ -1,12 +1,5 @@
 /**
- * RecuperarSenha/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da página de recuperação de senha
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - DIP: Componentes dependem de abstrações (props)
  */
 
 import React from "react";
@@ -39,9 +32,7 @@ export const RecuperarSenha: React.FC = () => {
         <S.Header>
           <S.Logo>Challenge BT</S.Logo>
           <S.HeaderText>
-            {emailEnviado
-              ? "Verifique seu email"
-              : "Recuperação de senha"}
+            {emailEnviado ? "Verifique seu email" : "Recuperação de senha"}
           </S.HeaderText>
         </S.Header>
 
@@ -56,9 +47,7 @@ export const RecuperarSenha: React.FC = () => {
         {successMessage && !emailEnviado && (
           <S.Alert $variant="success">
             <span>{successMessage}</span>
-            <S.AlertClose onClick={() => setSuccessMessage("")}>
-              ×
-            </S.AlertClose>
+            <S.AlertClose onClick={() => setSuccessMessage("")}>×</S.AlertClose>
           </S.Alert>
         )}
 

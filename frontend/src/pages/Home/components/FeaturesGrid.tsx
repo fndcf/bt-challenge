@@ -1,6 +1,4 @@
 /**
- * FeaturesGrid.tsx
- *
  * Responsabilidade única: Grid de funcionalidades do sistema
  */
 

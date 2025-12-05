@@ -1,12 +1,3 @@
-/**
- * ModalRegistrarResultadoReiDaPraia - Modal para registrar resultado de partida Rei da Praia
- *
- * Diferenças do Dupla Fixa:
- * - Mostra os 4 jogadores individuais (2 vs 2)
- * - Apenas 1 set por partida
- * - Vencedores são os 2 jogadores da dupla vencedora
- */
-
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { PartidaReiDaPraia } from "@/types/reiDaPraia";

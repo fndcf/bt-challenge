@@ -2,7 +2,6 @@
  * Testes do componente StatusBadge
  */
 
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import { StatusBadge } from "@/components/etapas/StatusBadge";
 import { StatusEtapa } from "@/types/etapa";

@@ -1,6 +1,4 @@
 /**
- * FormatoSelector.tsx
- *
  * Responsabilidade única: Seletor de formato do torneio (Dupla Fixa ou Rei da Praia)
  */
 
@@ -26,9 +24,7 @@ export const FormatoSelector: React.FC<FormatoSelectorProps> = ({
           $selected={formatoAtual === FormatoEtapa.DUPLA_FIXA}
           onClick={() => onFormatoChange(FormatoEtapa.DUPLA_FIXA)}
         >
-          <S.FormatoTitle
-            $selected={formatoAtual === FormatoEtapa.DUPLA_FIXA}
-          >
+          <S.FormatoTitle $selected={formatoAtual === FormatoEtapa.DUPLA_FIXA}>
             Dupla Fixa
           </S.FormatoTitle>
           <S.FormatoDescription>

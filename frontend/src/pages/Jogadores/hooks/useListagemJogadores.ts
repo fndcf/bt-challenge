@@ -1,6 +1,4 @@
 /**
- * useListagemJogadores.ts
- *
  * Responsabilidade única: Gerenciar estado e lógica de negócio da listagem de jogadores
  */
 
@@ -98,7 +96,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
         const arenaData = await arenaAdminService.obterMinhaArena();
         setArena(arenaData);
         logger.info("Arena carregada com sucesso", {
-          arena: arenaData?.nome || "Arena sem nome"
+          arena: arenaData?.nome || "Arena sem nome",
         });
       } catch (error: any) {
         logger.warn("Erro ao carregar arena via API, tentando localStorage", {
@@ -228,7 +226,11 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
       } catch (error: any) {
         const mensagemErro = error.message || "Erro ao deletar jogador";
         setErrorMessage(mensagemErro);
-        logger.error("Erro ao deletar jogador", { jogadorId: jogador.id }, error);
+        logger.error(
+          "Erro ao deletar jogador",
+          { jogadorId: jogador.id },
+          error
+        );
       }
     },
     [carregarJogadores]

@@ -1,6 +1,4 @@
 /**
- * HistoricoCard.tsx
- *
  * Responsabilidade única: Card com histórico de participações do jogador
  */
 

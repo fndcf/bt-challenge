@@ -1,18 +1,13 @@
 /**
- * validators/index.ts
- *
  * Exportações centralizadas do sistema de validação
- *
- * Estrutura organizada com SOLID:
- * ├── types.ts          - Interfaces e tipos
- * ├── core.ts           - Validadores básicos
- * ├── business.ts       - Validadores de negócio
- * ├── schemas.ts        - Schemas pré-definidos
- * └── utils.ts          - Funções utilitárias
  */
 
 // Types
-export type { ValidationRule, ValidationResult, ValidationSchema } from "./types";
+export type {
+  ValidationRule,
+  ValidationResult,
+  ValidationSchema,
+} from "./types";
 
 // Validadores básicos
 export { coreValidators } from "./core";

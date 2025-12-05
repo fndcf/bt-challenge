@@ -1,5 +1,4 @@
 /**
- * useLoading.ts
  * Hook para gerenciar loading state
  */
 

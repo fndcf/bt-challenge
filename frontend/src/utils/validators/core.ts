@@ -1,14 +1,3 @@
-/**
- * core.ts
- *
- * Validadores básicos e genéricos
- *
- * SOLID aplicado:
- * - SRP: Validadores básicos reutilizáveis
- * - OCP: Aberto para extensão (pode criar novos validadores)
- * - DIP: Depende de abstrações (ValidationRule)
- */
-
 import { ValidationRule } from "./types";
 
 /**

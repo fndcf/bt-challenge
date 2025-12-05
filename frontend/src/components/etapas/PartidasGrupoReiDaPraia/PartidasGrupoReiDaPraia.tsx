@@ -1,13 +1,3 @@
-/**
- * PartidasGrupoReiDaPraia - Exibe e gerencia partidas de um grupo no formato Rei da Praia
- *
- * Diferenças do Dupla Fixa:
- * - Duplas são temporárias (formadas apenas para aquela partida)
- * - Mostra os 4 jogadores (2 vs 2)
- * - Apenas 1 set por partida
- * - Vencedores são os 2 jogadores da dupla vencedora
- */
-
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getReiDaPraiaService } from "@/services";
@@ -352,9 +342,7 @@ export const PartidasGrupoReiDaPraia: React.FC<
             <PartidaCard key={partida.id || `partida-${index}`}>
               <PartidaHeader>
                 <PartidaInfo>
-                  <PartidaLabel>
-                    PARTIDA {index + 1}
-                  </PartidaLabel>
+                  <PartidaLabel>PARTIDA {index + 1}</PartidaLabel>
                   <StatusBadge $status={partida.status}>
                     {getStatusLabel(partida.status)}
                   </StatusBadge>
@@ -400,7 +388,9 @@ export const PartidasGrupoReiDaPraia: React.FC<
                 <ActionSection>
                   <ActionButton
                     $variant={eliminatoriaExiste ? "disabled" : "edit"}
-                    onClick={() => !eliminatoriaExiste && setPartidaSelecionada(partida)}
+                    onClick={() =>
+                      !eliminatoriaExiste && setPartidaSelecionada(partida)
+                    }
                     disabled={eliminatoriaExiste}
                     title={
                       eliminatoriaExiste

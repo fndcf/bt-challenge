@@ -1,8 +1,3 @@
-/**
- * Sistema de Logs Profissional - Frontend
- * Arquivo: frontend/src/utils/logger.ts
- */
-
 // Níveis de log
 export enum LogLevel {
   ERROR = "ERROR",

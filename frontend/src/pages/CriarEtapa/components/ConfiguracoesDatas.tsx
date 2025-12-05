@@ -1,7 +1,5 @@
 /**
  * ConfiguracoesDatas.tsx
- *
- * Responsabilidade única: Formulário de configuração de datas da etapa
  */
 
 import React from "react";

@@ -1,15 +1,5 @@
 /**
- * types/index.ts
- *
  * Exportações centralizadas do sistema de tipos
- *
- * Estrutura organizada com SOLID:
- * ├── arena.ts           - Types de arena
- * ├── jogador.ts         - Types de jogadores (enums, interfaces, DTOs)
- * ├── etapa.ts           - Types de etapas
- * ├── chave.ts           - Types de chaves e partidas (Dupla Fixa)
- * ├── reiDaPraia.ts      - Types específicos do formato Rei da Praia
- * └── cabecaDeChave.ts   - Types de cabeças de chave
  */
 
 // ============================================

@@ -1,6 +1,4 @@
 /**
- * EtapaInfoCards.tsx
- *
  * Responsabilidade única: Renderizar cards de informações da etapa
  */
 

@@ -1,8 +1,5 @@
 /**
- * index.ts
  * Exportação centralizada de todas as interfaces de serviços
- *
- * Facilita importação: import { IJogadorService, IChaveService } from '@/services/interfaces'
  */
 
 export type { IJogadorService } from "./IJogadorService";

@@ -1,11 +1,5 @@
 /**
- * useRecuperarSenha.ts
- *
  * Responsabilidade única: Gerenciar lógica de negócio da recuperação de senha
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar estado e lógica da recuperação
- * - DIP: Depende de abstrações (AuthContext), não de implementações
  */
 
 import { useState, useCallback } from "react";
@@ -79,13 +73,9 @@ export const useRecuperarSenha = (): UseRecuperarSenhaReturn => {
         await resetPassword(emailToSend);
 
         setEmailEnviado(true);
-        setSuccessMessage(
-          "Link de recuperação enviado! Verifique seu email."
-        );
+        setSuccessMessage("Link de recuperação enviado! Verifique seu email.");
       } catch (error: any) {
-        setErrorMessage(
-          error.message || "Erro ao enviar email de recuperação"
-        );
+        setErrorMessage(error.message || "Erro ao enviar email de recuperação");
       } finally {
         setLoading(false);
       }

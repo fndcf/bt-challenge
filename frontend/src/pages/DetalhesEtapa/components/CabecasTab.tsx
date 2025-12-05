@@ -1,6 +1,4 @@
 /**
- * CabecasTab.tsx
- *
  * Responsabilidade única: Renderizar aba de cabeças de chave
  */
 

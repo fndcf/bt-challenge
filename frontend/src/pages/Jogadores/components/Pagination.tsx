@@ -1,6 +1,4 @@
 /**
- * Pagination.tsx
- *
  * Responsabilidade única: Controles de paginação
  */
 

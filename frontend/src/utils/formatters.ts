@@ -1,21 +1,14 @@
-/**
- * formatters.ts
- * Fun��es utilit�rias para formata��o de dados
- *
- * Responsabilidade �nica: Transformar dados em formatos leg�veis
- */
-
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { FormatoEtapa } from "@/types/etapa";
 import { NivelJogador, GeneroJogador } from "@/types/jogador";
 
 // ============================================
-// FORMATA��O DE ETAPAS
+// FORMATAÇÃO DE ETAPAS
 // ============================================
 
 /**
- * Converte formato de etapa para label amig�vel
+ * Converte formato de etapa para label amigável
  */
 export const getFormatoLabel = (formato: FormatoEtapa | string): string => {
   switch (formato) {
@@ -29,7 +22,7 @@ export const getFormatoLabel = (formato: FormatoEtapa | string): string => {
 };
 
 /**
- * Converte status de etapa para label amig�vel
+ * Converte status de etapa para label amigável
  */
 export const getStatusLabel = (status: string): string => {
   switch (status) {
@@ -47,11 +40,11 @@ export const getStatusLabel = (status: string): string => {
 };
 
 // ============================================
-// FORMATA��O DE JOGADORES
+// FORMATAÇÃO DE JOGADORES
 // ============================================
 
 /**
- * Converte n�vel de jogador para label amig�vel
+ * Converte nível de jogador para label amigável
  */
 export const getNivelLabel = (nivel: NivelJogador | string): string => {
   switch (nivel) {
@@ -67,7 +60,7 @@ export const getNivelLabel = (nivel: NivelJogador | string): string => {
 };
 
 /**
- * Converte g�nero de jogador para label amig�vel
+ * Converte gênero de jogador para label amigável
  */
 export const getGeneroLabel = (genero: GeneroJogador | string): string => {
   switch (genero) {
@@ -81,7 +74,7 @@ export const getGeneroLabel = (genero: GeneroJogador | string): string => {
 };
 
 // ============================================
-// FORMATA��O DE DATAS
+// FORMATAÇÃO DE DATAS
 // ============================================
 
 /**

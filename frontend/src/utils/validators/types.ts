@@ -1,13 +1,3 @@
-/**
- * types.ts
- *
- * Tipos e interfaces para sistema de validação
- *
- * SOLID aplicado:
- * - SRP: Arquivo focado apenas em definir tipos
- * - ISP: Interfaces segregadas por responsabilidade
- */
-
 export interface ValidationRule {
   validate: (value: any, formData?: any) => boolean;
   message: string;

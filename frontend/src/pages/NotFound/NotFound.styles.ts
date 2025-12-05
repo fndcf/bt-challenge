@@ -1,9 +1,3 @@
-/**
- * NotFound.styles.ts
- *
- * Estilos centralizados para a página 404
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

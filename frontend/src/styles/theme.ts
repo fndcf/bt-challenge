@@ -1,8 +1,3 @@
-/**
- * Theme
- * Tema principal da aplicação com funções utilitárias
- */
-
 import { tokens } from "./tokens";
 
 export const theme = {

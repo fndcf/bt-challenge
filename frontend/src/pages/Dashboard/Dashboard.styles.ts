@@ -1,9 +1,3 @@
-/**
- * Dashboard.styles.ts
- *
- * Responsabilidade única: Styled components para Dashboard
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

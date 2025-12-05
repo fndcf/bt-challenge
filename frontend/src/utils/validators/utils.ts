@@ -1,13 +1,3 @@
-/**
- * utils.ts
- *
- * Funções utilitárias para validação
- *
- * SOLID aplicado:
- * - SRP: Funções utilitárias de validação
- * - OCP: Aberto para extensão
- */
-
 import { ValidationRule, ValidationResult, ValidationSchema } from "./types";
 
 /**

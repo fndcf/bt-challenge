@@ -1,5 +1,4 @@
 /**
- * useClipboard.ts
  * Hook para copiar para clipboard
  */
 

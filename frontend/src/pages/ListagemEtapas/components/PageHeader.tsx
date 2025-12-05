@@ -1,6 +1,4 @@
 /**
- * PageHeader.tsx
- *
  * Responsabilidade única: Renderizar cabeçalho da página de listagem
  */
 

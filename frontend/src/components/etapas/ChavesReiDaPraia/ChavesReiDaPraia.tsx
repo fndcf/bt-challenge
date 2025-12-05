@@ -1,13 +1,3 @@
-/**
- * ChavesReiDaPraia - Componente para exibir grupos e partidas do formato Rei da Praia
- *
- * Diferenças do Dupla Fixa:
- * - Estatísticas individuais por jogador
- * - Grupos sempre com 4 jogadores
- * - 3 partidas por grupo (todas as combinações de duplas)
- * - Apenas 1 set por partida
- */
-
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getReiDaPraiaService } from "@/services";

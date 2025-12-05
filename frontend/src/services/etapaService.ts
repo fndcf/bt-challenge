@@ -11,7 +11,7 @@ import {
   ResultadoGeracaoChaves,
 } from "../types/etapa";
 import { handleError } from "@/utils/errorHandler";
-import logger from "@/utils/logger"; // ← IMPORTAR LOGGER
+import logger from "@/utils/logger";
 import { IEtapaService } from "./interfaces/IEtapaService";
 
 /**

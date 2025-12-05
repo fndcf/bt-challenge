@@ -1,7 +1,4 @@
 /**
- * SearchBar.tsx
- *
- * Responsabilidade única: Campo de busca de jogadores
  */
 
 import React from "react";

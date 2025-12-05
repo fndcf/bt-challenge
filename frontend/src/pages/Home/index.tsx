@@ -1,12 +1,5 @@
 /**
- * Home/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da landing page
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - DIP: Componentes dependem de abstrações (props)
  */
 
 import React from "react";

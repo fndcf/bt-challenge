@@ -1,14 +1,9 @@
 /**
- * useArenaPublica.ts
- *
  * Responsabilidade única: Gerenciar estado e busca de dados da arena pública
  */
 
 import { useState, useEffect } from "react";
-import {
-  ArenaPublica,
-  EtapaPublica,
-} from "../services/arenaPublicService";
+import { ArenaPublica, EtapaPublica } from "../services/arenaPublicService";
 import { getArenaPublicService } from "../services";
 import logger from "../utils/logger";
 

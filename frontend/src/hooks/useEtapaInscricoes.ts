@@ -1,12 +1,5 @@
 /**
- * useEtapaInscricoes.ts
- *
  * Responsabilidade única: Gerenciar ações de inscrição de etapas
- *
- * SOLID aplicado:
- * - SRP: Hook focado apenas em operações de inscrição
- * - DIP: Depende de IEtapaService (abstração)
- * - OCP: Aberto para extensão (novas ações podem ser adicionadas)
  */
 
 import { useCallback } from "react";

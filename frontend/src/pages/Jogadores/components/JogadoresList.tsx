@@ -1,6 +1,4 @@
 /**
- * JogadoresList.tsx
- *
  * Responsabilidade única: Exibir lista de jogadores com estados de loading/erro/vazio
  */
 

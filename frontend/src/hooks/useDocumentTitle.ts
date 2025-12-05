@@ -1,5 +1,4 @@
 /**
- * useDocumentTitle.ts
  * Hook para título da página
  */
 

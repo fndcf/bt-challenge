@@ -1,6 +1,4 @@
 /**
- * CTAButtons.tsx
- *
  * Responsabilidade única: Botões de call-to-action (Criar Arena / Login)
  */
 

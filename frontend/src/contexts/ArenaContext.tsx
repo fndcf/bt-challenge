@@ -1,9 +1,6 @@
 /**
- * ArenaContext.tsx - VERSÃO REFATORADA
  *
  * Responsabilidade única: Gerenciar estado da arena atual
- *
- * Lógica de roteamento movida para hooks/useArenaLoader.ts
  */
 
 import React, {

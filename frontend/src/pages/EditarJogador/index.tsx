@@ -1,13 +1,5 @@
 /**
- * EditarJogador/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da página de editar jogador
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - DIP: Componentes dependem de abstrações (props)
- * - ISP: Reutiliza componentes de NovoJogador sem duplicação
  */
 
 import React from "react";

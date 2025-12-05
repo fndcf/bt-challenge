@@ -57,8 +57,8 @@ export const mockArenaWithDataContext = {
  * Provider wrapper para testes
  */
 export const createTestProviders = (
-  authValue = mockAuthContext,
-  arenaValue = mockArenaContext
+  _authValue = mockAuthContext,
+  _arenaValue = mockArenaContext
 ) => {
   const TestProviders: React.FC<{ children: React.ReactNode }> = ({
     children,

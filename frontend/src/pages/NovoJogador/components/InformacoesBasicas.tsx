@@ -1,6 +1,4 @@
 /**
- * InformacoesBasicas.tsx
- *
  * Responsabilidade única: Campos de informações básicas do jogador
  */
 

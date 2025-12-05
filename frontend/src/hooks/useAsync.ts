@@ -1,5 +1,4 @@
 /**
- * useAsync.ts
  * Hook para gerenciar estado async
  */
 

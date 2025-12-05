@@ -1,14 +1,9 @@
-/**
- * Types para Etapas - VERSÃO ATUALIZADA COM REI DA PRAIA
- */
-
 import { NivelJogador, GeneroJogador } from "./jogador";
 import { FaseEtapa, ResultadoGeracaoChaves } from "./chave";
 import { TipoChaveamentoReiDaPraia } from "./reiDaPraia";
 
-// Re-export types and enums needed by other modules
-export { TipoChaveamentoReiDaPraia }; // Enum - needs value export
-export type { ResultadoGeracaoChaves }; // Interface - type export
+export { TipoChaveamentoReiDaPraia };
+export type { ResultadoGeracaoChaves };
 
 export enum StatusEtapa {
   INSCRICOES_ABERTAS = "inscricoes_abertas",
@@ -107,7 +102,6 @@ export interface Inscricao {
   canceladoEm?: string;
 }
 
-
 export interface FiltrosEtapa {
   status?: StatusEtapa;
   nivel?: NivelJogador;
@@ -134,4 +128,3 @@ export interface EstatisticasEtapa {
   finalizadas: number;
   totalParticipacoes: number;
 }
-

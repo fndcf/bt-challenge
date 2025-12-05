@@ -1,12 +1,15 @@
 /**
- * EtapaInfo.tsx
- *
  * Responsabilidade única: Card com informações gerais da etapa
  */
 
 import React from "react";
 import { EtapaPublica } from "@/services/arenaPublicService";
-import { formatarData, getFormatoLabel, getNivelLabel, getGeneroLabel } from "@/utils/formatters";
+import {
+  formatarData,
+  getFormatoLabel,
+  getNivelLabel,
+  getGeneroLabel,
+} from "@/utils/formatters";
 import * as S from "../EtapaDetalhe.styles";
 
 export interface EtapaInfoProps {

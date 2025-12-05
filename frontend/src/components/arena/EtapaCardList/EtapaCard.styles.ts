@@ -1,8 +1,3 @@
-/**
- * EtapaCard.styles.ts
- * Estilos para o card de etapa
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

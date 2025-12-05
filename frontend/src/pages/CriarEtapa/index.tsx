@@ -1,13 +1,5 @@
 /**
- * CriarEtapa/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da página de criação de etapa
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - ISP: Interfaces específicas para cada componente
- * - DIP: Componentes dependem de abstrações (props), não de implementações
  */
 
 import React, { useRef, useEffect } from "react";
@@ -87,7 +79,9 @@ export const CriarEtapa: React.FC = () => {
           nivel={formData.nivel}
           local={formData.local || ""}
           onNomeChange={(nome) => handleChange("nome", nome)}
-          onDescricaoChange={(descricao) => handleChange("descricao", descricao)}
+          onDescricaoChange={(descricao) =>
+            handleChange("descricao", descricao)
+          }
           onGeneroChange={(genero) => handleChange("genero", genero)}
           onNivelChange={(nivel) => handleChange("nivel", nivel)}
           onLocalChange={(local) => handleChange("local", local)}
@@ -101,7 +95,9 @@ export const CriarEtapa: React.FC = () => {
           errosDatas={errosDatas}
           onDataInicioChange={(data) => handleChange("dataInicio", data)}
           onDataFimChange={(data) => handleChange("dataFim", data)}
-          onDataRealizacaoChange={(data) => handleChange("dataRealizacao", data)}
+          onDataRealizacaoChange={(data) =>
+            handleChange("dataRealizacao", data)
+          }
         />
 
         {/* Configurações de Jogadores */}

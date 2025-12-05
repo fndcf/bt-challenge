@@ -1,9 +1,5 @@
 /**
- * IJogadorService.ts
  * Interface para serviço de gerenciamento de jogadores
- *
- * Aplica DIP (Dependency Inversion Principle)
- * Permite injeção de dependências e facilita testes unitários
  */
 
 import {

@@ -1,6 +1,4 @@
 /**
- * ChaveamentoSelector.tsx
- *
  * Responsabilidade única: Seletor de tipo de chaveamento para Rei da Praia
  */
 
@@ -28,8 +26,7 @@ export const ChaveamentoSelector: React.FC<ChaveamentoSelectorProps> = ({
         {/* Opção 1: Melhores com Melhores */}
         <S.ChaveamentoOption
           $selected={
-            tipoChaveamento ===
-            TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+            tipoChaveamento === TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
           }
           onClick={() =>
             onTipoChange(TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES)
@@ -51,8 +48,7 @@ export const ChaveamentoSelector: React.FC<ChaveamentoSelectorProps> = ({
         {/* Opção 2: Pareamento por Ranking */}
         <S.ChaveamentoOption
           $selected={
-            tipoChaveamento ===
-            TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+            tipoChaveamento === TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
           }
           onClick={() =>
             onTipoChange(TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING)
@@ -74,8 +70,7 @@ export const ChaveamentoSelector: React.FC<ChaveamentoSelectorProps> = ({
         {/* Opção 3: Sorteio Aleatório */}
         <S.ChaveamentoOption
           $selected={
-            tipoChaveamento ===
-            TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
+            tipoChaveamento === TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
           }
           onClick={() =>
             onTipoChange(TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO)
@@ -83,8 +78,7 @@ export const ChaveamentoSelector: React.FC<ChaveamentoSelectorProps> = ({
         >
           <S.ChaveamentoTitle
             $selected={
-              tipoChaveamento ===
-              TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
+              tipoChaveamento === TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
             }
           >
             Sorteio Aleatório

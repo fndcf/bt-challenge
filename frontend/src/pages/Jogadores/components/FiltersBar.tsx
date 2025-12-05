@@ -1,6 +1,4 @@
 /**
- * FiltersBar.tsx
- *
  * Responsabilidade única: Filtros de listagem de jogadores
  */
 

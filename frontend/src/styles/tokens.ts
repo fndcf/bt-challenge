@@ -1,6 +1,5 @@
 /**
  * Design Tokens
- * Tokens fundamentais do design system
  */
 
 export const tokens = {

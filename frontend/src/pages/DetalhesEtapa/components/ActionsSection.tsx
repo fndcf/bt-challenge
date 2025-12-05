@@ -1,6 +1,4 @@
 /**
- * ActionsSection.tsx
- *
  * Responsabilidade única: Renderizar seção de ações administrativas
  */
 

@@ -1,6 +1,4 @@
 /**
- * RecoveryForm.tsx
- *
  * Responsabilidade única: Formulário de email para recuperação de senha
  */
 

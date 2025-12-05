@@ -1,13 +1,5 @@
 /**
- * EditarEtapa/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da página de edição de etapa
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - ISP: Interfaces específicas para cada componente
- * - DIP: Componentes dependem de abstrações (props), não de implementações
  */
 
 import React, { useRef, useEffect } from "react";
@@ -69,7 +61,10 @@ export const EditarEtapa: React.FC = () => {
       <S.Container>
         <S.ErrorContainer>
           <S.ErrorText>{error}</S.ErrorText>
-          <S.Button $variant="primary" onClick={() => navigate("/admin/etapas")}>
+          <S.Button
+            $variant="primary"
+            onClick={() => navigate("/admin/etapas")}
+          >
             Voltar para etapas
           </S.Button>
         </S.ErrorContainer>
@@ -112,7 +107,9 @@ export const EditarEtapa: React.FC = () => {
             formato={etapa.formato}
             tipoChaveamento={formData.tipoChaveamento}
             chavesGeradas={chavesGeradas}
-            onTipoChaveamentoChange={(tipo) => handleChange("tipoChaveamento", tipo)}
+            onTipoChaveamentoChange={(tipo) =>
+              handleChange("tipoChaveamento", tipo)
+            }
           />
 
           {/* Informações Básicas - REUTILIZADO de CriarEtapa */}
@@ -126,7 +123,9 @@ export const EditarEtapa: React.FC = () => {
             disabledGenero={chavesGeradas || temInscritos}
             disabledNivel={chavesGeradas || temInscritos}
             onNomeChange={(nome) => handleChange("nome", nome)}
-            onDescricaoChange={(descricao) => handleChange("descricao", descricao)}
+            onDescricaoChange={(descricao) =>
+              handleChange("descricao", descricao)
+            }
             onGeneroChange={(genero) => handleChange("genero", genero)}
             onNivelChange={(nivel) => handleChange("nivel", nivel)}
             onLocalChange={(local) => handleChange("local", local)}
@@ -151,7 +150,9 @@ export const EditarEtapa: React.FC = () => {
             disabled={chavesGeradas}
             onDataInicioChange={(data) => handleChange("dataInicio", data)}
             onDataFimChange={(data) => handleChange("dataFim", data)}
-            onDataRealizacaoChange={(data) => handleChange("dataRealizacao", data)}
+            onDataRealizacaoChange={(data) =>
+              handleChange("dataRealizacao", data)
+            }
           />
 
           {/* Configurações de Jogadores - ESPECÍFICO para edição */}
@@ -162,8 +163,12 @@ export const EditarEtapa: React.FC = () => {
             temInscritos={temInscritos}
             totalInscritos={etapa.totalInscritos || 0}
             minimoJogadores={calcularMinimoJogadores()}
-            onMaxJogadoresChange={(value) => handleChange("maxJogadores", value)}
-            onBlur={(value) => handleChange("maxJogadores", ajustarValorJogadores(value))}
+            onMaxJogadoresChange={(value) =>
+              handleChange("maxJogadores", value)
+            }
+            onBlur={(value) =>
+              handleChange("maxJogadores", ajustarValorJogadores(value))
+            }
           />
         </S.FieldsContainer>
 

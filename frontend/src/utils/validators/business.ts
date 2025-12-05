@@ -1,14 +1,3 @@
-/**
- * business.ts
- *
- * Validadores específicos de regras de negócio
- *
- * SOLID aplicado:
- * - SRP: Validadores focados em regras de negócio específicas
- * - OCP: Aberto para extensão (novas regras podem ser adicionadas)
- * - DIP: Depende de abstrações (ValidationRule)
- */
-
 import { ValidationRule } from "./types";
 
 /**

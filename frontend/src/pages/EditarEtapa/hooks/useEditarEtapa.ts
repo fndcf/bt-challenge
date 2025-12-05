@@ -1,11 +1,5 @@
 /**
- * useEditarEtapa.ts
- *
  * Responsabilidade única: Gerenciar lógica de negócio da edição de etapas
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar estado e lógica de edição
- * - DIP: Depende de abstrações (etapaService), não de implementações
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -36,7 +30,9 @@ export interface UseEditarEtapaReturn {
   ajustarValorJogadores: (valor: number) => number;
 }
 
-export const useEditarEtapa = (id: string | undefined): UseEditarEtapaReturn => {
+export const useEditarEtapa = (
+  id: string | undefined
+): UseEditarEtapaReturn => {
   const navigate = useNavigate();
 
   const [etapa, setEtapa] = useState<Etapa | null>(null);
@@ -147,9 +143,12 @@ export const useEditarEtapa = (id: string | undefined): UseEditarEtapaReturn => 
 
   // ============== HANDLERS ==============
 
-  const handleChange = useCallback((field: keyof AtualizarEtapaDTO, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  const handleChange = useCallback(
+    (field: keyof AtualizarEtapaDTO, value: any) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -182,7 +181,9 @@ export const useEditarEtapa = (id: string | undefined): UseEditarEtapaReturn => 
           }
 
           if (formData.maxJogadores % 4 !== 0) {
-            setError("Rei da Praia: número de jogadores deve ser múltiplo de 4");
+            setError(
+              "Rei da Praia: número de jogadores deve ser múltiplo de 4"
+            );
             setSalvando(false);
             return;
           }
@@ -228,7 +229,9 @@ export const useEditarEtapa = (id: string | undefined): UseEditarEtapaReturn => 
 
         const dadosParaEnviar = {
           ...formData,
-          dataInicio: formData.dataInicio ? toISO(formData.dataInicio) : undefined,
+          dataInicio: formData.dataInicio
+            ? toISO(formData.dataInicio)
+            : undefined,
           dataFim: formData.dataFim ? toISO(formData.dataFim) : undefined,
           dataRealizacao: formData.dataRealizacao
             ? toISO(formData.dataRealizacao)

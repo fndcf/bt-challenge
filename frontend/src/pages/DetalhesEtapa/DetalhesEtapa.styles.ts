@@ -1,8 +1,3 @@
-/**
- * DetalhesEtapa.styles.ts
- * Estilos da página de detalhes da etapa
- */
-
 import styled, { keyframes } from "styled-components";
 
 // ============== ANIMATIONS ==============

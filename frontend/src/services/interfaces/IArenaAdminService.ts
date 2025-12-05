@@ -1,11 +1,5 @@
 /**
- * IArenaAdminService.ts
  * Interface para operações ADMINISTRATIVAS de Arena
- *
- * Aplica DIP (Dependency Inversion Principle):
- * - Componentes dependem desta interface, não da implementação concreta
- * - Facilita testes unitários (mocking)
- * - Permite trocar implementações sem quebrar código
  */
 
 import { Arena } from "@/types/arena";

@@ -1,9 +1,3 @@
-/**
- * Jogadores.styles.ts
- *
- * Responsabilidade única: Styled components para página de Jogadores
- */
-
 import styled from "styled-components";
 
 // ============== CONTAINER ==============

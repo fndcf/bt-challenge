@@ -1,8 +1,3 @@
-/**
- * ArenaPublica.styles.ts
- * Estilos da página pública da arena
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

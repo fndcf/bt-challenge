@@ -1,11 +1,5 @@
 /**
- * NotFound/index.tsx
- *
  * Responsabilidade única: Página 404 - Rota não encontrada
- *
- * SOLID aplicado:
- * - SRP: Apenas renderiza a estrutura da página 404
- * - OCP: Estilos e animações são extensíveis via styled-components
  */
 
 import React from "react";

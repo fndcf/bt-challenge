@@ -1,6 +1,4 @@
 /**
- * WelcomeBanner.tsx
- *
  * Responsabilidade única: Exibir banner de boas-vindas (apenas desktop)
  */
 

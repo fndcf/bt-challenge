@@ -1,6 +1,4 @@
 /**
- * Pagination.tsx
- *
  * Componente reutilizável de paginação
  */
 

@@ -1,8 +1,5 @@
 /**
- * useClickOutside.ts
  * Hook para detectar clique fora de um elemento
- *
- * Corrigido: Cleanup function agora funciona corretamente
  */
 
 import { useEffect, useRef, useCallback } from "react";

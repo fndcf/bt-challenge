@@ -1,6 +1,4 @@
 /**
- * FormatoDisplay.tsx
- *
  * Responsabilidade única: Exibir formato da etapa (read-only) e permitir edição de chaveamento
  */
 
@@ -47,7 +45,9 @@ export const FormatoDisplay: React.FC<FormatoDisplayProps> = ({
             disabled={chavesGeradas}
             value={tipoChaveamento || ""}
             onChange={(e) =>
-              onTipoChaveamentoChange(e.target.value as TipoChaveamentoReiDaPraia)
+              onTipoChaveamentoChange(
+                e.target.value as TipoChaveamentoReiDaPraia
+              )
             }
           >
             <option value={TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES}>

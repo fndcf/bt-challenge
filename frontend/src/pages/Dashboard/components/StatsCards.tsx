@@ -1,6 +1,4 @@
 /**
- * StatsCards.tsx
- *
  * Responsabilidade única: Exibir cards de estatísticas do dashboard
  */
 

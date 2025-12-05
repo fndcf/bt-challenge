@@ -1,9 +1,3 @@
-/**
- * LoginForm.tsx
- *
- * Responsabilidade única: Campos de email e senha do login
- */
-
 import React from "react";
 import * as S from "../Login.styles";
 

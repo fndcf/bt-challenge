@@ -1,10 +1,5 @@
 /**
- * IChaveService.ts
  * Interface para serviço de gerenciamento de chaves do formato DUPLA FIXA
- *
- * Aplica DIP (Dependency Inversion Principle)
- *
- * IMPORTANTE: Para formato Rei da Praia, use IReiDaPraiaService
  */
 
 import {

@@ -1,9 +1,5 @@
 /**
- * arenaPublicService.ts
  * Service para operações PÚBLICAS de Arena (sem autenticação)
- *
- * Responsabilidade única: Consulta de dados públicos para visitantes
- * Usado nas páginas públicas da arena (ranking, etapas, jogadores)
  */
 
 import { apiClient } from "./apiClient";
@@ -355,7 +351,11 @@ class ArenaPublicService implements IArenaPublicService {
       );
       return jogador;
     } catch (error: any) {
-      logger.error("Erro ao buscar jogador público", { slug, jogadorId }, error);
+      logger.error(
+        "Erro ao buscar jogador público",
+        { slug, jogadorId },
+        error
+      );
       return null;
     }
   }

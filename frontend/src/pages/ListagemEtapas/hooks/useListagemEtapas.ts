@@ -1,6 +1,4 @@
 /**
- * useListagemEtapas.ts
- *
  * Responsabilidade única: Gerenciar estado e lógica de negócio da listagem de etapas
  */
 
@@ -145,7 +143,11 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
       const [resultado, estatisticas, todasEtapas] = await Promise.all([
         etapaService.listar(filtros),
         etapaService.obterEstatisticas(),
-        etapaService.listar({ ordenarPor: "dataRealizacao", ordem: "desc", limite: 1000 }), // Buscar todas para contagem de formatos
+        etapaService.listar({
+          ordenarPor: "dataRealizacao",
+          ordem: "desc",
+          limite: 1000,
+        }), // Buscar todas para contagem de formatos
       ]);
 
       setEtapas(resultado.etapas);
@@ -193,7 +195,14 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
     } finally {
       setLoading(false);
     }
-  }, [filtroStatus, filtroNivel, filtroGenero, filtroFormato, ordenacao, paginaAtual]);
+  }, [
+    filtroStatus,
+    filtroNivel,
+    filtroGenero,
+    filtroFormato,
+    ordenacao,
+    paginaAtual,
+  ]);
 
   // Limpar filtros
   const limparFiltros = useCallback(() => {

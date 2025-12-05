@@ -1,6 +1,4 @@
 /**
- * EtapasList.tsx
- *
  * Responsabilidade única: Renderizar lista de etapas com estados (loading, error, empty)
  */
 

@@ -1,12 +1,5 @@
 /**
- * RegisterArena/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da página de registro de arena
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - DIP: Componentes dependem de abstrações (props)
  */
 
 import React from "react";
@@ -41,7 +34,9 @@ export const RegisterArena: React.FC = () => {
 
         <S.Form onSubmit={handleSubmit}>
           {errorMessage && <S.Alert $type="error">{errorMessage}</S.Alert>}
-          {successMessage && <S.Alert $type="success">{successMessage}</S.Alert>}
+          {successMessage && (
+            <S.Alert $type="success">{successMessage}</S.Alert>
+          )}
 
           {/* Nome da Arena */}
           <S.FormGroup>
@@ -84,7 +79,9 @@ export const RegisterArena: React.FC = () => {
               disabled={loading}
               placeholder="seu@email.com"
             />
-            {errors.adminEmail && <S.ErrorText>{errors.adminEmail}</S.ErrorText>}
+            {errors.adminEmail && (
+              <S.ErrorText>{errors.adminEmail}</S.ErrorText>
+            )}
           </S.FormGroup>
 
           {/* Senha e Confirmação - Componente especializado */}
@@ -95,7 +92,9 @@ export const RegisterArena: React.FC = () => {
             confirmPasswordError={errors.confirmPassword}
             disabled={loading}
             onPasswordChange={(value) => handleChange("adminPassword", value)}
-            onConfirmPasswordChange={(value) => handleChange("confirmPassword", value)}
+            onConfirmPasswordChange={(value) =>
+              handleChange("confirmPassword", value)
+            }
           />
 
           <S.SubmitButton type="submit" disabled={loading}>
@@ -104,7 +103,8 @@ export const RegisterArena: React.FC = () => {
 
           <S.FormFooter>
             <p>
-              Já tem uma arena? <S.StyledLink to="/login">Fazer login</S.StyledLink>
+              Já tem uma arena?{" "}
+              <S.StyledLink to="/login">Fazer login</S.StyledLink>
             </p>
           </S.FormFooter>
         </S.Form>

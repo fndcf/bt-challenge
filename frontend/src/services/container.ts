@@ -1,12 +1,5 @@
 /**
- * container.ts
  * Dependency Injection Container
- *
- * Implementa DIP (Dependency Inversion Principle):
- * - Componentes dependem de interfaces, não de implementações
- * - Facilita testes (mock de services)
- * - Centraliza configuração de dependências
- * - Permite trocar implementações facilmente
  */
 
 // Importar interfaces
@@ -32,7 +25,6 @@ import partidaService from "./partidaService";
 import reiDaPraiaService from "./reiDaPraiaService";
 
 /**
- * Service Container
  * Gerencia todas as instâncias de services da aplicação
  */
 class ServiceContainer {
@@ -87,7 +79,10 @@ export const container = new ServiceContainer();
 
 // Arena Services
 container.register<IArenaAdminService>("arenaAdminService", arenaAdminService);
-container.register<IArenaPublicService>("arenaPublicService", arenaPublicService);
+container.register<IArenaPublicService>(
+  "arenaPublicService",
+  arenaPublicService
+);
 
 // Etapa Service
 container.register<IEtapaService>("etapaService", etapaService);
@@ -97,7 +92,10 @@ container.register<IJogadorService>("jogadorService", jogadorService);
 
 // Chave Services
 container.register<IChaveService>("chaveService", chaveService);
-container.register<ICabecaDeChaveService>("cabecaDeChaveService", cabecaDeChaveService);
+container.register<ICabecaDeChaveService>(
+  "cabecaDeChaveService",
+  cabecaDeChaveService
+);
 container.register<IPartidaService>("partidaService", partidaService);
 container.register<IReiDaPraiaService>("reiDaPraiaService", reiDaPraiaService);
 

@@ -1,9 +1,3 @@
-/**
- * Unauthorized.styles.ts
- *
- * Estilos centralizados para a página 403
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

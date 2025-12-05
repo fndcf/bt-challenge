@@ -1,11 +1,5 @@
 /**
- * useCriarEtapa.ts
- *
  * Responsabilidade única: Gerenciar lógica de negócio da criação de etapas
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar estado e lógica do formulário
- * - DIP: Depende de abstrações (etapaService), não de implementações
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -15,7 +9,6 @@ import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
 
-// Interface estendida para incluir tipoChaveamento
 export interface CriarEtapaFormData extends CriarEtapaDTO {
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
 }
@@ -81,133 +74,136 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errosDatas, setErrosDatas] = useState<ErrosDatas>({});
-  const [formData, setFormData] = useState<CriarEtapaFormData>(INITIAL_FORM_DATA);
+  const [formData, setFormData] =
+    useState<CriarEtapaFormData>(INITIAL_FORM_DATA);
 
   // ============== CÁLCULOS DE DISTRIBUIÇÃO ==============
 
-  const calcularDistribuicaoDuplaFixa = useCallback((): DistribuicaoDuplaFixa => {
-    if (
-      !formData.maxJogadores ||
-      isNaN(formData.maxJogadores) ||
-      formData.maxJogadores < 4
-    ) {
-      return {
-        qtdGrupos: 0,
-        distribuicao: [],
-        descricao: "Informe o número de jogadores (mínimo 4)",
-        totalDuplas: 0,
-        valido: false,
-      };
-    }
+  const calcularDistribuicaoDuplaFixa =
+    useCallback((): DistribuicaoDuplaFixa => {
+      if (
+        !formData.maxJogadores ||
+        isNaN(formData.maxJogadores) ||
+        formData.maxJogadores < 4
+      ) {
+        return {
+          qtdGrupos: 0,
+          distribuicao: [],
+          descricao: "Informe o número de jogadores (mínimo 4)",
+          totalDuplas: 0,
+          valido: false,
+        };
+      }
 
-    if (formData.maxJogadores % 2 !== 0) {
-      return {
-        qtdGrupos: 0,
-        distribuicao: [],
-        descricao: "Número de jogadores deve ser par",
-        totalDuplas: 0,
-        valido: false,
-      };
-    }
+      if (formData.maxJogadores % 2 !== 0) {
+        return {
+          qtdGrupos: 0,
+          distribuicao: [],
+          descricao: "Número de jogadores deve ser par",
+          totalDuplas: 0,
+          valido: false,
+        };
+      }
 
-    const totalDuplas = Math.floor(formData.maxJogadores / 2);
+      const totalDuplas = Math.floor(formData.maxJogadores / 2);
 
-    if (totalDuplas < 3) {
-      return {
-        qtdGrupos: 0,
-        distribuicao: [],
-        descricao: "Mínimo de 6 jogadores (3 duplas) necessário",
-        totalDuplas: 0,
-        valido: false,
-      };
-    }
+      if (totalDuplas < 3) {
+        return {
+          qtdGrupos: 0,
+          distribuicao: [],
+          descricao: "Mínimo de 6 jogadores (3 duplas) necessário",
+          totalDuplas: 0,
+          valido: false,
+        };
+      }
 
-    if (totalDuplas === 5) {
-      return {
-        qtdGrupos: 1,
-        distribuicao: [5],
-        descricao: "Grupo 1: 5 duplas",
-        totalDuplas: 5,
-        valido: true,
-      };
-    }
+      if (totalDuplas === 5) {
+        return {
+          qtdGrupos: 1,
+          distribuicao: [5],
+          descricao: "Grupo 1: 5 duplas",
+          totalDuplas: 5,
+          valido: true,
+        };
+      }
 
-    const gruposBase = Math.floor(totalDuplas / 3);
-    const duplasRestantes = totalDuplas % 3;
+      const gruposBase = Math.floor(totalDuplas / 3);
+      const duplasRestantes = totalDuplas % 3;
 
-    const distribuicao: number[] = [];
+      const distribuicao: number[] = [];
 
-    for (let i = 0; i < gruposBase; i++) {
-      distribuicao.push(3);
-    }
+      for (let i = 0; i < gruposBase; i++) {
+        distribuicao.push(3);
+      }
 
-    if (duplasRestantes > 0) {
-      for (let i = 0; i < duplasRestantes; i++) {
-        const index = distribuicao.length - 1 - i;
-        if (index >= 0) {
-          distribuicao[index]++;
+      if (duplasRestantes > 0) {
+        for (let i = 0; i < duplasRestantes; i++) {
+          const index = distribuicao.length - 1 - i;
+          if (index >= 0) {
+            distribuicao[index]++;
+          }
         }
       }
-    }
 
-    const qtdGrupos = distribuicao.length;
+      const qtdGrupos = distribuicao.length;
 
-    const descricaoGrupos = distribuicao
-      .map((duplas, i) => `Grupo ${i + 1}: ${duplas} duplas`)
-      .join(" | ");
+      const descricaoGrupos = distribuicao
+        .map((duplas, i) => `Grupo ${i + 1}: ${duplas} duplas`)
+        .join(" | ");
 
-    return {
-      qtdGrupos,
-      distribuicao,
-      descricao: descricaoGrupos,
-      totalDuplas,
-      valido: true,
-    };
-  }, [formData.maxJogadores]);
-
-  const calcularDistribuicaoReiDaPraia = useCallback((): DistribuicaoReiDaPraia => {
-    if (
-      !formData.maxJogadores ||
-      isNaN(formData.maxJogadores) ||
-      formData.maxJogadores < 8
-    ) {
       return {
-        qtdGrupos: 0,
-        jogadoresPorGrupo: 4,
-        totalJogadores: 0,
-        descricao: "Informe o número de jogadores (mínimo 8)",
-        partidasPorGrupo: 3,
-        valido: false,
+        qtdGrupos,
+        distribuicao,
+        descricao: descricaoGrupos,
+        totalDuplas,
+        valido: true,
       };
-    }
+    }, [formData.maxJogadores]);
 
-    if (formData.maxJogadores % 4 !== 0) {
+  const calcularDistribuicaoReiDaPraia =
+    useCallback((): DistribuicaoReiDaPraia => {
+      if (
+        !formData.maxJogadores ||
+        isNaN(formData.maxJogadores) ||
+        formData.maxJogadores < 8
+      ) {
+        return {
+          qtdGrupos: 0,
+          jogadoresPorGrupo: 4,
+          totalJogadores: 0,
+          descricao: "Informe o número de jogadores (mínimo 8)",
+          partidasPorGrupo: 3,
+          valido: false,
+        };
+      }
+
+      if (formData.maxJogadores % 4 !== 0) {
+        return {
+          qtdGrupos: 0,
+          jogadoresPorGrupo: 4,
+          totalJogadores: formData.maxJogadores,
+          descricao: "Número de jogadores deve ser múltiplo de 4",
+          partidasPorGrupo: 3,
+          valido: false,
+        };
+      }
+
+      const qtdGrupos = formData.maxJogadores / 4;
+      const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+      const descricaoGrupos = Array.from({ length: qtdGrupos })
+        .map((_, i) => `Grupo ${letras[i]}: 4 jogadores`)
+        .join(" | ");
+
       return {
-        qtdGrupos: 0,
+        qtdGrupos,
         jogadoresPorGrupo: 4,
         totalJogadores: formData.maxJogadores,
-        descricao: "Número de jogadores deve ser múltiplo de 4",
+        descricao: descricaoGrupos,
         partidasPorGrupo: 3,
-        valido: false,
+        valido: true,
       };
-    }
-
-    const qtdGrupos = formData.maxJogadores / 4;
-    const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-    const descricaoGrupos = Array.from({ length: qtdGrupos })
-      .map((_, i) => `Grupo ${letras[i]}: 4 jogadores`)
-      .join(" | ");
-
-    return {
-      qtdGrupos,
-      jogadoresPorGrupo: 4,
-      totalJogadores: formData.maxJogadores,
-      descricao: descricaoGrupos,
-      partidasPorGrupo: 3,
-      valido: true,
-    };
-  }, [formData.maxJogadores]);
+    }, [formData.maxJogadores]);
 
   const infoDuplaFixa = calcularDistribuicaoDuplaFixa();
   const infoReiDaPraia = calcularDistribuicaoReiDaPraia();
@@ -251,7 +247,12 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
     if (formData.dataInicio || formData.dataFim || formData.dataRealizacao) {
       validarDatas();
     }
-  }, [formData.dataInicio, formData.dataFim, formData.dataRealizacao, validarDatas]);
+  }, [
+    formData.dataInicio,
+    formData.dataFim,
+    formData.dataRealizacao,
+    validarDatas,
+  ]);
 
   // Efeito para auto-ajustar maxJogadores APENAS quando formato mudar
   useEffect(() => {
@@ -283,9 +284,12 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
 
   // ============== HANDLERS ==============
 
-  const handleChange = useCallback((field: keyof CriarEtapaFormData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  const handleChange = useCallback(
+    (field: keyof CriarEtapaFormData, value: any) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -315,7 +319,9 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
             return;
           }
           if (formData.maxJogadores % 4 !== 0) {
-            setError("Rei da Praia: número de jogadores deve ser múltiplo de 4");
+            setError(
+              "Rei da Praia: número de jogadores deve ser múltiplo de 4"
+            );
             setLoading(false);
             return;
           }

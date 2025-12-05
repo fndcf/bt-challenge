@@ -1,9 +1,3 @@
-/**
- * CriarEtapa.styles.ts
- *
- * Responsabilidade única: Estilos centralizados da página CriarEtapa
- */
-
 import styled from "styled-components";
 
 // ============== LAYOUT PRINCIPAL ==============
@@ -248,7 +242,6 @@ export const FormatoDescription = styled.p`
   line-height: 1.4;
 `;
 
-
 // ============== SELETOR DE CHAVEAMENTO ==============
 
 export const ChaveamentoSelector = styled.div`
@@ -283,7 +276,6 @@ export const ChaveamentoDescription = styled.p`
   margin: 0;
   line-height: 1.5;
 `;
-
 
 // ============== PREVIEW DE DISTRIBUIÇÃO ==============
 

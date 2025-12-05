@@ -1,11 +1,5 @@
 /**
- * useRegisterArena.ts
- *
  * Responsabilidade única: Gerenciar lógica de negócio do registro de arena
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar estado e lógica do formulário
- * - DIP: Depende de abstrações (arenaAdminService), não de implementações
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -174,7 +168,9 @@ export const useRegisterArena = (): UseRegisterArenaReturn => {
           navigate("/login");
         }, 3000);
       } catch (error: any) {
-        setErrorMessage(error.message || "Erro ao criar arena. Tente novamente.");
+        setErrorMessage(
+          error.message || "Erro ao criar arena. Tente novamente."
+        );
       } finally {
         setLoading(false);
       }

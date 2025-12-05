@@ -1,15 +1,5 @@
 /**
- * DetalhesEtapa - REFATORADO COM SOLID
- *
  * Responsabilidade única: Orquestrar e renderizar página de detalhes da etapa
- *
- * Antes: 1,765 linhas
- * Depois: ~250 linhas
- *
- * Princípios SOLID aplicados:
- * - SRP: Componente apenas renderiza, lógica delegada para hooks/componentes
- * - OCP: Extensível via props e componentes filhos
- * - DIP: Depende de abstrações (hooks, services)
  */
 
 import React from "react";

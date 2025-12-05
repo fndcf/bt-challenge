@@ -1,6 +1,4 @@
 /**
- * InscricoesTab.tsx
- *
  * Responsabilidade única: Renderizar aba de inscrições
  */
 

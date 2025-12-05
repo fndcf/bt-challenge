@@ -1,5 +1,4 @@
 /**
- * Jogador Service (COM LOGGER)
  * Service para gerenciar jogadores usando apiClient
  */
 
@@ -12,7 +11,7 @@ import {
   ListagemJogadores,
 } from "../types/jogador";
 import { handleError } from "../utils/errorHandler";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import logger from "../utils/logger";
 import { IJogadorService } from "./interfaces/IJogadorService";
 
 /**

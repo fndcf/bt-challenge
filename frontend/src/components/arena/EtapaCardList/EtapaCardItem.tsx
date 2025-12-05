@@ -1,6 +1,4 @@
 /**
- * EtapaCardItem.tsx
- *
  * Responsabilidade única: Renderizar um card individual de etapa
  */
 
@@ -63,7 +61,9 @@ export const EtapaCardItem: React.FC<EtapaCardItemProps> = ({
         </S.InfoItem>
       </S.EtapaInfo>
 
-      {etapa.descricao && <S.EtapaDescricao>{etapa.descricao}</S.EtapaDescricao>}
+      {etapa.descricao && (
+        <S.EtapaDescricao>{etapa.descricao}</S.EtapaDescricao>
+      )}
 
       <S.VerMaisButton to={`/arena/${arenaSlug}/etapa/${etapa.id}`}>
         Ver Detalhes

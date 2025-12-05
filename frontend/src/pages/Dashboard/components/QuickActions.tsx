@@ -1,6 +1,4 @@
 /**
- * QuickActions.tsx
- *
  * Responsabilidade única: Exibir grid de ações rápidas
  */
 

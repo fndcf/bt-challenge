@@ -1,6 +1,4 @@
 /**
- * HowItWorks.tsx
- *
  * Responsabilidade única: Seção "Como Funciona" com steps do processo
  */
 
@@ -22,7 +20,8 @@ const steps: StepData[] = [
   {
     number: 2,
     title: "Criação de Etapas",
-    description: "Configure o formato (Rei da Praia ou Dupla Fixa) e organize os grupos",
+    description:
+      "Configure o formato (Rei da Praia ou Dupla Fixa) e organize os grupos",
   },
   {
     number: 3,

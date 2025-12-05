@@ -1,9 +1,5 @@
 /**
- * useArenaLoader.ts
- * 
  * Responsabilidade única: Lógica de carregamento de arena baseado na rota
- * 
- * Extrai a lógica de roteamento que estava no ArenaContext
  */
 
 import { useEffect, useCallback } from "react";

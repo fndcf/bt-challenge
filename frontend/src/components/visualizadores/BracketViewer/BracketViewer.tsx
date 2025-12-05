@@ -1,8 +1,3 @@
-/**
- * BracketViewer - DESIGN MODERNO DO ZERO
- * Responsividade perfeita + UX impecável
- */
-
 import React from "react";
 import styled from "styled-components";
 
@@ -371,20 +366,24 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                   <Match key={match.id} $offset={matchIdx % 2 === 1}>
                     <Team $winner={winner1} $active={!finished || winner1}>
                       <TeamName>{match.jogador1.nome}</TeamName>
-                      {finished && match.placarDetalhado && match.placarDetalhado.length > 0 && (
-                        <Score $winner={winner1}>
-                          {match.placarDetalhado[0].gamesDupla1}
-                        </Score>
-                      )}
+                      {finished &&
+                        match.placarDetalhado &&
+                        match.placarDetalhado.length > 0 && (
+                          <Score $winner={winner1}>
+                            {match.placarDetalhado[0].gamesDupla1}
+                          </Score>
+                        )}
                     </Team>
 
                     <Team $winner={winner2} $active={!finished || winner2}>
                       <TeamName>{match.jogador2!.nome}</TeamName>
-                      {finished && match.placarDetalhado && match.placarDetalhado.length > 0 && (
-                        <Score $winner={winner2}>
-                          {match.placarDetalhado[0].gamesDupla2}
-                        </Score>
-                      )}
+                      {finished &&
+                        match.placarDetalhado &&
+                        match.placarDetalhado.length > 0 && (
+                          <Score $winner={winner2}>
+                            {match.placarDetalhado[0].gamesDupla2}
+                          </Score>
+                        )}
                     </Team>
 
                     {!finished && (

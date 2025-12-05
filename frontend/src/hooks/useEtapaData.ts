@@ -1,11 +1,5 @@
 /**
- * useEtapaData.ts
- *
  * Responsabilidade única: Carregar e gerenciar dados da etapa
- *
- * SOLID aplicado:
- * - SRP: Hook focado apenas em gerenciar dados (loading, error, fetch)
- * - DIP: Depende de IEtapaService (abstração), não de implementação
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -47,9 +41,10 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
 
   // Flags derivadas
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
-  const progresso = etapa && etapa.maxJogadores > 0
-    ? Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100)
-    : 0;
+  const progresso =
+    etapa && etapa.maxJogadores > 0
+      ? Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100)
+      : 0;
 
   /**
    * Carregar dados da etapa
@@ -71,13 +66,13 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
       // Carregar etapa e inscrições em paralelo
       const [etapaData, inscricoesData] = await Promise.all([
         etapaService.buscarPorId(etapaId),
-        etapaService.listarInscricoes(etapaId)
+        etapaService.listarInscricoes(etapaId),
       ]);
 
       // Adicionar inscrições ao objeto da etapa
       const etapaComInscricoes: EtapaComInscricoes = {
         ...etapaData,
-        inscricoes: inscricoesData
+        inscricoes: inscricoesData,
       };
 
       setEtapa(etapaComInscricoes);

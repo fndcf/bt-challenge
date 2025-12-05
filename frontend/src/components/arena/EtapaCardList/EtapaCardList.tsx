@@ -1,6 +1,4 @@
 /**
- * EtapaCardList.tsx
- *
  * Responsabilidade única: Renderizar lista de etapas
  */
 

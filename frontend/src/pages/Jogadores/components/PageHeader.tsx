@@ -1,6 +1,4 @@
 /**
- * PageHeader.tsx
- *
  * Responsabilidade única: Exibir cabeçalho da página com título e botão de ação
  */
 

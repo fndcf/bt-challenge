@@ -1,6 +1,4 @@
 /**
- * StatsGrid.tsx
- *
  * Responsabilidade única: Grid de estatísticas do jogador
  */
 

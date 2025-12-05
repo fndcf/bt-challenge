@@ -1,6 +1,4 @@
 /**
- * PasswordFields.tsx
- *
  * Responsabilidade única: Campos de senha e confirmação de senha
  */
 
@@ -60,7 +58,9 @@ export const PasswordFields: React.FC<PasswordFieldsProps> = ({
           disabled={disabled}
           placeholder="••••••••"
         />
-        {confirmPasswordError && <S.ErrorText>{confirmPasswordError}</S.ErrorText>}
+        {confirmPasswordError && (
+          <S.ErrorText>{confirmPasswordError}</S.ErrorText>
+        )}
       </S.FormGroup>
     </>
   );

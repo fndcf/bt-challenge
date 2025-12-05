@@ -1,9 +1,5 @@
 /**
- * IArenaPublicService.ts
  * Interface para serviço de operações públicas de Arena (sem autenticação)
- *
- * Aplica DIP (Dependency Inversion Principle)
- * Usado nas páginas públicas da arena (ranking, etapas, jogadores)
  */
 
 import {

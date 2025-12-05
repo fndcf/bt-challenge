@@ -1,6 +1,4 @@
 /**
- * SlugField.tsx
- *
  * Responsabilidade única: Campo de slug com verificação em tempo real
  */
 

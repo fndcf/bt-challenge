@@ -1,6 +1,4 @@
 /**
- * StatsCards.tsx
- *
  * Responsabilidade única: Renderizar cards de estatísticas
  */
 

@@ -31,9 +31,11 @@ export default {
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
+    "!src/**/*.styles.ts", // Arquivos de estilo (styled-components) não precisam de testes
     "!src/main.tsx",
     "!src/vite-env.d.ts",
     "!src/__tests__/**",
+    "!src/utils/logger.ts", // Usa import.meta.env (Vite) que não é compatível com Jest
   ],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", "html"],

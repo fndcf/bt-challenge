@@ -1,8 +1,5 @@
 import { NivelJogador } from "./jogador";
 
-/**
- * Dupla de jogadores - VERSÃO ATUALIZADA
- */
 export interface Dupla {
   id: string;
   etapaId: string;

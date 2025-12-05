@@ -1,9 +1,3 @@
-/**
- * NovoJogador.styles.ts
- *
- * Estilos centralizados para a página de novo jogador
- */
-
 import styled from "styled-components";
 
 export const PageContainer = styled.div`

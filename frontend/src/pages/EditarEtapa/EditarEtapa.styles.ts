@@ -1,9 +1,3 @@
-/**
- * EditarEtapa.styles.ts
- *
- * Responsabilidade única: Estilos centralizados da página EditarEtapa
- */
-
 import styled, { keyframes } from "styled-components";
 
 // ============== ANIMATIONS ==============

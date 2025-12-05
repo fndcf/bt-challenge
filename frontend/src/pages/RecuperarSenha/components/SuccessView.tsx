@@ -1,6 +1,4 @@
 /**
- * SuccessView.tsx
- *
  * Responsabilidade única: Visualização de sucesso após envio do email
  */
 
@@ -28,9 +26,8 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
       <S.SuccessTitle>Email enviado com sucesso!</S.SuccessTitle>
 
       <S.SuccessText>
-        Enviamos um link de recuperação de senha para{" "}
-        <strong>{email}</strong>. Verifique sua caixa de entrada e siga as
-        instruções.
+        Enviamos um link de recuperação de senha para <strong>{email}</strong>.
+        Verifique sua caixa de entrada e siga as instruções.
       </S.SuccessText>
 
       <S.HelpBox>

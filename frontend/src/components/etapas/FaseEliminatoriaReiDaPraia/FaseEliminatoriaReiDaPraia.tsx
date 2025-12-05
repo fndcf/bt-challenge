@@ -1,12 +1,3 @@
-/**
- * FaseEliminatoriaReiDaPraia - Fase eliminatória do formato Rei da Praia
- *
- * Diferenças do Dupla Fixa:
- * - Duplas são formadas a partir dos classificados individuais
- * - Tipo de chaveamento define como as duplas são formadas
- * - Visual roxo
- */
-
 import React from "react";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";

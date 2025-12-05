@@ -1,8 +1,5 @@
 /**
- * arenaAdminService.ts
  * Service para operações ADMINISTRATIVAS de Arena (requerem autenticação)
- *
- * Responsabilidade única: CRUD de arenas para administradores
  */
 
 import { apiClient } from "./apiClient";

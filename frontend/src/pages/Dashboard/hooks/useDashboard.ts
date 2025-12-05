@@ -1,6 +1,4 @@
 /**
- * useDashboard.ts
- *
  * Responsabilidade única: Gerenciar estado e lógica de negócio do Dashboard
  */
 

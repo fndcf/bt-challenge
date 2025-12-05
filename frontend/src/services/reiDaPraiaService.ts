@@ -1,11 +1,10 @@
 /**
- * Rei da Praia Service - COM LOGGER
  * Service específico para operações do formato Rei da Praia
  */
 
 import { apiClient } from "./apiClient";
 import { handleError } from "../utils/errorHandler";
-import logger from "../utils/logger"; // ← IMPORTAR LOGGER
+import logger from "../utils/logger";
 import {
   EstatisticasJogador,
   PartidaReiDaPraia,

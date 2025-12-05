@@ -1,6 +1,4 @@
 /**
- * EtapaHeader.tsx
- *
  * Responsabilidade única: Header com breadcrumb, título e badges da etapa
  */
 

@@ -1,9 +1,3 @@
-/**
- * EditarJogador.styles.ts
- *
- * Estilos centralizados para a página de editar jogador
- */
-
 import styled from "styled-components";
 
 export const Container = styled.div`
@@ -76,8 +70,10 @@ export const Spinner = styled.div<{ $size?: "small" | "large" }>`
   width: ${(props) => (props.$size === "small" ? "1.25rem" : "3rem")};
   height: ${(props) => (props.$size === "small" ? "1.25rem" : "3rem")};
   border: ${(props) => (props.$size === "small" ? "2px" : "4px")} solid
-    ${(props) => (props.$size === "small" ? "rgba(255, 255, 255, 0.3)" : "#dbeafe")};
-  border-top-color: ${(props) => (props.$size === "small" ? "white" : "#2563eb")};
+    ${(props) =>
+      props.$size === "small" ? "rgba(255, 255, 255, 0.3)" : "#dbeafe"};
+  border-top-color: ${(props) =>
+    props.$size === "small" ? "white" : "#2563eb"};
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 

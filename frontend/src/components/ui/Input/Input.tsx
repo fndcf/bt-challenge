@@ -1,13 +1,12 @@
 /**
- * Input Component
  * Componente de input reutilizável com label e erro
  */
 
-import React, { InputHTMLAttributes, forwardRef } from 'react';
-import styled, { css } from 'styled-components';
-import { theme } from '@/styles/theme';
+import React, { InputHTMLAttributes, forwardRef } from "react";
+import styled, { css } from "styled-components";
+import { theme } from "@/styles/theme";
 
-export type InputSize = 'sm' | 'md' | 'lg';
+export type InputSize = "sm" | "md" | "lg";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -16,14 +15,14 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   fullWidth?: boolean;
   inputSize?: InputSize;
   icon?: React.ReactNode;
-  iconPosition?: 'left' | 'right';
+  iconPosition?: "left" | "right";
 }
 
 const InputWrapper = styled.div<{ $fullWidth: boolean }>`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing[2]};
-  width: ${({ $fullWidth }) => $fullWidth ? '100%' : 'auto'};
+  width: ${({ $fullWidth }) => ($fullWidth ? "100%" : "auto")};
 `;
 
 const Label = styled.label<{ $required?: boolean }>`
@@ -31,12 +30,14 @@ const Label = styled.label<{ $required?: boolean }>`
   font-weight: ${theme.typography.fontWeight.medium};
   color: ${theme.colors.neutral[700]};
 
-  ${({ $required }) => $required && css`
-    &::after {
-      content: ' *';
-      color: ${theme.colors.error[500]};
-    }
-  `}
+  ${({ $required }) =>
+    $required &&
+    css`
+      &::after {
+        content: " *";
+        color: ${theme.colors.error[500]};
+      }
+    `}
 `;
 
 const InputContainer = styled.div`
@@ -49,11 +50,12 @@ const StyledInput = styled.input<{
   $hasError: boolean;
   $size: InputSize;
   $hasIcon: boolean;
-  $iconPosition: 'left' | 'right';
+  $iconPosition: "left" | "right";
 }>`
   width: 100%;
-  border: 1px solid ${({ $hasError }) => 
-    $hasError ? theme.colors.error[500] : theme.colors.neutral[300]};
+  border: 1px solid
+    ${({ $hasError }) =>
+      $hasError ? theme.colors.error[500] : theme.colors.neutral[300]};
   border-radius: ${theme.borderRadius.lg};
   font-size: ${theme.typography.fontSize.base};
   font-family: ${theme.typography.fontFamily.sans};
@@ -64,19 +66,19 @@ const StyledInput = styled.input<{
   /* Size variants */
   ${({ $size }) => {
     switch ($size) {
-      case 'sm':
+      case "sm":
         return css`
           padding: ${theme.spacing[2]} ${theme.spacing[3]};
           height: ${theme.components.input.height.sm};
           font-size: ${theme.typography.fontSize.sm};
         `;
-      case 'lg':
+      case "lg":
         return css`
           padding: ${theme.spacing[4]} ${theme.spacing[5]};
           height: ${theme.components.input.height.lg};
           font-size: ${theme.typography.fontSize.lg};
         `;
-      case 'md':
+      case "md":
       default:
         return css`
           padding: ${theme.spacing[3]} ${theme.spacing[4]};
@@ -87,26 +89,34 @@ const StyledInput = styled.input<{
 
   /* Icon padding */
   ${({ $hasIcon, $iconPosition, $size }) => {
-    if (!$hasIcon) return '';
-    
-    const paddingSize = $size === 'sm' ? theme.spacing[10] : 
-                       $size === 'lg' ? theme.spacing[12] : 
-                       theme.spacing[10];
-    
-    return $iconPosition === 'left' 
-      ? css`padding-left: ${paddingSize};`
-      : css`padding-right: ${paddingSize};`;
+    if (!$hasIcon) return "";
+
+    const paddingSize =
+      $size === "sm"
+        ? theme.spacing[10]
+        : $size === "lg"
+        ? theme.spacing[12]
+        : theme.spacing[10];
+
+    return $iconPosition === "left"
+      ? css`
+          padding-left: ${paddingSize};
+        `
+      : css`
+          padding-right: ${paddingSize};
+        `;
   }}
 
   /* Focus state */
   &:focus {
     outline: none;
-    border-color: ${({ $hasError }) => 
+    border-color: ${({ $hasError }) =>
       $hasError ? theme.colors.error[500] : theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${({ $hasError }) => 
-      $hasError 
-        ? `${theme.colors.error[500]}20` 
-        : `${theme.colors.primary[500]}20`};
+    box-shadow: 0 0 0 3px
+      ${({ $hasError }) =>
+        $hasError
+          ? `${theme.colors.error[500]}20`
+          : `${theme.colors.primary[500]}20`};
   }
 
   /* Disabled state */
@@ -122,18 +132,18 @@ const StyledInput = styled.input<{
   }
 
   /* Remove number input arrows */
-  &[type='number']::-webkit-inner-spin-button,
-  &[type='number']::-webkit-outer-spin-button {
+  &[type="number"]::-webkit-inner-spin-button,
+  &[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
-  &[type='number'] {
+  &[type="number"] {
     -moz-appearance: textfield;
   }
 `;
 
 const IconWrapper = styled.div<{
-  $position: 'left' | 'right';
+  $position: "left" | "right";
   $size: InputSize;
 }>`
   position: absolute;
@@ -146,80 +156,82 @@ const IconWrapper = styled.div<{
   pointer-events: none;
 
   ${({ $position, $size }) => {
-    const spacing = $size === 'sm' ? theme.spacing[3] : 
-                   $size === 'lg' ? theme.spacing[4] : 
-                   theme.spacing[3];
-    
-    return $position === 'left' 
-      ? css`left: ${spacing};`
-      : css`right: ${spacing};`;
+    const spacing =
+      $size === "sm"
+        ? theme.spacing[3]
+        : $size === "lg"
+        ? theme.spacing[4]
+        : theme.spacing[3];
+
+    return $position === "left"
+      ? css`
+          left: ${spacing};
+        `
+      : css`
+          right: ${spacing};
+        `;
   }}
 
   svg {
-    width: ${({ $size }) => 
-      $size === 'sm' ? '1rem' : 
-      $size === 'lg' ? '1.5rem' : 
-      '1.25rem'};
-    height: ${({ $size }) => 
-      $size === 'sm' ? '1rem' : 
-      $size === 'lg' ? '1.5rem' : 
-      '1.25rem'};
+    width: ${({ $size }) =>
+      $size === "sm" ? "1rem" : $size === "lg" ? "1.5rem" : "1.25rem"};
+    height: ${({ $size }) =>
+      $size === "sm" ? "1rem" : $size === "lg" ? "1.5rem" : "1.25rem"};
   }
 `;
 
 const HelperText = styled.span<{ $isError?: boolean }>`
   font-size: ${theme.typography.fontSize.sm};
-  color: ${({ $isError }) => 
+  color: ${({ $isError }) =>
     $isError ? theme.colors.error[500] : theme.colors.neutral[500]};
   margin-top: ${theme.spacing[1]};
 `;
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(({
-  label,
-  error,
-  helperText,
-  fullWidth = false,
-  inputSize = 'md',
-  icon,
-  iconPosition = 'left',
-  required,
-  ...props
-}, ref) => {
-  return (
-    <InputWrapper $fullWidth={fullWidth}>
-      {label && (
-        <Label $required={required}>
-          {label}
-        </Label>
-      )}
-      
-      <InputContainer>
-        {icon && (
-          <IconWrapper $position={iconPosition} $size={inputSize}>
-            {icon}
-          </IconWrapper>
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      label,
+      error,
+      helperText,
+      fullWidth = false,
+      inputSize = "md",
+      icon,
+      iconPosition = "left",
+      required,
+      ...props
+    },
+    ref
+  ) => {
+    return (
+      <InputWrapper $fullWidth={fullWidth}>
+        {label && <Label $required={required}>{label}</Label>}
+
+        <InputContainer>
+          {icon && (
+            <IconWrapper $position={iconPosition} $size={inputSize}>
+              {icon}
+            </IconWrapper>
+          )}
+
+          <StyledInput
+            ref={ref}
+            $hasError={!!error}
+            $size={inputSize}
+            $hasIcon={!!icon}
+            $iconPosition={iconPosition}
+            required={required}
+            {...props}
+          />
+        </InputContainer>
+
+        {(error || helperText) && (
+          <HelperText $isError={!!error}>{error || helperText}</HelperText>
         )}
-        
-        <StyledInput
-          ref={ref}
-          $hasError={!!error}
-          $size={inputSize}
-          $hasIcon={!!icon}
-          $iconPosition={iconPosition}
-          required={required}
-          {...props}
-        />
-      </InputContainer>
+      </InputWrapper>
+    );
+  }
+);
 
-      {(error || helperText) && (
-        <HelperText $isError={!!error}>
-          {error || helperText}
-        </HelperText>
-      )}
-    </InputWrapper>
-  );
-});
-
-Input.displayName = 'Input';
+Input.displayName = "Input";
 
 export default Input;

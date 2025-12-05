@@ -1,9 +1,5 @@
 /**
- * IReiDaPraiaService.ts
  * Interface para serviço de operações do formato Rei da Praia
- *
- * Aplica DIP (Dependency Inversion Principle)
- * Formato específico: Grupos de 4 jogadores com formação de duplas rotativas
  */
 
 import {

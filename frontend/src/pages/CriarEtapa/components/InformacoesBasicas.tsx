@@ -1,6 +1,4 @@
 /**
- * InformacoesBasicas.tsx
- *
  * Responsabilidade única: Formulário de informações básicas da etapa
  */
 
@@ -77,15 +75,14 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
             required
             disabled={disabledGenero}
             value={genero}
-            onChange={(e) =>
-              onGeneroChange(e.target.value as GeneroJogador)
-            }
+            onChange={(e) => onGeneroChange(e.target.value as GeneroJogador)}
           >
             <option value={GeneroJogador.MASCULINO}>Masculino</option>
             <option value={GeneroJogador.FEMININO}>Feminino</option>
           </S.Select>
           <S.HelperText>
-            {helperGenero || "Apenas jogadores deste gênero poderão se inscrever"}
+            {helperGenero ||
+              "Apenas jogadores deste gênero poderão se inscrever"}
           </S.HelperText>
         </S.Field>
 
@@ -95,14 +92,10 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
             required
             disabled={disabledNivel}
             value={nivel}
-            onChange={(e) =>
-              onNivelChange(e.target.value as NivelJogador)
-            }
+            onChange={(e) => onNivelChange(e.target.value as NivelJogador)}
           >
             <option value={NivelJogador.INICIANTE}>Iniciante</option>
-            <option value={NivelJogador.INTERMEDIARIO}>
-              Intermediário
-            </option>
+            <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
             <option value={NivelJogador.AVANCADO}>Avançado</option>
           </S.Select>
           <S.HelperText>

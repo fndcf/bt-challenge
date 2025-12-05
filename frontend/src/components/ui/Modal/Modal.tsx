@@ -1,14 +1,13 @@
 /**
- * Modal Component
  * Componente de modal acessível e responsivo
  */
 
-import React, { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import styled, { keyframes } from 'styled-components';
-import { theme } from '@/styles/theme';
+import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import styled, { keyframes } from "styled-components";
+import { theme } from "@/styles/theme";
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
 
 interface ModalProps {
   isOpen: boolean;
@@ -65,8 +64,8 @@ const Overlay = styled.div`
 
 const ModalContainer = styled.div<{ $size: ModalSize }>`
   background: ${theme.colors.white};
-  border-radius: ${theme.borderRadius['2xl']};
-  box-shadow: ${theme.shadows['2xl']};
+  border-radius: ${theme.borderRadius["2xl"]};
+  box-shadow: ${theme.shadows["2xl"]};
   display: flex;
   flex-direction: column;
   max-height: 90vh;
@@ -77,22 +76,22 @@ const ModalContainer = styled.div<{ $size: ModalSize }>`
   /* Size variants */
   ${({ $size }) => {
     switch ($size) {
-      case 'sm':
+      case "sm":
         return `
           width: 100%;
           max-width: 400px;
         `;
-      case 'lg':
+      case "lg":
         return `
           width: 100%;
           max-width: 800px;
         `;
-      case 'xl':
+      case "xl":
         return `
           width: 100%;
           max-width: 1200px;
         `;
-      case 'full':
+      case "full":
         return `
           width: 100%;
           height: 100%;
@@ -100,7 +99,7 @@ const ModalContainer = styled.div<{ $size: ModalSize }>`
           max-height: 100%;
           border-radius: 0;
         `;
-      case 'md':
+      case "md":
       default:
         return `
           width: 100%;
@@ -131,7 +130,7 @@ const ModalHeader = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  font-size: ${theme.typography.fontSize['2xl']};
+  font-size: ${theme.typography.fontSize["2xl"]};
   font-weight: ${theme.typography.fontWeight.semibold};
   color: ${theme.colors.neutral[900]};
   margin: 0;
@@ -202,7 +201,7 @@ export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
   title,
-  size = 'md',
+  size = "md",
   children,
   footer,
   closeOnOverlayClick = true,
@@ -210,30 +209,28 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Handle escape key
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose, closeOnEscape]);
 
-  // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 
@@ -248,7 +245,12 @@ export const Modal: React.FC<ModalProps> = ({
 
   return createPortal(
     <Overlay onClick={handleOverlayClick}>
-      <ModalContainer ref={modalRef} $size={size} role="dialog" aria-modal="true">
+      <ModalContainer
+        ref={modalRef}
+        $size={size}
+        role="dialog"
+        aria-modal="true"
+      >
         {title && (
           <ModalHeader>
             <ModalTitle>{title}</ModalTitle>

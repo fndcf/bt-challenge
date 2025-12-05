@@ -1,6 +1,4 @@
 /**
- * useJogadorPerfil.ts
- *
  * Responsabilidade única: Gerenciar estado e lógica de negócio do perfil do jogador
  */
 
@@ -152,7 +150,8 @@ export const useJogadorPerfil = (
           total: historicoData?.length || 0,
         });
       } catch (err: any) {
-        const mensagemErro = err.message || "Erro ao carregar perfil do jogador";
+        const mensagemErro =
+          err.message || "Erro ao carregar perfil do jogador";
         setError(mensagemErro);
         logger.error("Erro ao carregar perfil", { slug, jogadorId }, err);
       } finally {

@@ -1,13 +1,14 @@
 /**
- * DistribuicaoPreview.tsx
- *
  * Responsabilidade única: Preview da distribuição de grupos baseado no formato
  */
 
 import React from "react";
 import { FormatoEtapa } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
-import { DistribuicaoDuplaFixa, DistribuicaoReiDaPraia } from "../hooks/useCriarEtapa";
+import {
+  DistribuicaoDuplaFixa,
+  DistribuicaoReiDaPraia,
+} from "../hooks/useCriarEtapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface DistribuicaoPreviewProps {
@@ -27,16 +28,13 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
   if (formato === FormatoEtapa.REI_DA_PRAIA) {
     return (
       <S.PreviewCard>
-        <S.PreviewTitle>
-          Distribuição Rei da Praia
-        </S.PreviewTitle>
+        <S.PreviewTitle>Distribuição Rei da Praia</S.PreviewTitle>
 
         {infoReiDaPraia.valido ? (
           <S.PreviewContent>
             <S.PreviewRow>
               <span>
-                <strong>{infoReiDaPraia.totalJogadores}</strong>{" "}
-                jogadores
+                <strong>{infoReiDaPraia.totalJogadores}</strong> jogadores
               </span>
               <span>→</span>
               <span>
@@ -47,9 +45,7 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
 
             <S.PreviewBox>{infoReiDaPraia.descricao}</S.PreviewBox>
 
-            <S.PreviewNote>
-              Cada grupo: 4 jogadores, 3 partidas
-            </S.PreviewNote>
+            <S.PreviewNote>Cada grupo: 4 jogadores, 3 partidas</S.PreviewNote>
             <S.PreviewNote>
               Chaveamento:{" "}
               {tipoChaveamento ===
@@ -62,9 +58,7 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
             </S.PreviewNote>
           </S.PreviewContent>
         ) : (
-          <S.PreviewRow>
-            {infoReiDaPraia.descricao}
-          </S.PreviewRow>
+          <S.PreviewRow>{infoReiDaPraia.descricao}</S.PreviewRow>
         )}
       </S.PreviewCard>
     );
@@ -73,9 +67,7 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
   // Preview para Dupla Fixa
   return (
     <S.PreviewCard>
-      <S.PreviewTitle>
-        Distribuição de Grupos
-      </S.PreviewTitle>
+      <S.PreviewTitle>Distribuição de Grupos</S.PreviewTitle>
 
       {infoDuplaFixa.valido ? (
         <S.PreviewContent>
@@ -92,14 +84,10 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
 
           <S.PreviewBox>{infoDuplaFixa.descricao}</S.PreviewBox>
 
-          <S.PreviewNote>
-            Grupos com 3 duplas cada (mínimo)
-          </S.PreviewNote>
+          <S.PreviewNote>Grupos com 3 duplas cada (mínimo)</S.PreviewNote>
         </S.PreviewContent>
       ) : (
-        <S.PreviewRow>
-          {infoDuplaFixa.descricao}
-        </S.PreviewRow>
+        <S.PreviewRow>{infoDuplaFixa.descricao}</S.PreviewRow>
       )}
     </S.PreviewCard>
   );

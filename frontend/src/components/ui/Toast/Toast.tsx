@@ -1,5 +1,4 @@
 /**
- * Toast Notification System
  * Sistema de notificações toast com contexto e hook
  */
 

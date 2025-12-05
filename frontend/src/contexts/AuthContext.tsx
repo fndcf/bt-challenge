@@ -1,9 +1,5 @@
 /**
- * AuthContext.tsx - VERSÃO REFATORADA
- *
  * Responsabilidade única: Gerenciar estado de autenticação
- *
- * Funções de tradução de erro movidas para errorHandler.ts
  */
 
 import React, {

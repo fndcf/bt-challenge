@@ -1,14 +1,13 @@
 /**
- * Card Component
  * Componente de card reutilizável e responsivo
  */
 
-import React, { HTMLAttributes } from 'react';
-import styled, { css } from 'styled-components';
-import { theme } from '@/styles/theme';
+import React, { HTMLAttributes } from "react";
+import styled, { css } from "styled-components";
+import { theme } from "@/styles/theme";
 
-export type CardVariant = 'default' | 'outlined' | 'elevated';
-export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+export type CardVariant = "default" | "outlined" | "elevated";
+export type CardPadding = "none" | "sm" | "md" | "lg";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
@@ -24,38 +23,46 @@ const StyledCard = styled.div<{
   $clickable: boolean;
 }>`
   background: ${theme.colors.white};
-  border-radius: ${theme.borderRadius['2xl']};
+  border-radius: ${theme.borderRadius["2xl"]};
   transition: all ${theme.transitions.base} ${theme.easing.easeInOut};
   width: 100%;
 
   /* Padding variants */
   ${({ $padding }) => {
     switch ($padding) {
-      case 'none':
-        return css`padding: 0;`;
-      case 'sm':
-        return css`padding: ${theme.components.card.padding.sm};`;
-      case 'lg':
-        return css`padding: ${theme.components.card.padding.lg};`;
-      case 'md':
+      case "none":
+        return css`
+          padding: 0;
+        `;
+      case "sm":
+        return css`
+          padding: ${theme.components.card.padding.sm};
+        `;
+      case "lg":
+        return css`
+          padding: ${theme.components.card.padding.lg};
+        `;
+      case "md":
       default:
-        return css`padding: ${theme.components.card.padding.md};`;
+        return css`
+          padding: ${theme.components.card.padding.md};
+        `;
     }
   }}
 
   /* Variant styles */
   ${({ $variant }) => {
     switch ($variant) {
-      case 'outlined':
+      case "outlined":
         return css`
           border: 1px solid ${theme.colors.neutral[200]};
           box-shadow: none;
         `;
-      case 'elevated':
+      case "elevated":
         return css`
           box-shadow: ${theme.shadows.xl};
         `;
-      case 'default':
+      case "default":
       default:
         return css`
           box-shadow: ${theme.shadows.md};
@@ -64,22 +71,28 @@ const StyledCard = styled.div<{
   }}
 
   /* Hoverable */
-  ${({ $hoverable, $variant }) => $hoverable && css`
-    &:hover {
-      box-shadow: ${$variant === 'outlined' ? theme.shadows.md : theme.shadows.xl};
-      transform: translateY(-2px);
-    }
-  `}
+  ${({ $hoverable, $variant }) =>
+    $hoverable &&
+    css`
+      &:hover {
+        box-shadow: ${$variant === "outlined"
+          ? theme.shadows.md
+          : theme.shadows.xl};
+        transform: translateY(-2px);
+      }
+    `}
 
   /* Clickable */
-  ${({ $clickable }) => $clickable && css`
-    cursor: pointer;
-    user-select: none;
+  ${({ $clickable }) =>
+    $clickable &&
+    css`
+      cursor: pointer;
+      user-select: none;
 
-    &:active {
-      transform: scale(0.98);
-    }
-  `}
+      &:active {
+        transform: scale(0.98);
+      }
+    `}
 `;
 
 const CardHeader = styled.div`
@@ -131,8 +144,8 @@ export const Card: React.FC<CardProps> & {
   Body: typeof CardBody;
   Footer: typeof CardFooter;
 } = ({
-  variant = 'default',
-  padding = 'md',
+  variant = "default",
+  padding = "md",
   hoverable = false,
   clickable = false,
   children,

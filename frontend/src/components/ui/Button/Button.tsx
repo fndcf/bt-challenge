@@ -1,14 +1,18 @@
 /**
- * Button Component
  * Componente de botão reutilizável e responsivo
  */
 
-import React, { ButtonHTMLAttributes } from 'react';
-import styled, { css } from 'styled-components';
-import { theme } from '@/styles/theme';
+import React, { ButtonHTMLAttributes } from "react";
+import styled, { css } from "styled-components";
+import { theme } from "@/styles/theme";
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -16,7 +20,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
-  iconPosition?: 'left' | 'right';
+  iconPosition?: "left" | "right";
 }
 
 const StyledButton = styled.button<{
@@ -41,9 +45,11 @@ const StyledButton = styled.button<{
   text-decoration: none;
 
   /* Width */
-  ${({ $fullWidth }) => $fullWidth && css`
-    width: 100%;
-  `}
+  ${({ $fullWidth }) =>
+    $fullWidth &&
+    css`
+      width: 100%;
+    `}
 
   /* Disabled state */
   &:disabled {
@@ -52,10 +58,12 @@ const StyledButton = styled.button<{
   }
 
   /* Loading state */
-  ${({ $loading }) => $loading && css`
-    pointer-events: none;
-    opacity: 0.7;
-  `}
+  ${({ $loading }) =>
+    $loading &&
+    css`
+      pointer-events: none;
+      opacity: 0.7;
+    `}
 
   /* Focus state */
   &:focus-visible {
@@ -66,19 +74,19 @@ const StyledButton = styled.button<{
   /* Size variants */
   ${({ $size }) => {
     switch ($size) {
-      case 'sm':
+      case "sm":
         return css`
           padding: ${theme.spacing[2]} ${theme.spacing[4]};
           font-size: ${theme.typography.fontSize.sm};
           height: ${theme.components.button.height.sm};
         `;
-      case 'lg':
+      case "lg":
         return css`
           padding: ${theme.spacing[4]} ${theme.spacing[8]};
           font-size: ${theme.typography.fontSize.lg};
           height: ${theme.components.button.height.lg};
         `;
-      case 'md':
+      case "md":
       default:
         return css`
           padding: ${theme.spacing[3]} ${theme.spacing[6]};
@@ -91,7 +99,7 @@ const StyledButton = styled.button<{
   /* Color variants */
   ${({ $variant }) => {
     switch ($variant) {
-      case 'primary':
+      case "primary":
         return css`
           background: ${theme.gradients.primary};
           color: ${theme.colors.white};
@@ -106,8 +114,8 @@ const StyledButton = styled.button<{
             transform: translateY(0);
           }
         `;
-      
-      case 'secondary':
+
+      case "secondary":
         return css`
           background: ${theme.colors.neutral[100]};
           color: ${theme.colors.neutral[900]};
@@ -117,7 +125,7 @@ const StyledButton = styled.button<{
           }
         `;
 
-      case 'outline':
+      case "outline":
         return css`
           background: transparent;
           color: ${theme.colors.primary[500]};
@@ -129,7 +137,7 @@ const StyledButton = styled.button<{
           }
         `;
 
-      case 'ghost':
+      case "ghost":
         return css`
           background: transparent;
           color: ${theme.colors.primary[500]};
@@ -139,7 +147,7 @@ const StyledButton = styled.button<{
           }
         `;
 
-      case 'danger':
+      case "danger":
         return css`
           background: ${theme.colors.error[500]};
           color: ${theme.colors.white};
@@ -152,7 +160,7 @@ const StyledButton = styled.button<{
         `;
 
       default:
-        return '';
+        return "";
     }
   }}
 `;
@@ -174,12 +182,12 @@ const Spinner = styled.div`
 
 export const Button: React.FC<ButtonProps> = ({
   children,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   fullWidth = false,
   loading = false,
   icon,
-  iconPosition = 'left',
+  iconPosition = "left",
   disabled,
   ...props
 }) => {
@@ -193,9 +201,9 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {loading && <Spinner />}
-      {!loading && icon && iconPosition === 'left' && icon}
+      {!loading && icon && iconPosition === "left" && icon}
       {children}
-      {!loading && icon && iconPosition === 'right' && icon}
+      {!loading && icon && iconPosition === "right" && icon}
     </StyledButton>
   );
 };

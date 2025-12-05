@@ -1,9 +1,3 @@
-/**
- * RegisterArena.styles.ts
- *
- * Estilos centralizados para a página de registro de arena
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 
@@ -21,7 +15,8 @@ export const Container = styled.div`
   max-width: 600px;
   background: white;
   border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   padding: 2rem;
 
   @media (min-width: 768px) {
@@ -97,11 +92,18 @@ export const Input = styled.input<{ $hasError?: boolean }>`
   &:focus {
     outline: none;
     border-color: ${(props) => (props.$hasError ? "#ef4444" : "#2563eb")};
-    box-shadow: 0 0 0 3px ${(props) => (props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(37, 99, 235, 0.1)")};
+    box-shadow: 0 0 0 3px
+      ${(props) =>
+        props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(37, 99, 235, 0.1)"};
   }
 
-  &::placeholder { color: #9ca3af; }
-  &:disabled { background: #f9fafb; cursor: not-allowed; }
+  &::placeholder {
+    color: #9ca3af;
+  }
+  &:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+  }
 `;
 
 export const SlugInputWrapper = styled.div`
@@ -137,19 +139,33 @@ export const SlugInput = styled.input<{ $hasError?: boolean }>`
   border: none;
   font-size: 1rem;
 
-  &:focus { outline: none; }
-  &::placeholder { color: #9ca3af; }
-  &:disabled { background: #f9fafb; cursor: not-allowed; }
+  &:focus {
+    outline: none;
+  }
+  &::placeholder {
+    color: #9ca3af;
+  }
+  &:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+  }
 `;
 
-export const SlugStatus = styled.div<{ $status: "checking" | "available" | "unavailable" }>`
+export const SlugStatus = styled.div<{
+  $status: "checking" | "available" | "unavailable";
+}>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
   margin-top: 0.25rem;
-  color: ${(props) => props.$status === "checking" ? "#6b7280" : props.$status === "available" ? "#16a34a" : "#dc2626"};
+  color: ${(props) =>
+    props.$status === "checking"
+      ? "#6b7280"
+      : props.$status === "available"
+      ? "#16a34a"
+      : "#dc2626"};
 `;
 
 export const SmallSpinner = styled.div`
@@ -161,7 +177,9 @@ export const SmallSpinner = styled.div`
   animation: spin 0.8s linear infinite;
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -204,8 +222,13 @@ export const SubmitButton = styled.button`
   min-height: 48px;
   margin-top: 0.5rem;
 
-  &:hover:not(:disabled) { background: #1d4ed8; }
-  &:disabled { opacity: 0.7; cursor: not-allowed; }
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 `;
 
 export const Spinner = styled.div`

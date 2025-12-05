@@ -1,12 +1,5 @@
 /**
- * Services - Index
- *
  * Exporta services, interfaces e container (DI)
- *
- * IMPORTANTE:
- * - Use o container para obter services (DIP)
- * - Importe interfaces, não implementações
- * - Facilita testes e mocking
  */
 
 // ============================================
@@ -26,7 +19,7 @@ export {
 } from "./container";
 
 // ============================================
-// INTERFACES (recomendado usar estas)
+// INTERFACES
 // ============================================
 
 export type {

@@ -1,8 +1,5 @@
 /**
- * IEtapaService.ts
  * Interface para operações de Etapas
- *
- * Aplica DIP (Dependency Inversion Principle)
  */
 
 import {
@@ -31,8 +28,14 @@ export interface IEtapaService {
   /**
    * Operações de Inscrição
    */
-  inscreverJogador(etapaId: string, data: InscreverJogadorDTO): Promise<Inscricao>;
-  inscreverJogadores(etapaId: string, jogadorIds: string[]): Promise<Inscricao[]>;
+  inscreverJogador(
+    etapaId: string,
+    data: InscreverJogadorDTO
+  ): Promise<Inscricao>;
+  inscreverJogadores(
+    etapaId: string,
+    jogadorIds: string[]
+  ): Promise<Inscricao[]>;
   listarInscricoes(etapaId: string): Promise<Inscricao[]>;
   cancelarInscricao(etapaId: string, inscricaoId: string): Promise<void>;
   encerrarInscricoes(etapaId: string): Promise<Etapa>;

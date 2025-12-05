@@ -1,5 +1,4 @@
 /**
- * useLocalStorage.ts
  * Hook para localStorage
  */
 

@@ -1,5 +1,4 @@
 /**
- * useMediaQuery.ts
  * Hook para detectar tamanho da tela
  */
 

@@ -1,6 +1,4 @@
 /**
- * RestricoesList.tsx
- *
  * Responsabilidade única: Exibir alertas de restrições na edição
  */
 
@@ -22,7 +20,6 @@ export const RestricoesList: React.FC<RestrictionsListProps> = ({
   chavesGeradas,
   temInscritos,
 }) => {
-
   // Se chaves já foram geradas, não pode editar nada
   if (chavesGeradas) {
     return (

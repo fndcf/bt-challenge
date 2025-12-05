@@ -1,5 +1,4 @@
 /**
- * Select Component
  * Componente de select reutilizável com label e erro
  */
 

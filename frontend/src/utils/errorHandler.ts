@@ -1,10 +1,3 @@
-/**
- * Error Handler - VERSÃO REFATORADA
- * Tratamento centralizado de erros da aplicação
- * 
- * Responsabilidade única: Traduzir e formatar erros
- */
-
 import { AxiosError } from "axios";
 import logger from "./logger";
 
@@ -53,7 +46,8 @@ const errorMessages: Record<string, string> = {
   "auth/invalid-credential": "Email ou senha incorretos",
   "auth/requires-recent-login": "Por segurança, faça login novamente",
   "auth/operation-not-allowed": "Operação não permitida",
-  "auth/account-exists-with-different-credential": "Conta já existe com credencial diferente",
+  "auth/account-exists-with-different-credential":
+    "Conta já existe com credencial diferente",
   "auth/popup-closed-by-user": "Login cancelado pelo usuário",
   "auth/expired-action-code": "Link expirado. Solicite novamente",
   "auth/invalid-action-code": "Link inválido ou já utilizado",
@@ -144,7 +138,7 @@ export const getErrorMessage = (error: any): string => {
 };
 
 /**
- * Log de erro (pode ser enviado para serviço de monitoramento)
+ * Log de erro
  */
 export const logError = (error: any, context?: string) => {
   const errorInfo = {

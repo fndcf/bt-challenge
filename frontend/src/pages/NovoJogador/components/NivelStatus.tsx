@@ -1,6 +1,4 @@
 /**
- * NivelStatus.tsx
- *
  * Responsabilidade única: Campos de nível e status do jogador
  */
 

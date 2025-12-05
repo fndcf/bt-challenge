@@ -1,9 +1,3 @@
-/**
- * Home.styles.ts
- *
- * Estilos centralizados para a página inicial (landing page)
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

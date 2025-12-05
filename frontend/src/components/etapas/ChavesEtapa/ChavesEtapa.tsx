@@ -1,7 +1,3 @@
-/**
- * ChavesEtapa - Versão responsiva e equilibrada
- */
-
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getChaveService, getEtapaService } from "@/services";

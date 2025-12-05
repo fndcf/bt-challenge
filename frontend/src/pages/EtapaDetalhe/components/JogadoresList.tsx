@@ -1,6 +1,4 @@
 /**
- * JogadoresList.tsx
- *
  * Responsabilidade única: Card com lista paginada de jogadores inscritos
  */
 

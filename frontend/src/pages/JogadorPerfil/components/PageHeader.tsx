@@ -1,6 +1,4 @@
 /**
- * PageHeader.tsx
- *
  * Responsabilidade única: Cabeçalho da página com breadcrumb e botão voltar
  */
 

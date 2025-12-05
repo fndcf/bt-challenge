@@ -1,9 +1,3 @@
-/**
- * JogadorPerfil.styles.ts
- *
- * Responsabilidade única: Styled components para página de perfil do jogador
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 
@@ -180,8 +174,7 @@ export const GeneroTag = styled.span<{ $genero: string }>`
   text-transform: capitalize;
   background: ${(props) =>
     props.$genero === "masculino" ? "#dbeafe" : "#fce7f3"};
-  color: ${(props) =>
-    props.$genero === "masculino" ? "#1e40af" : "#9f1239"};
+  color: ${(props) => (props.$genero === "masculino" ? "#1e40af" : "#9f1239")};
 `;
 
 export const NivelTag = styled.span<{ $nivel: string; $genero?: string }>`
@@ -195,8 +188,7 @@ export const NivelTag = styled.span<{ $nivel: string; $genero?: string }>`
   text-transform: capitalize;
   background: ${(props) =>
     props.$genero === "masculino" ? "#dbeafe" : "#fce7f3"};
-  color: ${(props) =>
-    props.$genero === "masculino" ? "#1e40af" : "#9f1239"};
+  color: ${(props) => (props.$genero === "masculino" ? "#1e40af" : "#9f1239")};
 `;
 
 export const BadgeGroup = styled.div`

@@ -1,8 +1,3 @@
-/**
- * RankingList - Rankings segregados por Gênero e Nível
- * Versão 2.1 com paginação opcional
- */
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";

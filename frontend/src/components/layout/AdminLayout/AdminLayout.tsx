@@ -1,8 +1,3 @@
-/**
- * AdminLayout - VERSÃO FINAL
- * Adiciona classe "admin-area" no body para isolar estilos
- */
-
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
@@ -282,7 +277,7 @@ const AdminLayout: React.FC = () => {
     typeof window !== "undefined" ? window.innerWidth > 768 : true
   );
 
-  // ADICIONA classe "admin-area" no body ao montar
+  // adiciona classe "admin-area" no body ao montar
   useEffect(() => {
     document.body.classList.add("admin-area");
 

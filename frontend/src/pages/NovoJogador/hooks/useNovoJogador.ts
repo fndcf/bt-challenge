@@ -1,11 +1,5 @@
 /**
- * useNovoJogador.ts
- *
  * Responsabilidade única: Gerenciar lógica de negócio do cadastro de jogador
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar estado e lógica do formulário
- * - DIP: Depende de abstrações (jogadorService), não de implementações
  */
 
 import { useState, useCallback } from "react";

@@ -1,13 +1,5 @@
 /**
- * ArenaPublica - REFATORADO COM SOLID
- * URL: /arena/:slug
- *
  * Responsabilidade única: Renderizar página pública da arena
- *
- * Princípios SOLID aplicados:
- * - SRP: Componente apenas renderiza, lógica delegada para hooks/utils
- * - OCP: Extensível via props e componentes filhos
- * - DIP: Depende de abstrações (hooks, services) não de implementações
  */
 
 import React from "react";

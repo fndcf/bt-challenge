@@ -1,9 +1,3 @@
-/**
- * Login.styles.ts
- *
- * Estilos centralizados para a página de login
- */
-
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 

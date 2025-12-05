@@ -1,9 +1,3 @@
-/**
- * ListagemEtapas.styles.ts
- *
- * Responsabilidade única: Styled components para ListagemEtapas
- */
-
 import styled from "styled-components";
 
 // ============== CONTAINER ==============

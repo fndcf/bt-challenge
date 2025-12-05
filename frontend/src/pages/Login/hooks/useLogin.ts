@@ -1,11 +1,5 @@
 /**
- * useLogin.ts
- *
  * Responsabilidade única: Gerenciar lógica de negócio do login
- *
- * SOLID aplicado:
- * - SRP: Hook único com responsabilidade de gerenciar estado e lógica do login
- * - DIP: Depende de abstrações (AuthContext), não de implementações
  */
 
 import { useState, useEffect, useCallback } from "react";

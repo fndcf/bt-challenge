@@ -1,9 +1,5 @@
 /**
- * ICabecaDeChaveService.ts
  * Interface para serviço de gerenciamento de cabeças de chave
- *
- * Aplica DIP (Dependency Inversion Principle)
- * Permite injeção de dependências e facilita testes unitários
  */
 
 import { CabecaDeChave, CriarCabecaDeChaveDTO } from "@/types/cabecaDeChave";

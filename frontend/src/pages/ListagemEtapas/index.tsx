@@ -1,13 +1,5 @@
 /**
- * ListagemEtapas/index.tsx
- *
  * Responsabilidade única: Orquestrar componentes da página de listagem de etapas
- *
- * SOLID aplicado:
- * - SRP: Cada componente tem uma responsabilidade única
- * - OCP: Componentes são extensíveis sem modificação
- * - ISP: Interfaces específicas para cada componente
- * - DIP: Componentes dependem de abstrações (props), não de implementações
  */
 
 import React from "react";

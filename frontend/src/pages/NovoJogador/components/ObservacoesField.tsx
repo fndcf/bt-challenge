@@ -1,6 +1,4 @@
 /**
- * ObservacoesField.tsx
- *
  * Responsabilidade única: Campo de observações do jogador
  */
 

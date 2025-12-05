@@ -1,11 +1,5 @@
 /**
- * useEtapaUI.ts
- *
  * Responsabilidade única: Gerenciar estado da interface (UI state)
- *
- * SOLID aplicado:
- * - SRP: Hook focado apenas em gerenciar estado da UI
- * - ISP: Interface segregada (apenas estado de UI, nada de lógica de negócio)
  */
 
 import { useState } from "react";

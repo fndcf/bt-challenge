@@ -1,10 +1,5 @@
 /**
- * chaveService.ts
  * Service para gerenciar chaves do formato DUPLA FIXA
- *
- * Responsabilidade única: Operações de chaves para Dupla Fixa
- *
- *  Para formato Rei da Praia, use reiDaPraiaService
  */
 
 import { apiClient } from "./apiClient";
@@ -149,7 +144,6 @@ class ChaveService implements IChaveService {
 
   /**
    * Registrar resultado de partida da fase de grupos
-   * (Múltiplos sets - melhor de 3 ou 5)
    */
   async registrarResultadoPartida(
     partidaId: string,

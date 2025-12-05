@@ -1,6 +1,4 @@
 /**
- * ConfiguracoesJogadores.tsx
- *
  * Responsabilidade única: Configuração de número de jogadores
  */
 
