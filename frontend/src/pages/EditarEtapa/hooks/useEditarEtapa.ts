@@ -51,6 +51,7 @@ export const useEditarEtapa = (
     local: "",
     maxJogadores: 16,
     tipoChaveamento: undefined,
+    contaPontosRanking: true,
   });
 
   // ============== INFO COMPUTADA ==============
@@ -92,6 +93,7 @@ export const useEditarEtapa = (
         local: data.local || "",
         maxJogadores: data.maxJogadores || 16,
         tipoChaveamento: data.tipoChaveamento,
+        contaPontosRanking: data.contaPontosRanking ?? true,
       });
     } catch (err: any) {
       setError(err.message || "Erro ao carregar etapa");

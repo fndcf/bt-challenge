@@ -166,6 +166,7 @@ export function createEtapaFixture(overrides: Partial<Etapa> = {}): Etapa {
     dataGeracaoChaves: undefined,
     campeaoId: undefined,
     campeaoNome: undefined,
+    contaPontosRanking: true,
     criadoEm: now,
     atualizadoEm: now,
     criadoPor: TEST_IDS.admin,
@@ -201,6 +202,7 @@ export function createCriarEtapaDTO(
     local: "Arena Beach Tennis",
     maxJogadores: 16,
     jogadoresPorGrupo: 4,
+    contaPontosRanking: true,
     ...overrides,
   };
 }

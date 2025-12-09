@@ -78,6 +78,9 @@ export interface Etapa {
   campeaoNome?: string;
   dataEncerramentoEm?: Timestamp;
 
+  // Ranking
+  contaPontosRanking: boolean; // Se true, os pontos da etapa contam para o ranking geral
+
   // Metadados
   criadoEm: Timestamp | string;
   atualizadoEm: Timestamp | string;
@@ -111,6 +114,7 @@ export const CriarEtapaSchema = z.object({
       message: "Número de jogadores deve ser par",
     }),
   jogadoresPorGrupo: z.number().min(3).max(5),
+  contaPontosRanking: z.boolean().default(true), // Por padrão, conta pontos no ranking
 });
 
 export type CriarEtapaDTO = z.infer<typeof CriarEtapaSchema>;
@@ -136,6 +140,7 @@ export const AtualizarEtapaSchema = z.object({
     })
     .optional(),
   status: z.nativeEnum(StatusEtapa).optional(),
+  contaPontosRanking: z.boolean().optional(),
 });
 
 export type AtualizarEtapaDTO = z.infer<typeof AtualizarEtapaSchema>;

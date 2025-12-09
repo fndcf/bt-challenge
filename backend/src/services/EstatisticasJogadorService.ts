@@ -737,14 +737,51 @@ export class EstatisticasJogadorService {
   }
 
   /**
+   * Buscar IDs das etapas que contam pontos no ranking
+   */
+  private async buscarEtapasQueContamPontos(arenaId: string): Promise<Set<string>> {
+    const etapasSnapshot = await db
+      .collection("etapas")
+      .where("arenaId", "==", arenaId)
+      .where("contaPontosRanking", "==", true)
+      .get();
+
+    const etapaIds = new Set<string>();
+    etapasSnapshot.docs.forEach((doc) => {
+      etapaIds.add(doc.id);
+    });
+
+    // Para retrocompatibilidade: etapas sem o campo contaPontosRanking
+    // são consideradas como contando pontos (comportamento antigo)
+    const etapasSemCampoSnapshot = await db
+      .collection("etapas")
+      .where("arenaId", "==", arenaId)
+      .get();
+
+    etapasSemCampoSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      // Se não tem o campo, considera como true (retrocompatibilidade)
+      if (data.contaPontosRanking === undefined) {
+        etapaIds.add(doc.id);
+      }
+    });
+
+    return etapaIds;
+  }
+
+  /**
    * Buscar estatísticas AGREGADAS de um jogador POR NÍVEL
    * Separa pontos por categoria (iniciante, intermediário, avançado)
+   * IMPORTANTE: Só considera etapas com contaPontosRanking = true
    */
   async buscarEstatisticasAgregadasPorNivel(
     jogadorId: string,
     arenaId: string,
     nivel: string
   ): Promise<any> {
+    // Buscar etapas que contam pontos
+    const etapasQueContam = await this.buscarEtapasQueContamPontos(arenaId);
+
     const snapshot = await db
       .collection(this.collection)
       .where("jogadorId", "==", jogadorId)
@@ -756,7 +793,7 @@ export class EstatisticasJogadorService {
       return null;
     }
 
-    // Agregar estatísticas apenas do nível especificado
+    // Agregar estatísticas apenas do nível especificado E de etapas que contam pontos
     let jogadorNome = "";
     let jogadorNivel: string | undefined = undefined;
     let jogadorGenero: string | undefined = undefined;
@@ -772,6 +809,12 @@ export class EstatisticasJogadorService {
 
     snapshot.docs.forEach((doc) => {
       const stat = doc.data() as EstatisticasJogador;
+
+      // Só conta se a etapa conta pontos no ranking
+      if (!etapasQueContam.has(stat.etapaId)) {
+        return; // Pula esta etapa
+      }
+
       jogadorNome = stat.jogadorNome;
       jogadorNivel = stat.jogadorNivel;
       jogadorGenero = stat.jogadorGenero;
@@ -909,6 +952,8 @@ export class EstatisticasJogadorService {
    * - Ranking de intermediários só considera pontos ganhos como intermediário
    * - Jogador começa do zero ao mudar de categoria
    *
+   * IMPORTANTE: Só considera etapas com contaPontosRanking = true
+   *
    * @param arenaId - ID da arena
    * @param nivel - Nível do jogador ('iniciante' | 'intermediario' | 'avancado')
    * @param limite - Quantidade máxima de resultados
@@ -918,17 +963,25 @@ export class EstatisticasJogadorService {
     nivel: string,
     limite: number = 50
   ): Promise<Array<any>> {
+    // Buscar etapas que contam pontos
+    const etapasQueContam = await this.buscarEtapasQueContamPontos(arenaId);
+
     const snapshot = await db
       .collection(this.collection)
       .where("arenaId", "==", arenaId)
       .where("jogadorNivel", "==", nivel)
       .get();
 
-    // Agregar por jogador
+    // Agregar por jogador (apenas etapas que contam pontos)
     const jogadoresMap = new Map<string, any>();
 
     snapshot.docs.forEach((doc) => {
       const stats = doc.data() as EstatisticasJogador;
+
+      // Só conta se a etapa conta pontos no ranking
+      if (!etapasQueContam.has(stats.etapaId)) {
+        return; // Pula esta etapa
+      }
 
       if (!jogadoresMap.has(stats.jogadorId)) {
         jogadoresMap.set(stats.jogadorId, {

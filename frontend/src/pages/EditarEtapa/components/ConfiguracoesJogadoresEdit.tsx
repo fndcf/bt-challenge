@@ -13,8 +13,10 @@ export interface ConfiguracoesJogadoresEditProps {
   temInscritos: boolean;
   totalInscritos: number;
   minimoJogadores: number;
+  contaPontosRanking: boolean;
   onMaxJogadoresChange: (value: number | undefined) => void;
   onBlur: (value: number) => void;
+  onContaPontosRankingChange: (value: boolean) => void;
 }
 
 export const ConfiguracoesJogadoresEdit: React.FC<
@@ -26,8 +28,10 @@ export const ConfiguracoesJogadoresEdit: React.FC<
   temInscritos,
   totalInscritos,
   minimoJogadores,
+  contaPontosRanking,
   onMaxJogadoresChange,
   onBlur,
+  onContaPontosRankingChange,
 }) => {
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
 
@@ -88,6 +92,26 @@ export const ConfiguracoesJogadoresEdit: React.FC<
                 : "Número par (mín: 6, máx: 52)"}
             </S.HelperText>
           )}
+        </S.Field>
+
+        <S.Field>
+          <S.CheckboxContainer>
+            <S.Checkbox
+              type="checkbox"
+              id="contaPontosRanking"
+              checked={contaPontosRanking}
+              onChange={(e) => onContaPontosRankingChange(e.target.checked)}
+              disabled={chavesGeradas}
+            />
+            <S.CheckboxLabel htmlFor="contaPontosRanking">
+              Conta pontos no ranking
+            </S.CheckboxLabel>
+          </S.CheckboxContainer>
+          <S.HelperText>
+            {chavesGeradas
+              ? "Não é possível alterar após gerar as chaves"
+              : "Se desmarcado, as estatísticas dos jogos serão registradas, mas não somarão pontos no ranking geral"}
+          </S.HelperText>
         </S.Field>
       </S.FieldsContainer>
     </S.Card>

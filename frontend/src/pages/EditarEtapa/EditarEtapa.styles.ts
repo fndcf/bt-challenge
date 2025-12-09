@@ -290,6 +290,31 @@ export const HelperText = styled.p`
   margin: 0.25rem 0 0 0;
 `;
 
+export const CheckboxContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+export const Checkbox = styled.input`
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+  accent-color: #3b82f6;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+`;
+
+export const CheckboxLabel = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+`;
+
 export const GridContainer = styled.div`
   display: grid;
   grid-template-columns: 1fr;

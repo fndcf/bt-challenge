@@ -35,6 +35,9 @@ export class EtapaRepository implements IEtapaRepository {
   ): Promise<Etapa> {
     const agora = Timestamp.now();
 
+    // Log para debug - verificar valor recebido
+    console.log("[EtapaRepository] contaPontosRanking recebido:", data.contaPontosRanking, "tipo:", typeof data.contaPontosRanking);
+
     const etapaData = {
       arenaId: data.arenaId,
       nome: data.nome,
@@ -55,10 +58,14 @@ export class EtapaRepository implements IEtapaRepository {
       totalInscritos: 0,
       jogadoresInscritos: [],
       chavesGeradas: false,
+      contaPontosRanking: data.contaPontosRanking ?? true, // Por padrão conta pontos
       criadoEm: agora,
       atualizadoEm: agora,
       criadoPor: data.criadoPor,
     };
+
+    // Log para debug - verificar valor final
+    console.log("[EtapaRepository] contaPontosRanking final:", etapaData.contaPontosRanking);
 
     const docRef = await this.collection.add(etapaData);
 

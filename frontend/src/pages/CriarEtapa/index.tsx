@@ -104,7 +104,11 @@ export const CriarEtapa: React.FC = () => {
         <ConfiguracoesJogadores
           maxJogadores={formData.maxJogadores}
           formato={formData.formato}
+          contaPontosRanking={formData.contaPontosRanking ?? true}
           onMaxJogadoresChange={(value) => handleChange("maxJogadores", value)}
+          onContaPontosRankingChange={(value) =>
+            handleChange("contaPontosRanking", value)
+          }
         />
 
         {/* Preview de Distribuição */}

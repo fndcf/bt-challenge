@@ -9,13 +9,17 @@ import * as S from "../CriarEtapa.styles";
 export interface ConfiguracoesJogadoresProps {
   maxJogadores: number;
   formato: FormatoEtapa;
+  contaPontosRanking: boolean;
   onMaxJogadoresChange: (value: number) => void;
+  onContaPontosRankingChange: (value: boolean) => void;
 }
 
 export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   maxJogadores,
   formato,
+  contaPontosRanking,
   onMaxJogadoresChange,
+  onContaPontosRankingChange,
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -75,6 +79,24 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
             {formato === FormatoEtapa.REI_DA_PRAIA
               ? "Múltiplo de 4 (mín: 8, máx: 64)"
               : "Número par (mín: 6, máx: 52)"}
+          </S.HelperText>
+        </S.Field>
+
+        <S.Field>
+          <S.CheckboxContainer>
+            <S.Checkbox
+              type="checkbox"
+              id="contaPontosRanking"
+              checked={contaPontosRanking}
+              onChange={(e) => onContaPontosRankingChange(e.target.checked)}
+            />
+            <S.CheckboxLabel htmlFor="contaPontosRanking">
+              Conta pontos no ranking
+            </S.CheckboxLabel>
+          </S.CheckboxContainer>
+          <S.HelperText>
+            Se desmarcado, as estatísticas dos jogos serão registradas, mas não
+            somarão pontos no ranking geral
           </S.HelperText>
         </S.Field>
       </S.FieldsContainer>

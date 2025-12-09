@@ -163,11 +163,15 @@ export const EditarEtapa: React.FC = () => {
             temInscritos={temInscritos}
             totalInscritos={etapa.totalInscritos || 0}
             minimoJogadores={calcularMinimoJogadores()}
+            contaPontosRanking={formData.contaPontosRanking ?? true}
             onMaxJogadoresChange={(value) =>
               handleChange("maxJogadores", value)
             }
             onBlur={(value) =>
               handleChange("maxJogadores", ajustarValorJogadores(value))
+            }
+            onContaPontosRankingChange={(value) =>
+              handleChange("contaPontosRanking", value)
             }
           />
         </S.FieldsContainer>

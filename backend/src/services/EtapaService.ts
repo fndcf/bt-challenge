@@ -93,6 +93,14 @@ export class EtapaService {
         totalDuplas / dadosValidados.jogadoresPorGrupo
       );
 
+      // Log para debug
+      logger.info("Criando etapa - contaPontosRanking", {
+        valorRecebido: data.contaPontosRanking,
+        valorValidado: dadosValidados.contaPontosRanking,
+        tipoRecebido: typeof data.contaPontosRanking,
+        tipoValidado: typeof dadosValidados.contaPontosRanking,
+      });
+
       // Usar repository para criar
       const novaEtapa = await this.etapaRepository.criar({
         arenaId,
@@ -109,6 +117,7 @@ export class EtapaService {
         local: dadosValidados.local?.trim(),
         maxJogadores: dadosValidados.maxJogadores,
         jogadoresPorGrupo: dadosValidados.jogadoresPorGrupo,
+        contaPontosRanking: dadosValidados.contaPontosRanking ?? true,
       });
 
       logger.info("Etapa criada", {
@@ -610,6 +619,14 @@ export class EtapaService {
         throw new Error("Etapa já está finalizada");
       }
 
+      // Verificar se a etapa conta pontos no ranking
+      const contaPontosRanking = etapa.contaPontosRanking ?? true;
+
+      logger.info("Encerrando etapa", {
+        etapaId: id,
+        contaPontosRanking,
+      });
+
       // Buscar pontuação via repository
       const pontuacao = await this.configRepository.buscarPontuacao();
 
@@ -647,13 +664,20 @@ export class EtapaService {
           { colocacao: "participacao", pontos: pontuacao.participacao },
         ];
 
-        for (let i = 0; i < duplas.length; i++) {
-          const dupla = duplas[i];
-          const { colocacao, pontos } =
-            tabelaColocacoes[i] ||
-            tabelaColocacoes[tabelaColocacoes.length - 1];
+        // Só atribuir pontos se a etapa conta para o ranking
+        if (contaPontosRanking) {
+          for (let i = 0; i < duplas.length; i++) {
+            const dupla = duplas[i];
+            const { colocacao, pontos } =
+              tabelaColocacoes[i] ||
+              tabelaColocacoes[tabelaColocacoes.length - 1];
 
-          await this.atribuirPontosParaDupla(dupla.id, id, pontos, colocacao);
+            await this.atribuirPontosParaDupla(dupla.id, id, pontos, colocacao);
+          }
+        } else {
+          logger.info("Etapa não conta pontos no ranking - pulando atribuição", {
+            etapaId: id,
+          });
         }
 
         const campeao = duplas[0] as any;
@@ -696,114 +720,121 @@ export class EtapaService {
         throw new Error("A final ainda não foi finalizada");
       }
 
-      // Campeão
-      const campeaoDuplaId = confrontoFinal.vencedoraId;
-      if (campeaoDuplaId) {
-        await this.atribuirPontosParaDupla(
-          campeaoDuplaId,
-          id,
-          pontuacao.campeao,
-          "campeao"
-        );
-      }
-
-      // Vice
-      const viceDuplaId =
-        confrontoFinal.dupla1Id === campeaoDuplaId
-          ? confrontoFinal.dupla2Id
-          : confrontoFinal.dupla1Id;
-      if (viceDuplaId) {
-        await this.atribuirPontosParaDupla(
-          viceDuplaId,
-          id,
-          pontuacao.vice,
-          "vice"
-        );
-      }
-
-      // Semifinalistas - buscar confrontos finalizados via repository
-      const confrontosSemi =
-        await this.confrontoRepository.buscarFinalizadosPorFase(
-          id,
-          arenaId,
-          TipoFase.SEMIFINAL
-        );
-
-      for (const confronto of confrontosSemi) {
-        const perdedorId =
-          confronto.vencedoraId === confronto.dupla1Id
-            ? confronto.dupla2Id
-            : confronto.dupla1Id;
-        if (perdedorId) {
+      // Só atribuir pontos se a etapa conta para o ranking
+      if (contaPontosRanking) {
+        // Campeão
+        const campeaoDuplaId = confrontoFinal.vencedoraId;
+        if (campeaoDuplaId) {
           await this.atribuirPontosParaDupla(
-            perdedorId,
+            campeaoDuplaId,
             id,
-            pontuacao.semifinalista,
-            "semifinalista"
+            pontuacao.campeao,
+            "campeao"
           );
         }
-      }
 
-      // Quartas - buscar confrontos finalizados via repository
-      const confrontosQuartas =
-        await this.confrontoRepository.buscarFinalizadosPorFase(
-          id,
-          arenaId,
-          TipoFase.QUARTAS
-        );
-
-      for (const confronto of confrontosQuartas) {
-        const perdedorId =
-          confronto.vencedoraId === confronto.dupla1Id
-            ? confronto.dupla2Id
-            : confronto.dupla1Id;
-        if (perdedorId) {
+        // Vice
+        const viceDuplaId =
+          confrontoFinal.dupla1Id === campeaoDuplaId
+            ? confrontoFinal.dupla2Id
+            : confrontoFinal.dupla1Id;
+        if (viceDuplaId) {
           await this.atribuirPontosParaDupla(
-            perdedorId,
+            viceDuplaId,
             id,
-            pontuacao.quartas,
-            "quartas"
+            pontuacao.vice,
+            "vice"
           );
         }
-      }
 
-      // Oitavas - buscar confrontos finalizados via repository
-      const confrontosOitavas =
-        await this.confrontoRepository.buscarFinalizadosPorFase(
-          id,
-          arenaId,
-          TipoFase.OITAVAS
-        );
-
-      for (const confronto of confrontosOitavas) {
-        const perdedorId =
-          confronto.vencedoraId === confronto.dupla1Id
-            ? confronto.dupla2Id
-            : confronto.dupla1Id;
-        if (perdedorId) {
-          await this.atribuirPontosParaDupla(
-            perdedorId,
+        // Semifinalistas - buscar confrontos finalizados via repository
+        const confrontosSemi =
+          await this.confrontoRepository.buscarFinalizadosPorFase(
             id,
-            pontuacao.oitavas,
-            "oitavas"
+            arenaId,
+            TipoFase.SEMIFINAL
+          );
+
+        for (const confronto of confrontosSemi) {
+          const perdedorId =
+            confronto.vencedoraId === confronto.dupla1Id
+              ? confronto.dupla2Id
+              : confronto.dupla1Id;
+          if (perdedorId) {
+            await this.atribuirPontosParaDupla(
+              perdedorId,
+              id,
+              pontuacao.semifinalista,
+              "semifinalista"
+            );
+          }
+        }
+
+        // Quartas - buscar confrontos finalizados via repository
+        const confrontosQuartas =
+          await this.confrontoRepository.buscarFinalizadosPorFase(
+            id,
+            arenaId,
+            TipoFase.QUARTAS
+          );
+
+        for (const confronto of confrontosQuartas) {
+          const perdedorId =
+            confronto.vencedoraId === confronto.dupla1Id
+              ? confronto.dupla2Id
+              : confronto.dupla1Id;
+          if (perdedorId) {
+            await this.atribuirPontosParaDupla(
+              perdedorId,
+              id,
+              pontuacao.quartas,
+              "quartas"
+            );
+          }
+        }
+
+        // Oitavas - buscar confrontos finalizados via repository
+        const confrontosOitavas =
+          await this.confrontoRepository.buscarFinalizadosPorFase(
+            id,
+            arenaId,
+            TipoFase.OITAVAS
+          );
+
+        for (const confronto of confrontosOitavas) {
+          const perdedorId =
+            confronto.vencedoraId === confronto.dupla1Id
+              ? confronto.dupla2Id
+              : confronto.dupla1Id;
+          if (perdedorId) {
+            await this.atribuirPontosParaDupla(
+              perdedorId,
+              id,
+              pontuacao.oitavas,
+              "oitavas"
+            );
+          }
+        }
+
+        // Participação - duplas não classificadas via repository
+        const todasDuplas = await this.duplaRepository.buscarPorEtapa(
+          id,
+          arenaId
+        );
+        const duplasNaoClassificadas = todasDuplas.filter((d) => !d.classificada);
+
+        for (const dupla of duplasNaoClassificadas) {
+          await this.atribuirPontosParaDupla(
+            dupla.id,
+            id,
+            pontuacao.participacao,
+            "participacao"
           );
         }
-      }
-
-      // Participação - duplas não classificadas via repository
-      const todasDuplas = await this.duplaRepository.buscarPorEtapa(
-        id,
-        arenaId
-      );
-      const duplasNaoClassificadas = todasDuplas.filter((d) => !d.classificada);
-
-      for (const dupla of duplasNaoClassificadas) {
-        await this.atribuirPontosParaDupla(
-          dupla.id,
-          id,
-          pontuacao.participacao,
-          "participacao"
-        );
+      } else {
+        logger.info("Etapa não conta pontos no ranking - pulando atribuição (eliminatória)", {
+          etapaId: id,
+        });
       }
 
       if (confrontoFinal.vencedoraId) {

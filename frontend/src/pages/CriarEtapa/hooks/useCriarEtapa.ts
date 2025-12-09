@@ -66,6 +66,7 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   local: "",
   maxJogadores: 16,
   jogadoresPorGrupo: 3,
+  contaPontosRanking: true, // Por padrão, etapas contam pontos no ranking
 };
 
 export const useCriarEtapa = (): UseCriarEtapaReturn => {

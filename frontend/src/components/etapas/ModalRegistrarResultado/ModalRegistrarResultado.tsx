@@ -345,8 +345,18 @@ export const ModalRegistrarResultado: React.FC<
     const maxGames = Math.max(set.gamesDupla1, set.gamesDupla2);
     const minGames = Math.min(set.gamesDupla1, set.gamesDupla2);
 
-    if (maxGames < 6) {
-      setErro("O set deve ter no mínimo 6 games para o vencedor");
+    if (maxGames < 4) {
+      setErro("O set deve ter no mínimo 4 games para o vencedor");
+      return false;
+    }
+
+    if (maxGames === 4 && minGames > 2) {
+      setErro("Set com 4 games: placar deve ser 4-0, 4-1 ou 4-2");
+      return false;
+    }
+
+    if (maxGames === 5 && minGames < 3) {
+      setErro("Set com 5 games: placar deve ser 5-3 ou 5-4");
       return false;
     }
 

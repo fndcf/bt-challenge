@@ -44,6 +44,7 @@ export interface Etapa {
   jogadoresInscritos: string[];
   chavesGeradas: boolean;
   dataGeracaoChaves?: string;
+  contaPontosRanking: boolean; // Se true, os pontos da etapa contam para o ranking geral
   criadoEm: string;
   atualizadoEm: string;
   criadoPor: string;
@@ -63,6 +64,7 @@ export interface CriarEtapaDTO {
   local?: string;
   maxJogadores: number;
   jogadoresPorGrupo?: number; // Opcional porque Rei da Praia não usa
+  contaPontosRanking?: boolean; // Por padrão true
 }
 
 export interface AtualizarEtapaDTO {
@@ -77,6 +79,7 @@ export interface AtualizarEtapaDTO {
   local?: string;
   maxJogadores?: number;
   status?: StatusEtapa;
+  contaPontosRanking?: boolean;
 }
 
 export interface InscreverJogadorDTO {
