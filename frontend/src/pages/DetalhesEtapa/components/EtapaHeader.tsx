@@ -22,8 +22,17 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const formatoLabel =
-    etapa.formato === FormatoEtapa.REI_DA_PRAIA ? "Rei da Praia" : "Dupla Fixa";
+  const getFormatoLabel = () => {
+    if (etapa.formato === FormatoEtapa.REI_DA_PRAIA) {
+      return "Rei da Praia";
+    }
+    if (etapa.formato === FormatoEtapa.SUPER_X) {
+      return `Super ${etapa.varianteSuperX || 8}`;
+    }
+    return "Dupla Fixa";
+  };
+
+  const formatoLabel = getFormatoLabel();
 
   return (
     <S.Header>

@@ -217,6 +217,56 @@ router.post("/:id/rei-da-praia/cancelar-eliminatoria", (req, res) =>
   etapaController.cancelarEliminatoriaReiDaPraia(req, res)
 );
 
+// ==================== SUPER X ====================
+
+/**
+ * @route   POST /api/etapas/:id/super-x/gerar-chaves
+ * @desc    Gerar chaves no formato Super X (Super 8, Super 10, Super 12)
+ */
+router.post("/:id/super-x/gerar-chaves", (req, res) =>
+  etapaController.gerarChavesSuperX(req, res)
+);
+
+/**
+ * @route   DELETE /api/etapas/:id/super-x/cancelar-chaves
+ * @desc    Cancelar chaves Super X
+ */
+router.delete("/:id/super-x/cancelar-chaves", (req, res) =>
+  etapaController.cancelarChavesSuperX(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/super-x/jogadores
+ * @desc    Buscar jogadores/estatísticas da etapa Super X
+ */
+router.get("/:id/super-x/jogadores", (req, res) =>
+  etapaController.buscarJogadoresSuperX(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/super-x/partidas
+ * @desc    Buscar partidas da etapa Super X
+ */
+router.get("/:id/super-x/partidas", (req, res) =>
+  etapaController.buscarPartidasSuperX(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/super-x/grupo
+ * @desc    Buscar grupo da etapa Super X
+ */
+router.get("/:id/super-x/grupo", (req, res) =>
+  etapaController.buscarGrupoSuperX(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/super-x/partidas/:partidaId/resultado
+ * @desc    Registrar resultado de partida Super X
+ */
+router.post("/:id/super-x/partidas/:partidaId/resultado", (req, res) =>
+  etapaController.registrarResultadoSuperX(req, res)
+);
+
 // ==================== ROTAS GENÉRICAS (devem ficar por último) ====================
 
 /**

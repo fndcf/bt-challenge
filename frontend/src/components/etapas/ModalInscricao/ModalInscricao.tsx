@@ -11,7 +11,7 @@ import { getJogadorService, getEtapaService } from "@/services";
 interface ModalInscricaoProps {
   etapaId: string;
   etapaNome: string;
-  etapaNivel: NivelJogador;
+  etapaNivel?: NivelJogador;
   etapaGenero: GeneroJogador;
   maxJogadores: number;
   totalInscritos: number;
@@ -699,10 +699,12 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
           </HeaderTop>
 
           <InfoRow>
-            <InfoBadge $variant="purple">
-              <span>Nível: </span>
-              <span>{getNivelLabel(etapaNivel)}</span>
-            </InfoBadge>
+            {etapaNivel && (
+              <InfoBadge $variant="purple">
+                <span>Nível: </span>
+                <span>{getNivelLabel(etapaNivel)}</span>
+              </InfoBadge>
+            )}
 
             <InfoBadge $variant="cyan">
               <span>Jogadores disponíveis: </span>
@@ -722,11 +724,13 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
             </InfoBadge>
           </InfoRow>
 
-          <WarningBox>
-            <strong>Atenção:</strong> Apenas jogadores{" "}
-            <strong>{etapaNivel}</strong> que ainda não estão inscritos aparecem
-            na lista
-          </WarningBox>
+          {etapaNivel && (
+            <WarningBox>
+              <strong>Atenção:</strong> Apenas jogadores{" "}
+              <strong>{etapaNivel}</strong> que ainda não estão inscritos aparecem
+              na lista
+            </WarningBox>
+          )}
         </Header>
 
         <TabsContainer>
@@ -821,20 +825,22 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                   </HintText>
                 </FormField>
 
-                <FormField>
-                  <Label>
-                    Nível <span className="required">*</span>
-                  </Label>
-                  <Input
-                    type="text"
-                    value={getNivelLabel(etapaNivel)}
-                    disabled
-                  />
-                  <HintText>
-                    O jogador será criado automaticamente com o nível desta
-                    etapa
-                  </HintText>
-                </FormField>
+                {etapaNivel && (
+                  <FormField>
+                    <Label>
+                      Nível <span className="required">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      value={getNivelLabel(etapaNivel)}
+                      disabled
+                    />
+                    <HintText>
+                      O jogador será criado automaticamente com o nível desta
+                      etapa
+                    </HintText>
+                  </FormField>
+                )}
 
                 <Button
                   $variant="success"
@@ -856,9 +862,13 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                 {busca
                   ? "Nenhum jogador encontrado com esse termo"
                   : jogadores.length === 0
-                  ? "Nenhum jogador cadastrado neste nível"
+                  ? etapaNivel
+                    ? "Nenhum jogador cadastrado neste nível"
+                    : "Nenhum jogador cadastrado"
                   : jogadoresDisponiveis.length === 0
-                  ? "Todos os jogadores deste nível já estão inscritos!"
+                  ? etapaNivel
+                    ? "Todos os jogadores deste nível já estão inscritos!"
+                    : "Todos os jogadores já estão inscritos!"
                   : "Nenhum jogador disponível"}
               </EmptyText>
               {!busca && jogadores.length === 0 && (
@@ -868,8 +878,8 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
               )}
               {jogadoresDisponiveis.length === 0 && jogadores.length > 0 && (
                 <EmptyHint>
-                  {jogadores.length} jogador(es) {etapaNivel} já inscrito(s)
-                  nesta etapa
+                  {jogadores.length} jogador(es){" "}
+                  {etapaNivel ? `${etapaNivel} ` : ""}já inscrito(s) nesta etapa
                 </EmptyHint>
               )}
             </EmptyState>

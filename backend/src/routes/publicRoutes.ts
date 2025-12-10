@@ -184,12 +184,15 @@ router.get(
       }
 
       const isReiDaPraia = etapa.formato === "rei_da_praia";
+      const isSuperX = etapa.formato === "super_x";
+      // Super X e Rei da Praia usam jogadores individuais
+      const isJogadoresIndividuais = isReiDaPraia || isSuperX;
       const grupos = await chaveService.buscarGrupos(etapaId, arena.id);
 
       const gruposProcessados = await Promise.all(
         grupos.map(async (grupo) => {
-          if (isReiDaPraia) {
-            // REI DA PRAIA: Jogadores individuais
+          if (isJogadoresIndividuais) {
+            // REI DA PRAIA e SUPER X: Jogadores individuais
             const jogadoresSnapshot = await db
               .collection("estatisticas_jogador")
               .where("grupoId", "==", grupo.id)
@@ -259,10 +262,10 @@ router.get(
               completo: grupo.completo || false,
               jogadores,
               partidas,
-              formato: "rei_da_praia",
+              formato: etapa.formato, // rei_da_praia ou super_x
             };
           } else {
-            // DUPLA FIXA: Código original
+            // DUPLA FIXA
             const duplasSnapshot = await db
               .collection("duplas")
               .where("grupoId", "==", grupo.id)

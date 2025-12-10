@@ -17,6 +17,7 @@ export interface PartidaReiDaPraia {
   fase: FaseEtapa;
   grupoId?: string;
   grupoNome?: string;
+  rodada?: number;
   // Dupla 1 (jogadores A e B)
   jogador1AId: string;
   jogador1ANome: string;
@@ -63,6 +64,7 @@ export interface CriarPartidaReiDaPraiaDTO {
   fase: FaseEtapa;
   grupoId?: string;
   grupoNome?: string;
+  rodada?: number; // Número da rodada (Super X)
   jogador1AId: string;
   jogador1ANome: string;
   jogador1BId: string;

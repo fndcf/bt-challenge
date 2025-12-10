@@ -16,6 +16,7 @@ export {
   getCabecaDeChaveService,
   getPartidaService,
   getReiDaPraiaService,
+  getSuperXService,
 } from "./container";
 
 // ============================================
@@ -31,6 +32,7 @@ export type {
   ICabecaDeChaveService,
   IPartidaService,
   IReiDaPraiaService,
+  ISuperXService,
 } from "./interfaces";
 
 // ============================================
@@ -45,6 +47,7 @@ export { default as chaveService } from "./chaveService";
 export { default as cabecaDeChaveService } from "./cabecaDeChaveService";
 export { default as partidaService } from "./partidaService";
 export { default as reiDaPraiaService } from "./reiDaPraiaService";
+export { default as superXService } from "./superXService";
 
 // ============================================
 // TYPES & DTOs

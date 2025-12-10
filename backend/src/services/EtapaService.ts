@@ -15,6 +15,7 @@ import {
   CriarEtapaSchema,
   AtualizarEtapaSchema,
   InscreverJogadorSchema,
+  FormatoEtapa,
 } from "../models/Etapa";
 import { Inscricao, StatusInscricao } from "../models/Inscricao";
 import { TipoFase } from "../models/Eliminatoria";
@@ -89,9 +90,9 @@ export class EtapaService {
       }
 
       const totalDuplas = dadosValidados.maxJogadores / 2;
-      const qtdGrupos = Math.ceil(
-        totalDuplas / dadosValidados.jogadoresPorGrupo
-      );
+      const qtdGrupos = dadosValidados.jogadoresPorGrupo
+        ? Math.ceil(totalDuplas / dadosValidados.jogadoresPorGrupo)
+        : 1;
 
       // Log para debug
       logger.info("Criando etapa - contaPontosRanking", {
@@ -111,6 +112,7 @@ export class EtapaService {
         genero: dadosValidados.genero,
         formato: dadosValidados.formato,
         tipoChaveamento: dadosValidados.tipoChaveamento,
+        varianteSuperX: dadosValidados.varianteSuperX,
         dataInicio: dataInicio,
         dataFim: dataFim,
         dataRealizacao: dataRealizacao,
@@ -200,11 +202,14 @@ export class EtapaService {
         throw new Error("Jogador não encontrado");
       }
 
-      if (jogador.nivel !== etapa.nivel) {
-        throw new Error(
-          `Este jogador não pode se inscrever nesta etapa. ` +
-            `Etapa para jogadores ${etapa.nivel}, jogador é ${jogador.nivel}`
-        );
+      // Validar nivel (obrigatório para DUPLA_FIXA e REI_DA_PRAIA, opcional para SUPER_X)
+      if (etapa.formato !== FormatoEtapa.SUPER_X && etapa.nivel) {
+        if (jogador.nivel !== etapa.nivel) {
+          throw new Error(
+            `Este jogador não pode se inscrever nesta etapa. ` +
+              `Etapa para jogadores ${etapa.nivel}, jogador é ${jogador.nivel}`
+          );
+        }
       }
 
       if (jogador.genero !== etapa.genero) {
@@ -637,7 +642,90 @@ export class EtapaService {
         throw new Error("Nenhum grupo encontrado para esta etapa");
       }
 
-      // CENÁRIO 1: GRUPO ÚNICO
+      // CENÁRIO 1: SUPER X (grupo único com jogadores individuais)
+      if (etapa.formato === FormatoEtapa.SUPER_X) {
+        const grupo = grupos[0];
+
+        if (!grupo.completo) {
+          throw new Error(
+            "Não é possível encerrar a etapa. O grupo ainda possui partidas pendentes."
+          );
+        }
+
+        // Buscar jogadores ordenados por posição via repository
+        const jogadores =
+          await this.estatisticasJogadorRepository.buscarPorGrupoOrdenado(
+            grupo.id
+          );
+
+        if (jogadores.length === 0) {
+          throw new Error("Nenhum jogador encontrado no grupo");
+        }
+
+        // Tabela de colocações para Super X (individual)
+        const tabelaColocacoes = [
+          { colocacao: "campeao", pontos: pontuacao.campeao },
+          { colocacao: "vice", pontos: pontuacao.vice },
+          { colocacao: "semifinalista", pontos: pontuacao.semifinalista },
+          { colocacao: "quartas", pontos: pontuacao.quartas },
+          { colocacao: "oitavas", pontos: pontuacao.oitavas },
+          { colocacao: "participacao", pontos: pontuacao.participacao },
+        ];
+
+        // Só atribuir pontos se a etapa conta para o ranking
+        if (contaPontosRanking) {
+          for (let i = 0; i < jogadores.length; i++) {
+            const jogador = jogadores[i];
+            const { colocacao, pontos } =
+              tabelaColocacoes[i] ||
+              tabelaColocacoes[tabelaColocacoes.length - 1];
+
+            // Atribuir pontos ao jogador individual
+            await this.estatisticasJogadorRepository.atualizar(jogador.id, {
+              pontos,
+              colocacao,
+            });
+
+            logger.info("Pontos atribuídos ao jogador Super X", {
+              jogadorId: jogador.jogadorId,
+              jogadorNome: jogador.jogadorNome,
+              posicao: i + 1,
+              colocacao,
+              pontos,
+            });
+          }
+        } else {
+          logger.info(
+            "Etapa Super X não conta pontos no ranking - pulando atribuição",
+            {
+              etapaId: id,
+            }
+          );
+        }
+
+        const campeao = jogadores[0];
+        if (!campeao) {
+          throw new Error("Nenhum campeão encontrado");
+        }
+
+        await this.etapaRepository.definirCampeao(
+          id,
+          campeao.jogadorId,
+          campeao.jogadorNome
+        );
+
+        logger.info("Etapa Super X encerrada", {
+          etapaId: id,
+          nome: etapa.nome,
+          campeaoNome: campeao.jogadorNome,
+          totalJogadores: jogadores.length,
+          arenaId,
+        });
+
+        return;
+      }
+
+      // CENÁRIO 2: GRUPO ÚNICO (Dupla Fixa)
       if (grupos.length === 1) {
         const grupo = grupos[0];
 
@@ -675,9 +763,12 @@ export class EtapaService {
             await this.atribuirPontosParaDupla(dupla.id, id, pontos, colocacao);
           }
         } else {
-          logger.info("Etapa não conta pontos no ranking - pulando atribuição", {
-            etapaId: id,
-          });
+          logger.info(
+            "Etapa não conta pontos no ranking - pulando atribuição",
+            {
+              etapaId: id,
+            }
+          );
         }
 
         const campeao = duplas[0] as any;
@@ -821,7 +912,9 @@ export class EtapaService {
           id,
           arenaId
         );
-        const duplasNaoClassificadas = todasDuplas.filter((d) => !d.classificada);
+        const duplasNaoClassificadas = todasDuplas.filter(
+          (d) => !d.classificada
+        );
 
         for (const dupla of duplasNaoClassificadas) {
           await this.atribuirPontosParaDupla(
@@ -832,9 +925,12 @@ export class EtapaService {
           );
         }
       } else {
-        logger.info("Etapa não conta pontos no ranking - pulando atribuição (eliminatória)", {
-          etapaId: id,
-        });
+        logger.info(
+          "Etapa não conta pontos no ranking - pulando atribuição (eliminatória)",
+          {
+            etapaId: id,
+          }
+        );
       }
 
       if (confrontoFinal.vencedoraId) {

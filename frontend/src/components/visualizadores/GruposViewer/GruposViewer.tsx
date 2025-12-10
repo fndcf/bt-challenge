@@ -62,7 +62,7 @@ interface Grupo {
   duplas?: Dupla[];
   jogadores?: JogadorIndividual[];
   partidas: Partida[];
-  formato?: "dupla_fixa" | "rei_da_praia";
+  formato?: "dupla_fixa" | "rei_da_praia" | "super_x";
 }
 
 interface GruposViewerProps {
@@ -185,16 +185,24 @@ const FormatoBadge = styled.span<{ $formato: string }>`
   font-size: 11px;
   font-weight: 600;
 
-  ${(props) =>
-    props.$formato === "rei_da_praia"
-      ? `
-    background: #ede9fe;
-    color: #7c3aed;
-  `
-      : `
-    background: #dbeafe;
-    color: #2563eb;
-  `}
+  ${(props) => {
+    if (props.$formato === "rei_da_praia") {
+      return `
+        background: #ede9fe;
+        color: #7c3aed;
+      `;
+    }
+    if (props.$formato === "super_x") {
+      return `
+        background: #fef3c7;
+        color: #d97706;
+      `;
+    }
+    return `
+      background: #dbeafe;
+      color: #2563eb;
+    `;
+  }}
 `;
 
 const GroupsGrid = styled.div<{ $visible: boolean }>`
@@ -215,10 +223,15 @@ const GroupCard = styled.div`
 `;
 
 const GroupHeader = styled.div<{ $formato?: string }>`
-  background: ${(props) =>
-    props.$formato === "rei_da_praia"
-      ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
-      : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"};
+  background: ${(props) => {
+    if (props.$formato === "rei_da_praia") {
+      return "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)";
+    }
+    if (props.$formato === "super_x") {
+      return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+    }
+    return "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
+  }};
   padding: 12px 16px;
   text-align: center;
 
@@ -555,7 +568,7 @@ const MatchBody = styled.div`
   }
 `;
 
-const TeamRow = styled.div<{ $winner?: boolean }>`
+const TeamRow = styled.div<{ $winner?: boolean; $finished?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -568,17 +581,27 @@ const TeamRow = styled.div<{ $winner?: boolean }>`
     margin-bottom: 0;
   }
 
-  ${(props) =>
-    props.$winner
-      ? `
-    background: linear-gradient(90deg, #f0fdf4 0%, transparent 100%);
-    border-left: 3px solid #22c55e;
-    font-weight: 600;
-  `
-      : `
-    background: #fafafa;
-    opacity: 0.7;
-  `}
+  ${(props) => {
+    // Se é vencedor, destaque verde
+    if (props.$winner) {
+      return `
+        background: linear-gradient(90deg, #f0fdf4 0%, transparent 100%);
+        border-left: 3px solid #22c55e;
+        font-weight: 600;
+      `;
+    }
+    // Se partida finalizada mas não é vencedor, estilo perdedor
+    if (props.$finished) {
+      return `
+        background: #fafafa;
+        opacity: 0.7;
+      `;
+    }
+    // Partida não finalizada, estilo neutro
+    return `
+      background: #fafafa;
+    `;
+  }}
 
   @media (min-width: 768px) {
     padding: 12px;
@@ -646,6 +669,9 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
     grupos[0]?.formato ||
     (grupos[0]?.jogadores?.length ? "rei_da_praia" : "dupla_fixa");
   const isReiDaPraia = formato === "rei_da_praia";
+  const isSuperX = formato === "super_x";
+  // Super X e Rei da Praia usam jogadores individuais
+  const isJogadoresIndividuais = isReiDaPraia || isSuperX;
 
   // Calcular estatísticas resumidas
   const totalGrupos = grupos.length;
@@ -667,7 +693,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
         <Title>
           Fase de Grupos
           <FormatoBadge $formato={formato}>
-            {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
+            {isSuperX ? "Super X" : isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
           </FormatoBadge>
         </Title>
         <ToggleButton onClick={() => setIsExpanded(!isExpanded)}>
@@ -707,8 +733,8 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
               </GroupHeader>
 
               <GroupContent>
-                {/*  CLASSIFICAÇÃO REI DA PRAIA - Jogadores individuais */}
-                {isReiDaPraia &&
+                {/*  CLASSIFICAÇÃO - Jogadores individuais (Rei da Praia e Super X) */}
+                {isJogadoresIndividuais &&
                   group.jogadores &&
                   group.jogadores.length > 0 && (
                     <>
@@ -781,8 +807,8 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                     </>
                   )}
 
-                {/*  CLASSIFICAÇÃO DUPLA FIXA - Manter código existente */}
-                {!isReiDaPraia && group.duplas && group.duplas.length > 0 && (
+                {/*  CLASSIFICAÇÃO DUPLA FIXA */}
+                {!isJogadoresIndividuais && group.duplas && group.duplas.length > 0 && (
                   <>
                     <SectionTitle>Classificação</SectionTitle>
                     <TableWrapper>
@@ -857,13 +883,25 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                         const finished =
                           match.status?.toUpperCase() === "FINALIZADA";
 
-                        //  Detectar vencedor por formato
-                        const winner1 = isReiDaPraia
-                          ? match.vencedoresNomes === match.dupla1Nome
-                          : match.vencedoraNome === match.dupla1Nome;
-                        const winner2 = isReiDaPraia
-                          ? match.vencedoresNomes === match.dupla2Nome
-                          : match.vencedoraNome === match.dupla2Nome;
+                        // Detectar vencedor: usar sets como fonte primária quando disponível
+                        let winner1 = false;
+                        let winner2 = false;
+
+                        if (finished) {
+                          // Primeiro tenta por sets (mais confiável)
+                          if (match.setsDupla1 !== undefined && match.setsDupla2 !== undefined) {
+                            winner1 = match.setsDupla1 > match.setsDupla2;
+                            winner2 = match.setsDupla2 > match.setsDupla1;
+                          }
+                          // Fallback: comparação por nomes
+                          else if (isJogadoresIndividuais && match.vencedoresNomes) {
+                            winner1 = match.vencedoresNomes === match.dupla1Nome;
+                            winner2 = match.vencedoresNomes === match.dupla2Nome;
+                          } else if (match.vencedoraNome) {
+                            winner1 = match.vencedoraNome === match.dupla1Nome;
+                            winner2 = match.vencedoraNome === match.dupla2Nome;
+                          }
+                        }
 
                         return (
                           <MatchCard key={match.id} $finished={finished}>
@@ -879,7 +917,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                             </MatchHeader>
 
                             <MatchBody>
-                              <TeamRow $winner={winner1}>
+                              <TeamRow $winner={winner1} $finished={finished}>
                                 <TeamNameInMatch>
                                   {match.dupla1Nome}
                                 </TeamNameInMatch>
@@ -894,7 +932,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
 
                               <VS>VS</VS>
 
-                              <TeamRow $winner={winner2}>
+                              <TeamRow $winner={winner2} $finished={finished}>
                                 <TeamNameInMatch>
                                   {match.dupla2Nome}
                                 </TeamNameInMatch>

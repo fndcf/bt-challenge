@@ -8,9 +8,11 @@ import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import { ModalInscricao } from "@/components/etapas/ModalInscricao";
 import { ChavesEtapa } from "@/components/etapas/ChavesEtapa";
 import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia";
+import { ChavesSuperX } from "@/components/etapas/ChavesSuperX";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 import { Footer } from "@/components/layout/Footer";
 import { getEtapaService } from "@/services";
+import { StatusEtapa } from "@/types/etapa";
 import logger from "@/utils/logger";
 
 // Componentes extraídos
@@ -38,7 +40,9 @@ const DetalhesEtapa: React.FC = () => {
     modalInscricaoAberto,
     modalConfirmacaoAberto,
     isReiDaPraia,
+    isSuperX,
     progresso,
+    todasPartidasFinalizadas,
     carregarEtapa,
     handleAbrirInscricoes,
     handleEncerrarInscricoes,
@@ -120,12 +124,15 @@ const DetalhesEtapa: React.FC = () => {
           etapa={etapa}
           progresso={progresso}
           isReiDaPraia={isReiDaPraia}
+          isSuperX={isSuperX}
         />
 
         {/* Ações Administrativas */}
         <ActionsSection
           etapa={etapa}
           isReiDaPraia={isReiDaPraia}
+          isSuperX={isSuperX}
+          todasPartidasFinalizadas={todasPartidasFinalizadas}
           onAbrirInscricoes={handleAbrirInscricoes}
           onEncerrarInscricoes={handleEncerrarInscricoes}
           onGerarChaves={handleGerarChaves}
@@ -151,12 +158,15 @@ const DetalhesEtapa: React.FC = () => {
                 <S.TabBadge>{etapa.totalInscritos}</S.TabBadge>
               </S.Tab>
 
-              <S.Tab
-                $active={abaAtiva === "cabeças"}
-                onClick={() => setAbaAtiva("cabeças")}
-              >
-                Cabeças de Chave
-              </S.Tab>
+              {/* Super X não tem cabeças de chave */}
+              {!isSuperX && (
+                <S.Tab
+                  $active={abaAtiva === "cabeças"}
+                  onClick={() => setAbaAtiva("cabeças")}
+                >
+                  Cabeças de Chave
+                </S.Tab>
+              )}
 
               {etapa.chavesGeradas && (
                 <S.Tab
@@ -181,13 +191,19 @@ const DetalhesEtapa: React.FC = () => {
             />
           )}
 
-          {abaAtiva === "cabeças" && (
+          {abaAtiva === "cabeças" && !isSuperX && (
             <CabecasTab etapa={etapa} onUpdate={carregarEtapa} />
           )}
 
           {abaAtiva === "chaves" && etapa.chavesGeradas && (
             <>
-              {isReiDaPraia ? (
+              {isSuperX ? (
+                <ChavesSuperX
+                  etapaId={etapa.id}
+                  varianteSuperX={etapa.varianteSuperX}
+                  etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                />
+              ) : isReiDaPraia ? (
                 <ChavesReiDaPraia etapaId={etapa.id} />
               ) : (
                 <ChavesEtapa etapaId={etapa.id} />

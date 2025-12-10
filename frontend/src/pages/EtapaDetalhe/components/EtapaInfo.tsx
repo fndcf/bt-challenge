@@ -37,7 +37,7 @@ export const EtapaInfo: React.FC<EtapaInfoProps> = ({
         {/* Formato */}
         <S.InfoBox>
           <S.InfoLabel>Formato</S.InfoLabel>
-          <S.InfoValue>{getFormatoLabel(etapa.formato)}</S.InfoValue>
+          <S.InfoValue>{getFormatoLabel(etapa.formato, etapa.varianteSuperX)}</S.InfoValue>
         </S.InfoBox>
 
         {/* Nível */}

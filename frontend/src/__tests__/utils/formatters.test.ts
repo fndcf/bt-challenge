@@ -18,8 +18,40 @@ describe("formatters", () => {
       expect(getFormatoLabel(FormatoEtapa.DUPLA_FIXA)).toBe("Dupla Fixa");
     });
 
+    it("deve retornar 'Dupla Fixa' para string 'dupla_fixa'", () => {
+      expect(getFormatoLabel("dupla_fixa")).toBe("Dupla Fixa");
+    });
+
     it("deve retornar 'Rei da Praia' para REI_DA_PRAIA", () => {
       expect(getFormatoLabel(FormatoEtapa.REI_DA_PRAIA)).toBe("Rei da Praia");
+    });
+
+    it("deve retornar 'Rei da Praia' para string 'rei_da_praia'", () => {
+      expect(getFormatoLabel("rei_da_praia")).toBe("Rei da Praia");
+    });
+
+    it("deve retornar 'Super 8' para SUPER_X com variante 8", () => {
+      expect(getFormatoLabel(FormatoEtapa.SUPER_X, 8)).toBe("Super 8");
+    });
+
+    it("deve retornar 'Super 12' para SUPER_X com variante 12", () => {
+      expect(getFormatoLabel(FormatoEtapa.SUPER_X, 12)).toBe("Super 12");
+    });
+
+    it("deve retornar 'Super X' para SUPER_X sem variante", () => {
+      expect(getFormatoLabel(FormatoEtapa.SUPER_X)).toBe("Super X");
+    });
+
+    it("deve retornar 'Super 8' para string 'super_x' com variante 8", () => {
+      expect(getFormatoLabel("super_x", 8)).toBe("Super 8");
+    });
+
+    it("deve retornar 'Super 12' para string 'super_x' com variante 12", () => {
+      expect(getFormatoLabel("super_x", 12)).toBe("Super 12");
+    });
+
+    it("deve retornar 'Super X' para string 'super_x' sem variante", () => {
+      expect(getFormatoLabel("super_x")).toBe("Super X");
     });
 
     it("deve retornar o próprio valor para formato desconhecido", () => {

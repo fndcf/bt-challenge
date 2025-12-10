@@ -18,7 +18,9 @@ interface UseDetalhesEtapaReturn {
 
   // Flags derivadas
   isReiDaPraia: boolean;
+  isSuperX: boolean;
   progresso: number;
+  todasPartidasFinalizadas: boolean;
 
   // Estado de UI
   abaAtiva: AbaEtapa;
@@ -58,7 +60,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   // ============================================
   // 1. DADOS DA ETAPA
   // ============================================
-  const { etapa, loading, error, isReiDaPraia, progresso, recarregar } =
+  const { etapa, loading, error, isReiDaPraia, isSuperX, progresso, todasPartidasFinalizadas, recarregar } =
     useEtapaData(etapaId);
 
   // ============================================
@@ -114,7 +116,9 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
 
     // Flags derivadas
     isReiDaPraia,
+    isSuperX,
     progresso,
+    todasPartidasFinalizadas,
 
     // Estado de UI
     abaAtiva,

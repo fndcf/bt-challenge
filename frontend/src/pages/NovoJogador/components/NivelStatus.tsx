@@ -7,7 +7,7 @@ import { NivelJogador, StatusJogador } from "@/types/jogador";
 import * as S from "../NovoJogador.styles";
 
 export interface NivelStatusProps {
-  nivel: NivelJogador;
+  nivel?: NivelJogador;
   status: StatusJogador;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
@@ -29,7 +29,7 @@ export const NivelStatus: React.FC<NivelStatusProps> = ({
           <S.Select
             id="nivel"
             name="nivel"
-            value={nivel}
+            value={nivel || ""}
             onChange={onChange}
             required
           >

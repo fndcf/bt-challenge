@@ -57,7 +57,7 @@ export const EtapaCardItem: React.FC<EtapaCardItemProps> = ({
         )}
 
         <S.InfoItem>
-          <strong>Formato:</strong> {getFormatoLabel(etapa.formato)}
+          <strong>Formato:</strong> {getFormatoLabel(etapa.formato, etapa.varianteSuperX)}
         </S.InfoItem>
       </S.EtapaInfo>
 

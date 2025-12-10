@@ -149,6 +149,104 @@ const mockGruposReiDaPraia = [
   },
 ];
 
+const mockGruposSuperX = [
+  {
+    id: "grupo-super-x",
+    nome: "Super 8",
+    ordem: 1,
+    completo: false,
+    formato: "super_x" as const,
+    jogadores: [
+      {
+        id: "sx1",
+        jogadorId: "jogador-sx-1",
+        jogadorNome: "Alex",
+        posicaoGrupo: 1,
+        jogosGrupo: 7,
+        vitoriasGrupo: 6,
+        derrotasGrupo: 1,
+        pontosGrupo: 18,
+        saldoGamesGrupo: 15,
+        gamesVencidosGrupo: 35,
+        gamesPerdidosGrupo: 20,
+        classificado: true,
+      },
+      {
+        id: "sx2",
+        jogadorId: "jogador-sx-2",
+        jogadorNome: "Bruno",
+        posicaoGrupo: 2,
+        jogosGrupo: 7,
+        vitoriasGrupo: 5,
+        derrotasGrupo: 2,
+        pontosGrupo: 15,
+        saldoGamesGrupo: 8,
+        gamesVencidosGrupo: 30,
+        gamesPerdidosGrupo: 22,
+        classificado: true,
+      },
+      {
+        id: "sx3",
+        jogadorId: "jogador-sx-3",
+        jogadorNome: "Carlos",
+        posicaoGrupo: 3,
+        jogosGrupo: 7,
+        vitoriasGrupo: 4,
+        derrotasGrupo: 3,
+        pontosGrupo: 12,
+        saldoGamesGrupo: 2,
+        gamesVencidosGrupo: 26,
+        gamesPerdidosGrupo: 24,
+        classificado: false,
+      },
+      {
+        id: "sx4",
+        jogadorId: "jogador-sx-4",
+        jogadorNome: "Daniel",
+        posicaoGrupo: 4,
+        jogosGrupo: 7,
+        vitoriasGrupo: 3,
+        derrotasGrupo: 4,
+        pontosGrupo: 9,
+        saldoGamesGrupo: -3,
+        gamesVencidosGrupo: 23,
+        gamesPerdidosGrupo: 26,
+        classificado: false,
+      },
+    ],
+    partidas: [
+      {
+        id: "sx-partida-1",
+        dupla1Nome: "Alex + Bruno",
+        dupla2Nome: "Carlos + Daniel",
+        status: "FINALIZADA",
+        setsDupla1: 1,
+        setsDupla2: 0,
+        vencedoresNomes: "Alex + Bruno",
+        placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 3 }],
+      },
+      {
+        id: "sx-partida-2",
+        dupla1Nome: "Alex + Carlos",
+        dupla2Nome: "Bruno + Daniel",
+        status: "FINALIZADA",
+        setsDupla1: 0,
+        setsDupla2: 1,
+        vencedoresNomes: "Bruno + Daniel",
+        placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }],
+      },
+      {
+        id: "sx-partida-3",
+        dupla1Nome: "Alex + Daniel",
+        dupla2Nome: "Bruno + Carlos",
+        status: "AGENDADA",
+        setsDupla1: 0,
+        setsDupla2: 0,
+      },
+    ],
+  },
+];
+
 const mockMultiplosGrupos = [
   ...mockGruposDuplaFixa,
   {
@@ -300,6 +398,109 @@ describe("GruposViewer", () => {
     });
   });
 
+  describe("formato Super X", () => {
+    it("deve mostrar título com badge Super X", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      expect(screen.getByText("Super X")).toBeInTheDocument();
+    });
+
+    it("deve mostrar nome do grupo após expandir", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Super 8")).toBeInTheDocument();
+    });
+
+    it("deve mostrar jogadores individuais como no Rei da Praia", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Alex")).toBeInTheDocument();
+      // Bruno aparece tanto na classificação quanto em partidas
+      expect(screen.getAllByText(/Bruno/).length).toBeGreaterThan(0);
+      // Carlos e Daniel também aparecem em múltiplos lugares
+      expect(screen.getAllByText(/Carlos/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Daniel/).length).toBeGreaterThan(0);
+    });
+
+    it("deve mostrar estatísticas dos jogadores após expandir", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Jogador")).toBeInTheDocument();
+      expect(screen.getByText("+15")).toBeInTheDocument(); // saldo do Alex
+      expect(screen.getByText("+8")).toBeInTheDocument(); // saldo do Bruno
+      expect(screen.getByText("+2")).toBeInTheDocument(); // saldo do Carlos
+      expect(screen.getByText("-3")).toBeInTheDocument(); // saldo do Daniel
+    });
+
+    it("deve mostrar pontuação correta dos jogadores", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Pontos: Alex=18, Bruno=15, Carlos=12, Daniel=9
+      expect(screen.getByText("18")).toBeInTheDocument();
+      expect(screen.getByText("15")).toBeInTheDocument();
+      expect(screen.getByText("12")).toBeInTheDocument();
+      expect(screen.getByText("9")).toBeInTheDocument();
+    });
+
+    it("deve mostrar partidas com duplas rotativas", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Alex + Bruno")).toBeInTheDocument();
+      expect(screen.getByText("Carlos + Daniel")).toBeInTheDocument();
+      expect(screen.getByText("Alex + Carlos")).toBeInTheDocument();
+      expect(screen.getByText("Bruno + Daniel")).toBeInTheDocument();
+    });
+
+    it("deve detectar vencedor corretamente usando sets", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Verificar que há partidas finalizadas
+      expect(screen.getAllByText("Finalizada").length).toBe(2);
+    });
+
+    it("deve mostrar partida agendada", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Expandir para ver detalhes
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Agendada")).toBeInTheDocument();
+    });
+
+    it("deve calcular progresso corretamente", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // Componente inicia colapsado com resumo visível
+      // 2 de 3 partidas finalizadas = 67%
+      expect(screen.getByText("67%")).toBeInTheDocument();
+    });
+
+    it("deve mostrar número correto de partidas no resumo", () => {
+      render(<GruposViewer grupos={mockGruposSuperX} />);
+
+      // 3 partidas total - verificar que existe pelo menos um "3" no resumo
+      expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   describe("toggle expandir/recolher", () => {
     it("deve mostrar botão de expandir inicialmente (componente inicia colapsado)", () => {
       render(<GruposViewer grupos={mockGruposDuplaFixa} />);
@@ -432,6 +633,179 @@ describe("GruposViewer", () => {
       expect(screen.getAllByText("1").length).toBeGreaterThan(0);
       expect(screen.getAllByText("2").length).toBeGreaterThan(0);
       expect(screen.getAllByText("3").length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("detecção de vencedor", () => {
+    it("deve detectar vencedor por sets em partida finalizada", () => {
+      const grupoComVencedor = [
+        {
+          id: "grupo-test",
+          nome: "Grupo Teste",
+          ordem: 1,
+          completo: false,
+          formato: "dupla_fixa" as const,
+          duplas: [],
+          partidas: [
+            {
+              id: "partida-test",
+              dupla1Nome: "Time A",
+              dupla2Nome: "Time B",
+              status: "FINALIZADA",
+              setsDupla1: 2,
+              setsDupla2: 1,
+              placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+            },
+          ],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoComVencedor} />);
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Time A")).toBeInTheDocument();
+      expect(screen.getByText("Time B")).toBeInTheDocument();
+      expect(screen.getByText("Finalizada")).toBeInTheDocument();
+    });
+
+    it("deve detectar vencedor por vencedoresNomes em jogadores individuais", () => {
+      const grupoReiDaPraiaComVencedor = [
+        {
+          id: "grupo-rei",
+          nome: "Grupo Rei",
+          ordem: 1,
+          completo: false,
+          formato: "rei_da_praia" as const,
+          jogadores: [
+            {
+              id: "j1",
+              jogadorId: "jog-1",
+              jogadorNome: "Jogador 1",
+              posicaoGrupo: 1,
+              jogosGrupo: 1,
+              vitoriasGrupo: 1,
+              derrotasGrupo: 0,
+              pontosGrupo: 3,
+              saldoGamesGrupo: 2,
+              gamesVencidosGrupo: 6,
+              gamesPerdidosGrupo: 4,
+              classificado: true,
+            },
+          ],
+          partidas: [
+            {
+              id: "partida-rei",
+              dupla1Nome: "Jogador 1 + Jogador 2",
+              dupla2Nome: "Jogador 3 + Jogador 4",
+              status: "FINALIZADA",
+              setsDupla1: 1,
+              setsDupla2: 0,
+              vencedoresNomes: "Jogador 1 + Jogador 2",
+              placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+            },
+          ],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoReiDaPraiaComVencedor} />);
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Jogador 1 + Jogador 2")).toBeInTheDocument();
+      expect(screen.getByText("Jogador 3 + Jogador 4")).toBeInTheDocument();
+    });
+
+    it("deve mostrar partida em andamento", () => {
+      const grupoEmAndamento = [
+        {
+          id: "grupo-andamento",
+          nome: "Grupo Andamento",
+          ordem: 1,
+          completo: false,
+          formato: "dupla_fixa" as const,
+          duplas: [],
+          partidas: [
+            {
+              id: "partida-andamento",
+              dupla1Nome: "Time X",
+              dupla2Nome: "Time Y",
+              status: "EM_ANDAMENTO",
+              setsDupla1: 1,
+              setsDupla2: 0,
+            },
+          ],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoEmAndamento} />);
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Ao vivo")).toBeInTheDocument();
+    });
+  });
+
+  describe("fallback para formato sem indicador explícito", () => {
+    it("deve inferir formato Rei da Praia quando há jogadores e sem formato definido", () => {
+      const grupoSemFormato = [
+        {
+          id: "grupo-sem-formato",
+          nome: "Grupo Sem Formato",
+          ordem: 1,
+          completo: false,
+          jogadores: [
+            {
+              id: "j1",
+              jogadorId: "jog-1",
+              jogadorNome: "Jogador Teste",
+              posicaoGrupo: 1,
+              jogosGrupo: 0,
+              vitoriasGrupo: 0,
+              derrotasGrupo: 0,
+              pontosGrupo: 0,
+              saldoGamesGrupo: 0,
+              gamesVencidosGrupo: 0,
+              gamesPerdidosGrupo: 0,
+              classificado: false,
+            },
+          ],
+          partidas: [],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoSemFormato} />);
+
+      // Sem formato definido mas com jogadores, infere Rei da Praia
+      expect(screen.getByText("Rei da Praia")).toBeInTheDocument();
+    });
+
+    it("deve inferir formato Dupla Fixa quando há duplas e sem formato definido", () => {
+      const grupoSemFormato = [
+        {
+          id: "grupo-sem-formato",
+          nome: "Grupo Sem Formato",
+          ordem: 1,
+          completo: false,
+          duplas: [
+            {
+              id: "d1",
+              jogador1Nome: "J1",
+              jogador2Nome: "J2",
+              posicaoGrupo: 1,
+              vitorias: 0,
+              derrotas: 0,
+              pontos: 0,
+              saldoGames: 0,
+              jogos: 0,
+              classificada: false,
+            },
+          ],
+          partidas: [],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoSemFormato} />);
+
+      // Sem formato definido mas com duplas, infere Dupla Fixa
+      expect(screen.getByText("Dupla Fixa")).toBeInTheDocument();
     });
   });
 });

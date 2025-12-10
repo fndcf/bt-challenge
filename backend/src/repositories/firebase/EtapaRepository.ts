@@ -35,10 +35,7 @@ export class EtapaRepository implements IEtapaRepository {
   ): Promise<Etapa> {
     const agora = Timestamp.now();
 
-    // Log para debug - verificar valor recebido
-    console.log("[EtapaRepository] contaPontosRanking recebido:", data.contaPontosRanking, "tipo:", typeof data.contaPontosRanking);
-
-    const etapaData = {
+    const etapaData: any = {
       arenaId: data.arenaId,
       nome: data.nome,
       descricao: data.descricao || "",
@@ -46,13 +43,16 @@ export class EtapaRepository implements IEtapaRepository {
       genero: data.genero,
       formato: data.formato || FormatoEtapa.DUPLA_FIXA,
       tipoChaveamento: data.tipoChaveamento,
+      varianteSuperX: data.varianteSuperX,
       dataInicio: data.dataInicio,
       dataFim: data.dataFim,
       dataRealizacao: data.dataRealizacao,
       local: data.local || "",
       maxJogadores: data.maxJogadores,
-      jogadoresPorGrupo: data.jogadoresPorGrupo,
-      qtdGrupos: Math.ceil(data.maxJogadores / 2 / data.jogadoresPorGrupo),
+      jogadoresPorGrupo: data.jogadoresPorGrupo || data.maxJogadores,
+      qtdGrupos: data.jogadoresPorGrupo
+        ? Math.ceil(data.maxJogadores / 2 / data.jogadoresPorGrupo)
+        : 1,
       status: StatusEtapa.INSCRICOES_ABERTAS,
       faseAtual: FaseEtapa.GRUPOS,
       totalInscritos: 0,
@@ -64,8 +64,12 @@ export class EtapaRepository implements IEtapaRepository {
       criadoPor: data.criadoPor,
     };
 
-    // Log para debug - verificar valor final
-    console.log("[EtapaRepository] contaPontosRanking final:", etapaData.contaPontosRanking);
+    // Remover campos undefined para não salvar no Firestore
+    Object.keys(etapaData).forEach((key) => {
+      if (etapaData[key] === undefined) {
+        delete etapaData[key];
+      }
+    });
 
     const docRef = await this.collection.add(etapaData);
 

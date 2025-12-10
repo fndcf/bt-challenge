@@ -4,7 +4,7 @@
 
 import { useCallback } from "react";
 import { Etapa, FormatoEtapa } from "@/types/etapa";
-import { getChaveService, getReiDaPraiaService } from "@/services";
+import { getChaveService, getReiDaPraiaService, getSuperXService } from "@/services";
 import logger from "@/utils/logger";
 
 export interface UseEtapaChavesParams {
@@ -30,6 +30,7 @@ export const useEtapaChaves = ({
   onSuccess,
 }: UseEtapaChavesParams): UseEtapaChavesReturn => {
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
+  const isSuperX = etapa?.formato === FormatoEtapa.SUPER_X;
 
   /**
    * Gerar chaves
@@ -37,14 +38,32 @@ export const useEtapaChaves = ({
   const handleGerarChaves = useCallback(async () => {
     if (!etapa) return;
 
-    const formatoNome = isReiDaPraia ? "Rei da Praia" : "Dupla Fixa";
-    const detalhes = isReiDaPraia
-      ? `• ${etapa.totalInscritos / 4} grupos de 4 jogadores\n` +
+    // Determinar nome e detalhes do formato
+    let formatoNome = "Dupla Fixa";
+    let detalhes = "";
+
+    if (isSuperX) {
+      const variante = etapa.varianteSuperX || 8;
+      const rodadas = variante === 8 ? 7 : 11; // Super 8: 7 rodadas, Super 12: 11 rodadas
+      const partidasPorRodada = variante === 12 ? 3 : 2;
+      formatoNome = `Super ${variante}`;
+      detalhes =
+        `• 1 grupo único com ${variante} jogadores\n` +
+        `• ${rodadas} rodadas com duplas rotativas\n` +
+        `• ${rodadas * partidasPorRodada} partidas no total\n` +
+        `• Estatísticas individuais por jogador`;
+    } else if (isReiDaPraia) {
+      formatoNome = "Rei da Praia";
+      detalhes =
+        `• ${etapa.totalInscritos / 4} grupos de 4 jogadores\n` +
         `• ${(etapa.totalInscritos / 4) * 3} partidas na fase de grupos\n` +
-        `• Estatísticas individuais por jogador`
-      : `• ${etapa.qtdGrupos} grupos\n` +
+        `• Estatísticas individuais por jogador`;
+    } else {
+      detalhes =
+        `• ${etapa.qtdGrupos} grupos\n` +
         `• ${Math.floor(etapa.totalInscritos / 2)} duplas\n` +
         `• Todos os confrontos da fase de grupos`;
+    }
 
     const confirmar = window.confirm(
       `Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
@@ -56,7 +75,10 @@ export const useEtapaChaves = ({
     if (!confirmar) return;
 
     try {
-      if (isReiDaPraia) {
+      if (isSuperX) {
+        const superXService = getSuperXService();
+        await superXService.gerarChaves(etapa.id);
+      } else if (isReiDaPraia) {
         const reiDaPraiaService = getReiDaPraiaService();
         await reiDaPraiaService.gerarChaves(etapa.id);
       } else {
@@ -72,7 +94,7 @@ export const useEtapaChaves = ({
       alert(err.message || "Erro ao gerar chaves");
       throw err;
     }
-  }, [etapa, isReiDaPraia, onSuccess]);
+  }, [etapa, isReiDaPraia, isSuperX, onSuccess]);
 
   /**
    * Apagar chaves (sem confirmação - a confirmação deve ser feita pelo componente)
@@ -81,9 +103,14 @@ export const useEtapaChaves = ({
     if (!etapa) return;
 
     try {
-      // O endpoint DELETE /etapas/:id/chaves funciona para ambos os formatos
-      const chaveService = getChaveService();
-      await chaveService.excluirChaves(etapa.id);
+      if (isSuperX) {
+        const superXService = getSuperXService();
+        await superXService.cancelarChaves(etapa.id);
+      } else {
+        // O endpoint DELETE /etapas/:id/chaves funciona para ambos os formatos (Dupla Fixa e Rei da Praia)
+        const chaveService = getChaveService();
+        await chaveService.excluirChaves(etapa.id);
+      }
 
       if (onSuccess) await onSuccess("inscricoes");
 
@@ -93,7 +120,7 @@ export const useEtapaChaves = ({
       alert(err.message || "Erro ao apagar chaves");
       throw err;
     }
-  }, [etapa, onSuccess]);
+  }, [etapa, isSuperX, onSuccess]);
 
   return {
     handleGerarChaves,

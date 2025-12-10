@@ -299,7 +299,7 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it("deve mostrar erro para set com menos de 6 games", async () => {
+    it("deve mostrar erro para set com menos de 4 games para vencedor", async () => {
       render(
         <ModalRegistrarResultadoEliminatorio
           confronto={mockConfrontoNovo}
@@ -309,14 +309,14 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       );
 
       const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "5" } });
-      fireEvent.change(inputs[1], { target: { value: "3" } });
+      fireEvent.change(inputs[0], { target: { value: "3" } });
+      fireEvent.change(inputs[1], { target: { value: "2" } });
 
       fireEvent.click(screen.getByText("Salvar Resultado"));
 
       await waitFor(() => {
         expect(
-          screen.getByText(/O set deve ter no mínimo 6 games/)
+          screen.getByText(/O set deve ter no mínimo 4 games para o vencedor/)
         ).toBeInTheDocument();
       });
     });

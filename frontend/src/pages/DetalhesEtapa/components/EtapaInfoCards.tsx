@@ -15,12 +15,14 @@ interface EtapaInfoCardsProps {
   etapa: Etapa;
   progresso: number;
   isReiDaPraia: boolean;
+  isSuperX?: boolean;
 }
 
 export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
   etapa,
   progresso,
   isReiDaPraia,
+  isSuperX = false,
 }) => {
   // Helper para formatar tipo de chaveamento
   const getTipoChaveamentoLabel = (
@@ -67,14 +69,26 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
           <S.CardIconRow>
             <S.CardInfo>
               <S.CardLabel>
-                {isReiDaPraia ? "Grupos de 4" : "Grupos"}
+                {isSuperX
+                  ? "Grupo Único"
+                  : isReiDaPraia
+                  ? "Grupos de 4"
+                  : "Grupos"}
               </S.CardLabel>
-              <S.CardValue>{etapa.qtdGrupos || 0}</S.CardValue>
+              <S.CardValue>{isSuperX ? 1 : etapa.qtdGrupos || 0}</S.CardValue>
             </S.CardInfo>
           </S.CardIconRow>
 
           <S.CardContent>
-            {isReiDaPraia ? (
+            {isSuperX ? (
+              <>
+                <p>• {etapa.varianteSuperX || 8} jogadores</p>
+                <p>
+                  • {etapa.varianteSuperX === 8 ? "7 rodadas" : "11 rodadas"}
+                </p>
+                <p>• Duplas rotativas</p>
+              </>
+            ) : isReiDaPraia ? (
               <>
                 <p>• 4 jogadores por grupo</p>
                 <p>• 3 partidas por grupo</p>
@@ -129,18 +143,20 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
               <span>{getGeneroLabel(etapa.genero)}</span>
             </p>
 
-            <p
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                marginBottom:
-                  isReiDaPraia && etapa.tipoChaveamento ? "0.5rem" : "0",
-              }}
-            >
-              <span style={{ fontWeight: 500 }}>Nível:</span>
-              <span>{getNivelLabel(etapa.nivel)}</span>
-            </p>
+            {etapa.nivel && (
+              <p
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  marginBottom:
+                    isReiDaPraia && etapa.tipoChaveamento ? "0.5rem" : "0",
+                }}
+              >
+                <span style={{ fontWeight: 500 }}>Nível:</span>
+                <span>{getNivelLabel(etapa.nivel)}</span>
+              </p>
+            )}
 
             {isReiDaPraia && etapa.tipoChaveamento && (
               <p

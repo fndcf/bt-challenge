@@ -27,6 +27,7 @@ export const CriarEtapa: React.FC = () => {
     formData,
     infoDuplaFixa,
     infoReiDaPraia,
+    infoSuperX,
     infoAtual,
     handleChange,
     handleSubmit,
@@ -78,6 +79,7 @@ export const CriarEtapa: React.FC = () => {
           genero={formData.genero}
           nivel={formData.nivel}
           local={formData.local || ""}
+          formato={formData.formato}
           onNomeChange={(nome) => handleChange("nome", nome)}
           onDescricaoChange={(descricao) =>
             handleChange("descricao", descricao)
@@ -105,9 +107,13 @@ export const CriarEtapa: React.FC = () => {
           maxJogadores={formData.maxJogadores}
           formato={formData.formato}
           contaPontosRanking={formData.contaPontosRanking ?? true}
+          varianteSuperX={formData.varianteSuperX}
           onMaxJogadoresChange={(value) => handleChange("maxJogadores", value)}
           onContaPontosRankingChange={(value) =>
             handleChange("contaPontosRanking", value)
+          }
+          onVarianteSuperXChange={(value) =>
+            handleChange("varianteSuperX", value)
           }
         />
 
@@ -117,6 +123,7 @@ export const CriarEtapa: React.FC = () => {
           tipoChaveamento={formData.tipoChaveamento!}
           infoDuplaFixa={infoDuplaFixa}
           infoReiDaPraia={infoReiDaPraia}
+          infoSuperX={infoSuperX}
         />
 
         {/* Botões de Ação */}

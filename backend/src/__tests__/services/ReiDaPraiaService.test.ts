@@ -374,6 +374,8 @@ describe("ReiDaPraiaService", () => {
       mockPartidaReiDaPraiaRepository.contarFinalizadasPorGrupo.mockResolvedValue(0);
       mockGrupoRepository.marcarCompleto.mockResolvedValue(undefined);
       mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+      // Mock para permitir edição (sem confrontos gerados)
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const novoPlacar = [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }];
 
@@ -853,6 +855,8 @@ describe("ReiDaPraiaService", () => {
         });
 
       mockPartidaReiDaPraiaRepository.registrarResultado.mockResolvedValue(undefined);
+      // Mock para permitir edição (sem confrontos gerados)
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const novoPlacar = [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }];
 

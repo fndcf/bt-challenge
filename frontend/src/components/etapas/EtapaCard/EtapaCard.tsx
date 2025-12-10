@@ -243,6 +243,13 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
   const navigate = useNavigate();
 
   const isReiDaPraia = etapa.formato === FormatoEtapa.REI_DA_PRAIA;
+  const isSuperX = etapa.formato === FormatoEtapa.SUPER_X;
+
+  const getFormatoLabel = () => {
+    if (isReiDaPraia) return "Rei da Praia";
+    if (isSuperX) return `Super ${etapa.varianteSuperX || 8}`;
+    return "Dupla Fixa";
+  };
 
   const handleClick = () => {
     navigate(`/admin/etapas/${etapa.id}`);
@@ -309,7 +316,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           <HeaderBadges>
             <StatusBadge status={etapa.status} />
             <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
-              {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
+              {getFormatoLabel()}
             </FormatoBadge>
           </HeaderBadges>
         </TitleRow>
@@ -340,12 +347,14 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
         )}
 
         {/* Nível */}
-        <InfoItem>
-          <InfoContent>
-            <InfoLabel>Nível</InfoLabel>
-            <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
-          </InfoContent>
-        </InfoItem>
+        {etapa.nivel && (
+          <InfoItem>
+            <InfoContent>
+              <InfoLabel>Nível</InfoLabel>
+              <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
+            </InfoContent>
+          </InfoItem>
+        )}
 
         {/* Gênero */}
         <InfoItem>
@@ -385,7 +394,18 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
       <Footer>
         <FooterInfo>
           {/*  Info adaptada por formato */}
-          {isReiDaPraia ? (
+          {isSuperX ? (
+            <>
+              <FooterItem>
+                <span>1 grupo único</span>
+              </FooterItem>
+              <FooterItem>
+                <span>
+                  {etapa.varianteSuperX === 8 ? "7 rodadas" : "11 rodadas"}
+                </span>
+              </FooterItem>
+            </>
+          ) : isReiDaPraia ? (
             <>
               <FooterItem>
                 <span>{etapa.qtdGrupos || 0} grupos</span>

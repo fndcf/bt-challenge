@@ -9,6 +9,8 @@ import * as S from "../DetalhesEtapa.styles";
 interface ActionsSectionProps {
   etapa: Etapa;
   isReiDaPraia: boolean;
+  isSuperX?: boolean;
+  todasPartidasFinalizadas?: boolean;
   onAbrirInscricoes: () => void;
   onEncerrarInscricoes: () => void;
   onGerarChaves: () => void;
@@ -20,6 +22,8 @@ interface ActionsSectionProps {
 export const ActionsSection: React.FC<ActionsSectionProps> = ({
   etapa,
   isReiDaPraia,
+  isSuperX = false,
+  todasPartidasFinalizadas = false,
   onAbrirInscricoes,
   onEncerrarInscricoes,
   onGerarChaves,
@@ -75,12 +79,16 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           </S.Button>
         )}
 
-        {/* Finalizar etapa */}
-        {etapa.chavesGeradas && etapa.status === StatusEtapa.EM_ANDAMENTO && (
-          <S.Button $variant="green" onClick={onFinalizarEtapa}>
-            <span>Finalizar Etapa</span>
-          </S.Button>
-        )}
+        {/* Finalizar etapa - só para Super X, após todas as partidas serem finalizadas */}
+        {etapa.chavesGeradas &&
+          isSuperX &&
+          (etapa.status === StatusEtapa.EM_ANDAMENTO ||
+            etapa.status === StatusEtapa.CHAVES_GERADAS) &&
+          todasPartidasFinalizadas && (
+            <S.Button $variant="green" onClick={onFinalizarEtapa}>
+              <span>Finalizar Etapa</span>
+            </S.Button>
+          )}
       </S.ActionsGrid>
 
       {/* Alertas */}
@@ -111,7 +119,17 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           </S.Alert>
         )}
 
-      {inscricoesAbertas && !isReiDaPraia && etapa.totalInscritos < 4 && (
+      {inscricoesAbertas && isSuperX && etapa.totalInscritos < etapa.maxJogadores && (
+        <S.Alert $variant="purple">
+          <p>
+            <strong>Super {etapa.varianteSuperX}:</strong> Você precisa de exatamente{" "}
+            {etapa.maxJogadores} jogadores inscritos para encerrar as inscrições.
+            Atualmente: {etapa.totalInscritos}/{etapa.maxJogadores}
+          </p>
+        </S.Alert>
+      )}
+
+      {inscricoesAbertas && !isReiDaPraia && !isSuperX && etapa.totalInscritos < 4 && (
         <S.Alert $variant="blue">
           <p>
             Você precisa de pelo menos 4 jogadores inscritos (número par) para
@@ -137,6 +155,19 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           </p>
         </S.Alert>
       )}
+
+      {/* Alerta: finalizar todas as partidas antes de encerrar - só para Super X */}
+      {etapa.chavesGeradas &&
+        isSuperX &&
+        !todasPartidasFinalizadas &&
+        etapa.status !== StatusEtapa.FINALIZADA && (
+          <S.Alert $variant="blue">
+            <p>
+              <strong>Aguardando resultados:</strong> Para finalizar a etapa,
+              registre o resultado de todas as partidas primeiro.
+            </p>
+          </S.Alert>
+        )}
     </S.ActionsSection>
   );
 };

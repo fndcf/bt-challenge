@@ -4,13 +4,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { CriarEtapaDTO, FormatoEtapa } from "@/types/etapa";
+import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
 
 export interface CriarEtapaFormData extends CriarEtapaDTO {
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  varianteSuperX?: VarianteSuperX;
 }
 
 export interface DistribuicaoDuplaFixa {
@@ -30,6 +31,15 @@ export interface DistribuicaoReiDaPraia {
   valido: boolean;
 }
 
+export interface DistribuicaoSuperX {
+  variante: VarianteSuperX;
+  totalJogadores: number;
+  totalRodadas: number;
+  partidasPorRodada: number;
+  descricao: string;
+  valido: boolean;
+}
+
 export interface ErrosDatas {
   dataInicio?: string;
   dataFim?: string;
@@ -46,7 +56,8 @@ export interface UseCriarEtapaReturn {
   // Cálculos
   infoDuplaFixa: DistribuicaoDuplaFixa;
   infoReiDaPraia: DistribuicaoReiDaPraia;
-  infoAtual: DistribuicaoDuplaFixa | DistribuicaoReiDaPraia;
+  infoSuperX: DistribuicaoSuperX;
+  infoAtual: DistribuicaoDuplaFixa | DistribuicaoReiDaPraia | DistribuicaoSuperX;
 
   // Funções
   handleChange: (field: keyof CriarEtapaFormData, value: any) => void;
@@ -60,6 +71,7 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   genero: GeneroJogador.MASCULINO,
   formato: FormatoEtapa.DUPLA_FIXA,
   tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES,
+  varianteSuperX: VarianteSuperX.SUPER_8,
   dataInicio: "",
   dataFim: "",
   dataRealizacao: "",
@@ -206,13 +218,47 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
       };
     }, [formData.maxJogadores]);
 
+  const calcularDistribuicaoSuperX = useCallback((): DistribuicaoSuperX => {
+    const variante = formData.varianteSuperX || VarianteSuperX.SUPER_8;
+
+    // Calcular rodadas e partidas por rodada baseado na variante
+    let totalRodadas = 7;
+    let partidasPorRodada = 2;
+
+    switch (variante) {
+      case VarianteSuperX.SUPER_8:
+        totalRodadas = 7;
+        partidasPorRodada = 2;
+        break;
+      case VarianteSuperX.SUPER_12:
+        totalRodadas = 11;
+        partidasPorRodada = 3;
+        break;
+    }
+
+    const totalPartidas = totalRodadas * partidasPorRodada;
+    const descricao = `Grupo único: ${variante} jogadores | ${totalRodadas} rodadas | ${totalPartidas} partidas`;
+
+    return {
+      variante,
+      totalJogadores: variante,
+      totalRodadas,
+      partidasPorRodada,
+      descricao,
+      valido: true,
+    };
+  }, [formData.varianteSuperX]);
+
   const infoDuplaFixa = calcularDistribuicaoDuplaFixa();
   const infoReiDaPraia = calcularDistribuicaoReiDaPraia();
+  const infoSuperX = calcularDistribuicaoSuperX();
 
   const infoAtual =
     formData.formato === FormatoEtapa.REI_DA_PRAIA
       ? infoReiDaPraia
-      : infoDuplaFixa;
+      : formData.formato === FormatoEtapa.SUPER_X
+        ? infoSuperX
+        : infoDuplaFixa;
 
   // ============== VALIDAÇÕES ==============
 
@@ -259,7 +305,19 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
   useEffect(() => {
     const currentMax = formData.maxJogadores;
 
-    if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+    if (formData.formato === FormatoEtapa.SUPER_X) {
+      // Super X: maxJogadores deve corresponder à variante selecionada
+      const variante = formData.varianteSuperX || VarianteSuperX.SUPER_8;
+      // Sempre garantir que varianteSuperX está definido para Super X
+      if (currentMax !== variante || !formData.varianteSuperX) {
+        setFormData((prev) => ({
+          ...prev,
+          maxJogadores: variante,
+          varianteSuperX: variante, // Garantir que varianteSuperX está definido
+          nivel: undefined, // Nivel é opcional para Super X
+        }));
+      }
+    } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
       // Rei da Praia: mínimo 8, máximo 64, múltiplo de 4
       if (currentMax < 8) {
         setFormData((prev) => ({ ...prev, maxJogadores: 8 }));
@@ -307,8 +365,32 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
           return;
         }
 
-        // Validar formato Rei da Praia
-        if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+        // Validar por formato
+        if (formData.formato === FormatoEtapa.SUPER_X) {
+          // Validar formato Super X
+          if (!formData.varianteSuperX) {
+            setError("Super X: selecione a variante (Super 8 ou 12)");
+            setLoading(false);
+            return;
+          }
+          const variantesValidas = [
+            VarianteSuperX.SUPER_8,
+            VarianteSuperX.SUPER_12,
+          ];
+          if (!variantesValidas.includes(formData.varianteSuperX)) {
+            setError("Super X: variante inválida");
+            setLoading(false);
+            return;
+          }
+          if (formData.maxJogadores !== formData.varianteSuperX) {
+            setError(
+              `Super ${formData.varianteSuperX}: número de jogadores deve ser ${formData.varianteSuperX}`
+            );
+            setLoading(false);
+            return;
+          }
+        } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+          // Validar formato Rei da Praia
           if (formData.maxJogadores < 8) {
             setError("Rei da Praia necessita de no mínimo 8 jogadores");
             setLoading(false);
@@ -355,7 +437,10 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         // Calcular jogadoresPorGrupo
         let jogadoresPorGrupoCalculado = 3;
 
-        if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+        if (formData.formato === FormatoEtapa.SUPER_X) {
+          // Super X: grupo único com todos os jogadores
+          jogadoresPorGrupoCalculado = formData.maxJogadores;
+        } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
           jogadoresPorGrupoCalculado = 4;
         } else {
           const totalDuplas = Math.floor(formData.maxJogadores / 2);
@@ -379,11 +464,23 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
           jogadoresPorGrupo: jogadoresPorGrupoCalculado,
         };
 
-        // Incluir tipoChaveamento apenas se for Rei da Praia
-        if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
-          dadosFormatados.tipoChaveamento = formData.tipoChaveamento;
-        } else {
+        // Incluir campos específicos por formato
+        if (formData.formato === FormatoEtapa.SUPER_X) {
+          // Super X: incluir variante, remover tipoChaveamento
+          dadosFormatados.varianteSuperX = formData.varianteSuperX;
           delete dadosFormatados.tipoChaveamento;
+          // Nivel é opcional para Super X - se não informado, não incluir
+          if (!formData.nivel) {
+            delete dadosFormatados.nivel;
+          }
+        } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
+          // Rei da Praia: incluir tipoChaveamento, remover varianteSuperX
+          dadosFormatados.tipoChaveamento = formData.tipoChaveamento;
+          delete dadosFormatados.varianteSuperX;
+        } else {
+          // Dupla Fixa: remover campos específicos de outros formatos
+          delete dadosFormatados.tipoChaveamento;
+          delete dadosFormatados.varianteSuperX;
         }
 
         const etapaService = getEtapaService();
@@ -407,6 +504,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
     // Cálculos
     infoDuplaFixa,
     infoReiDaPraia,
+    infoSuperX,
     infoAtual,
 
     // Funções

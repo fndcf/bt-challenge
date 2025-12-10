@@ -20,6 +20,7 @@ export interface UseEditarEtapaReturn {
 
   // Info Computada
   isReiDaPraia: boolean;
+  isSuperX: boolean;
   temInscritos: boolean;
   chavesGeradas: boolean;
 
@@ -57,6 +58,7 @@ export const useEditarEtapa = (
   // ============== INFO COMPUTADA ==============
 
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
+  const isSuperX = etapa?.formato === FormatoEtapa.SUPER_X;
   const temInscritos = (etapa?.totalInscritos || 0) > 0;
   const chavesGeradas = etapa?.chavesGeradas || false;
 
@@ -93,6 +95,7 @@ export const useEditarEtapa = (
         local: data.local || "",
         maxJogadores: data.maxJogadores || 16,
         tipoChaveamento: data.tipoChaveamento,
+        varianteSuperX: data.varianteSuperX,
         contaPontosRanking: data.contaPontosRanking ?? true,
       });
     } catch (err: any) {
@@ -111,6 +114,11 @@ export const useEditarEtapa = (
   const calcularMinimoJogadores = useCallback((): number => {
     if (!etapa) return 6;
 
+    // Super X: jogadores são fixos pela variante
+    if (isSuperX) {
+      return etapa.varianteSuperX || 8;
+    }
+
     const minimoFormato = isReiDaPraia ? 8 : 6;
     const minimoInscritos = etapa.totalInscritos || 0;
     const minimo = Math.max(minimoFormato, minimoInscritos);
@@ -122,11 +130,16 @@ export const useEditarEtapa = (
       // Arredondar para cima para número par
       return minimo % 2 === 0 ? minimo : minimo + 1;
     }
-  }, [etapa, isReiDaPraia]);
+  }, [etapa, isReiDaPraia, isSuperX]);
 
   const ajustarValorJogadores = useCallback(
     (valor: number): number => {
       const minimo = calcularMinimoJogadores();
+
+      // Super X: não permite ajuste, é fixo pela variante
+      if (isSuperX) {
+        return minimo;
+      }
 
       if (valor < minimo) {
         return minimo;
@@ -140,7 +153,7 @@ export const useEditarEtapa = (
         return valor % 2 === 0 ? valor : valor + 1;
       }
     },
-    [calcularMinimoJogadores, isReiDaPraia]
+    [calcularMinimoJogadores, isReiDaPraia, isSuperX]
   );
 
   // ============== HANDLERS ==============
@@ -169,7 +182,17 @@ export const useEditarEtapa = (
         }
 
         // Validações específicas por formato
-        if (isReiDaPraia) {
+        if (isSuperX) {
+          // Super X: maxJogadores deve ser igual à variante selecionada
+          const variante = etapa.varianteSuperX;
+          if (formData.maxJogadores !== variante) {
+            setError(
+              `Super ${variante}: número de jogadores deve ser exatamente ${variante}`
+            );
+            setSalvando(false);
+            return;
+          }
+        } else if (isReiDaPraia) {
           if (formData.maxJogadores < 8) {
             setError("Rei da Praia requer mínimo de 8 jogadores");
             setSalvando(false);
@@ -248,7 +271,7 @@ export const useEditarEtapa = (
         setSalvando(false);
       }
     },
-    [id, etapa, formData, isReiDaPraia, navigate]
+    [id, etapa, formData, isReiDaPraia, isSuperX, navigate]
   );
 
   return {
@@ -263,6 +286,7 @@ export const useEditarEtapa = (
 
     // Info Computada
     isReiDaPraia,
+    isSuperX,
     temInscritos,
     chavesGeradas,
 

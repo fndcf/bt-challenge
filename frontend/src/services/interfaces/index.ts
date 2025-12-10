@@ -8,6 +8,7 @@ export type { IChaveService } from "./IChaveService";
 export type { ICabecaDeChaveService } from "./ICabecaDeChaveService";
 export type { IPartidaService } from "./IPartidaService";
 export type { IReiDaPraiaService } from "./IReiDaPraiaService";
+export type { ISuperXService } from "./ISuperXService";
 
 // Interfaces já existentes
 export type { IArenaAdminService } from "./IArenaAdminService";

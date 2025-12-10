@@ -18,6 +18,7 @@ export interface EtapaPublica {
   dataRealizacao: string;
   status: "planejada" | "aberta" | "em_andamento" | "finalizada";
   formato: string;
+  varianteSuperX?: number;
   arenaId: string;
   totalJogadores?: number;
   nivel?: string;

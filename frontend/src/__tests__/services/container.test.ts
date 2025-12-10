@@ -43,6 +43,11 @@ jest.mock("@/services/reiDaPraiaService", () => ({
   default: { gerarChaves: jest.fn() },
 }));
 
+jest.mock("@/services/superXService", () => ({
+  __esModule: true,
+  default: { buscarGrupo: jest.fn(), buscarJogadores: jest.fn(), buscarPartidas: jest.fn() },
+}));
+
 import {
   container,
   getArenaAdminService,

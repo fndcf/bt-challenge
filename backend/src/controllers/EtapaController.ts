@@ -1046,6 +1046,177 @@ class EtapaController extends BaseController {
       );
     }
   }
+
+  // ==================== SUPER X ====================
+
+  /**
+   * Gerar chaves Super X
+   * POST /api/etapas/:id/super-x/gerar-chaves
+   */
+  async gerarChavesSuperX(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Gerando chaves Super X", { etapaId: id });
+
+      const superXService = (await import("../services/SuperXService")).default;
+      const resultado = await superXService.gerarChaves(id, arenaId);
+
+      logger.info("Chaves Super X geradas", {
+        etapaId: id,
+        jogadores: resultado.jogadores.length,
+        partidas: resultado.partidas.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Chaves Super X geradas com sucesso",
+        jogadores: resultado.jogadores.length,
+        grupo: resultado.grupo,
+        partidas: resultado.partidas.length,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "gerar chaves Super X", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Cancelar chaves Super X
+   * DELETE /api/etapas/:id/super-x/cancelar-chaves
+   */
+  async cancelarChavesSuperX(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Cancelando chaves Super X", { etapaId: id });
+
+      const superXService = (await import("../services/SuperXService")).default;
+      await superXService.cancelarChaves(id, arenaId);
+
+      logger.info("Chaves Super X canceladas", { etapaId: id });
+
+      ResponseHelper.success(res, null, "Chaves Super X canceladas com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "cancelar chaves Super X", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Buscar jogadores Super X
+   * GET /api/etapas/:id/super-x/jogadores
+   */
+  async buscarJogadoresSuperX(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const superXService = (await import("../services/SuperXService")).default;
+      const jogadores = await superXService.buscarJogadores(id, arenaId);
+
+      ResponseHelper.success(res, jogadores);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar jogadores Super X", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Buscar partidas Super X
+   * GET /api/etapas/:id/super-x/partidas
+   */
+  async buscarPartidasSuperX(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const superXService = (await import("../services/SuperXService")).default;
+      const partidas = await superXService.buscarPartidas(id, arenaId);
+
+      ResponseHelper.success(res, partidas);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar partidas Super X", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Buscar grupo Super X
+   * GET /api/etapas/:id/super-x/grupo
+   */
+  async buscarGrupoSuperX(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const superXService = (await import("../services/SuperXService")).default;
+      const grupo = await superXService.buscarGrupo(id, arenaId);
+
+      ResponseHelper.success(res, grupo);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar grupo Super X", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Registrar resultado partida Super X
+   * POST /api/etapas/:id/super-x/partidas/:partidaId/resultado
+   */
+  async registrarResultadoSuperX(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { partidaId } = req.params;
+      const { placar } = req.body;
+
+      logger.info("Registrando resultado Super X", { partidaId });
+
+      const superXService = (await import("../services/SuperXService")).default;
+      await superXService.registrarResultadoPartida(partidaId, arenaId, placar);
+
+      logger.info("Resultado Super X registrado", { partidaId });
+
+      ResponseHelper.success(res, null, "Resultado registrado com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "registrar resultado Super X", {
+        partidaId: req.params.partidaId,
+      });
+    }
+  }
 }
 
 export default new EtapaController();

@@ -19,6 +19,13 @@ export enum StatusEtapa {
 export enum FormatoEtapa {
   DUPLA_FIXA = "dupla_fixa",
   REI_DA_PRAIA = "rei_da_praia",
+  SUPER_X = "super_x",
+}
+
+// Variantes do Super X
+export enum VarianteSuperX {
+  SUPER_8 = 8,
+  SUPER_12 = 12,
 }
 
 export interface Etapa {
@@ -27,16 +34,17 @@ export interface Etapa {
   arenaId: string;
   nome: string;
   descricao?: string;
-  nivel: NivelJogador;
+  nivel?: NivelJogador; // Opcional para formato SUPER_X
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
   local?: string;
   maxJogadores: number;
-  jogadoresPorGrupo: number; // Não usado em Rei da Praia (sempre 4)
+  jogadoresPorGrupo: number; // Não usado em Rei da Praia e Super X
   qtdGrupos?: number;
   status: StatusEtapa;
   faseAtual: FaseEtapa;
@@ -54,16 +62,17 @@ export interface Etapa {
 export interface CriarEtapaDTO {
   nome: string;
   descricao?: string;
-  nivel: NivelJogador;
+  nivel?: NivelJogador; // Opcional para formato SUPER_X
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
   local?: string;
   maxJogadores: number;
-  jogadoresPorGrupo?: number; // Opcional porque Rei da Praia não usa
+  jogadoresPorGrupo?: number; // Opcional porque Rei da Praia e Super X não usam
   contaPontosRanking?: boolean; // Por padrão true
 }
 
@@ -73,6 +82,7 @@ export interface AtualizarEtapaDTO {
   nivel?: NivelJogador;
   genero?: GeneroJogador;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  varianteSuperX?: VarianteSuperX;
   dataInicio?: string;
   dataFim?: string;
   dataRealizacao?: string;

@@ -29,6 +29,11 @@ jest.mock("../../repositories/firebase/GrupoRepository", () => ({
   GrupoRepository: jest.fn(),
 }));
 
+jest.mock("../../repositories/firebase/ConfrontoEliminatorioRepository", () => ({
+  confrontoEliminatorioRepository: {},
+  ConfrontoEliminatorioRepository: jest.fn(),
+}));
+
 // Mock explícito do EstatisticasJogadorService
 jest.mock("../../services/EstatisticasJogadorService", () => {
   return {
@@ -73,6 +78,11 @@ describe("PartidaGrupoService", () => {
   let mockPartidaRepository: ReturnType<typeof createMockPartidaRepository>;
   let mockDuplaRepository: ReturnType<typeof createMockDuplaRepository>;
   let mockGrupoRepository: ReturnType<typeof createMockGrupoRepository>;
+  let mockConfrontoRepository: {
+    buscarPorEtapa: jest.Mock;
+    criar: jest.Mock;
+    deletarPorEtapa: jest.Mock;
+  };
   let partidaGrupoService: PartidaGrupoService;
 
   const TEST_ARENA_ID = "arena-test-001";
@@ -85,11 +95,17 @@ describe("PartidaGrupoService", () => {
     mockPartidaRepository = createMockPartidaRepository();
     mockDuplaRepository = createMockDuplaRepository();
     mockGrupoRepository = createMockGrupoRepository();
+    mockConfrontoRepository = {
+      buscarPorEtapa: jest.fn().mockResolvedValue([]),
+      criar: jest.fn(),
+      deletarPorEtapa: jest.fn(),
+    };
 
     partidaGrupoService = new PartidaGrupoService(
       mockPartidaRepository,
       mockDuplaRepository,
-      mockGrupoRepository
+      mockGrupoRepository,
+      mockConfrontoRepository as any
     );
   });
 

@@ -8,6 +8,7 @@ import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import {
   DistribuicaoDuplaFixa,
   DistribuicaoReiDaPraia,
+  DistribuicaoSuperX,
 } from "../hooks/useCriarEtapa";
 import * as S from "../CriarEtapa.styles";
 
@@ -16,6 +17,7 @@ export interface DistribuicaoPreviewProps {
   tipoChaveamento: TipoChaveamentoReiDaPraia;
   infoDuplaFixa: DistribuicaoDuplaFixa;
   infoReiDaPraia: DistribuicaoReiDaPraia;
+  infoSuperX?: DistribuicaoSuperX;
 }
 
 export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
@@ -23,7 +25,38 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
   tipoChaveamento,
   infoDuplaFixa,
   infoReiDaPraia,
+  infoSuperX,
 }) => {
+  // Preview para Super X
+  if (formato === FormatoEtapa.SUPER_X && infoSuperX) {
+    return (
+      <S.PreviewCard>
+        <S.PreviewTitle>Distribuição Super {infoSuperX.variante}</S.PreviewTitle>
+
+        <S.PreviewContent>
+          <S.PreviewRow>
+            <span>
+              <strong>{infoSuperX.totalJogadores}</strong> jogadores
+            </span>
+            <span>→</span>
+            <span>
+              <strong>1</strong> grupo único
+            </span>
+          </S.PreviewRow>
+
+          <S.PreviewBox>{infoSuperX.descricao}</S.PreviewBox>
+
+          <S.PreviewNote>
+            Duplas rotativas a cada rodada - todos jogam com todos
+          </S.PreviewNote>
+          <S.PreviewNote>
+            Sem fase eliminatória - classificação final individual
+          </S.PreviewNote>
+        </S.PreviewContent>
+      </S.PreviewCard>
+    );
+  }
+
   // Preview para Rei da Praia
   if (formato === FormatoEtapa.REI_DA_PRAIA) {
     return (

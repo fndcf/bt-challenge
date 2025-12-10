@@ -823,6 +823,7 @@ describe("EstatisticasJogadorService", () => {
     it("deve agregar estatísticas por nível específico", async () => {
       const estatisticas = [
         {
+          etapaId: "etapa-1",
           jogadorId: TEST_JOGADOR_ID,
           jogadorNome: "João",
           jogadorNivel: NivelJogador.INTERMEDIARIO,
@@ -837,6 +838,7 @@ describe("EstatisticasJogadorService", () => {
           gamesPerdidos: 18,
         },
         {
+          etapaId: "etapa-2",
           jogadorId: TEST_JOGADOR_ID,
           jogadorNome: "João",
           jogadorNivel: NivelJogador.INTERMEDIARIO,
@@ -852,29 +854,42 @@ describe("EstatisticasJogadorService", () => {
         },
       ];
 
-      // Mock para buscarEstatisticasAgregadasPorNivel
-      mockGet.mockResolvedValueOnce({
-        empty: false,
-        docs: estatisticas.map((e, i) => ({
-          id: `estat-${i}`,
-          data: () => e,
-        })),
-      });
-
-      // Mock para buscarRankingPorNivel (chamado internamente)
-      mockGet.mockResolvedValueOnce({
-        docs: [
-          {
-            id: "estat-1",
-            data: () => ({
-              jogadorId: TEST_JOGADOR_ID,
-              jogadorNome: "João",
-              jogadorNivel: NivelJogador.INTERMEDIARIO,
-              pontos: 15,
-            }),
-          },
-        ],
-      });
+      // Mock para buscarEtapasQueContamPontos
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [
+            { id: "etapa-1", data: () => ({ contaPontosRanking: true }) },
+            { id: "etapa-2", data: () => ({ contaPontosRanking: true }) },
+          ],
+        })
+        .mockResolvedValueOnce({
+          docs: [],
+        })
+        // Mock para buscarEstatisticasAgregadasPorNivel
+        .mockResolvedValueOnce({
+          empty: false,
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        })
+        // Mock para buscarRankingPorNivel - etapas query
+        .mockResolvedValueOnce({
+          docs: [
+            { id: "etapa-1", data: () => ({ contaPontosRanking: true }) },
+            { id: "etapa-2", data: () => ({ contaPontosRanking: true }) },
+          ],
+        })
+        .mockResolvedValueOnce({
+          docs: [],
+        })
+        // Mock para buscarRankingPorNivel - estatísticas query
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
 
       const result = await service.buscarEstatisticasAgregadasPorNivel(
         TEST_JOGADOR_ID,
@@ -907,6 +922,7 @@ describe("EstatisticasJogadorService", () => {
     it("deve retornar ranking ordenado por pontos", async () => {
       const estatisticas = [
         {
+          etapaId: "etapa-1",
           jogadorId: "j1",
           jogadorNome: "Jogador 1",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -922,6 +938,7 @@ describe("EstatisticasJogadorService", () => {
           saldoGames: 20,
         },
         {
+          etapaId: "etapa-1",
           jogadorId: "j2",
           jogadorNome: "Jogador 2",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -937,6 +954,7 @@ describe("EstatisticasJogadorService", () => {
           saldoGames: 10,
         },
         {
+          etapaId: "etapa-1",
           jogadorId: "j3",
           jogadorNome: "Jogador 3",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -953,12 +971,21 @@ describe("EstatisticasJogadorService", () => {
         },
       ];
 
-      mockGet.mockResolvedValue({
-        docs: estatisticas.map((e, i) => ({
-          id: `estat-${i}`,
-          data: () => e,
-        })),
-      });
+      // Mock para buscarEtapasQueContamPontos - primeira chamada para contaPontosRanking
+      // segunda chamada para etapas sem o campo
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
+        }) // etapas com contaPontosRanking = true
+        .mockResolvedValueOnce({
+          docs: [],
+        }) // etapas sem o campo
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        }); // estatísticas
 
       const result = await service.buscarRankingPorNivel(
         TEST_ARENA_ID,
@@ -976,6 +1003,7 @@ describe("EstatisticasJogadorService", () => {
     it("deve agregar estatísticas de múltiplas etapas por jogador", async () => {
       const estatisticas = [
         {
+          etapaId: "etapa-1",
           jogadorId: "j1",
           jogadorNome: "Jogador 1",
           jogadorNivel: NivelJogador.INICIANTE,
@@ -991,6 +1019,7 @@ describe("EstatisticasJogadorService", () => {
           saldoGames: 12,
         },
         {
+          etapaId: "etapa-2",
           jogadorId: "j1", // Mesmo jogador, outra etapa
           jogadorNome: "Jogador 1",
           jogadorNivel: NivelJogador.INICIANTE,
@@ -1007,12 +1036,20 @@ describe("EstatisticasJogadorService", () => {
         },
       ];
 
-      mockGet.mockResolvedValue({
-        docs: estatisticas.map((e, i) => ({
-          id: `estat-${i}`,
-          data: () => e,
-        })),
-      });
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [
+            { id: "etapa-1", data: () => ({ contaPontosRanking: true }) },
+            { id: "etapa-2", data: () => ({ contaPontosRanking: true }) },
+          ],
+        })
+        .mockResolvedValueOnce({ docs: [] })
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
 
       const result = await service.buscarRankingPorNivel(
         TEST_ARENA_ID,
@@ -1030,6 +1067,7 @@ describe("EstatisticasJogadorService", () => {
 
     it("deve respeitar o limite de resultados", async () => {
       const estatisticas = Array.from({ length: 20 }, (_, i) => ({
+        etapaId: "etapa-1",
         jogadorId: `j${i}`,
         jogadorNome: `Jogador ${i}`,
         jogadorNivel: NivelJogador.INTERMEDIARIO,
@@ -1045,12 +1083,17 @@ describe("EstatisticasJogadorService", () => {
         saldoGames: 20,
       }));
 
-      mockGet.mockResolvedValue({
-        docs: estatisticas.map((e, i) => ({
-          id: `estat-${i}`,
-          data: () => e,
-        })),
-      });
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
+        })
+        .mockResolvedValueOnce({ docs: [] })
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
 
       const result = await service.buscarRankingPorNivel(
         TEST_ARENA_ID,
@@ -1662,6 +1705,7 @@ describe("EstatisticasJogadorService", () => {
     it("deve desempatar por games vencidos quando saldo de games igual", async () => {
       const estatisticas = [
         {
+          etapaId: "etapa-1",
           jogadorId: "j1",
           jogadorNome: "Jogador 1",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -1677,6 +1721,7 @@ describe("EstatisticasJogadorService", () => {
           gamesPerdidos: 30,
         },
         {
+          etapaId: "etapa-1",
           jogadorId: "j2",
           jogadorNome: "Jogador 2",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -1693,12 +1738,20 @@ describe("EstatisticasJogadorService", () => {
         },
       ];
 
-      mockGet.mockResolvedValue({
-        docs: estatisticas.map((e, i) => ({
-          id: `estat-${i}`,
-          data: () => e,
-        })),
-      });
+      // Mock para buscarEtapasQueContamPontos
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
+        })
+        .mockResolvedValueOnce({
+          docs: [],
+        })
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
 
       const result = await service.buscarRankingPorNivel(
         TEST_ARENA_ID,
@@ -1714,6 +1767,7 @@ describe("EstatisticasJogadorService", () => {
     it("deve desempatar por vitórias quando games vencidos igual", async () => {
       const estatisticas = [
         {
+          etapaId: "etapa-1",
           jogadorId: "j1",
           jogadorNome: "Jogador 1",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -1729,6 +1783,7 @@ describe("EstatisticasJogadorService", () => {
           gamesPerdidos: 30,
         },
         {
+          etapaId: "etapa-1",
           jogadorId: "j2",
           jogadorNome: "Jogador 2",
           jogadorNivel: NivelJogador.AVANCADO,
@@ -1745,12 +1800,20 @@ describe("EstatisticasJogadorService", () => {
         },
       ];
 
-      mockGet.mockResolvedValue({
-        docs: estatisticas.map((e, i) => ({
-          id: `estat-${i}`,
-          data: () => e,
-        })),
-      });
+      // Mock para buscarEtapasQueContamPontos
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
+        })
+        .mockResolvedValueOnce({
+          docs: [],
+        })
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
 
       const result = await service.buscarRankingPorNivel(
         TEST_ARENA_ID,

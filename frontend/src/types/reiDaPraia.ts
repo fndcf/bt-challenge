@@ -20,7 +20,7 @@ export interface PartidaReiDaPraia {
   fase: FaseEtapa;
   grupoId: string;
   grupoNome: string;
-  // Dupla 1 (temporária)
+  rodada?: number;
   jogador1AId: string;
   jogador1ANome: string;
   jogador1BId: string;

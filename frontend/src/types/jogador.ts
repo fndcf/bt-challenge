@@ -40,7 +40,7 @@ export interface CriarJogadorDTO {
   telefone?: string;
   dataNascimento?: string;
   genero: GeneroJogador;
-  nivel: NivelJogador;
+  nivel?: NivelJogador;
   status?: StatusJogador;
   observacoes?: string;
 }
