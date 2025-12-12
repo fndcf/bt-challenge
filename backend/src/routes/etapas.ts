@@ -334,6 +334,14 @@ router.post("/:id/teams/confrontos/:confrontoId/gerar-decider", (req, res) =>
 );
 
 /**
+ * @route   POST /api/etapas/:id/teams/partidas/:partidaId/definir-jogadores
+ * @desc    Definir jogadores de uma partida vazia (formação manual)
+ */
+router.post("/:id/teams/partidas/:partidaId/definir-jogadores", (req, res) =>
+  etapaController.definirJogadoresPartidaTeams(req, res)
+);
+
+/**
  * @route   POST /api/etapas/:id/teams/partidas/:partidaId/resultado
  * @desc    Registrar resultado de partida TEAMS
  */

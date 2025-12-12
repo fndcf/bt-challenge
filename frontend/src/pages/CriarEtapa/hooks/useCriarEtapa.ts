@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe } from "@/types/etapa";
+import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
@@ -14,6 +14,7 @@ export interface CriarEtapaFormData extends CriarEtapaDTO {
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
   tipoFormacaoEquipe?: TipoFormacaoEquipe;
+  tipoFormacaoJogos?: TipoFormacaoJogos;
 }
 
 export interface DistribuicaoDuplaFixa {
@@ -88,6 +89,7 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   varianteSuperX: VarianteSuperX.SUPER_8,
   varianteTeams: VarianteTeams.TEAMS_4,
   tipoFormacaoEquipe: TipoFormacaoEquipe.BALANCEADO,
+  tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
   dataInicio: "",
   dataFim: "",
   dataRealizacao: "",

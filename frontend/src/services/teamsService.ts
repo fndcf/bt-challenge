@@ -40,6 +40,12 @@ export interface ITeamsService {
     dto: DefinirPartidasManualDTO
   ): Promise<GerarPartidasResponse>;
   buscarPartidasConfronto(etapaId: string, confrontoId: string): Promise<PartidaTeams[]>;
+  definirJogadoresPartida(
+    etapaId: string,
+    partidaId: string,
+    dupla1JogadorIds: [string, string],
+    dupla2JogadorIds: [string, string]
+  ): Promise<PartidaTeams>;
 
   // Resultado
   registrarResultado(
@@ -246,6 +252,35 @@ class TeamsService implements ITeamsService {
       return response;
     } catch (error) {
       const appError = handleError(error, "TeamsService.buscarPartidasConfronto");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Definir jogadores de uma partida vazia (formação manual)
+   *
+   * POST /api/etapas/:etapaId/teams/partidas/:partidaId/definir-jogadores
+   */
+  async definirJogadoresPartida(
+    etapaId: string,
+    partidaId: string,
+    dupla1JogadorIds: [string, string],
+    dupla2JogadorIds: [string, string]
+  ): Promise<PartidaTeams> {
+    try {
+      const response = await apiClient.post<PartidaTeams>(
+        `${this.basePath}/${etapaId}${this.teamsPath}/partidas/${partidaId}/definir-jogadores`,
+        { dupla1JogadorIds, dupla2JogadorIds }
+      );
+
+      logger.info("Jogadores da partida definidos", {
+        etapaId,
+        partidaId,
+      });
+
+      return response;
+    } catch (error) {
+      const appError = handleError(error, "TeamsService.definirJogadoresPartida");
       throw new Error(appError.message);
     }
   }

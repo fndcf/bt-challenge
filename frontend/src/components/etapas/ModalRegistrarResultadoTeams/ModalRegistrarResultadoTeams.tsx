@@ -316,14 +316,14 @@ export const ModalRegistrarResultadoTeams: React.FC<
 
     if (set.gamesDupla1 > set.gamesDupla2) {
       return {
-        vencedor: `${partida.dupla1.jogador1Nome} & ${partida.dupla1.jogador2Nome}`,
-        equipe: partida.dupla1.equipeNome,
+        vencedor: `${partida.dupla1[0]?.nome} & ${partida.dupla1[1]?.nome}`,
+        equipe: partida.equipe1Nome || "",
         placar: `${set.gamesDupla1} x ${set.gamesDupla2}`,
       };
     } else if (set.gamesDupla2 > set.gamesDupla1) {
       return {
-        vencedor: `${partida.dupla2.jogador1Nome} & ${partida.dupla2.jogador2Nome}`,
-        equipe: partida.dupla2.equipeNome,
+        vencedor: `${partida.dupla2[0]?.nome} & ${partida.dupla2[1]?.nome}`,
+        equipe: partida.equipe2Nome || "",
         placar: `${set.gamesDupla1} x ${set.gamesDupla2}`,
       };
     }
@@ -425,8 +425,8 @@ export const ModalRegistrarResultadoTeams: React.FC<
 
   const resultado = calcularVencedor();
 
-  const dupla1Nome = `${partida.dupla1.jogador1Nome} & ${partida.dupla1.jogador2Nome}`;
-  const dupla2Nome = `${partida.dupla2.jogador1Nome} & ${partida.dupla2.jogador2Nome}`;
+  const dupla1Nome = `${partida.dupla1[0]?.nome} & ${partida.dupla1[1]?.nome}`;
+  const dupla2Nome = `${partida.dupla2[0]?.nome} & ${partida.dupla2[1]?.nome}`;
 
   return (
     <Overlay>
@@ -445,14 +445,14 @@ export const ModalRegistrarResultadoTeams: React.FC<
             <DuplasContent>
               <DuplaBox>
                 <DuplaNome>{dupla1Nome}</DuplaNome>
-                <EquipeLabel>{partida.dupla1.equipeNome}</EquipeLabel>
+                <EquipeLabel>{partida.equipe1Nome}</EquipeLabel>
               </DuplaBox>
 
               <VsSeparator>VS</VsSeparator>
 
               <DuplaBox>
                 <DuplaNome>{dupla2Nome}</DuplaNome>
-                <EquipeLabel>{partida.dupla2.equipeNome}</EquipeLabel>
+                <EquipeLabel>{partida.equipe2Nome}</EquipeLabel>
               </DuplaBox>
             </DuplasContent>
           </DuplasBox>

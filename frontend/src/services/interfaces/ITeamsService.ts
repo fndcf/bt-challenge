@@ -71,6 +71,16 @@ export interface ITeamsService {
    */
   buscarPartidasConfronto(etapaId: string, confrontoId: string): Promise<PartidaTeams[]>;
 
+  /**
+   * Definir jogadores de uma partida vazia (formação manual)
+   */
+  definirJogadoresPartida(
+    etapaId: string,
+    partidaId: string,
+    dupla1JogadorIds: [string, string],
+    dupla2JogadorIds: [string, string]
+  ): Promise<PartidaTeams>;
+
   // ============================================
   // RESULTADO
   // ============================================

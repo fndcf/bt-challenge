@@ -62,9 +62,15 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 /**
- * Exportar como Firebase Function
+ * Exportar como Firebase Function (2nd gen)
  */
-export const api = functions.https.onRequest(app);
+export const api = functions.https.onRequest(
+  {
+    timeoutSeconds: 30,
+    memory: "512MiB",
+  },
+  app
+);
 
 /**
  * Iniciar servidor local (apenas em desenvolvimento)

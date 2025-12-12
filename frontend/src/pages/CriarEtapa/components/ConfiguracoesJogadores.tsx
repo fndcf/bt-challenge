@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import { FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe } from "@/types/etapa";
+import { FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos } from "@/types/etapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface ConfiguracoesJogadoresProps {
@@ -13,11 +13,13 @@ export interface ConfiguracoesJogadoresProps {
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
   tipoFormacaoEquipe?: TipoFormacaoEquipe;
+  tipoFormacaoJogos?: TipoFormacaoJogos;
   onMaxJogadoresChange: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
   onVarianteTeamsChange?: (value: VarianteTeams) => void;
   onTipoFormacaoEquipeChange?: (value: TipoFormacaoEquipe) => void;
+  onTipoFormacaoJogosChange?: (value: TipoFormacaoJogos) => void;
 }
 
 export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
@@ -27,11 +29,13 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   varianteSuperX,
   varianteTeams,
   tipoFormacaoEquipe,
+  tipoFormacaoJogos,
   onMaxJogadoresChange,
   onContaPontosRankingChange,
   onVarianteSuperXChange,
   onVarianteTeamsChange,
   onTipoFormacaoEquipeChange,
+  onTipoFormacaoJogosChange,
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -82,6 +86,13 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
     const value = e.target.value as TipoFormacaoEquipe;
     if (onTipoFormacaoEquipeChange) {
       onTipoFormacaoEquipeChange(value);
+    }
+  };
+
+  const handleTipoFormacaoJogosChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as TipoFormacaoJogos;
+    if (onTipoFormacaoJogosChange) {
+      onTipoFormacaoJogosChange(value);
     }
   };
 
@@ -166,6 +177,25 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
               </S.Select>
               <S.HelperText>
                 Como os jogadores serão distribuídos nas equipes
+              </S.HelperText>
+            </S.Field>
+
+            <S.Field>
+              <S.Label>Formação das Partidas *</S.Label>
+              <S.Select
+                required
+                value={tipoFormacaoJogos || TipoFormacaoJogos.SORTEIO}
+                onChange={handleTipoFormacaoJogosChange}
+              >
+                <option value={TipoFormacaoJogos.SORTEIO}>
+                  Automático (sistema sorteia as duplas)
+                </option>
+                <option value={TipoFormacaoJogos.MANUAL}>
+                  Manual (equipes escolhem as duplas)
+                </option>
+              </S.Select>
+              <S.HelperText>
+                Como as duplas serão formadas dentro de cada confronto
               </S.HelperText>
             </S.Field>
 

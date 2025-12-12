@@ -166,10 +166,18 @@ export interface PartidaTeams {
   tipoJogo: TipoJogoTeams; // feminino, masculino, misto, decider
 
   // Dupla 1 (2 jogadores da equipe 1)
-  dupla1: DuplaPartidaTeams;
+  // Array vazio [] quando partida está aguardando definição manual
+  dupla1: JogadorEquipe[];
 
   // Dupla 2 (2 jogadores da equipe 2)
-  dupla2: DuplaPartidaTeams;
+  // Array vazio [] quando partida está aguardando definição manual
+  dupla2: JogadorEquipe[];
+
+  // IDs e nomes das equipes (para partidas vazias em formação manual)
+  equipe1Id?: string;
+  equipe1Nome?: string;
+  equipe2Id?: string;
+  equipe2Nome?: string;
 
   // Resultado
   status: StatusPartidaTeams;

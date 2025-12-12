@@ -85,6 +85,78 @@ export class EstatisticasJogadorService {
   }
 
   /**
+   * Criar estatísticas em lote (batch) - OTIMIZADO para performance
+   */
+  async criarEmLote(dtos: CriarEstatisticasJogadorDTO[]): Promise<EstatisticasJogador[]> {
+    try {
+      const batch = db.batch();
+      const estatisticasArray: EstatisticasJogador[] = [];
+      const agora = Timestamp.now();
+
+      for (const dto of dtos) {
+        const docRef = db.collection(this.collection).doc();
+        const estatisticas: Omit<EstatisticasJogador, "id"> = {
+          etapaId: dto.etapaId,
+          arenaId: dto.arenaId,
+          jogadorId: dto.jogadorId,
+          jogadorNome: dto.jogadorNome,
+          jogadorNivel: dto.jogadorNivel,
+          jogadorGenero: dto.jogadorGenero,
+          grupoId: dto.grupoId,
+          grupoNome: dto.grupoNome,
+          // Estatísticas Rei da Praia (fase de grupos)
+          jogosGrupo: 0,
+          vitoriasGrupo: 0,
+          derrotasGrupo: 0,
+          pontosGrupo: 0,
+          setsVencidosGrupo: 0,
+          setsPerdidosGrupo: 0,
+          saldoSetsGrupo: 0,
+          gamesVencidosGrupo: 0,
+          gamesPerdidosGrupo: 0,
+          saldoGamesGrupo: 0,
+          // Estatísticas Dupla Fixa
+          jogos: 0,
+          vitorias: 0,
+          derrotas: 0,
+          pontos: 0,
+          setsVencidos: 0,
+          setsPerdidos: 0,
+          gamesVencidos: 0,
+          gamesPerdidos: 0,
+          saldoSets: 0,
+          saldoGames: 0,
+          classificado: false,
+          criadoEm: agora,
+          atualizadoEm: agora,
+        };
+
+        batch.set(docRef, estatisticas);
+        estatisticasArray.push({
+          id: docRef.id,
+          ...estatisticas,
+        });
+      }
+
+      await batch.commit();
+
+      logger.info("Estatísticas criadas em lote", {
+        quantidade: estatisticasArray.length,
+        etapaId: dtos[0]?.etapaId,
+      });
+
+      return estatisticasArray;
+    } catch (error) {
+      logger.error(
+        "Erro ao criar estatísticas em lote",
+        { quantidade: dtos.length },
+        error as Error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Buscar estatísticas de um jogador em uma etapa
    */
   async buscarPorJogadorEtapa(

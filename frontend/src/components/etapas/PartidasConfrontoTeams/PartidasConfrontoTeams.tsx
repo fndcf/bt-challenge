@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getTeamsService } from "@/services";
-import { PartidaTeams, StatusPartidaTeams, TipoJogoTeams } from "@/types/teams";
+import { PartidaTeams, StatusPartidaTeams, TipoJogoTeams, JogadorEquipe } from "@/types/teams";
 import { ModalRegistrarResultadoTeams } from "../ModalRegistrarResultadoTeams";
+import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 
 interface PartidasConfrontoTeamsProps {
   etapaId: string;
@@ -269,6 +270,11 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
   const [partidaSelecionada, setPartidaSelecionada] = useState<PartidaTeams | null>(
     null
   );
+  const [partidaParaDefinirJogadores, setPartidaParaDefinirJogadores] = useState<PartidaTeams | null>(null);
+  const [equipe1Jogadores, setEquipe1Jogadores] = useState<JogadorEquipe[]>([]);
+  const [equipe2Jogadores, setEquipe2Jogadores] = useState<JogadorEquipe[]>([]);
+  const [equipe1Nome, setEquipe1Nome] = useState<string>("");
+  const [equipe2Nome, setEquipe2Nome] = useState<string>("");
 
   useEffect(() => {
     carregarPartidas();
@@ -298,6 +304,65 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
     if (onAtualizar) onAtualizar();
   };
 
+  const handleAbrirModalDefinirJogadores = async (partida: PartidaTeams) => {
+    try {
+      // Buscar confronto para obter IDs das equipes
+      const confrontos = await teamsService.buscarConfrontos(etapaId);
+      const confronto = confrontos.find(c => c.id === partida.confrontoId);
+
+      if (!confronto) {
+        alert("Erro: Confronto não encontrado");
+        return;
+      }
+
+      // Buscar jogadores das equipes
+      const equipes = await teamsService.buscarEquipes(etapaId);
+
+      const equipe1 = equipes.find(eq => eq.id === confronto.equipe1Id);
+      const equipe2 = equipes.find(eq => eq.id === confronto.equipe2Id);
+
+      if (!equipe1 || !equipe2) {
+        alert("Erro: Equipes não encontradas");
+        return;
+      }
+
+      setEquipe1Jogadores(equipe1.jogadores);
+      setEquipe2Jogadores(equipe2.jogadores);
+      setEquipe1Nome(equipe1.nome);
+      setEquipe2Nome(equipe2.nome);
+      setPartidaParaDefinirJogadores(partida);
+    } catch (err: any) {
+      alert(err.message || "Erro ao carregar jogadores");
+    }
+  };
+
+  const handleDefinirJogadores = async (
+    dupla1Ids: [string, string],
+    dupla2Ids: [string, string]
+  ) => {
+    if (!partidaParaDefinirJogadores) return;
+
+    try {
+      await teamsService.definirJogadoresPartida(
+        etapaId,
+        partidaParaDefinirJogadores.id,
+        dupla1Ids,
+        dupla2Ids
+      );
+
+      // Fechar modal e recarregar
+      setPartidaParaDefinirJogadores(null);
+      setEquipe1Jogadores([]);
+      setEquipe2Jogadores([]);
+      setEquipe1Nome("");
+      setEquipe2Nome("");
+      carregarPartidas();
+      if (onAtualizar) onAtualizar();
+    } catch (err: any) {
+      throw err; // O modal vai capturar e exibir o erro
+    }
+  };
+
   if (loading) {
     return (
       <LoadingContainer>
@@ -319,9 +384,12 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
       {partidas.map((partida) => {
         const isFinalizada = partida.status === StatusPartidaTeams.FINALIZADA;
         const isDupla1Winner =
-          isFinalizada && partida.vencedoraEquipeId === partida.dupla1.equipeId;
+          isFinalizada && partida.vencedoraEquipeId === partida.equipe1Id;
         const isDupla2Winner =
-          isFinalizada && partida.vencedoraEquipeId === partida.dupla2.equipeId;
+          isFinalizada && partida.vencedoraEquipeId === partida.equipe2Id;
+
+        // Verificar se a partida está vazia (formação manual)
+        const isPartidaVazia = partida.dupla1.length === 0 || partida.dupla2.length === 0;
 
         // Calcular pontuacao total dos sets (disponivel para uso futuro em estatisticas)
         const _gamesDupla1 = partida.placar?.reduce(
@@ -350,54 +418,83 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
             </PartidaHeader>
 
             <PartidaContent>
-              <DuplaRow $isWinner={isDupla1Winner}>
-                <DuplaInfo>
-                  <DuplaNomes $isWinner={isDupla1Winner}>
-                    {partida.dupla1.jogador1Nome} & {partida.dupla1.jogador2Nome}
-                  </DuplaNomes>
-                  <EquipeLabel>{partida.dupla1.equipeNome}</EquipeLabel>
-                </DuplaInfo>
-                {isFinalizada && (
-                  <PlacarBox>
-                    {partida.placar?.map((set, idx) => (
-                      <SetScore
-                        key={idx}
-                        $isWinner={set.gamesDupla1 > set.gamesDupla2}
-                      >
-                        {set.gamesDupla1}
-                      </SetScore>
-                    ))}
-                  </PlacarBox>
-                )}
-              </DuplaRow>
+              {isPartidaVazia ? (
+                // Mostrar mensagem para partidas vazias (formação manual)
+                <div style={{
+                  textAlign: "center",
+                  padding: "1.5rem",
+                  backgroundColor: "#fef3c7",
+                  borderRadius: "0.5rem",
+                  color: "#92400e"
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
+                    Partida aguardando definição dos jogadores
+                  </div>
+                  <div style={{ fontSize: "0.875rem" }}>
+                    Clique em "Definir Jogadores" para selecionar as duplas
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <DuplaRow $isWinner={isDupla1Winner}>
+                    <DuplaInfo>
+                      <DuplaNomes $isWinner={isDupla1Winner}>
+                        {partida.dupla1[0]?.nome} & {partida.dupla1[1]?.nome}
+                      </DuplaNomes>
+                      <EquipeLabel>{partida.equipe1Nome}</EquipeLabel>
+                    </DuplaInfo>
+                    {isFinalizada && (
+                      <PlacarBox>
+                        {partida.placar?.map((set, idx) => (
+                          <SetScore
+                            key={idx}
+                            $isWinner={set.gamesDupla1 > set.gamesDupla2}
+                          >
+                            {set.gamesDupla1}
+                          </SetScore>
+                        ))}
+                      </PlacarBox>
+                    )}
+                  </DuplaRow>
 
-              <VsSeparator>
-                <span>VS</span>
-              </VsSeparator>
+                  <VsSeparator>
+                    <span>VS</span>
+                  </VsSeparator>
 
-              <DuplaRow $isWinner={isDupla2Winner}>
-                <DuplaInfo>
-                  <DuplaNomes $isWinner={isDupla2Winner}>
-                    {partida.dupla2.jogador1Nome} & {partida.dupla2.jogador2Nome}
-                  </DuplaNomes>
-                  <EquipeLabel>{partida.dupla2.equipeNome}</EquipeLabel>
-                </DuplaInfo>
-                {isFinalizada && (
-                  <PlacarBox>
-                    {partida.placar?.map((set, idx) => (
-                      <SetScore
-                        key={idx}
-                        $isWinner={set.gamesDupla2 > set.gamesDupla1}
-                      >
-                        {set.gamesDupla2}
-                      </SetScore>
-                    ))}
-                  </PlacarBox>
-                )}
-              </DuplaRow>
+                  <DuplaRow $isWinner={isDupla2Winner}>
+                    <DuplaInfo>
+                      <DuplaNomes $isWinner={isDupla2Winner}>
+                        {partida.dupla2[0]?.nome} & {partida.dupla2[1]?.nome}
+                      </DuplaNomes>
+                      <EquipeLabel>{partida.equipe2Nome}</EquipeLabel>
+                    </DuplaInfo>
+                    {isFinalizada && (
+                      <PlacarBox>
+                        {partida.placar?.map((set, idx) => (
+                          <SetScore
+                            key={idx}
+                            $isWinner={set.gamesDupla2 > set.gamesDupla1}
+                          >
+                            {set.gamesDupla2}
+                          </SetScore>
+                        ))}
+                      </PlacarBox>
+                    )}
+                  </DuplaRow>
+                </>
+              )}
             </PartidaContent>
 
-            {!etapaFinalizada && partida.status === StatusPartidaTeams.AGENDADA && (
+            {!etapaFinalizada && isPartidaVazia && (
+              <ActionButton
+                $variant="register"
+                onClick={() => handleAbrirModalDefinirJogadores(partida)}
+              >
+                Definir Jogadores
+              </ActionButton>
+            )}
+
+            {!etapaFinalizada && !isPartidaVazia && partida.status === StatusPartidaTeams.AGENDADA && (
               <ActionButton
                 $variant="register"
                 onClick={() => setPartidaSelecionada(partida)}
@@ -406,7 +503,7 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
               </ActionButton>
             )}
 
-            {!etapaFinalizada && isFinalizada && (
+            {!etapaFinalizada && !isPartidaVazia && isFinalizada && (
               <ActionButton
                 $variant="edit"
                 onClick={() => setPartidaSelecionada(partida)}
@@ -424,6 +521,26 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
           partida={partidaSelecionada}
           onClose={() => setPartidaSelecionada(null)}
           onSuccess={handleResultadoRegistrado}
+        />
+      )}
+
+      {partidaParaDefinirJogadores && (
+        <ModalDefinirJogadoresPartida
+          isOpen={true}
+          onClose={() => {
+            setPartidaParaDefinirJogadores(null);
+            setEquipe1Jogadores([]);
+            setEquipe2Jogadores([]);
+            setEquipe1Nome("");
+            setEquipe2Nome("");
+          }}
+          onConfirm={handleDefinirJogadores}
+          partida={partidaParaDefinirJogadores}
+          equipe1Nome={equipe1Nome}
+          equipe2Nome={equipe2Nome}
+          equipe1Jogadores={equipe1Jogadores}
+          equipe2Jogadores={equipe2Jogadores}
+          partidasConfrontoComJogadores={partidas.filter(p => p.dupla1.length === 2 && p.dupla2.length === 2)}
         />
       )}
     </Container>

@@ -1244,9 +1244,8 @@ class EtapaController extends BaseController {
       const { id } = req.params;
       const { tipoFormacaoJogos = "sorteio" } = req.body;
 
-      logger.info("Gerando equipes TEAMS", { etapaId: id });
-
       const etapa = await etapaService.buscarPorId(id, arenaId);
+
       if (!etapa) {
         ResponseHelper.notFound(res, "Etapa não encontrada");
         return;
@@ -1263,6 +1262,7 @@ class EtapaController extends BaseController {
       }));
 
       const teamsService = (await import("../services/TeamsService")).default;
+
       const resultado = await teamsService.gerarEquipes(etapa, inscricoes);
 
       // Gerar confrontos automaticamente
@@ -1567,6 +1567,58 @@ class EtapaController extends BaseController {
     } catch (error: any) {
       this.handleGenericError(res, error, "buscar partidas confronto TEAMS", {
         confrontoId: req.params.confrontoId,
+      });
+    }
+  }
+
+  /**
+   * Definir jogadores de uma partida vazia (formação manual)
+   * POST /api/etapas/:id/teams/partidas/:partidaId/definir-jogadores
+   */
+  async definirJogadoresPartidaTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { partidaId } = req.params;
+      const { dupla1JogadorIds, dupla2JogadorIds } = req.body;
+
+      logger.info("Definindo jogadores da partida", { partidaId });
+
+      if (
+        !Array.isArray(dupla1JogadorIds) ||
+        dupla1JogadorIds.length !== 2 ||
+        !Array.isArray(dupla2JogadorIds) ||
+        dupla2JogadorIds.length !== 2
+      ) {
+        ResponseHelper.badRequest(
+          res,
+          "dupla1JogadorIds e dupla2JogadorIds devem ser arrays com 2 IDs cada"
+        );
+        return;
+      }
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const partida = await teamsService.definirJogadoresPartida(
+        partidaId,
+        arenaId,
+        dupla1JogadorIds as [string, string],
+        dupla2JogadorIds as [string, string]
+      );
+
+      logger.info("Jogadores definidos com sucesso", { partidaId });
+
+      ResponseHelper.success(res, partida, "Jogadores definidos com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "definir jogadores da partida", {
+        partidaId: req.params.partidaId,
       });
     }
   }

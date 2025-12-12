@@ -112,6 +112,7 @@ export const CriarEtapa: React.FC = () => {
           varianteSuperX={formData.varianteSuperX}
           varianteTeams={formData.varianteTeams}
           tipoFormacaoEquipe={formData.tipoFormacaoEquipe}
+          tipoFormacaoJogos={formData.tipoFormacaoJogos}
           onMaxJogadoresChange={(value) => handleChange("maxJogadores", value)}
           onContaPontosRankingChange={(value) =>
             handleChange("contaPontosRanking", value)
@@ -124,6 +125,9 @@ export const CriarEtapa: React.FC = () => {
           }
           onTipoFormacaoEquipeChange={(value) =>
             handleChange("tipoFormacaoEquipe", value)
+          }
+          onTipoFormacaoJogosChange={(value) =>
+            handleChange("tipoFormacaoJogos", value)
           }
         />
 
