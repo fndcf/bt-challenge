@@ -57,6 +57,9 @@ export const EtapaDetalhe: React.FC = () => {
     );
   }
 
+  // Verificar se é formato TEAMS (não mostra BracketViewer)
+  const isTeams = etapa.formato === "teams";
+
   return (
     <S.Page>
       {/* Header */}
@@ -81,8 +84,8 @@ export const EtapaDetalhe: React.FC = () => {
             {/* Grupos (se existirem) */}
             {grupos?.length > 0 && <GruposViewer grupos={grupos} />}
 
-            {/* Chaves (se existirem) */}
-            {chaves && <BracketViewer chaves={chaves} />}
+            {/* Chaves (se existirem) - NÃO mostrar para TEAMS */}
+            {chaves && !isTeams && <BracketViewer chaves={chaves} />}
           </S.Main>
         </S.Layout>
       </S.Container>

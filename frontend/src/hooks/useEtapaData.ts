@@ -4,7 +4,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Etapa, Inscricao, FormatoEtapa } from "@/types/etapa";
-import { getEtapaService, getSuperXService } from "@/services";
+import { getEtapaService, getSuperXService, getTeamsService } from "@/services";
+import { StatusConfronto } from "@/types/teams";
 import logger from "@/utils/logger";
 
 // Etapa estendida com inscrições
@@ -21,6 +22,7 @@ export interface UseEtapaDataReturn {
   // Flags derivadas
   isReiDaPraia: boolean;
   isSuperX: boolean;
+  isTeams: boolean;
   progresso: number;
   todasPartidasFinalizadas: boolean;
 
@@ -45,6 +47,7 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
   // Flags derivadas
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = etapa?.formato === FormatoEtapa.SUPER_X;
+  const isTeams = etapa?.formato === FormatoEtapa.TEAMS;
   const progresso =
     etapa && etapa.maxJogadores > 0
       ? Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100)
@@ -81,19 +84,27 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
 
       setEtapa(etapaComInscricoes);
 
-      // Verificar se todas as partidas estão finalizadas (apenas para Super X com chaves geradas)
-      if (etapaData.chavesGeradas && etapaData.formato === FormatoEtapa.SUPER_X) {
+      // Verificar se todas as partidas estão finalizadas
+      if (etapaData.chavesGeradas) {
         try {
-          const superXService = getSuperXService();
-          const partidas = await superXService.buscarPartidas(etapaId);
-
-          // Verificar se há partidas e todas estão finalizadas
-          const todasFinalizadas = partidas.length > 0 &&
-            partidas.every((p: any) => p.status === "finalizada");
-          setTodasPartidasFinalizadas(todasFinalizadas);
+          if (etapaData.formato === FormatoEtapa.SUPER_X) {
+            const superXService = getSuperXService();
+            const partidas = await superXService.buscarPartidas(etapaId);
+            const todasFinalizadas = partidas.length > 0 &&
+              partidas.every((p: any) => p.status === "finalizada");
+            setTodasPartidasFinalizadas(todasFinalizadas);
+          } else if (etapaData.formato === FormatoEtapa.TEAMS) {
+            const teamsService = getTeamsService();
+            const confrontos = await teamsService.buscarConfrontos(etapaId);
+            const todosFinalizados = confrontos.length > 0 &&
+              confrontos.every((c) => c.status === StatusConfronto.FINALIZADO);
+            setTodasPartidasFinalizadas(todosFinalizados);
+          } else {
+            setTodasPartidasFinalizadas(false);
+          }
         } catch (err) {
-          // Se falhar ao buscar partidas, assume que não estão todas finalizadas
-          logger.warn("Erro ao verificar partidas", { etapaId, error: String(err) });
+          // Se falhar ao buscar, assume que não estão todas finalizadas
+          logger.warn("Erro ao verificar partidas/confrontos", { etapaId, error: String(err) });
           setTodasPartidasFinalizadas(false);
         }
       } else {
@@ -128,6 +139,7 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
     // Flags derivadas
     isReiDaPraia,
     isSuperX,
+    isTeams,
     progresso,
     todasPartidasFinalizadas,
 

@@ -4,7 +4,7 @@
 
 import React from "react";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import { FormatoEtapa } from "@/types/etapa";
+import { FormatoEtapa, TipoFormacaoEquipe } from "@/types/etapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface InformacoesBasicasProps {
@@ -14,6 +14,7 @@ export interface InformacoesBasicasProps {
   nivel?: NivelJogador;
   local: string;
   formato?: FormatoEtapa;
+  tipoFormacaoEquipe?: TipoFormacaoEquipe; // Para TEAMS: determinar se nível é obrigatório
   disabled?: boolean;
   disabledGenero?: boolean;
   disabledNivel?: boolean;
@@ -33,6 +34,7 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   nivel,
   local,
   formato,
+  tipoFormacaoEquipe,
   disabled = false,
   disabledGenero = false,
   disabledNivel = false,
@@ -44,9 +46,18 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   onNivelChange,
   onLocalChange,
 }) => {
-  // Super X não requer nivel
   const isSuperX = formato === FormatoEtapa.SUPER_X;
-  const nivelObrigatorio = !isSuperX;
+  const isTeams = formato === FormatoEtapa.TEAMS;
+
+  // TEAMS com "Mesmo Nível" requer seleção de nível
+  const teamsMesmoNivel = isTeams && tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL;
+
+  // Nível obrigatório: outros formatos ou TEAMS com "Mesmo Nível"
+  // Nível opcional: Super X ou TEAMS com outros tipos de formação
+  const nivelObrigatorio = !isSuperX && !isTeams || teamsMesmoNivel;
+
+  // Permitir "Todos os níveis" para Super X e TEAMS (exceto MESMO_NIVEL)
+  const permiteTodosNiveis = isSuperX || (isTeams && !teamsMesmoNivel);
 
   return (
     <S.Card>
@@ -86,10 +97,13 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
           >
             <option value={GeneroJogador.MASCULINO}>Masculino</option>
             <option value={GeneroJogador.FEMININO}>Feminino</option>
+            {isTeams && <option value={GeneroJogador.MISTO}>Misto</option>}
           </S.Select>
           <S.HelperText>
             {helperGenero ||
-              "Apenas jogadores deste gênero poderão se inscrever"}
+              (isTeams
+                ? "Misto: equipes com jogadores de ambos os gêneros"
+                : "Apenas jogadores deste gênero poderão se inscrever")}
           </S.HelperText>
         </S.Field>
 
@@ -105,15 +119,17 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
               )
             }
           >
-            {isSuperX && <option value="">Todos os níveis</option>}
+            {permiteTodosNiveis && <option value="">Todos os níveis</option>}
             <option value={NivelJogador.INICIANTE}>Iniciante</option>
             <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
             <option value={NivelJogador.AVANCADO}>Avançado</option>
           </S.Select>
           <S.HelperText>
             {helperNivel ||
-              (isSuperX
-                ? "Opcional: deixe em branco para permitir todos os níveis"
+              (permiteTodosNiveis
+                ? teamsMesmoNivel
+                  ? "Selecione o nível (obrigatório para formação 'Mesmo Nível')"
+                  : "Opcional: deixe em branco para permitir todos os níveis"
                 : "Apenas jogadores deste nível poderão se inscrever")}
           </S.HelperText>
         </S.Field>

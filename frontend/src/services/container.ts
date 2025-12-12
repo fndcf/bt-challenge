@@ -13,6 +13,7 @@ import {
   IPartidaService,
   IReiDaPraiaService,
   ISuperXService,
+  ITeamsService,
 } from "./interfaces";
 
 // Importar implementações
@@ -25,6 +26,7 @@ import cabecaDeChaveService from "./cabecaDeChaveService";
 import partidaService from "./partidaService";
 import reiDaPraiaService from "./reiDaPraiaService";
 import superXService from "./superXService";
+import teamsService from "./teamsService";
 
 /**
  * Gerencia todas as instâncias de services da aplicação
@@ -101,6 +103,7 @@ container.register<ICabecaDeChaveService>(
 container.register<IPartidaService>("partidaService", partidaService);
 container.register<IReiDaPraiaService>("reiDaPraiaService", reiDaPraiaService);
 container.register<ISuperXService>("superXService", superXService);
+container.register<ITeamsService>("teamsService", teamsService);
 
 // ============================================
 // HELPER FUNCTIONS
@@ -167,6 +170,13 @@ export const getReiDaPraiaService = (): IReiDaPraiaService => {
  */
 export const getSuperXService = (): ISuperXService => {
   return container.get<ISuperXService>("superXService");
+};
+
+/**
+ * Obter TeamsService
+ */
+export const getTeamsService = (): ITeamsService => {
+  return container.get<ITeamsService>("teamsService");
 };
 
 /**

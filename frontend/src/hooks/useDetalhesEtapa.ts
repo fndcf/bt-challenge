@@ -7,6 +7,7 @@ import { useEtapaData, type EtapaComInscricoes } from "./useEtapaData";
 import { useEtapaInscricoes } from "./useEtapaInscricoes";
 import { useEtapaChaves } from "./useEtapaChaves";
 import { useEtapaUI, type AbaEtapa } from "./useEtapaUI";
+import { FormacaoManualEquipeDTO } from "@/types/teams";
 
 export type { EtapaComInscricoes, AbaEtapa };
 
@@ -19,6 +20,7 @@ interface UseDetalhesEtapaReturn {
   // Flags derivadas
   isReiDaPraia: boolean;
   isSuperX: boolean;
+  isTeams: boolean;
   progresso: number;
   todasPartidasFinalizadas: boolean;
 
@@ -42,7 +44,9 @@ interface UseDetalhesEtapaReturn {
 
   // Actions - Chaves
   handleGerarChaves: () => Promise<void>;
+  handleGerarChavesManual: (formacoes: FormacaoManualEquipeDTO[]) => Promise<void>;
   handleApagarChaves: () => Promise<void>;
+  isFormacaoManual: boolean;
 
   // UI Handlers
   setAbaAtiva: (aba: AbaEtapa) => void;
@@ -60,7 +64,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   // ============================================
   // 1. DADOS DA ETAPA
   // ============================================
-  const { etapa, loading, error, isReiDaPraia, isSuperX, progresso, todasPartidasFinalizadas, recarregar } =
+  const { etapa, loading, error, isReiDaPraia, isSuperX, isTeams, progresso, todasPartidasFinalizadas, recarregar } =
     useEtapaData(etapaId);
 
   // ============================================
@@ -100,7 +104,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
     [recarregar, setAbaAtiva]
   );
 
-  const { handleGerarChaves, handleApagarChaves } = useEtapaChaves({
+  const { handleGerarChaves, handleGerarChavesManual, handleApagarChaves, isFormacaoManual } = useEtapaChaves({
     etapa,
     onSuccess: onSuccessChaves,
   });
@@ -117,6 +121,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
     // Flags derivadas
     isReiDaPraia,
     isSuperX,
+    isTeams,
     progresso,
     todasPartidasFinalizadas,
 
@@ -137,7 +142,9 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
 
     // Actions - Chaves
     handleGerarChaves,
+    handleGerarChavesManual,
     handleApagarChaves,
+    isFormacaoManual,
 
     // UI Handlers
     setAbaAtiva,

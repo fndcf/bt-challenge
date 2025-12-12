@@ -44,6 +44,11 @@ export class EtapaRepository implements IEtapaRepository {
       formato: data.formato || FormatoEtapa.DUPLA_FIXA,
       tipoChaveamento: data.tipoChaveamento,
       varianteSuperX: data.varianteSuperX,
+      // Campos TEAMS
+      varianteTeams: data.varianteTeams,
+      tipoFormacaoEquipe: data.tipoFormacaoEquipe,
+      tipoFormacaoJogos: data.tipoFormacaoJogos,
+      isMisto: data.isMisto,
       dataInicio: data.dataInicio,
       dataFim: data.dataFim,
       dataRealizacao: data.dataRealizacao,

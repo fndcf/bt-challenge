@@ -2,13 +2,15 @@
  * Responsabilidade única: Orquestrar e renderizar página de detalhes da etapa
  */
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import { ModalInscricao } from "@/components/etapas/ModalInscricao";
+import { ModalFormacaoManualEquipes } from "@/components/etapas/ModalFormacaoManualEquipes";
 import { ChavesEtapa } from "@/components/etapas/ChavesEtapa";
 import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia";
 import { ChavesSuperX } from "@/components/etapas/ChavesSuperX";
+import { ChavesTeams } from "@/components/etapas/ChavesTeams";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 import { Footer } from "@/components/layout/Footer";
 import { getEtapaService } from "@/services";
@@ -31,6 +33,9 @@ const DetalhesEtapa: React.FC = () => {
   const etapaService = getEtapaService();
   const tabsRef = useRef<HTMLDivElement>(null);
 
+  // Estado do modal de formação manual
+  const [modalFormacaoManualAberto, setModalFormacaoManualAberto] = useState(false);
+
   // Hook customizado gerencia todo o estado e lógica
   const {
     etapa,
@@ -41,6 +46,7 @@ const DetalhesEtapa: React.FC = () => {
     modalConfirmacaoAberto,
     isReiDaPraia,
     isSuperX,
+    isTeams,
     progresso,
     todasPartidasFinalizadas,
     carregarEtapa,
@@ -50,7 +56,9 @@ const DetalhesEtapa: React.FC = () => {
     handleCancelarInscricao,
     handleCancelarMultiplosInscricoes,
     handleGerarChaves,
+    handleGerarChavesManual,
     handleApagarChaves,
+    isFormacaoManual,
     setAbaAtiva,
     setModalInscricaoAberto,
     setModalConfirmacaoAberto,
@@ -125,6 +133,7 @@ const DetalhesEtapa: React.FC = () => {
           progresso={progresso}
           isReiDaPraia={isReiDaPraia}
           isSuperX={isSuperX}
+          isTeams={isTeams}
         />
 
         {/* Ações Administrativas */}
@@ -132,10 +141,18 @@ const DetalhesEtapa: React.FC = () => {
           etapa={etapa}
           isReiDaPraia={isReiDaPraia}
           isSuperX={isSuperX}
+          isTeams={isTeams}
           todasPartidasFinalizadas={todasPartidasFinalizadas}
           onAbrirInscricoes={handleAbrirInscricoes}
           onEncerrarInscricoes={handleEncerrarInscricoes}
-          onGerarChaves={handleGerarChaves}
+          onGerarChaves={() => {
+            // Se é TEAMS com formação manual, abre o modal
+            if (isFormacaoManual) {
+              setModalFormacaoManualAberto(true);
+            } else {
+              handleGerarChaves();
+            }
+          }}
           onApagarChaves={() => setModalConfirmacaoAberto(true)}
           onFinalizarEtapa={handleFinalizarEtapa}
           onVerChaves={() => {
@@ -158,8 +175,8 @@ const DetalhesEtapa: React.FC = () => {
                 <S.TabBadge>{etapa.totalInscritos}</S.TabBadge>
               </S.Tab>
 
-              {/* Super X não tem cabeças de chave */}
-              {!isSuperX && (
+              {/* Super X e TEAMS não tem cabeças de chave */}
+              {!isSuperX && !isTeams && (
                 <S.Tab
                   $active={abaAtiva === "cabeças"}
                   onClick={() => setAbaAtiva("cabeças")}
@@ -191,13 +208,20 @@ const DetalhesEtapa: React.FC = () => {
             />
           )}
 
-          {abaAtiva === "cabeças" && !isSuperX && (
+          {abaAtiva === "cabeças" && !isSuperX && !isTeams && (
             <CabecasTab etapa={etapa} onUpdate={carregarEtapa} />
           )}
 
           {abaAtiva === "chaves" && etapa.chavesGeradas && (
             <>
-              {isSuperX ? (
+              {isTeams ? (
+                <ChavesTeams
+                  etapaId={etapa.id}
+                  varianteTeams={etapa.varianteTeams}
+                  etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                  onAtualizar={carregarEtapa}
+                />
+              ) : isSuperX ? (
                 <ChavesSuperX
                   etapaId={etapa.id}
                   varianteSuperX={etapa.varianteSuperX}
@@ -222,6 +246,7 @@ const DetalhesEtapa: React.FC = () => {
           etapaNome={etapa.nome}
           etapaNivel={etapa.nivel}
           etapaGenero={etapa.genero}
+          etapaFormato={etapa.formato}
           maxJogadores={etapa.maxJogadores}
           totalInscritos={etapa.totalInscritos}
           onClose={() => setModalInscricaoAberto(false)}
@@ -243,6 +268,20 @@ const DetalhesEtapa: React.FC = () => {
             setModalConfirmacaoAberto(false);
           }}
           onClose={() => setModalConfirmacaoAberto(false)}
+        />
+      )}
+
+      {modalFormacaoManualAberto && etapa && (
+        <ModalFormacaoManualEquipes
+          isOpen={modalFormacaoManualAberto}
+          onClose={() => setModalFormacaoManualAberto(false)}
+          onConfirm={async (formacoes) => {
+            await handleGerarChavesManual(formacoes);
+            setModalFormacaoManualAberto(false);
+          }}
+          inscricoes={etapa.inscricoes || []}
+          varianteTeams={etapa.varianteTeams || 4}
+          isMisto={etapa.isMisto}
         />
       )}
     </>

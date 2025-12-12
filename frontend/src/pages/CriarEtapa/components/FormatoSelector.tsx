@@ -1,5 +1,5 @@
 /**
- * Responsabilidade única: Seletor de formato do torneio (Dupla Fixa, Rei da Praia ou Super X)
+ * Responsabilidade única: Seletor de formato do torneio (Dupla Fixa, Rei da Praia, Super X ou TEAMS)
  */
 
 import React from "react";
@@ -55,6 +55,18 @@ export const FormatoSelector: React.FC<FormatoSelectorProps> = ({
           </S.FormatoTitle>
           <S.FormatoDescription>
             8 ou 12 jogadores, duplas rotativas, sem eliminatória
+          </S.FormatoDescription>
+        </S.FormatoOption>
+
+        <S.FormatoOption
+          $selected={formatoAtual === FormatoEtapa.TEAMS}
+          onClick={() => onFormatoChange(FormatoEtapa.TEAMS)}
+        >
+          <S.FormatoTitle $selected={formatoAtual === FormatoEtapa.TEAMS}>
+            TEAMS
+          </S.FormatoTitle>
+          <S.FormatoDescription>
+            Equipes de 4 ou 6 jogadores, todos contra todos
           </S.FormatoDescription>
         </S.FormatoOption>
       </S.FormatoSelector>

@@ -22,6 +22,7 @@ export enum StatusJogador {
 export enum GeneroJogador {
   MASCULINO = "masculino",
   FEMININO = "feminino",
+  MISTO = "misto", // Usado apenas para etapas TEAMS (equipes com jogadores de ambos os gêneros)
 }
 
 /**

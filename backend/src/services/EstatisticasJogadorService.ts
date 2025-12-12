@@ -810,11 +810,6 @@ export class EstatisticasJogadorService {
     snapshot.docs.forEach((doc) => {
       const stat = doc.data() as EstatisticasJogador;
 
-      // Só conta se a etapa conta pontos no ranking
-      if (!etapasQueContam.has(stat.etapaId)) {
-        return; // Pula esta etapa
-      }
-
       jogadorNome = stat.jogadorNome;
       jogadorNivel = stat.jogadorNivel;
       jogadorGenero = stat.jogadorGenero;
@@ -822,11 +817,15 @@ export class EstatisticasJogadorService {
       jogos += stat.jogos || 0;
       vitorias += stat.vitorias || 0;
       derrotas += stat.derrotas || 0;
-      pontos += stat.pontos || 0;
       setsVencidos += stat.setsVencidos || 0;
       setsPerdidos += stat.setsPerdidos || 0;
       gamesVencidos += stat.gamesVencidos || 0;
       gamesPerdidos += stat.gamesPerdidos || 0;
+
+      // Pontos só são contados se a etapa conta para o ranking
+      if (etapasQueContam.has(stat.etapaId)) {
+        pontos += stat.pontos || 0;
+      }
     });
 
     const saldoSets = setsVencidos - setsPerdidos;
@@ -972,16 +971,11 @@ export class EstatisticasJogadorService {
       .where("jogadorNivel", "==", nivel)
       .get();
 
-    // Agregar por jogador (apenas etapas que contam pontos)
+    // Agregar por jogador (vitórias/derrotas de todas etapas, pontos apenas de etapas que contam)
     const jogadoresMap = new Map<string, any>();
 
     snapshot.docs.forEach((doc) => {
       const stats = doc.data() as EstatisticasJogador;
-
-      // Só conta se a etapa conta pontos no ranking
-      if (!etapasQueContam.has(stats.etapaId)) {
-        return; // Pula esta etapa
-      }
 
       if (!jogadoresMap.has(stats.jogadorId)) {
         jogadoresMap.set(stats.jogadorId, {
@@ -1008,13 +1002,17 @@ export class EstatisticasJogadorService {
       jogador.jogos += stats.jogos || 0;
       jogador.vitorias += stats.vitorias || 0;
       jogador.derrotas += stats.derrotas || 0;
-      jogador.pontos += stats.pontos || 0;
       jogador.setsVencidos += stats.setsVencidos || 0;
       jogador.setsPerdidos += stats.setsPerdidos || 0;
       jogador.gamesVencidos += stats.gamesVencidos || 0;
       jogador.gamesPerdidos += stats.gamesPerdidos || 0;
       jogador.saldoSets += stats.saldoSets || 0;
       jogador.saldoGames += stats.saldoGames || 0;
+
+      // Pontos só são contados se a etapa conta para o ranking
+      if (etapasQueContam.has(stats.etapaId)) {
+        jogador.pontos += stats.pontos || 0;
+      }
     });
 
     // Converter para array e ordenar

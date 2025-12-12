@@ -35,6 +35,7 @@ export const ConfiguracoesJogadoresEdit: React.FC<
 }) => {
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = formato === FormatoEtapa.SUPER_X;
+  const isTeams = formato === FormatoEtapa.TEAMS;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -70,7 +71,7 @@ export const ConfiguracoesJogadoresEdit: React.FC<
             min={minimoJogadores}
             max={isReiDaPraia ? 64 : 52}
             step={isReiDaPraia ? 4 : 2}
-            disabled={chavesGeradas || isSuperX}
+            disabled={chavesGeradas || isSuperX || isTeams}
             value={maxJogadores || ""}
             onChange={handleInputChange}
             onBlur={handleBlur}
@@ -83,6 +84,10 @@ export const ConfiguracoesJogadoresEdit: React.FC<
           {isSuperX ? (
             <S.HelperText>
               Super X tem número fixo de jogadores ({maxJogadores}) - não pode ser alterado
+            </S.HelperText>
+          ) : isTeams ? (
+            <S.HelperText>
+              TEAMS tem número fixo baseado na variante - não pode ser alterado
             </S.HelperText>
           ) : isReiDaPraia ? (
             <S.HelperText>

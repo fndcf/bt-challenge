@@ -267,6 +267,104 @@ router.post("/:id/super-x/partidas/:partidaId/resultado", (req, res) =>
   etapaController.registrarResultadoSuperX(req, res)
 );
 
+// ==================== TEAMS ====================
+
+/**
+ * @route   POST /api/etapas/:id/teams/gerar-equipes
+ * @desc    Gerar equipes TEAMS automaticamente
+ */
+router.post("/:id/teams/gerar-equipes", (req, res) =>
+  etapaController.gerarEquipesTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/formar-equipes-manual
+ * @desc    Formar equipes TEAMS manualmente
+ */
+router.post("/:id/teams/formar-equipes-manual", (req, res) =>
+  etapaController.formarEquipesManualTeams(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/teams/equipes
+ * @desc    Buscar equipes TEAMS da etapa
+ */
+router.get("/:id/teams/equipes", (req, res) =>
+  etapaController.buscarEquipesTeams(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/teams/confrontos
+ * @desc    Buscar confrontos TEAMS da etapa
+ */
+router.get("/:id/teams/confrontos", (req, res) =>
+  etapaController.buscarConfrontosTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/confrontos/:confrontoId/gerar-partidas
+ * @desc    Gerar partidas de um confronto TEAMS
+ */
+router.post("/:id/teams/confrontos/:confrontoId/gerar-partidas", (req, res) =>
+  etapaController.gerarPartidasConfrontoTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/confrontos/:confrontoId/definir-partidas
+ * @desc    Definir partidas manualmente de um confronto TEAMS
+ */
+router.post("/:id/teams/confrontos/:confrontoId/definir-partidas", (req, res) =>
+  etapaController.definirPartidasManualTeams(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/teams/confrontos/:confrontoId/partidas
+ * @desc    Buscar partidas de um confronto TEAMS
+ */
+router.get("/:id/teams/confrontos/:confrontoId/partidas", (req, res) =>
+  etapaController.buscarPartidasConfrontoTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/confrontos/:confrontoId/gerar-decider
+ * @desc    Gerar decider de um confronto TEAMS
+ */
+router.post("/:id/teams/confrontos/:confrontoId/gerar-decider", (req, res) =>
+  etapaController.gerarDeciderTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/partidas/:partidaId/resultado
+ * @desc    Registrar resultado de partida TEAMS
+ */
+router.post("/:id/teams/partidas/:partidaId/resultado", (req, res) =>
+  etapaController.registrarResultadoTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/recalcular-classificacao
+ * @desc    Recalcular classificação das equipes TEAMS
+ */
+router.post("/:id/teams/recalcular-classificacao", (req, res) =>
+  etapaController.recalcularClassificacaoTeams(req, res)
+);
+
+/**
+ * @route   DELETE /api/etapas/:id/teams/cancelar
+ * @desc    Cancelar chaves TEAMS
+ */
+router.delete("/:id/teams/cancelar", (req, res) =>
+  etapaController.cancelarChavesTeams(req, res)
+);
+
+/**
+ * @route   DELETE /api/etapas/:id/teams/resetar-partidas
+ * @desc    Resetar partidas TEAMS (mantém equipes e confrontos)
+ */
+router.delete("/:id/teams/resetar-partidas", (req, res) =>
+  etapaController.resetarPartidasTeams(req, res)
+);
+
 // ==================== ROTAS GENÉRICAS (devem ficar por último) ====================
 
 /**

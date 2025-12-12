@@ -9,6 +9,7 @@ import {
   DistribuicaoDuplaFixa,
   DistribuicaoReiDaPraia,
   DistribuicaoSuperX,
+  DistribuicaoTeams,
 } from "../hooks/useCriarEtapa";
 import * as S from "../CriarEtapa.styles";
 
@@ -18,6 +19,7 @@ export interface DistribuicaoPreviewProps {
   infoDuplaFixa: DistribuicaoDuplaFixa;
   infoReiDaPraia: DistribuicaoReiDaPraia;
   infoSuperX?: DistribuicaoSuperX;
+  infoTeams?: DistribuicaoTeams;
 }
 
 export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
@@ -26,6 +28,7 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
   infoDuplaFixa,
   infoReiDaPraia,
   infoSuperX,
+  infoTeams,
 }) => {
   // Preview para Super X
   if (formato === FormatoEtapa.SUPER_X && infoSuperX) {
@@ -53,6 +56,45 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
             Sem fase eliminatória - classificação final individual
           </S.PreviewNote>
         </S.PreviewContent>
+      </S.PreviewCard>
+    );
+  }
+
+  // Preview para TEAMS
+  if (formato === FormatoEtapa.TEAMS && infoTeams) {
+    return (
+      <S.PreviewCard>
+        <S.PreviewTitle>Distribuição TEAMS {infoTeams.variante}</S.PreviewTitle>
+
+        {infoTeams.valido ? (
+          <S.PreviewContent>
+            <S.PreviewRow>
+              <span>
+                <strong>{infoTeams.totalJogadores}</strong> jogadores
+              </span>
+              <span>→</span>
+              <span>
+                <strong>{infoTeams.totalEquipes}</strong>{" "}
+                {infoTeams.totalEquipes === 1 ? "equipe" : "equipes"}
+              </span>
+            </S.PreviewRow>
+
+            <S.PreviewBox>{infoTeams.descricao}</S.PreviewBox>
+
+            <S.PreviewNote>
+              {infoTeams.jogadoresPorEquipe} jogadores por equipe
+            </S.PreviewNote>
+            <S.PreviewNote>
+              {infoTeams.jogosPorConfronto} jogos por confronto
+              {infoTeams.variante === 4 ? " (+ decider se 1-1)" : ""}
+            </S.PreviewNote>
+            <S.PreviewNote>
+              Todos contra todos - vitória no confronto = 3 pontos
+            </S.PreviewNote>
+          </S.PreviewContent>
+        ) : (
+          <S.PreviewRow>{infoTeams.descricao}</S.PreviewRow>
+        )}
       </S.PreviewCard>
     );
   }

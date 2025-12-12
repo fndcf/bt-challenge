@@ -10,6 +10,7 @@ interface ActionsSectionProps {
   etapa: Etapa;
   isReiDaPraia: boolean;
   isSuperX?: boolean;
+  isTeams?: boolean;
   todasPartidasFinalizadas?: boolean;
   onAbrirInscricoes: () => void;
   onEncerrarInscricoes: () => void;
@@ -23,6 +24,7 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   etapa,
   isReiDaPraia,
   isSuperX = false,
+  isTeams = false,
   todasPartidasFinalizadas = false,
   onAbrirInscricoes,
   onEncerrarInscricoes,
@@ -58,30 +60,30 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           </S.Button>
         )}
 
-        {/* Gerar chaves */}
+        {/* Gerar chaves/equipes */}
         {podeGerarChaves && (
           <S.Button $variant="blue" onClick={onGerarChaves}>
-            <span>Gerar Chaves</span>
+            <span>{isTeams ? "Gerar Equipes" : "Gerar Chaves"}</span>
           </S.Button>
         )}
 
-        {/* Ver chaves */}
+        {/* Ver chaves/equipes */}
         {etapa.chavesGeradas && (
           <S.Button $variant="blue" onClick={onVerChaves}>
-            <span>Ver Chaves</span>
+            <span>{isTeams ? "Ver Equipes" : "Ver Chaves"}</span>
           </S.Button>
         )}
 
-        {/* Apagar chaves */}
-        {etapa.chavesGeradas && etapa.status !== StatusEtapa.FINALIZADA && (
+        {/* Apagar chaves/equipes */}
+        {etapa.chavesGeradas && (
           <S.Button $variant="red" onClick={onApagarChaves}>
-            <span>Apagar Chaves</span>
+            <span>{isTeams ? "Apagar Equipes" : "Apagar Chaves"}</span>
           </S.Button>
         )}
 
-        {/* Finalizar etapa - só para Super X, após todas as partidas serem finalizadas */}
+        {/* Finalizar etapa - para Super X e TEAMS, após todas as partidas/confrontos serem finalizados */}
         {etapa.chavesGeradas &&
-          isSuperX &&
+          (isSuperX || isTeams) &&
           (etapa.status === StatusEtapa.EM_ANDAMENTO ||
             etapa.status === StatusEtapa.CHAVES_GERADAS) &&
           todasPartidasFinalizadas && (
@@ -129,7 +131,24 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         </S.Alert>
       )}
 
-      {inscricoesAbertas && !isReiDaPraia && !isSuperX && etapa.totalInscritos < 4 && (
+      {inscricoesAbertas && isTeams && (
+        <S.Alert $variant="purple">
+          <p>
+            <strong>TEAMS {etapa.varianteTeams}:</strong> O numero de jogadores deve ser multiplo de{" "}
+            {etapa.varianteTeams || 4} para formar equipes completas.
+            Atualmente: {etapa.totalInscritos} jogadores
+          </p>
+          {etapa.totalInscritos > 0 && etapa.totalInscritos % (etapa.varianteTeams || 4) !== 0 && (
+            <p>
+              Proximos valores validos:{" "}
+              {Math.floor(etapa.totalInscritos / (etapa.varianteTeams || 4)) * (etapa.varianteTeams || 4)} ou{" "}
+              {Math.ceil(etapa.totalInscritos / (etapa.varianteTeams || 4)) * (etapa.varianteTeams || 4)}
+            </p>
+          )}
+        </S.Alert>
+      )}
+
+      {inscricoesAbertas && !isReiDaPraia && !isSuperX && !isTeams && etapa.totalInscritos < 4 && (
         <S.Alert $variant="blue">
           <p>
             Você precisa de pelo menos 4 jogadores inscritos (número par) para
@@ -156,15 +175,15 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         </S.Alert>
       )}
 
-      {/* Alerta: finalizar todas as partidas antes de encerrar - só para Super X */}
+      {/* Alerta: finalizar todas as partidas antes de encerrar - para Super X e TEAMS */}
       {etapa.chavesGeradas &&
-        isSuperX &&
+        (isSuperX || isTeams) &&
         !todasPartidasFinalizadas &&
         etapa.status !== StatusEtapa.FINALIZADA && (
           <S.Alert $variant="blue">
             <p>
               <strong>Aguardando resultados:</strong> Para finalizar a etapa,
-              registre o resultado de todas as partidas primeiro.
+              registre o resultado de {isTeams ? "todos os confrontos" : "todas as partidas"} primeiro.
             </p>
           </S.Alert>
         )}

@@ -29,6 +29,9 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
     if (etapa.formato === FormatoEtapa.SUPER_X) {
       return `Super ${etapa.varianteSuperX || 8}`;
     }
+    if (etapa.formato === FormatoEtapa.TEAMS) {
+      return `Teams ${etapa.varianteTeams || 4}`;
+    }
     return "Dupla Fixa";
   };
 

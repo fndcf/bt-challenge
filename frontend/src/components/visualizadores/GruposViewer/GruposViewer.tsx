@@ -52,17 +52,87 @@ interface Partida {
   vencedoresNomes?: string;
 }
 
+// Jogador dentro de uma equipe TEAMS
+interface JogadorEquipe {
+  id: string;
+  nome: string;
+  nivel?: string;
+  genero?: string;
+}
+
+// Equipe para formato TEAMS
+interface Equipe {
+  id: string;
+  nome: string;
+  posicaoGrupo?: number;
+  pontos: number;
+  vitorias: number;
+  derrotas: number;
+  jogosVencidos: number;
+  jogosPerdidos: number;
+  saldoJogos: number;
+  classificada: boolean;
+  jogadores?: JogadorEquipe[];
+}
+
+// Dupla dentro de uma partida TEAMS
+interface DuplaPartidaTeams {
+  jogador1Id: string;
+  jogador1Nome: string;
+  jogador2Id: string;
+  jogador2Nome: string;
+  equipeId: string;
+  equipeNome: string;
+}
+
+// Partida dentro de um confronto TEAMS
+interface PartidaTeams {
+  id: string;
+  ordem: number;
+  tipoJogo: "feminino" | "masculino" | "misto" | "decider";
+  status: string;
+  dupla1: DuplaPartidaTeams;
+  dupla2: DuplaPartidaTeams;
+  setsDupla1: number;
+  setsDupla2: number;
+  placar?: Array<{ numero: number; gamesDupla1: number; gamesDupla2: number }>;
+  vencedoraEquipeId?: string;
+  vencedoraEquipeNome?: string;
+}
+
+// Confronto para formato TEAMS
+interface Confronto {
+  id: string;
+  fase?: string;
+  rodada?: number;
+  equipe1Id?: string;
+  equipe2Id?: string;
+  equipe1Nome?: string;
+  equipe2Nome?: string;
+  equipe1Origem?: string;
+  equipe2Origem?: string;
+  status: string;
+  jogosEquipe1: number;
+  jogosEquipe2: number;
+  vencedoraId?: string;
+  partidas?: PartidaTeams[];
+}
+
 interface Grupo {
   id: string;
   nome: string;
   ordem: number;
   totalDuplas?: number;
   totalJogadores?: number;
+  totalEquipes?: number;
   completo: boolean;
   duplas?: Dupla[];
   jogadores?: JogadorIndividual[];
+  equipes?: Equipe[];
   partidas: Partida[];
-  formato?: "dupla_fixa" | "rei_da_praia" | "super_x";
+  confrontos?: Confronto[];
+  formato?: "dupla_fixa" | "rei_da_praia" | "super_x" | "teams";
+  tipo?: "grupos" | "eliminatoria"; // Para TEAMS: diferenciar fase de grupos de eliminatórias
 }
 
 interface GruposViewerProps {
@@ -198,6 +268,12 @@ const FormatoBadge = styled.span<{ $formato: string }>`
         color: #d97706;
       `;
     }
+    if (props.$formato === "teams") {
+      return `
+        background: #dcfce7;
+        color: #166534;
+      `;
+    }
     return `
       background: #dbeafe;
       color: #2563eb;
@@ -222,13 +298,20 @@ const GroupCard = styled.div`
   background: white;
 `;
 
-const GroupHeader = styled.div<{ $formato?: string }>`
+const GroupHeader = styled.div<{ $formato?: string; $tipo?: string }>`
   background: ${(props) => {
+    // Fases eliminatórias têm cor diferente (dourado/laranja)
+    if (props.$tipo === "eliminatoria") {
+      return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+    }
     if (props.$formato === "rei_da_praia") {
       return "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)";
     }
     if (props.$formato === "super_x") {
       return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+    }
+    if (props.$formato === "teams") {
+      return "linear-gradient(135deg, #059669 0%, #047857 100%)";
     }
     return "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
   }};
@@ -647,6 +730,164 @@ const EmptyText = styled.p`
   margin: 0;
 `;
 
+// Subtítulo para rodadas
+const RodadaTitle = styled.h5`
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 16px 0 8px 0;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  display: inline-block;
+
+  &:first-child {
+    margin-top: 0;
+  }
+`;
+
+// Partidas dentro do confronto TEAMS
+const PartidasTeamsContainer = styled.div`
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+`;
+
+const PartidaTeamsCard = styled.div<{ $finished?: boolean }>`
+  background: ${(props) => (props.$finished ? "#f9fafb" : "#fffbeb")};
+  border: 1px solid ${(props) => (props.$finished ? "#e5e7eb" : "#fde68a")};
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const PartidaTeamsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+`;
+
+const TipoJogoBadge = styled.span<{ $tipo: string }>`
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  ${(props) => {
+    switch (props.$tipo) {
+      case "feminino":
+        return `background: #fce7f3; color: #be185d;`;
+      case "masculino":
+        return `background: #dbeafe; color: #1d4ed8;`;
+      case "misto":
+        return `background: #d1fae5; color: #047857;`;
+      case "decider":
+        return `background: #fef3c7; color: #b45309;`;
+      default:
+        return `background: #f3f4f6; color: #6b7280;`;
+    }
+  }}
+`;
+
+const PartidaTeamsBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const DuplaRow = styled.div<{ $winner?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+
+  ${(props) =>
+    props.$winner
+      ? `
+    background: #dcfce7;
+    border-left: 3px solid #22c55e;
+    font-weight: 600;
+  `
+      : `
+    background: #fafafa;
+  `}
+`;
+
+const DuplaNames = styled.span`
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+`;
+
+const DuplaScore = styled.span<{ $winner?: boolean }>`
+  font-weight: 700;
+  color: ${(props) => (props.$winner ? "#16a34a" : "#6b7280")};
+  margin-left: 8px;
+`;
+
+const PlacarSets = styled.span`
+  font-size: 11px;
+  color: #6b7280;
+  margin-left: 8px;
+`;
+
+// Seção de Equipes com Jogadores
+const EquipesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const EquipeCard = styled.div<{ $classificada?: boolean }>`
+  background: ${(props) => (props.$classificada ? "#f0fdf4" : "#fafafa")};
+  border: 1px solid ${(props) => (props.$classificada ? "#bbf7d0" : "#e5e7eb")};
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const EquipeNome = styled.h4`
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 10px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const JogadoresList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const JogadorItem = styled.li`
+  padding: 4px 0;
+  font-size: 12px;
+  color: #4b5563;
+
+  &:not(:last-child) {
+    border-bottom: 1px dashed #f3f4f6;
+  }
+`;
+
 // ============== COMPONENT ==============
 
 const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
@@ -667,33 +908,43 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
 
   const formato =
     grupos[0]?.formato ||
-    (grupos[0]?.jogadores?.length ? "rei_da_praia" : "dupla_fixa");
+    (grupos[0]?.equipes?.length ? "teams" :
+     grupos[0]?.jogadores?.length ? "rei_da_praia" : "dupla_fixa");
   const isReiDaPraia = formato === "rei_da_praia";
   const isSuperX = formato === "super_x";
+  const isTeams = formato === "teams";
   // Super X e Rei da Praia usam jogadores individuais
   const isJogadoresIndividuais = isReiDaPraia || isSuperX;
 
   // Calcular estatísticas resumidas
   const totalGrupos = grupos.length;
-  const totalPartidas = grupos.reduce(
-    (acc, g) => acc + (g.partidas?.length || 0),
-    0
-  );
-  const partidasFinalizadas = grupos.reduce(
-    (acc, g) =>
-      acc +
-      (g.partidas?.filter((p) => p.status?.toUpperCase() === "FINALIZADA")
-        .length || 0),
-    0
-  );
+  // Para TEAMS, contar confrontos ao invés de partidas
+  const totalPartidas = isTeams
+    ? grupos.reduce((acc, g) => acc + (g.confrontos?.length || 0), 0)
+    : grupos.reduce((acc, g) => acc + (g.partidas?.length || 0), 0);
+  const partidasFinalizadas = isTeams
+    ? grupos.reduce(
+        (acc, g) =>
+          acc +
+          (g.confrontos?.filter((c) => c.status?.toUpperCase() === "FINALIZADO")
+            .length || 0),
+        0
+      )
+    : grupos.reduce(
+        (acc, g) =>
+          acc +
+          (g.partidas?.filter((p) => p.status?.toUpperCase() === "FINALIZADA")
+            .length || 0),
+        0
+      );
 
   return (
     <Wrapper>
       <Header>
         <Title>
-          Fase de Grupos
+          {isTeams ? "Confrontos" : "Fase de Grupos"}
           <FormatoBadge $formato={formato}>
-            {isSuperX ? "Super X" : isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
+            {isTeams ? "Teams" : isSuperX ? "Super X" : isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
           </FormatoBadge>
         </Title>
         <ToggleButton onClick={() => setIsExpanded(!isExpanded)}>
@@ -702,16 +953,18 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
       </Header>
 
       <CollapsedSummary $visible={!isExpanded}>
+          {!isTeams && (
+            <SummaryItem>
+              <SummaryLabel>Grupos</SummaryLabel>
+              <SummaryValue>{totalGrupos}</SummaryValue>
+            </SummaryItem>
+          )}
           <SummaryItem>
-            <SummaryLabel>Grupos</SummaryLabel>
-            <SummaryValue>{totalGrupos}</SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Partidas</SummaryLabel>
+            <SummaryLabel>{isTeams ? "Confrontos" : "Partidas"}</SummaryLabel>
             <SummaryValue>{totalPartidas}</SummaryValue>
           </SummaryItem>
           <SummaryItem>
-            <SummaryLabel>Finalizadas</SummaryLabel>
+            <SummaryLabel>Finalizados</SummaryLabel>
             <SummaryValue>{partidasFinalizadas}</SummaryValue>
           </SummaryItem>
           <SummaryItem>
@@ -728,7 +981,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
       <GroupsGrid $visible={isExpanded}>
           {grupos.map((group) => (
             <GroupCard key={group.id}>
-              <GroupHeader $formato={formato}>
+              <GroupHeader $formato={formato} $tipo={group.tipo}>
                 <GroupName>{group.nome}</GroupName>
               </GroupHeader>
 
@@ -874,8 +1127,228 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                   </>
                 )}
 
+                {/*  EQUIPES com Jogadores (TEAMS) */}
+                {isTeams && group.equipes && group.equipes.length > 0 && (
+                  <>
+                    <SectionTitle>Equipes</SectionTitle>
+                    <EquipesGrid>
+                      {group.equipes.map((equipe) => (
+                        <EquipeCard key={equipe.id} $classificada={equipe.classificada}>
+                          <EquipeNome>{equipe.nome}</EquipeNome>
+
+                          {equipe.jogadores && equipe.jogadores.length > 0 && (
+                            <JogadoresList>
+                              {equipe.jogadores.map((jogador) => (
+                                <JogadorItem key={jogador.id}>
+                                  {jogador.nome}
+                                </JogadorItem>
+                              ))}
+                            </JogadoresList>
+                          )}
+                        </EquipeCard>
+                      ))}
+                    </EquipesGrid>
+                  </>
+                )}
+
+                {/*  CLASSIFICAÇÃO TEAMS */}
+                {isTeams && group.equipes && group.equipes.length > 0 && (
+                  <>
+                    <SectionTitle>Classificação</SectionTitle>
+                    <TableWrapper>
+                      <Table>
+                        <colgroup>
+                          <col style={{ width: "40px" }} />
+                          <col style={{ width: "auto" }} />
+                          <col style={{ width: "25px" }} />
+                          <col style={{ width: "25px" }} />
+                          <col style={{ width: "35px" }} />
+                          <col style={{ width: "35px" }} />
+                        </colgroup>
+                        <THead>
+                          <tr>
+                            <Th>#</Th>
+                            <Th>Equipe</Th>
+                            <Th>V</Th>
+                            <Th>D</Th>
+                            <Th>Pts</Th>
+                            <Th>SJ</Th>
+                          </tr>
+                        </THead>
+                        <TBody>
+                          {group.equipes.map((equipe, index) => (
+                            <Tr key={equipe.id} $qualified={equipe.classificada}>
+                              <Td>
+                                <Position $qualified={equipe.classificada}>
+                                  {equipe.posicaoGrupo || index + 1}
+                                </Position>
+                              </Td>
+                              <Td>
+                                <TeamName>{equipe.nome}</TeamName>
+                              </Td>
+                              <Td>{equipe.vitorias || 0}</Td>
+                              <Td>{equipe.derrotas || 0}</Td>
+                              <Td>
+                                <StatBadge>{equipe.pontos || 0}</StatBadge>
+                              </Td>
+                              <Td>
+                                <StatBadge
+                                  $type={
+                                    (equipe.saldoJogos || 0) > 0
+                                      ? "positive"
+                                      : (equipe.saldoJogos || 0) < 0
+                                      ? "negative"
+                                      : "neutral"
+                                  }
+                                >
+                                  {(equipe.saldoJogos || 0) > 0 ? "+" : ""}
+                                  {equipe.saldoJogos || 0}
+                                </StatBadge>
+                              </Td>
+                            </Tr>
+                          ))}
+                        </TBody>
+                      </Table>
+                    </TableWrapper>
+                  </>
+                )}
+
+                {/*  CONFRONTOS TEAMS */}
+                {isTeams && group.confrontos && group.confrontos.length > 0 && (
+                  <>
+                    {/* Não mostrar título "Confrontos" para fases eliminatórias - já está no header */}
+                    {group.tipo !== "eliminatoria" && <SectionTitle>Confrontos</SectionTitle>}
+                    <MatchesList>
+                      {(() => {
+                        // Helper para formatar tipo de jogo
+                        const getTipoJogoLabel = (tipo: string) => {
+                          switch (tipo) {
+                            case "feminino": return "Feminino";
+                            case "masculino": return "Masculino";
+                            case "misto": return "Misto";
+                            case "decider": return "Decider";
+                            default: return tipo;
+                          }
+                        };
+
+                        // Helper para formatar placar dos sets
+                        const formatPlacar = (placar?: Array<{ numero: number; gamesDupla1: number; gamesDupla2: number }>) => {
+                          if (!placar || placar.length === 0) return "";
+                          return placar.map(s => `${s.gamesDupla1}-${s.gamesDupla2}`).join(" ");
+                        };
+
+                        // Agrupar confrontos por rodada
+                        let lastRodada: number | undefined;
+
+                        return group.confrontos.map((confronto) => {
+                          const finished = confronto.status?.toUpperCase() === "FINALIZADO";
+                          const winner1 = confronto.vencedoraId === confronto.equipe1Id;
+                          const winner2 = confronto.vencedoraId === confronto.equipe2Id;
+
+                          // Verificar se precisa mostrar título da rodada
+                          const showRodadaTitle = confronto.rodada !== undefined &&
+                                                  confronto.rodada !== lastRodada &&
+                                                  group.tipo !== "eliminatoria";
+                          lastRodada = confronto.rodada;
+
+                          return (
+                            <React.Fragment key={confronto.id}>
+                              {showRodadaTitle && (
+                                <RodadaTitle>Rodada {confronto.rodada}</RodadaTitle>
+                              )}
+                              <MatchCard $finished={finished}>
+                                <MatchHeader>
+                                  <Status $status={confronto.status || "agendado"}>
+                                    {finished
+                                      ? "Finalizado"
+                                      : confronto.status?.toUpperCase() === "EM_ANDAMENTO"
+                                      ? "Ao vivo"
+                                      : "Agendado"}
+                                  </Status>
+                                </MatchHeader>
+
+                              <MatchBody>
+                              <TeamRow $winner={winner1} $finished={finished}>
+                                <TeamNameInMatch>
+                                  {confronto.equipe1Nome || "A definir"}
+                                </TeamNameInMatch>
+                                <TeamScore $winner={winner1}>
+                                  {confronto.jogosEquipe1 || 0}
+                                </TeamScore>
+                              </TeamRow>
+
+                              <VS>VS</VS>
+
+                              <TeamRow $winner={winner2} $finished={finished}>
+                                <TeamNameInMatch>
+                                  {confronto.equipe2Nome || "A definir"}
+                                </TeamNameInMatch>
+                                <TeamScore $winner={winner2}>
+                                  {confronto.jogosEquipe2 || 0}
+                                </TeamScore>
+                              </TeamRow>
+
+                              {/* Partidas dentro do confronto */}
+                              {confronto.partidas && confronto.partidas.length > 0 && (
+                                <PartidasTeamsContainer>
+                                  {confronto.partidas.map((partida) => {
+                                    const partidaFinished = partida.status?.toUpperCase() === "FINALIZADA";
+                                    const dupla1Winner = partida.vencedoraEquipeId === partida.dupla1?.equipeId;
+                                    const dupla2Winner = partida.vencedoraEquipeId === partida.dupla2?.equipeId;
+
+                                    return (
+                                      <PartidaTeamsCard key={partida.id} $finished={partidaFinished}>
+                                        <PartidaTeamsHeader>
+                                          <TipoJogoBadge $tipo={partida.tipoJogo}>
+                                            {getTipoJogoLabel(partida.tipoJogo)}
+                                          </TipoJogoBadge>
+                                          <Status $status={partida.status || "agendada"}>
+                                            {partidaFinished ? "Finalizada" : "Agendada"}
+                                          </Status>
+                                        </PartidaTeamsHeader>
+
+                                        <PartidaTeamsBody>
+                                          <DuplaRow $winner={dupla1Winner}>
+                                            <DuplaNames>
+                                              {partida.dupla1?.jogador1Nome} & {partida.dupla1?.jogador2Nome}
+                                            </DuplaNames>
+                                            <DuplaScore $winner={dupla1Winner}>
+                                              {partida.setsDupla1 || 0}
+                                            </DuplaScore>
+                                            {partidaFinished && partida.placar && (
+                                              <PlacarSets>({formatPlacar(partida.placar)})</PlacarSets>
+                                            )}
+                                          </DuplaRow>
+
+                                          <DuplaRow $winner={dupla2Winner}>
+                                            <DuplaNames>
+                                              {partida.dupla2?.jogador1Nome} & {partida.dupla2?.jogador2Nome}
+                                            </DuplaNames>
+                                            <DuplaScore $winner={dupla2Winner}>
+                                              {partida.setsDupla2 || 0}
+                                            </DuplaScore>
+                                            {partidaFinished && partida.placar && (
+                                              <PlacarSets>({formatPlacar(partida.placar)})</PlacarSets>
+                                            )}
+                                          </DuplaRow>
+                                        </PartidaTeamsBody>
+                                      </PartidaTeamsCard>
+                                    );
+                                  })}
+                                </PartidasTeamsContainer>
+                              )}
+                              </MatchBody>
+                              </MatchCard>
+                            </React.Fragment>
+                          );
+                        });
+                      })()}
+                    </MatchesList>
+                  </>
+                )}
+
                 {/*  PARTIDAS - Adaptar por formato */}
-                {group.partidas?.length > 0 && (
+                {!isTeams && group.partidas?.length > 0 && (
                   <>
                     <SectionTitle>Partidas</SectionTitle>
                     <MatchesList>

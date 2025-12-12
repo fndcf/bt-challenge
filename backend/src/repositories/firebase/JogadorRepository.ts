@@ -493,6 +493,7 @@ export class JogadorRepository implements IJogadorRepository {
     const contagem: Record<GeneroJogador, number> = {
       [GeneroJogador.MASCULINO]: 0,
       [GeneroJogador.FEMININO]: 0,
+      [GeneroJogador.MISTO]: 0, // Não usado para jogadores, apenas para etapas TEAMS
     };
 
     snapshot.docs.forEach((doc) => {

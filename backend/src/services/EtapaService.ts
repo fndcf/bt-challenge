@@ -18,6 +18,7 @@ import {
   FormatoEtapa,
 } from "../models/Etapa";
 import { Inscricao, StatusInscricao } from "../models/Inscricao";
+import { GeneroJogador } from "../models/Jogador";
 import { TipoFase } from "../models/Eliminatoria";
 import logger from "../utils/logger";
 
@@ -31,6 +32,9 @@ import { IEstatisticasJogadorRepository } from "../repositories/interfaces/IEsta
 import { IGrupoRepository } from "../repositories/interfaces/IGrupoRepository";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { IConfrontoEliminatorioRepository } from "../repositories/interfaces/IConfrontoEliminatorioRepository";
+import { IEquipeRepository } from "../repositories/interfaces/IEquipeRepository";
+import { IConfrontoEquipeRepository } from "../repositories/interfaces/IConfrontoEquipeRepository";
+import { StatusConfronto } from "../models/Teams";
 
 // Implementações Firebase (para instância default)
 import { EtapaRepository } from "../repositories/firebase/EtapaRepository";
@@ -42,6 +46,8 @@ import { EstatisticasJogadorRepository } from "../repositories/firebase/Estatist
 import { GrupoRepository } from "../repositories/firebase/GrupoRepository";
 import { DuplaRepository } from "../repositories/firebase/DuplaRepository";
 import { ConfrontoEliminatorioRepository } from "../repositories/firebase/ConfrontoEliminatorioRepository";
+import { EquipeRepository } from "../repositories/firebase/EquipeRepository";
+import ConfrontoEquipeRepository from "../repositories/firebase/ConfrontoEquipeRepository";
 
 /**
  * Usa injeção de dependência para repositories
@@ -56,7 +62,9 @@ export class EtapaService {
     private estatisticasJogadorRepository: IEstatisticasJogadorRepository,
     private grupoRepository: IGrupoRepository,
     private duplaRepository: IDuplaRepository,
-    private confrontoRepository: IConfrontoEliminatorioRepository
+    private confrontoRepository: IConfrontoEliminatorioRepository,
+    private equipeRepository: IEquipeRepository = new EquipeRepository(),
+    private confrontoEquipeRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository
   ) {}
 
   /**
@@ -113,6 +121,11 @@ export class EtapaService {
         formato: dadosValidados.formato,
         tipoChaveamento: dadosValidados.tipoChaveamento,
         varianteSuperX: dadosValidados.varianteSuperX,
+        // Campos TEAMS
+        varianteTeams: dadosValidados.varianteTeams,
+        tipoFormacaoEquipe: dadosValidados.tipoFormacaoEquipe,
+        tipoFormacaoJogos: dadosValidados.tipoFormacaoJogos,
+        isMisto: dadosValidados.isMisto,
         dataInicio: dataInicio,
         dataFim: dataFim,
         dataRealizacao: dataRealizacao,
@@ -212,7 +225,13 @@ export class EtapaService {
         }
       }
 
-      if (jogador.genero !== etapa.genero) {
+      // Validar gênero: etapa "misto" aceita masculino ou feminino
+      const isMisto = etapa.genero === GeneroJogador.MISTO;
+      const generoValido = isMisto
+        ? jogador.genero === GeneroJogador.MASCULINO || jogador.genero === GeneroJogador.FEMININO
+        : jogador.genero === etapa.genero;
+
+      if (!generoValido) {
         throw new Error(
           `Este jogador não pode se inscrever nesta etapa. ` +
             `Etapa ${etapa.genero}, jogador é ${jogador.genero}`
@@ -226,6 +245,42 @@ export class EtapaService {
       );
       if (jaInscrito) {
         throw new Error("Jogador já está inscrito nesta etapa");
+      }
+
+      // Validar proporção de gênero para etapas TEAMS mistas
+      if (etapa.formato === FormatoEtapa.TEAMS && isMisto) {
+        const inscricoesAtuais = await this.inscricaoRepository.buscarConfirmadas(
+          etapaId,
+          arenaId
+        );
+
+        // Contar inscritos por gênero
+        const masculinosInscritos = inscricoesAtuais.filter(
+          (i) => i.jogadorGenero === GeneroJogador.MASCULINO
+        ).length;
+        const femininasInscritas = inscricoesAtuais.filter(
+          (i) => i.jogadorGenero === GeneroJogador.FEMININO
+        ).length;
+
+        // Calcular o máximo permitido para cada gênero (50%)
+        const maxPorGenero = etapa.maxJogadores / 2;
+
+        // Verificar se a nova inscrição excederia o limite
+        if (jogador.genero === GeneroJogador.MASCULINO) {
+          if (masculinosInscritos >= maxPorGenero) {
+            throw new Error(
+              `Limite de jogadores masculinos atingido (${maxPorGenero}). ` +
+                `Etapas mistas requerem 50% de cada gênero.`
+            );
+          }
+        } else if (jogador.genero === GeneroJogador.FEMININO) {
+          if (femininasInscritas >= maxPorGenero) {
+            throw new Error(
+              `Limite de jogadoras femininas atingido (${maxPorGenero}). ` +
+                `Etapas mistas requerem 50% de cada gênero.`
+            );
+          }
+        }
       }
 
       // Criar inscrição via repository
@@ -635,7 +690,106 @@ export class EtapaService {
       // Buscar pontuação via repository
       const pontuacao = await this.configRepository.buscarPontuacao();
 
-      // Buscar grupos via repository
+      // CENÁRIO 0: TEAMS (equipes)
+      if (etapa.formato === FormatoEtapa.TEAMS) {
+        // Verificar se todos os confrontos estão finalizados
+        const confrontos = await this.confrontoEquipeRepository.buscarPorEtapa(
+          id,
+          arenaId
+        );
+
+        if (confrontos.length === 0) {
+          throw new Error("Nenhum confronto encontrado para esta etapa");
+        }
+
+        const confrontosPendentes = confrontos.filter(
+          (c) => c.status !== StatusConfronto.FINALIZADO
+        );
+
+        if (confrontosPendentes.length > 0) {
+          throw new Error(
+            `Ainda há ${confrontosPendentes.length} confronto(s) pendente(s). Finalize todos os confrontos antes de encerrar a etapa.`
+          );
+        }
+
+        // Buscar equipes ordenadas por classificação
+        const equipes = await this.equipeRepository.buscarPorClassificacao(
+          id,
+          arenaId
+        );
+
+        if (equipes.length === 0) {
+          throw new Error("Nenhuma equipe encontrada para esta etapa");
+        }
+
+        // Tabela de colocações para TEAMS (por equipe)
+        const tabelaColocacoes = [
+          { colocacao: "campeao", pontos: pontuacao.campeao },
+          { colocacao: "vice", pontos: pontuacao.vice },
+          { colocacao: "semifinalista", pontos: pontuacao.semifinalista },
+          { colocacao: "quartas", pontos: pontuacao.quartas },
+          { colocacao: "oitavas", pontos: pontuacao.oitavas },
+          { colocacao: "participacao", pontos: pontuacao.participacao },
+        ];
+
+        // Só atribuir pontos se a etapa conta para o ranking
+        if (contaPontosRanking) {
+          for (let i = 0; i < equipes.length; i++) {
+            const equipe = equipes[i];
+            const { colocacao, pontos } =
+              tabelaColocacoes[i] ||
+              tabelaColocacoes[tabelaColocacoes.length - 1];
+
+            // Atribuir pontos a cada jogador da equipe
+            for (const jogador of equipe.jogadores) {
+              await this.atribuirPontosParaJogador(
+                jogador.id,
+                id,
+                pontos,
+                colocacao
+              );
+
+              logger.info("Pontos atribuídos ao jogador TEAMS", {
+                jogadorId: jogador.id,
+                jogadorNome: jogador.nome,
+                equipeNome: equipe.nome,
+                posicao: i + 1,
+                colocacao,
+                pontos,
+              });
+            }
+
+            // Atualizar posição da equipe
+            await this.equipeRepository.atualizarPosicao(equipe.id, i + 1);
+          }
+        } else {
+          logger.info(
+            "Etapa TEAMS não conta pontos no ranking - pulando atribuição",
+            {
+              etapaId: id,
+            }
+          );
+        }
+
+        const campeao = equipes[0];
+        if (!campeao) {
+          throw new Error("Nenhuma equipe campeã encontrada");
+        }
+
+        await this.etapaRepository.definirCampeao(id, campeao.id, campeao.nome);
+
+        logger.info("Etapa TEAMS encerrada", {
+          etapaId: id,
+          nome: etapa.nome,
+          campeaoNome: campeao.nome,
+          totalEquipes: equipes.length,
+          arenaId,
+        });
+
+        return;
+      }
+
+      // Buscar grupos via repository (para outros formatos)
       const grupos = await this.grupoRepository.buscarPorEtapa(id, arenaId);
 
       if (grupos.length === 0) {

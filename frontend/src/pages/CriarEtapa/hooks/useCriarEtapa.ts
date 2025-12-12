@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX } from "@/types/etapa";
+import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
@@ -12,6 +12,8 @@ import { getEtapaService } from "@/services";
 export interface CriarEtapaFormData extends CriarEtapaDTO {
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   varianteSuperX?: VarianteSuperX;
+  varianteTeams?: VarianteTeams;
+  tipoFormacaoEquipe?: TipoFormacaoEquipe;
 }
 
 export interface DistribuicaoDuplaFixa {
@@ -40,6 +42,17 @@ export interface DistribuicaoSuperX {
   valido: boolean;
 }
 
+export interface DistribuicaoTeams {
+  variante: VarianteTeams;
+  totalJogadores: number;
+  totalEquipes: number;
+  jogadoresPorEquipe: number;
+  totalConfrontos: number;
+  jogosPorConfronto: number;
+  descricao: string;
+  valido: boolean;
+}
+
 export interface ErrosDatas {
   dataInicio?: string;
   dataFim?: string;
@@ -57,7 +70,8 @@ export interface UseCriarEtapaReturn {
   infoDuplaFixa: DistribuicaoDuplaFixa;
   infoReiDaPraia: DistribuicaoReiDaPraia;
   infoSuperX: DistribuicaoSuperX;
-  infoAtual: DistribuicaoDuplaFixa | DistribuicaoReiDaPraia | DistribuicaoSuperX;
+  infoTeams: DistribuicaoTeams;
+  infoAtual: DistribuicaoDuplaFixa | DistribuicaoReiDaPraia | DistribuicaoSuperX | DistribuicaoTeams;
 
   // Funções
   handleChange: (field: keyof CriarEtapaFormData, value: any) => void;
@@ -72,6 +86,8 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   formato: FormatoEtapa.DUPLA_FIXA,
   tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES,
   varianteSuperX: VarianteSuperX.SUPER_8,
+  varianteTeams: VarianteTeams.TEAMS_4,
+  tipoFormacaoEquipe: TipoFormacaoEquipe.BALANCEADO,
   dataInicio: "",
   dataFim: "",
   dataRealizacao: "",
@@ -249,16 +265,69 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
     };
   }, [formData.varianteSuperX]);
 
+  const calcularDistribuicaoTeams = useCallback((): DistribuicaoTeams => {
+    const variante = formData.varianteTeams || VarianteTeams.TEAMS_4;
+    const totalJogadores = formData.maxJogadores || 0;
+    const jogadoresPorEquipe = variante;
+    const minimoJogadores = variante * 2; // Mínimo de 2 equipes
+
+    if (totalJogadores < minimoJogadores) {
+      return {
+        variante,
+        totalJogadores,
+        totalEquipes: 0,
+        jogadoresPorEquipe,
+        totalConfrontos: 0,
+        jogosPorConfronto: variante === VarianteTeams.TEAMS_4 ? 2 : 3,
+        descricao: `Informe o número de jogadores (mínimo ${minimoJogadores} para 2 equipes)`,
+        valido: false,
+      };
+    }
+
+    if (totalJogadores % variante !== 0) {
+      return {
+        variante,
+        totalJogadores,
+        totalEquipes: 0,
+        jogadoresPorEquipe,
+        totalConfrontos: 0,
+        jogosPorConfronto: variante === VarianteTeams.TEAMS_4 ? 2 : 3,
+        descricao: `Número de jogadores deve ser múltiplo de ${variante}`,
+        valido: false,
+      };
+    }
+
+    const totalEquipes = totalJogadores / variante;
+    const totalConfrontos = (totalEquipes * (totalEquipes - 1)) / 2; // Round-robin
+    const jogosPorConfronto = variante === VarianteTeams.TEAMS_4 ? 2 : 3;
+
+    const descricao = `${totalEquipes} equipes de ${jogadoresPorEquipe} jogadores | ${totalConfrontos} confrontos | ${jogosPorConfronto} jogos por confronto`;
+
+    return {
+      variante,
+      totalJogadores,
+      totalEquipes,
+      jogadoresPorEquipe,
+      totalConfrontos,
+      jogosPorConfronto,
+      descricao,
+      valido: true,
+    };
+  }, [formData.varianteTeams, formData.maxJogadores]);
+
   const infoDuplaFixa = calcularDistribuicaoDuplaFixa();
   const infoReiDaPraia = calcularDistribuicaoReiDaPraia();
   const infoSuperX = calcularDistribuicaoSuperX();
+  const infoTeams = calcularDistribuicaoTeams();
 
   const infoAtual =
     formData.formato === FormatoEtapa.REI_DA_PRAIA
       ? infoReiDaPraia
       : formData.formato === FormatoEtapa.SUPER_X
         ? infoSuperX
-        : infoDuplaFixa;
+        : formData.formato === FormatoEtapa.TEAMS
+          ? infoTeams
+          : infoDuplaFixa;
 
   // ============== VALIDAÇÕES ==============
 
@@ -315,6 +384,28 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
           maxJogadores: variante,
           varianteSuperX: variante, // Garantir que varianteSuperX está definido
           nivel: undefined, // Nivel é opcional para Super X
+        }));
+      }
+    } else if (formData.formato === FormatoEtapa.TEAMS) {
+      // TEAMS: múltiplo da variante, mínimo 2 equipes
+      const variante = formData.varianteTeams || VarianteTeams.TEAMS_4;
+      const minimo = variante * 2; // 2 equipes mínimo
+      if (currentMax < minimo) {
+        setFormData((prev) => ({
+          ...prev,
+          maxJogadores: minimo,
+          varianteTeams: variante,
+          tipoFormacaoEquipe: prev.tipoFormacaoEquipe || TipoFormacaoEquipe.BALANCEADO,
+          nivel: undefined, // Nivel é opcional para TEAMS
+        }));
+      } else if (currentMax % variante !== 0) {
+        const ajustado = Math.ceil(currentMax / variante) * variante;
+        setFormData((prev) => ({
+          ...prev,
+          maxJogadores: ajustado,
+          varianteTeams: variante,
+          tipoFormacaoEquipe: prev.tipoFormacaoEquipe || TipoFormacaoEquipe.BALANCEADO,
+          nivel: undefined,
         }));
       }
     } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
@@ -389,6 +480,44 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
             setLoading(false);
             return;
           }
+        } else if (formData.formato === FormatoEtapa.TEAMS) {
+          // Validar formato TEAMS
+          if (!formData.varianteTeams) {
+            setError("TEAMS: selecione a variante (4 ou 6 jogadores por equipe)");
+            setLoading(false);
+            return;
+          }
+          const variantesValidas = [
+            VarianteTeams.TEAMS_4,
+            VarianteTeams.TEAMS_6,
+          ];
+          if (!variantesValidas.includes(formData.varianteTeams)) {
+            setError("TEAMS: variante inválida");
+            setLoading(false);
+            return;
+          }
+          if (!formData.tipoFormacaoEquipe) {
+            setError("TEAMS: selecione o tipo de formação de equipes");
+            setLoading(false);
+            return;
+          }
+          const minimoJogadores = formData.varianteTeams * 2;
+          if (formData.maxJogadores < minimoJogadores) {
+            setError(`TEAMS ${formData.varianteTeams}: mínimo ${minimoJogadores} jogadores para 2 equipes`);
+            setLoading(false);
+            return;
+          }
+          if (formData.maxJogadores % formData.varianteTeams !== 0) {
+            setError(`TEAMS: número de jogadores deve ser múltiplo de ${formData.varianteTeams}`);
+            setLoading(false);
+            return;
+          }
+          // TEAMS com "Mesmo Nível" requer seleção de nível
+          if (formData.tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL && !formData.nivel) {
+            setError("TEAMS com formação 'Mesmo Nível': selecione o nível dos jogadores");
+            setLoading(false);
+            return;
+          }
         } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
           // Validar formato Rei da Praia
           if (formData.maxJogadores < 8) {
@@ -440,6 +569,9 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         if (formData.formato === FormatoEtapa.SUPER_X) {
           // Super X: grupo único com todos os jogadores
           jogadoresPorGrupoCalculado = formData.maxJogadores;
+        } else if (formData.formato === FormatoEtapa.TEAMS) {
+          // TEAMS: não usa jogadoresPorGrupo, usa varianteTeams
+          jogadoresPorGrupoCalculado = formData.varianteTeams || VarianteTeams.TEAMS_4;
         } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
           jogadoresPorGrupoCalculado = 4;
         } else {
@@ -466,21 +598,37 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
 
         // Incluir campos específicos por formato
         if (formData.formato === FormatoEtapa.SUPER_X) {
-          // Super X: incluir variante, remover tipoChaveamento
+          // Super X: incluir variante, remover campos de outros formatos
           dadosFormatados.varianteSuperX = formData.varianteSuperX;
           delete dadosFormatados.tipoChaveamento;
+          delete dadosFormatados.varianteTeams;
+          delete dadosFormatados.tipoFormacaoEquipe;
           // Nivel é opcional para Super X - se não informado, não incluir
           if (!formData.nivel) {
             delete dadosFormatados.nivel;
           }
+        } else if (formData.formato === FormatoEtapa.TEAMS) {
+          // TEAMS: incluir campos específicos, remover outros
+          dadosFormatados.varianteTeams = formData.varianteTeams;
+          dadosFormatados.tipoFormacaoEquipe = formData.tipoFormacaoEquipe;
+          delete dadosFormatados.tipoChaveamento;
+          delete dadosFormatados.varianteSuperX;
+          // Nivel é opcional para TEAMS - se não informado, não incluir
+          if (!formData.nivel) {
+            delete dadosFormatados.nivel;
+          }
         } else if (formData.formato === FormatoEtapa.REI_DA_PRAIA) {
-          // Rei da Praia: incluir tipoChaveamento, remover varianteSuperX
+          // Rei da Praia: incluir tipoChaveamento, remover outros
           dadosFormatados.tipoChaveamento = formData.tipoChaveamento;
           delete dadosFormatados.varianteSuperX;
+          delete dadosFormatados.varianteTeams;
+          delete dadosFormatados.tipoFormacaoEquipe;
         } else {
           // Dupla Fixa: remover campos específicos de outros formatos
           delete dadosFormatados.tipoChaveamento;
           delete dadosFormatados.varianteSuperX;
+          delete dadosFormatados.varianteTeams;
+          delete dadosFormatados.tipoFormacaoEquipe;
         }
 
         const etapaService = getEtapaService();
@@ -505,6 +653,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
     infoDuplaFixa,
     infoReiDaPraia,
     infoSuperX,
+    infoTeams,
     infoAtual,
 
     // Funções

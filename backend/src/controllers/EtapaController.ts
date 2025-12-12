@@ -13,7 +13,10 @@ import {
   AtualizarEtapaSchema,
   InscreverJogadorSchema,
   FiltrosEtapa,
+  StatusEtapa,
 } from "../models/Etapa";
+import { Timestamp } from "firebase-admin/firestore";
+import { db } from "../config/firebase";
 import { z } from "zod";
 import logger from "../utils/logger";
 
@@ -1214,6 +1217,540 @@ class EtapaController extends BaseController {
 
       this.handleGenericError(res, error, "registrar resultado Super X", {
         partidaId: req.params.partidaId,
+      });
+    }
+  }
+
+  // ==================== TEAMS ====================
+
+  /**
+   * Gerar equipes TEAMS
+   * POST /api/etapas/:id/teams/gerar-equipes
+   */
+  async gerarEquipesTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+      const { tipoFormacaoJogos = "sorteio" } = req.body;
+
+      logger.info("Gerando equipes TEAMS", { etapaId: id });
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      const inscricoesRaw = await etapaService.listarInscricoes(id, arenaId);
+
+      // Mapear inscricoes para o formato esperado pelo TeamsService
+      const inscricoes = inscricoesRaw.map((i) => ({
+        jogadorId: i.jogadorId,
+        jogadorNome: i.jogadorNome,
+        nivel: i.jogadorNivel as any,
+        genero: i.jogadorGenero as any,
+      }));
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const resultado = await teamsService.gerarEquipes(etapa, inscricoes);
+
+      // Gerar confrontos automaticamente
+      const confrontos = await teamsService.gerarConfrontos(
+        etapa,
+        tipoFormacaoJogos
+      );
+
+      // Atualizar status da etapa para indicar que chaves foram geradas
+      await db.collection("etapas").doc(id).update({
+        chavesGeradas: true,
+        dataGeracaoChaves: Timestamp.now(),
+        status: StatusEtapa.CHAVES_GERADAS,
+        atualizadoEm: Timestamp.now(),
+      });
+
+      logger.info("Equipes TEAMS geradas", {
+        etapaId: id,
+        equipes: resultado.equipes.length,
+        confrontos: confrontos.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Equipes TEAMS geradas com sucesso",
+        equipes: resultado.equipes.length,
+        confrontos: confrontos.length,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "gerar equipes TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Formar equipes manualmente TEAMS
+   * POST /api/etapas/:id/teams/formar-equipes-manual
+   */
+  async formarEquipesManualTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+      const { formacoes, tipoFormacaoJogos = "sorteio" } = req.body;
+
+      logger.info("Formando equipes TEAMS manualmente", { etapaId: id });
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      const inscricoesRaw = await etapaService.listarInscricoes(id, arenaId);
+
+      // Mapear inscricoes para o formato esperado pelo TeamsService
+      const inscricoes = inscricoesRaw.map((i) => ({
+        jogadorId: i.jogadorId,
+        jogadorNome: i.jogadorNome,
+        nivel: i.jogadorNivel as any,
+        genero: i.jogadorGenero as any,
+      }));
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const resultado = await teamsService.formarEquipesManualmente(
+        etapa,
+        inscricoes,
+        formacoes
+      );
+
+      // Gerar confrontos automaticamente
+      const confrontos = await teamsService.gerarConfrontos(
+        etapa,
+        tipoFormacaoJogos
+      );
+
+      // Atualizar status da etapa para indicar que chaves foram geradas
+      await db.collection("etapas").doc(id).update({
+        chavesGeradas: true,
+        dataGeracaoChaves: Timestamp.now(),
+        status: StatusEtapa.CHAVES_GERADAS,
+        atualizadoEm: Timestamp.now(),
+      });
+
+      logger.info("Equipes TEAMS formadas manualmente", {
+        etapaId: id,
+        equipes: resultado.equipes.length,
+        confrontos: confrontos.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Equipes formadas com sucesso",
+        equipes: resultado.equipes.length,
+        confrontos: confrontos.length,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "formar equipes TEAMS manual", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Buscar equipes TEAMS
+   * GET /api/etapas/:id/teams/equipes
+   */
+  async buscarEquipesTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const equipes = await teamsService.buscarEquipes(id, arenaId);
+
+      ResponseHelper.success(res, equipes);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar equipes TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Buscar confrontos TEAMS
+   * GET /api/etapas/:id/teams/confrontos
+   */
+  async buscarConfrontosTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const confrontos = await teamsService.buscarConfrontos(id, arenaId);
+
+      ResponseHelper.success(res, confrontos);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar confrontos TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Gerar partidas de um confronto TEAMS
+   * POST /api/etapas/:id/teams/confrontos/:confrontoId/gerar-partidas
+   */
+  async gerarPartidasConfrontoTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id, confrontoId } = req.params;
+
+      logger.info("Gerando partidas do confronto TEAMS", { confrontoId });
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      const { db } = await import("../config/firebase");
+      const confrontoDoc = await db
+        .collection("confrontos_equipe")
+        .doc(confrontoId)
+        .get();
+
+      if (!confrontoDoc.exists) {
+        ResponseHelper.notFound(res, "Confronto não encontrado");
+        return;
+      }
+
+      const confronto = { id: confrontoDoc.id, ...confrontoDoc.data() } as any;
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const partidas = await teamsService.gerarPartidasConfronto(
+        confronto,
+        etapa
+      );
+
+      logger.info("Partidas do confronto TEAMS geradas", {
+        confrontoId,
+        partidas: partidas.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Partidas geradas com sucesso",
+        partidas: partidas.length,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "gerar partidas confronto TEAMS", {
+        confrontoId: req.params.confrontoId,
+      });
+    }
+  }
+
+  /**
+   * Definir partidas manualmente de um confronto TEAMS
+   * POST /api/etapas/:id/teams/confrontos/:confrontoId/definir-partidas
+   */
+  async definirPartidasManualTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id, confrontoId } = req.params;
+      const { partidas: definicoesPartidas } = req.body;
+
+      logger.info("Definindo partidas do confronto TEAMS manualmente", {
+        confrontoId,
+      });
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      const { db } = await import("../config/firebase");
+      const confrontoDoc = await db
+        .collection("confrontos_equipe")
+        .doc(confrontoId)
+        .get();
+
+      if (!confrontoDoc.exists) {
+        ResponseHelper.notFound(res, "Confronto não encontrado");
+        return;
+      }
+
+      const confronto = { id: confrontoDoc.id, ...confrontoDoc.data() } as any;
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const partidas = await teamsService.definirPartidasManualmente(
+        confronto,
+        etapa,
+        { partidas: definicoesPartidas }
+      );
+
+      logger.info("Partidas do confronto TEAMS definidas manualmente", {
+        confrontoId,
+        partidas: partidas.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Partidas definidas com sucesso",
+        partidas: partidas.length,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "definir partidas TEAMS manual", {
+        confrontoId: req.params.confrontoId,
+      });
+    }
+  }
+
+  /**
+   * Buscar partidas de um confronto TEAMS
+   * GET /api/etapas/:id/teams/confrontos/:confrontoId/partidas
+   */
+  async buscarPartidasConfrontoTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { confrontoId } = req.params;
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const partidas = await teamsService.buscarPartidasConfronto(confrontoId);
+
+      ResponseHelper.success(res, partidas);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar partidas confronto TEAMS", {
+        confrontoId: req.params.confrontoId,
+      });
+    }
+  }
+
+  /**
+   * Registrar resultado partida TEAMS
+   * POST /api/etapas/:id/teams/partidas/:partidaId/resultado
+   */
+  async registrarResultadoTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { partidaId } = req.params;
+      const { placar } = req.body;
+
+      logger.info("Registrando resultado TEAMS", { partidaId });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const resultado = await teamsService.registrarResultadoPartida(
+        partidaId,
+        arenaId,
+        { placar }
+      );
+
+      logger.info("Resultado TEAMS registrado", {
+        partidaId,
+        precisaDecider: resultado.precisaDecider,
+        confrontoFinalizado: resultado.confrontoFinalizado,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Resultado registrado com sucesso",
+        precisaDecider: resultado.precisaDecider,
+        confrontoFinalizado: resultado.confrontoFinalizado,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "registrar resultado TEAMS", {
+        partidaId: req.params.partidaId,
+      });
+    }
+  }
+
+  /**
+   * Gerar decider de um confronto TEAMS
+   * POST /api/etapas/:id/teams/confrontos/:confrontoId/gerar-decider
+   */
+  async gerarDeciderTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id, confrontoId } = req.params;
+
+      logger.info("Gerando decider TEAMS", { confrontoId });
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      const { db } = await import("../config/firebase");
+      const confrontoDoc = await db
+        .collection("confrontos_equipe")
+        .doc(confrontoId)
+        .get();
+
+      if (!confrontoDoc.exists) {
+        ResponseHelper.notFound(res, "Confronto não encontrado");
+        return;
+      }
+
+      const confronto = { id: confrontoDoc.id, ...confrontoDoc.data() } as any;
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const decider = await teamsService.gerarDecider(confronto, etapa);
+
+      logger.info("Decider TEAMS gerado", {
+        confrontoId,
+        deciderId: decider.id,
+      });
+
+      ResponseHelper.success(res, {
+        message: "Decider gerado com sucesso",
+        decider,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "gerar decider TEAMS", {
+        confrontoId: req.params.confrontoId,
+      });
+    }
+  }
+
+  /**
+   * Cancelar chaves TEAMS
+   * DELETE /api/etapas/:id/teams/cancelar
+   */
+  async cancelarChavesTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Cancelando chaves TEAMS", { etapaId: id });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      await teamsService.cancelarChaves(id, arenaId);
+
+      logger.info("Chaves TEAMS canceladas", { etapaId: id });
+
+      ResponseHelper.success(res, null, "Chaves TEAMS canceladas com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "cancelar chaves TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Resetar partidas TEAMS (mantém equipes e confrontos)
+   * DELETE /api/etapas/:id/teams/resetar-partidas
+   */
+  async resetarPartidasTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Resetando partidas TEAMS", { etapaId: id });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      await teamsService.resetarPartidas(id, arenaId);
+
+      logger.info("Partidas TEAMS resetadas", { etapaId: id });
+
+      ResponseHelper.success(res, null, "Partidas resetadas com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "resetar partidas TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Recalcular classificação TEAMS
+   * POST /api/etapas/:id/teams/recalcular-classificacao
+   */
+  async recalcularClassificacaoTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Recalculando classificação TEAMS", { etapaId: id });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const equipes = await teamsService.recalcularClassificacao(id, arenaId);
+
+      logger.info("Classificação TEAMS recalculada", {
+        etapaId: id,
+        equipes: equipes.length,
+      });
+
+      ResponseHelper.success(res, equipes);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "recalcular classificação TEAMS", {
+        etapaId: req.params.id,
       });
     }
   }

@@ -185,8 +185,250 @@ router.get(
 
       const isReiDaPraia = etapa.formato === "rei_da_praia";
       const isSuperX = etapa.formato === "super_x";
+      const isTeams = etapa.formato === "teams";
       // Super X e Rei da Praia usam jogadores individuais
       const isJogadoresIndividuais = isReiDaPraia || isSuperX;
+
+      // TEAMS: Buscar equipes e confrontos diretamente (sem grupos tradicionais)
+      if (isTeams) {
+        // Buscar equipes da etapa (sem orderBy para evitar necessidade de índice composto)
+        const equipesSnapshot = await db
+          .collection("equipes")
+          .where("etapaId", "==", etapaId)
+          .where("arenaId", "==", arena.id)
+          .get();
+
+        const equipes = equipesSnapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              nome: data.nome,
+              ordem: data.ordem || 0,
+              grupoId: data.grupoId,
+              grupoNome: data.grupoNome,
+              posicaoGrupo: data.posicao || 0, // Campo correto é 'posicao'
+              pontos: data.pontos || 0,
+              vitorias: data.vitorias || 0,
+              derrotas: data.derrotas || 0,
+              jogosVencidos: data.jogosVencidos || 0,
+              jogosPerdidos: data.jogosPerdidos || 0,
+              saldoJogos: data.saldoJogos || 0,
+              classificada: data.classificada || false,
+              jogadores: data.jogadores || [],
+            };
+          })
+          .sort((a, b) => a.ordem - b.ordem); // Ordenar em JavaScript
+
+        // Buscar confrontos da etapa (sem orderBy para evitar necessidade de índice composto)
+        const confrontosSnapshot = await db
+          .collection("confrontos_equipe")
+          .where("etapaId", "==", etapaId)
+          .where("arenaId", "==", arena.id)
+          .get();
+
+        // Buscar todas as partidas da etapa
+        const partidasSnapshot = await db
+          .collection("partidas_teams")
+          .where("etapaId", "==", etapaId)
+          .where("arenaId", "==", arena.id)
+          .get();
+
+        // Mapear partidas por confrontoId
+        const partidasPorConfronto = new Map<string, any[]>();
+        partidasSnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          const confrontoId = data.confrontoId;
+          if (!partidasPorConfronto.has(confrontoId)) {
+            partidasPorConfronto.set(confrontoId, []);
+          }
+          partidasPorConfronto.get(confrontoId)!.push({
+            id: doc.id,
+            ordem: data.ordem || 0,
+            tipoJogo: data.tipoJogo,
+            status: data.status || "agendada",
+            dupla1: data.dupla1,
+            dupla2: data.dupla2,
+            setsDupla1: data.setsDupla1 || 0,
+            setsDupla2: data.setsDupla2 || 0,
+            placar: data.placar || [],
+            vencedoraEquipeId: data.vencedoraEquipeId,
+            vencedoraEquipeNome: data.vencedoraEquipeNome,
+          });
+        });
+
+        // Ordenar partidas por ordem dentro de cada confronto
+        partidasPorConfronto.forEach((partidas) => {
+          partidas.sort((a, b) => a.ordem - b.ordem);
+        });
+
+        const confrontos = confrontosSnapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            const confrontoId = doc.id;
+            return {
+              id: confrontoId,
+              fase: data.fase || "GRUPOS", // Fase: GRUPOS, SEMIFINAL, FINAL, etc.
+              grupoId: data.grupoId,
+              grupoNome: data.grupoNome,
+              ordem: data.ordem || 0,
+              rodada: data.rodada,
+              equipe1Id: data.equipe1Id,
+              equipe2Id: data.equipe2Id,
+              equipe1Nome: data.equipe1Nome,
+              equipe2Nome: data.equipe2Nome,
+              equipe1Origem: data.equipe1Origem,
+              equipe2Origem: data.equipe2Origem,
+              status: data.status || "agendado",
+              jogosEquipe1: data.jogosEquipe1 || 0,
+              jogosEquipe2: data.jogosEquipe2 || 0,
+              vencedoraId: data.vencedoraId,
+              vencedoraNome: data.vencedoraNome,
+              // Incluir partidas detalhadas
+              partidas: partidasPorConfronto.get(confrontoId) || [],
+              criadoEm: data.criadoEm,
+            };
+          })
+          .sort((a, b) => a.ordem - b.ordem); // Ordenar em JavaScript
+
+        // Separar confrontos de grupos dos confrontos eliminatórios
+        const confrontosGrupos = confrontos.filter(c => c.fase === "GRUPOS");
+        const confrontosEliminatorios = confrontos.filter(c => c.fase !== "GRUPOS");
+
+        // Agrupar confrontos de grupos por grupoId
+        const gruposMap = new Map<string, { equipes: any[]; confrontos: any[] }>();
+
+        equipes.forEach((equipe) => {
+          const grupoId = equipe.grupoId || "unico";
+          if (!gruposMap.has(grupoId)) {
+            gruposMap.set(grupoId, { equipes: [], confrontos: [] });
+          }
+          gruposMap.get(grupoId)!.equipes.push(equipe);
+        });
+
+        confrontosGrupos.forEach((confronto) => {
+          const grupoId = confronto.grupoId || "unico";
+          if (!gruposMap.has(grupoId)) {
+            gruposMap.set(grupoId, { equipes: [], confrontos: [] });
+          }
+          gruposMap.get(grupoId)!.confrontos.push(confronto);
+        });
+
+        // Criar grupos processados para TEAMS
+        const gruposProcessados: any[] = [];
+
+        // Ordenar as chaves do Map para manter ordem consistente (A, B, C...)
+        const gruposOrdenados = Array.from(gruposMap.entries()).sort((a, b) => {
+          // "unico" sempre primeiro (ou único)
+          if (a[0] === "unico") return -1;
+          if (b[0] === "unico") return 1;
+          // Ordenar alfabeticamente (A, B, C...)
+          return a[0].localeCompare(b[0]);
+        });
+
+        // Adicionar grupos/classificação
+        gruposOrdenados.forEach(([grupoId, data], index) => {
+          // Ordenar equipes por posição/pontos
+          const equipesOrdenadas = data.equipes.sort((a, b) => {
+            if (a.posicaoGrupo && b.posicaoGrupo) {
+              return a.posicaoGrupo - b.posicaoGrupo;
+            }
+            if (a.pontos !== b.pontos) return b.pontos - a.pontos;
+            return b.saldoJogos - a.saldoJogos;
+          });
+
+          // Determinar o nome do grupo
+          let nomeGrupo: string;
+          if (grupoId === "unico") {
+            nomeGrupo = "Classificação";
+          } else {
+            // Tentar usar grupoNome das equipes, senão usar o grupoId (que geralmente é "A", "B", etc.)
+            const grupoNomeFromEquipe = data.equipes[0]?.grupoNome;
+            if (grupoNomeFromEquipe) {
+              nomeGrupo = grupoNomeFromEquipe;
+            } else if (grupoId.length === 1) {
+              // Se grupoId é uma letra (A, B, C...)
+              nomeGrupo = `Grupo ${grupoId}`;
+            } else {
+              nomeGrupo = `Grupo ${index + 1}`;
+            }
+          }
+
+          // Ordenar confrontos por rodada e ordem
+          const confrontosOrdenados = data.confrontos.sort((a, b) => {
+            if (a.rodada !== b.rodada) return (a.rodada || 0) - (b.rodada || 0);
+            return a.ordem - b.ordem;
+          });
+
+          gruposProcessados.push({
+            id: grupoId,
+            nome: nomeGrupo,
+            ordem: index + 1,
+            totalEquipes: equipesOrdenadas.length,
+            completo: false,
+            equipes: equipesOrdenadas,
+            confrontos: confrontosOrdenados,
+            formato: "teams",
+            tipo: "grupos", // Identificar como fase de grupos
+          });
+        });
+
+        // Adicionar fases eliminatórias como grupos separados
+        if (confrontosEliminatorios.length > 0) {
+          // Agrupar por fase
+          const fasesPriority: Record<string, number> = {
+            "OITAVAS": 1,
+            "QUARTAS": 2,
+            "SEMIFINAL": 3,
+            "FINAL": 4,
+            "TERCEIRO_LUGAR": 5,
+          };
+
+          const faseLabels: Record<string, string> = {
+            "OITAVAS": "Oitavas de Final",
+            "QUARTAS": "Quartas de Final",
+            "SEMIFINAL": "Semifinal",
+            "FINAL": "Final",
+            "TERCEIRO_LUGAR": "Disputa 3º Lugar",
+          };
+
+          const confrontosPorFase = new Map<string, any[]>();
+          confrontosEliminatorios.forEach((confronto) => {
+            const fase = confronto.fase;
+            if (!confrontosPorFase.has(fase)) {
+              confrontosPorFase.set(fase, []);
+            }
+            confrontosPorFase.get(fase)!.push(confronto);
+          });
+
+          // Ordenar fases e adicionar como grupos
+          const fasesOrdenadas = Array.from(confrontosPorFase.entries())
+            .sort((a, b) => (fasesPriority[a[0]] || 99) - (fasesPriority[b[0]] || 99));
+
+          fasesOrdenadas.forEach(([fase, confrontosFase], index) => {
+            gruposProcessados.push({
+              id: `eliminatoria-${fase}`,
+              nome: faseLabels[fase] || fase,
+              ordem: 100 + (fasesPriority[fase] || index), // Garantir que apareçam depois dos grupos
+              totalEquipes: 0,
+              completo: false,
+              equipes: [], // Sem equipes, só confrontos
+              confrontos: confrontosFase.sort((a, b) => a.ordem - b.ordem),
+              formato: "teams",
+              tipo: "eliminatoria", // Identificar como fase eliminatória
+            });
+          });
+        }
+
+        // Ordenar todos os grupos/fases
+        gruposProcessados.sort((a, b) => a.ordem - b.ordem);
+
+        return res.json({
+          success: true,
+          data: gruposProcessados,
+        });
+      }
+
       const grupos = await chaveService.buscarGrupos(etapaId, arena.id);
 
       const gruposProcessados = await Promise.all(

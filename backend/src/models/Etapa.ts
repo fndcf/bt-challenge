@@ -32,12 +32,32 @@ export enum FormatoEtapa {
   DUPLA_FIXA = "dupla_fixa",
   REI_DA_PRAIA = "rei_da_praia",
   SUPER_X = "super_x",
+  TEAMS = "teams",
 }
 
 // Variantes do Super X
 export enum VarianteSuperX {
   SUPER_8 = 8,
   SUPER_12 = 12,
+}
+
+// Variantes do TEAMS
+export enum VarianteTeams {
+  TEAMS_4 = 4,
+  TEAMS_6 = 6,
+}
+
+// Tipos de formação de equipes (TEAMS)
+export enum TipoFormacaoEquipe {
+  MESMO_NIVEL = "mesmo_nivel",
+  BALANCEADO = "balanceado",
+  MANUAL = "manual",
+}
+
+// Tipos de formação dos jogos dentro de um confronto (TEAMS)
+export enum TipoFormacaoJogos {
+  SORTEIO = "sorteio",
+  MANUAL = "manual",
 }
 
 export enum TipoChaveamentoReiDaPraia {
@@ -61,6 +81,12 @@ export interface Etapa {
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
+
+  // Campos específicos para formato TEAMS
+  varianteTeams?: VarianteTeams; // 4 ou 6 jogadores por equipe
+  tipoFormacaoEquipe?: TipoFormacaoEquipe; // Como as equipes são formadas
+  tipoFormacaoJogos?: TipoFormacaoJogos; // Como os jogos são formados dentro do confronto
+  isMisto?: boolean; // Se é torneio misto (obrigatório para TEAMS_6)
   dataInicio: Timestamp | string; // Início das inscrições
   dataFim: Timestamp | string; // Fim das inscrições
   dataRealizacao: Timestamp | string; // Data dos jogos
@@ -104,13 +130,18 @@ export interface Etapa {
 const CriarEtapaSchemaBase = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
   descricao: z.string().max(500).optional(),
-  nivel: z.nativeEnum(NivelJogador).optional(), // Opcional para SUPER_X
-  genero: z.enum(GeneroJogador, {
-    message: "Gênero é obrigatório (masculino ou feminino)",
+  nivel: z.nativeEnum(NivelJogador).optional(), // Opcional para SUPER_X e TEAMS
+  genero: z.nativeEnum(GeneroJogador, {
+    message: "Gênero é obrigatório (masculino, feminino ou misto)",
   }),
   formato: z.nativeEnum(FormatoEtapa).default(FormatoEtapa.DUPLA_FIXA),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),
   varianteSuperX: z.nativeEnum(VarianteSuperX).optional(), // Apenas para SUPER_X
+  // Campos específicos para TEAMS
+  varianteTeams: z.nativeEnum(VarianteTeams).optional(), // Apenas para TEAMS
+  tipoFormacaoEquipe: z.nativeEnum(TipoFormacaoEquipe).optional(), // Apenas para TEAMS
+  tipoFormacaoJogos: z.nativeEnum(TipoFormacaoJogos).optional(), // Apenas para TEAMS
+  isMisto: z.boolean().optional(), // Apenas para TEAMS
   dataInicio: z.string().datetime().or(z.date()),
   dataFim: z.string().datetime().or(z.date()),
   dataRealizacao: z.string().datetime().or(z.date()),
@@ -126,8 +157,12 @@ const CriarEtapaSchemaBase = z.object({
 // Criar Etapa - Com validações condicionais
 export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
   (data, ctx) => {
-    // Validação: nivel é obrigatório para DUPLA_FIXA e REI_DA_PRAIA
-    if (data.formato !== FormatoEtapa.SUPER_X && !data.nivel) {
+    // Validação: nivel é obrigatório para DUPLA_FIXA e REI_DA_PRAIA (não para SUPER_X e TEAMS)
+    if (
+      data.formato !== FormatoEtapa.SUPER_X &&
+      data.formato !== FormatoEtapa.TEAMS &&
+      !data.nivel
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Nível é obrigatório para este formato",
@@ -156,7 +191,11 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
     }
 
     // Validação: número de jogadores deve ser par para DUPLA_FIXA e REI_DA_PRAIA
-    if (data.formato !== FormatoEtapa.SUPER_X && data.maxJogadores % 2 !== 0) {
+    if (
+      data.formato !== FormatoEtapa.SUPER_X &&
+      data.formato !== FormatoEtapa.TEAMS &&
+      data.maxJogadores % 2 !== 0
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Número de jogadores deve ser par",
@@ -188,6 +227,7 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
     // Validação: jogadoresPorGrupo máximo 4 para DUPLA_FIXA e REI_DA_PRAIA
     if (
       data.formato !== FormatoEtapa.SUPER_X &&
+      data.formato !== FormatoEtapa.TEAMS &&
       data.jogadoresPorGrupo &&
       data.jogadoresPorGrupo > 4
     ) {
@@ -195,6 +235,73 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
         code: z.ZodIssueCode.custom,
         message: "Máximo de 4 jogadores por grupo para este formato",
         path: ["jogadoresPorGrupo"],
+      });
+    }
+
+    // ==================== Validações TEAMS ====================
+
+    // Validação: varianteTeams é obrigatório para TEAMS
+    if (data.formato === FormatoEtapa.TEAMS && !data.varianteTeams) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Variante é obrigatória para formato TEAMS (4 ou 6 jogadores)",
+        path: ["varianteTeams"],
+      });
+    }
+
+    // Validação: tipoFormacaoEquipe é obrigatório para TEAMS
+    if (data.formato === FormatoEtapa.TEAMS && !data.tipoFormacaoEquipe) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Tipo de formação de equipe é obrigatório para formato TEAMS",
+        path: ["tipoFormacaoEquipe"],
+      });
+    }
+
+    // Validação: TEAMS_6 deve ser sempre misto
+    if (
+      data.formato === FormatoEtapa.TEAMS &&
+      data.varianteTeams === VarianteTeams.TEAMS_6 &&
+      data.isMisto !== true
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "TEAMS com 6 jogadores deve ser obrigatoriamente misto",
+        path: ["isMisto"],
+      });
+    }
+
+    // Validação: maxJogadores para TEAMS deve ser múltiplo da variante
+    if (data.formato === FormatoEtapa.TEAMS && data.varianteTeams) {
+      if (data.maxJogadores % data.varianteTeams !== 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Número de jogadores deve ser múltiplo de ${data.varianteTeams} para TEAMS_${data.varianteTeams}`,
+          path: ["maxJogadores"],
+        });
+      }
+      // Mínimo de 2 equipes (8 jogadores para TEAMS_4, 12 para TEAMS_6)
+      const minJogadores = data.varianteTeams * 2;
+      if (data.maxJogadores < minJogadores) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Mínimo de ${minJogadores} jogadores para TEAMS_${data.varianteTeams} (2 equipes)`,
+          path: ["maxJogadores"],
+        });
+      }
+    }
+
+    // Validação: nivel obrigatório se tipoFormacaoEquipe for MESMO_NIVEL
+    if (
+      data.formato === FormatoEtapa.TEAMS &&
+      data.tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL &&
+      !data.nivel
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Nível é obrigatório quando tipo de formação é 'Mesmo Nível'",
+        path: ["nivel"],
       });
     }
 
@@ -221,10 +328,15 @@ export const AtualizarEtapaSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
   descricao: z.string().max(500).optional(),
   nivel: z.nativeEnum(NivelJogador).optional(),
-  genero: z.enum(GeneroJogador).optional(),
+  genero: z.nativeEnum(GeneroJogador).optional(),
   formato: z.nativeEnum(FormatoEtapa).optional(),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),
   varianteSuperX: z.nativeEnum(VarianteSuperX).optional(),
+  // Campos TEAMS
+  varianteTeams: z.nativeEnum(VarianteTeams).optional(),
+  tipoFormacaoEquipe: z.nativeEnum(TipoFormacaoEquipe).optional(),
+  tipoFormacaoJogos: z.nativeEnum(TipoFormacaoJogos).optional(),
+  isMisto: z.boolean().optional(),
   dataInicio: z.string().datetime().or(z.date()).optional(),
   dataFim: z.string().datetime().or(z.date()).optional(),
   dataRealizacao: z.string().datetime().or(z.date()).optional(),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
 import {
   GeneroJogador,
@@ -6,6 +6,7 @@ import {
   NivelJogador,
   StatusJogador,
 } from "@/types/jogador";
+import { FormatoEtapa } from "@/types/etapa";
 import { getJogadorService, getEtapaService } from "@/services";
 
 interface ModalInscricaoProps {
@@ -13,6 +14,7 @@ interface ModalInscricaoProps {
   etapaNome: string;
   etapaNivel?: NivelJogador;
   etapaGenero: GeneroJogador;
+  etapaFormato?: FormatoEtapa;
   maxJogadores: number;
   totalInscritos: number;
   onClose: () => void;
@@ -261,6 +263,21 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: white;
+
+  &:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #2563eb;
+  }
+`;
+
 const HintText = styled.p`
   font-size: 0.75rem;
   color: #6b7280;
@@ -429,6 +446,49 @@ const JogadorLevel = styled.span`
   margin-top: 0.25rem;
 `;
 
+const JogadorGenero = styled.span<{ $genero: GeneroJogador }>`
+  display: inline-block;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  margin-left: 0.5rem;
+  font-weight: 500;
+
+  ${(props) =>
+    props.$genero === GeneroJogador.MASCULINO
+      ? `background: #dbeafe; color: #1e40af;`
+      : `background: #fce7f3; color: #9d174d;`
+  }
+`;
+
+const GeneroCounter = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+`;
+
+const GeneroCounterItem = styled.span<{ $genero: "masculino" | "feminino"; $atLimite?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  ${(props) => {
+    const baseColor = props.$genero === "masculino" ? "#1e40af" : "#9d174d";
+    const bgColor = props.$genero === "masculino" ? "#dbeafe" : "#fce7f3";
+    return `
+      color: ${props.$atLimite ? "#dc2626" : baseColor};
+      padding: 0.25rem 0.5rem;
+      background: ${props.$atLimite ? "#fee2e2" : bgColor};
+      border-radius: 0.25rem;
+      font-weight: ${props.$atLimite ? 600 : 500};
+    `;
+  }}
+`;
+
 const MessageBox = styled.div<{ $variant: "success" | "error" }>`
   padding: 0.75rem 1.5rem;
   border-top: 1px solid
@@ -497,6 +557,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   etapaNome,
   etapaNivel,
   etapaGenero,
+  etapaFormato,
   maxJogadores,
   totalInscritos,
   onClose,
@@ -517,13 +578,18 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+
+  // Se gênero da etapa for misto, o jogador precisa escolher
+  const isMisto = etapaGenero === GeneroJogador.MISTO;
+  // Se nível da etapa não está definido (nível livre), o jogador precisa escolher
+  const isNivelLivre = !etapaNivel;
   const [novoJogador, setNovoJogador] = useState({
     nome: "",
     email: "",
     telefone: "",
-    nivel: etapaNivel,
+    nivel: etapaNivel || NivelJogador.INTERMEDIARIO, // Default intermediário se nível livre
     status: StatusJogador.ATIVO,
-    genero: etapaGenero,
+    genero: isMisto ? GeneroJogador.MASCULINO : etapaGenero, // Default masculino se misto
   });
 
   const vagasDisponiveis = maxJogadores - totalInscritos;
@@ -539,9 +605,11 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   const carregarJogadores = async () => {
     try {
       setLoadingJogadores(true);
+      // Se gênero for "misto", não filtra por gênero (busca todos)
+      const isMisto = etapaGenero === GeneroJogador.MISTO;
       const data = await jogadorService.listar({
         nivel: etapaNivel,
-        genero: etapaGenero,
+        genero: isMisto ? undefined : etapaGenero,
       });
       setJogadores(data.jogadores || []);
     } catch (err: any) {
@@ -552,15 +620,53 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
     }
   };
 
+  // Estado para guardar as inscrições completas (para contar gêneros)
+  const [inscricoesAtuais, setInscricoesAtuais] = useState<{ jogadorId: string; jogadorGenero?: GeneroJogador }[]>([]);
+
   const carregarInscritos = async () => {
     try {
       const inscricoes = await etapaService.listarInscricoes(etapaId);
       const ids = inscricoes.map((i) => i.jogadorId);
       setJogadoresInscritosIds(ids);
+      // Guardar as inscrições completas para contar gêneros
+      setInscricoesAtuais(inscricoes.map(i => ({ jogadorId: i.jogadorId, jogadorGenero: i.jogadorGenero as GeneroJogador | undefined })));
     } catch (err: any) {
       setJogadoresInscritosIds([]);
+      setInscricoesAtuais([]);
     }
   };
+
+  // Verificar se é etapa TEAMS mista (requer 50% de cada gênero)
+  const isTeamsMisto = etapaFormato === FormatoEtapa.TEAMS && isMisto;
+  const maxPorGenero = maxJogadores / 2;
+
+  // Contar inscritos por gênero (já inscritos + selecionados)
+  const contadorGenero = useMemo(() => {
+    // Contar inscritos atuais
+    const masculinosInscritos = inscricoesAtuais.filter(
+      (i) => i.jogadorGenero === GeneroJogador.MASCULINO
+    ).length;
+    const femininasInscritas = inscricoesAtuais.filter(
+      (i) => i.jogadorGenero === GeneroJogador.FEMININO
+    ).length;
+
+    // Contar selecionados
+    const masculinosSelecionados = jogadoresSelecionados.filter(
+      (j) => j.genero === GeneroJogador.MASCULINO
+    ).length;
+    const femininasSelecionadas = jogadoresSelecionados.filter(
+      (j) => j.genero === GeneroJogador.FEMININO
+    ).length;
+
+    return {
+      masculinosTotal: masculinosInscritos + masculinosSelecionados,
+      femininasTotal: femininasInscritas + femininasSelecionadas,
+      masculinosInscritos,
+      femininasInscritas,
+      masculinosSelecionados,
+      femininasSelecionadas,
+    };
+  }, [inscricoesAtuais, jogadoresSelecionados]);
 
   const handleCadastrarJogador = async () => {
     if (!novoJogador.nome.trim()) {
@@ -582,9 +688,9 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         nome: "",
         email: "",
         telefone: "",
-        nivel: etapaNivel,
+        nivel: etapaNivel || NivelJogador.INTERMEDIARIO,
         status: StatusJogador.ATIVO,
-        genero: etapaGenero,
+        genero: isMisto ? GeneroJogador.MASCULINO : etapaGenero,
       });
       setMostrarFormulario(false);
 
@@ -633,6 +739,28 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         );
         return;
       }
+
+      // Validar proporção de gênero para etapas TEAMS mistas
+      if (isTeamsMisto) {
+        if (jogador.genero === GeneroJogador.MASCULINO) {
+          if (contadorGenero.masculinosTotal >= maxPorGenero) {
+            alert(
+              `Limite de jogadores masculinos atingido (${maxPorGenero}). ` +
+              `Etapas mistas requerem 50% de cada gênero.`
+            );
+            return;
+          }
+        } else if (jogador.genero === GeneroJogador.FEMININO) {
+          if (contadorGenero.femininasTotal >= maxPorGenero) {
+            alert(
+              `Limite de jogadoras femininas atingido (${maxPorGenero}). ` +
+              `Etapas mistas requerem 50% de cada gênero.`
+            );
+            return;
+          }
+        }
+      }
+
       setJogadoresSelecionados([...jogadoresSelecionados, jogador]);
     }
   };
@@ -731,6 +859,24 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
               na lista
             </WarningBox>
           )}
+
+          {isTeamsMisto && (
+            <GeneroCounter>
+              <span style={{ fontWeight: 600, color: "#374151" }}>Proporção de gênero (50%/50%):</span>
+              <GeneroCounterItem
+                $genero="masculino"
+                $atLimite={contadorGenero.masculinosTotal >= maxPorGenero}
+              >
+                ♂ Masc: {contadorGenero.masculinosTotal}/{maxPorGenero}
+              </GeneroCounterItem>
+              <GeneroCounterItem
+                $genero="feminino"
+                $atLimite={contadorGenero.femininasTotal >= maxPorGenero}
+              >
+                ♀ Fem: {contadorGenero.femininasTotal}/{maxPorGenero}
+              </GeneroCounterItem>
+            </GeneroCounter>
+          )}
         </Header>
 
         <TabsContainer>
@@ -814,33 +960,76 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                   <Label>
                     Gênero <span className="required">*</span>
                   </Label>
-                  <Input
-                    type="text"
-                    value={getGeneroLabel(etapaGenero)}
-                    disabled
-                  />
-                  <HintText>
-                    O jogador será criado automaticamente com o gênero desta
-                    etapa
-                  </HintText>
+                  {isMisto ? (
+                    <>
+                      <Select
+                        value={novoJogador.genero}
+                        onChange={(e) =>
+                          setNovoJogador({
+                            ...novoJogador,
+                            genero: e.target.value as GeneroJogador.MASCULINO | GeneroJogador.FEMININO,
+                          })
+                        }
+                      >
+                        <option value={GeneroJogador.MASCULINO}>Masculino</option>
+                        <option value={GeneroJogador.FEMININO}>Feminino</option>
+                      </Select>
+                      <HintText>
+                        Etapa mista: selecione o gênero do jogador
+                      </HintText>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        type="text"
+                        value={getGeneroLabel(etapaGenero)}
+                        disabled
+                      />
+                      <HintText>
+                        O jogador será criado automaticamente com o gênero desta
+                        etapa
+                      </HintText>
+                    </>
+                  )}
                 </FormField>
 
-                {etapaNivel && (
-                  <FormField>
-                    <Label>
-                      Nível <span className="required">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      value={getNivelLabel(etapaNivel)}
-                      disabled
-                    />
-                    <HintText>
-                      O jogador será criado automaticamente com o nível desta
-                      etapa
-                    </HintText>
-                  </FormField>
-                )}
+                <FormField>
+                  <Label>
+                    Nível <span className="required">*</span>
+                  </Label>
+                  {isNivelLivre ? (
+                    <>
+                      <Select
+                        value={novoJogador.nivel}
+                        onChange={(e) =>
+                          setNovoJogador({
+                            ...novoJogador,
+                            nivel: e.target.value as NivelJogador,
+                          })
+                        }
+                      >
+                        <option value={NivelJogador.INICIANTE}>Iniciante</option>
+                        <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
+                        <option value={NivelJogador.AVANCADO}>Avançado</option>
+                      </Select>
+                      <HintText>
+                        Etapa nível livre: selecione o nível do jogador
+                      </HintText>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        type="text"
+                        value={getNivelLabel(etapaNivel!)}
+                        disabled
+                      />
+                      <HintText>
+                        O jogador será criado automaticamente com o nível desta
+                        etapa
+                      </HintText>
+                    </>
+                  )}
+                </FormField>
 
                 <Button
                   $variant="success"
@@ -900,6 +1089,11 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                       <JogadorInfo>
                         <JogadorHeader>
                           <JogadorName>{jogador.nome}</JogadorName>
+                          {isMisto && jogador.genero && (
+                            <JogadorGenero $genero={jogador.genero}>
+                              {jogador.genero === GeneroJogador.MASCULINO ? "♂ M" : "♀ F"}
+                            </JogadorGenero>
+                          )}
                           {selecionado && <CheckIcon>✓</CheckIcon>}
                         </JogadorHeader>
                         <JogadorEmail>{jogador.email}</JogadorEmail>

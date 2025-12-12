@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import { FormatoEtapa, VarianteSuperX } from "@/types/etapa";
+import { FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe } from "@/types/etapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface ConfiguracoesJogadoresProps {
@@ -11,9 +11,13 @@ export interface ConfiguracoesJogadoresProps {
   formato: FormatoEtapa;
   contaPontosRanking: boolean;
   varianteSuperX?: VarianteSuperX;
+  varianteTeams?: VarianteTeams;
+  tipoFormacaoEquipe?: TipoFormacaoEquipe;
   onMaxJogadoresChange: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
+  onVarianteTeamsChange?: (value: VarianteTeams) => void;
+  onTipoFormacaoEquipeChange?: (value: TipoFormacaoEquipe) => void;
 }
 
 export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
@@ -21,9 +25,13 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   formato,
   contaPontosRanking,
   varianteSuperX,
+  varianteTeams,
+  tipoFormacaoEquipe,
   onMaxJogadoresChange,
   onContaPontosRankingChange,
   onVarianteSuperXChange,
+  onVarianteTeamsChange,
+  onTipoFormacaoEquipeChange,
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -60,7 +68,21 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
         onMaxJogadoresChange(valor + 1);
       }
     }
-    // Super X: valor é fixo pela variante selecionada, não precisa de ajuste no blur
+    // Super X e TEAMS: valor é fixo pela variante selecionada, não precisa de ajuste no blur
+  };
+
+  const handleVarianteTeamsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = parseInt(e.target.value) as VarianteTeams;
+    if (onVarianteTeamsChange) {
+      onVarianteTeamsChange(value);
+    }
+  };
+
+  const handleTipoFormacaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as TipoFormacaoEquipe;
+    if (onTipoFormacaoEquipeChange) {
+      onTipoFormacaoEquipeChange(value);
+    }
   };
 
   const handleVarianteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -72,8 +94,9 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
     onMaxJogadoresChange(value);
   };
 
-  // Para Super X, o campo de jogadores é somente leitura (controlado pela variante)
+  // Para Super X e TEAMS, o campo de jogadores é somente leitura (controlado pela variante)
   const isSuperX = formato === FormatoEtapa.SUPER_X;
+  const isTeams = formato === FormatoEtapa.TEAMS;
 
   return (
     <S.Card>
@@ -102,8 +125,80 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
           </S.Field>
         )}
 
-        {/* Campo de Jogadores - oculto para Super X pois é controlado pela variante */}
-        {!isSuperX && (
+        {/* Seletor de Variante - apenas para TEAMS */}
+        {isTeams && (
+          <>
+            <S.Field>
+              <S.Label>Variante TEAMS *</S.Label>
+              <S.Select
+                required
+                value={varianteTeams || VarianteTeams.TEAMS_4}
+                onChange={handleVarianteTeamsChange}
+              >
+                <option value={VarianteTeams.TEAMS_4}>
+                  TEAMS 4 (4 jogadores por equipe, 2 jogos + decider)
+                </option>
+                <option value={VarianteTeams.TEAMS_6}>
+                  TEAMS 6 (6 jogadores por equipe, 3 jogos)
+                </option>
+              </S.Select>
+              <S.HelperText>
+                Selecione o número de jogadores por equipe
+              </S.HelperText>
+            </S.Field>
+
+            <S.Field>
+              <S.Label>Tipo de Formação de Equipes *</S.Label>
+              <S.Select
+                required
+                value={tipoFormacaoEquipe || TipoFormacaoEquipe.BALANCEADO}
+                onChange={handleTipoFormacaoChange}
+              >
+                <option value={TipoFormacaoEquipe.BALANCEADO}>
+                  Balanceado (distribuição equilibrada por nível)
+                </option>
+                <option value={TipoFormacaoEquipe.MESMO_NIVEL}>
+                  Mesmo Nível (apenas jogadores do mesmo nível)
+                </option>
+                <option value={TipoFormacaoEquipe.MANUAL}>
+                  Manual (organizador define as equipes)
+                </option>
+              </S.Select>
+              <S.HelperText>
+                Como os jogadores serão distribuídos nas equipes
+              </S.HelperText>
+            </S.Field>
+
+            <S.Field>
+              <S.Label>Número de Jogadores *</S.Label>
+              <S.Input
+                type="number"
+                required
+                min={varianteTeams === VarianteTeams.TEAMS_6 ? "12" : "8"}
+                max="60"
+                step={varianteTeams || VarianteTeams.TEAMS_4}
+                value={maxJogadores || ""}
+                onChange={handleInputChange}
+                onBlur={(e) => {
+                  const valor = parseInt(e.target.value);
+                  const variante = varianteTeams || VarianteTeams.TEAMS_4;
+                  const minimo = variante * 2; // Mínimo de 2 equipes
+                  if (isNaN(valor) || valor < minimo) {
+                    onMaxJogadoresChange(minimo);
+                  } else if (valor % variante !== 0) {
+                    onMaxJogadoresChange(Math.ceil(valor / variante) * variante);
+                  }
+                }}
+              />
+              <S.HelperText>
+                Múltiplo de {varianteTeams || 4} (mín: {(varianteTeams || 4) * 2} para 2 equipes)
+              </S.HelperText>
+            </S.Field>
+          </>
+        )}
+
+        {/* Campo de Jogadores - oculto para Super X e TEAMS pois tem campos específicos */}
+        {!isSuperX && !isTeams && (
           <S.Field>
             <S.Label>Máximo de Jogadores *</S.Label>
             <S.Input

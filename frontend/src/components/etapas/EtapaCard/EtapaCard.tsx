@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { Etapa, StatusEtapa, FormatoEtapa } from "@/types/etapa";
+import { Etapa, StatusEtapa, FormatoEtapa, TipoFormacaoEquipe } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { StatusBadge } from "../StatusBadge";
@@ -237,6 +237,19 @@ const getChaveamentoLabel = (tipo: TipoChaveamentoReiDaPraia): string => {
   }
 };
 
+const getFormacaoEquipeLabel = (tipo: TipoFormacaoEquipe): string => {
+  switch (tipo) {
+    case TipoFormacaoEquipe.MESMO_NIVEL:
+      return "Mesmo Nível";
+    case TipoFormacaoEquipe.BALANCEADO:
+      return "Balanceado";
+    case TipoFormacaoEquipe.MANUAL:
+      return "Manual";
+    default:
+      return "";
+  }
+};
+
 // ============== COMPONENTE ==============
 
 export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
@@ -244,10 +257,12 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
 
   const isReiDaPraia = etapa.formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = etapa.formato === FormatoEtapa.SUPER_X;
+  const isTeams = etapa.formato === FormatoEtapa.TEAMS;
 
   const getFormatoLabel = () => {
     if (isReiDaPraia) return "Rei da Praia";
     if (isSuperX) return `Super ${etapa.varianteSuperX || 8}`;
+    if (isTeams) return `Teams ${etapa.varianteTeams || 4}`;
     return "Dupla Fixa";
   };
 
@@ -346,6 +361,18 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
           </InfoItem>
         )}
 
+        {/* Tipo de Formação de Equipe (apenas Teams) */}
+        {isTeams && etapa.tipoFormacaoEquipe && (
+          <InfoItem>
+            <InfoContent>
+              <InfoLabel>Formação Equipes</InfoLabel>
+              <InfoValue>
+                {getFormacaoEquipeLabel(etapa.tipoFormacaoEquipe)}
+              </InfoValue>
+            </InfoContent>
+          </InfoItem>
+        )}
+
         {/* Nível */}
         {etapa.nivel && (
           <InfoItem>
@@ -405,6 +432,17 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
                 </span>
               </FooterItem>
             </>
+          ) : isTeams ? (
+            <>
+              <FooterItem>
+                <span>
+                  {Math.floor(etapa.totalInscritos / (etapa.varianteTeams || 4))} equipes
+                </span>
+              </FooterItem>
+              <FooterItem>
+                <span>{etapa.varianteTeams || 4} jogadores/equipe</span>
+              </FooterItem>
+            </>
           ) : isReiDaPraia ? (
             <>
               <FooterItem>
@@ -452,7 +490,7 @@ export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
               navigate(`/admin/etapas/${etapa.id}`);
             }}
           >
-            {isReiDaPraia ? "Ver grupos →" : "Ver chaves →"}
+            {isReiDaPraia || isTeams ? "Ver grupos →" : "Ver chaves →"}
           </ActionButton>
         )}
 

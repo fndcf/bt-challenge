@@ -14,6 +14,21 @@ export interface FormatoDisplayProps {
   onTipoChaveamentoChange: (tipo: TipoChaveamentoReiDaPraia) => void;
 }
 
+const getFormatoLabel = (formato: FormatoEtapa): string => {
+  switch (formato) {
+    case FormatoEtapa.DUPLA_FIXA:
+      return "Dupla Fixa";
+    case FormatoEtapa.REI_DA_PRAIA:
+      return "Rei da Praia";
+    case FormatoEtapa.SUPER_X:
+      return "Super X";
+    case FormatoEtapa.TEAMS:
+      return "TEAMS";
+    default:
+      return "Desconhecido";
+  }
+};
+
 export const FormatoDisplay: React.FC<FormatoDisplayProps> = ({
   formato,
   tipoChaveamento,
@@ -28,9 +43,7 @@ export const FormatoDisplay: React.FC<FormatoDisplayProps> = ({
       <S.InfoCard>
         <S.InfoContent>
           <S.InfoLabel>Formato</S.InfoLabel>
-          <S.InfoValue>
-            {isReiDaPraia ? "Rei da Praia" : "Dupla Fixa"}
-          </S.InfoValue>
+          <S.InfoValue>{getFormatoLabel(formato)}</S.InfoValue>
         </S.InfoContent>
       </S.InfoCard>
 

@@ -20,6 +20,26 @@ export enum FormatoEtapa {
   DUPLA_FIXA = "dupla_fixa",
   REI_DA_PRAIA = "rei_da_praia",
   SUPER_X = "super_x",
+  TEAMS = "teams",
+}
+
+// Variantes do formato TEAMS
+export enum VarianteTeams {
+  TEAMS_4 = 4,
+  TEAMS_6 = 6,
+}
+
+// Tipos de formação de equipes
+export enum TipoFormacaoEquipe {
+  MESMO_NIVEL = "mesmo_nivel",
+  BALANCEADO = "balanceado",
+  MANUAL = "manual",
+}
+
+// Tipos de formação dos jogos dentro de um confronto
+export enum TipoFormacaoJogos {
+  SORTEIO = "sorteio",
+  MANUAL = "manual",
 }
 
 // Variantes do Super X
@@ -34,17 +54,21 @@ export interface Etapa {
   arenaId: string;
   nome: string;
   descricao?: string;
-  nivel?: NivelJogador; // Opcional para formato SUPER_X
+  nivel?: NivelJogador; // Opcional para formato SUPER_X e TEAMS
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
+  varianteTeams?: VarianteTeams; // Usado apenas para formato TEAMS
+  tipoFormacaoEquipe?: TipoFormacaoEquipe; // Usado apenas para formato TEAMS
+  tipoFormacaoJogos?: TipoFormacaoJogos; // Usado apenas para formato TEAMS
+  isMisto?: boolean; // Se a etapa é mista (TEAMS_4 pode ou não ser misto, TEAMS_6 é sempre misto)
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
   local?: string;
   maxJogadores: number;
-  jogadoresPorGrupo: number; // Não usado em Rei da Praia e Super X
+  jogadoresPorGrupo: number; // Não usado em Rei da Praia, Super X e TEAMS
   qtdGrupos?: number;
   status: StatusEtapa;
   faseAtual: FaseEtapa;
@@ -62,17 +86,21 @@ export interface Etapa {
 export interface CriarEtapaDTO {
   nome: string;
   descricao?: string;
-  nivel?: NivelJogador; // Opcional para formato SUPER_X
+  nivel?: NivelJogador; // Opcional para formato SUPER_X e TEAMS
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
+  varianteTeams?: VarianteTeams; // Usado apenas para formato TEAMS
+  tipoFormacaoEquipe?: TipoFormacaoEquipe; // Usado apenas para formato TEAMS
+  tipoFormacaoJogos?: TipoFormacaoJogos; // Usado apenas para formato TEAMS
+  isMisto?: boolean; // Se a etapa é mista (TEAMS)
   dataInicio: string;
   dataFim: string;
   dataRealizacao: string;
   local?: string;
   maxJogadores: number;
-  jogadoresPorGrupo?: number; // Opcional porque Rei da Praia e Super X não usam
+  jogadoresPorGrupo?: number; // Opcional porque Rei da Praia, Super X e TEAMS não usam
   contaPontosRanking?: boolean; // Por padrão true
 }
 
@@ -83,6 +111,10 @@ export interface AtualizarEtapaDTO {
   genero?: GeneroJogador;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   varianteSuperX?: VarianteSuperX;
+  varianteTeams?: VarianteTeams;
+  tipoFormacaoEquipe?: TipoFormacaoEquipe;
+  tipoFormacaoJogos?: TipoFormacaoJogos;
+  isMisto?: boolean;
   dataInicio?: string;
   dataFim?: string;
   dataRealizacao?: string;
