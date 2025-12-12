@@ -14,6 +14,7 @@ import {
   InscreverJogadorSchema,
   FiltrosEtapa,
   StatusEtapa,
+  TipoChaveamentoReiDaPraia,
 } from "../models/Etapa";
 import { Timestamp } from "firebase-admin/firestore";
 import { db } from "../config/firebase";
@@ -965,10 +966,18 @@ class EtapaController extends BaseController {
 
       const { arenaId } = req.user;
       const { id } = req.params;
-      const {
-        classificadosPorGrupo = 2,
-        tipoChaveamento = "melhores_com_melhores",
-      } = req.body;
+      const { classificadosPorGrupo = 2 } = req.body;
+
+      // Buscar a etapa para obter o tipoChaveamento configurado
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      // Usar o tipoChaveamento da etapa, com fallback para melhores_com_melhores
+      const tipoChaveamento = (etapa.tipoChaveamento ||
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES) as TipoChaveamentoReiDaPraia;
 
       logger.info("Gerando eliminatória Rei da Praia", {
         etapaId: id,
