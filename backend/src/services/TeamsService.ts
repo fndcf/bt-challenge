@@ -63,8 +63,8 @@ export class TeamsService {
 
     const variante = etapa.varianteTeams!;
     const tipoFormacao = etapa.tipoFormacaoEquipe!;
-    // Etapa é mista se: isMisto é true, OU genero é MISTO, OU é TEAMS_6 (sempre misto)
-    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO || variante === VarianteTeams.TEAMS_6;
+    // Etapa é mista se: isMisto é true, OU genero é MISTO
+    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
 
     // Validar número de jogadores
     if (inscricoes.length % variante !== 0) {
@@ -173,8 +173,8 @@ export class TeamsService {
     this.validarEtapaParaGeracaoEquipes(etapa);
 
     const variante = etapa.varianteTeams!;
-    // Etapa é mista se: isMisto é true, OU genero é MISTO, OU é TEAMS_6 (sempre misto)
-    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO || variante === VarianteTeams.TEAMS_6;
+    // Etapa é mista se: isMisto é true, OU genero é MISTO
+    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
 
     // Criar mapa de inscrições para acesso rápido
     const inscricoesMap = new Map(
@@ -1791,8 +1791,8 @@ export class TeamsService {
     }
 
     const variante = etapa.varianteTeams!;
-    // Etapa é mista se: isMisto é true, OU genero é MISTO, OU é TEAMS_6 (sempre misto)
-    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO || variante === VarianteTeams.TEAMS_6;
+    // Etapa é mista se: isMisto é true, OU genero é MISTO
+    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
 
     const equipe1 = await this.equipeRepository.buscarPorId(confronto.equipe1Id);
     const equipe2 = await this.equipeRepository.buscarPorId(confronto.equipe2Id);
@@ -1884,67 +1884,120 @@ export class TeamsService {
         );
       }
     } else {
-      // TEAMS_6: 3 jogos (sempre misto)
-      const femininas1 = equipe1.jogadores.filter(
-        (j) => j.genero === GeneroJogador.FEMININO
-      );
-      const masculinos1 = equipe1.jogadores.filter(
-        (j) => j.genero === GeneroJogador.MASCULINO
-      );
-      const femininas2 = equipe2.jogadores.filter(
-        (j) => j.genero === GeneroJogador.FEMININO
-      );
-      const masculinos2 = equipe2.jogadores.filter(
-        (j) => j.genero === GeneroJogador.MASCULINO
-      );
+      // TEAMS_6: 3 jogos fixos (SEM decider)
+      if (isMisto) {
+        // TEAMS_6 MISTO: 3M + 3F → masculino + feminino + misto
+        const femininas1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const masculinos1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+        const femininas2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const masculinos2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
 
-      // Shuffle para sorteio
-      const f1 = this.shuffle(femininas1);
-      const m1 = this.shuffle(masculinos1);
-      const f2 = this.shuffle(femininas2);
-      const m2 = this.shuffle(masculinos2);
+        // Shuffle para sorteio
+        const f1 = this.shuffle(femininas1);
+        const m1 = this.shuffle(masculinos1);
+        const f2 = this.shuffle(femininas2);
+        const m2 = this.shuffle(masculinos2);
 
-      // Jogo 1: Feminino (2 vs 2)
-      partidaDTOs.push(
-        this.criarPartidaDTO(
-          confronto,
-          etapa,
-          1,
-          TipoJogoTeams.FEMININO,
-          f1.slice(0, 2),
-          f2.slice(0, 2),
-          equipe1,
-          equipe2
-        )
-      );
+        // Jogo 1: Feminino (2 vs 2)
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            1,
+            TipoJogoTeams.FEMININO,
+            f1.slice(0, 2),
+            f2.slice(0, 2),
+            equipe1,
+            equipe2
+          )
+        );
 
-      // Jogo 2: Masculino (2 vs 2)
-      partidaDTOs.push(
-        this.criarPartidaDTO(
-          confronto,
-          etapa,
-          2,
-          TipoJogoTeams.MASCULINO,
-          m1.slice(0, 2),
-          m2.slice(0, 2),
-          equipe1,
-          equipe2
-        )
-      );
+        // Jogo 2: Masculino (2 vs 2)
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            2,
+            TipoJogoTeams.MASCULINO,
+            m1.slice(0, 2),
+            m2.slice(0, 2),
+            equipe1,
+            equipe2
+          )
+        );
 
-      // Jogo 3: Misto (F restante + M restante)
-      partidaDTOs.push(
-        this.criarPartidaDTO(
-          confronto,
-          etapa,
-          3,
-          TipoJogoTeams.MISTO,
-          [f1[2], m1[2]],
-          [f2[2], m2[2]],
-          equipe1,
-          equipe2
-        )
-      );
+        // Jogo 3: Misto (F restante + M restante)
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            3,
+            TipoJogoTeams.MISTO,
+            [f1[2], m1[2]],
+            [f2[2], m2[2]],
+            equipe1,
+            equipe2
+          )
+        );
+      } else {
+        // TEAMS_6 NÃO MISTO: 6M ou 6F → 3 partidas do mesmo gênero
+        const tipoJogo = etapa.genero === GeneroJogador.FEMININO
+          ? TipoJogoTeams.FEMININO
+          : TipoJogoTeams.MASCULINO;
+
+        const jogadores1 = this.shuffle([...equipe1.jogadores]);
+        const jogadores2 = this.shuffle([...equipe2.jogadores]);
+
+        // Jogo 1: dupla 1 vs dupla 1
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            1,
+            tipoJogo,
+            jogadores1.slice(0, 2),
+            jogadores2.slice(0, 2),
+            equipe1,
+            equipe2
+          )
+        );
+
+        // Jogo 2: dupla 2 vs dupla 2
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            2,
+            tipoJogo,
+            jogadores1.slice(2, 4),
+            jogadores2.slice(2, 4),
+            equipe1,
+            equipe2
+          )
+        );
+
+        // Jogo 3: dupla 3 vs dupla 3
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            3,
+            tipoJogo,
+            jogadores1.slice(4, 6),
+            jogadores2.slice(4, 6),
+            equipe1,
+            equipe2
+          )
+        );
+      }
     }
 
     const partidas = await this.partidaRepository.criarEmLote(partidaDTOs);
@@ -2706,7 +2759,12 @@ export class TeamsService {
     confronto: ConfrontoEquipe,
     partidas: PartidaTeams[]
   ): Promise<boolean> {
-    // Só TEAMS_4 tem decider
+    // Só TEAMS_4 tem decider, TEAMS_6 NUNCA tem decider
+    // Verificar pela quantidade de partidas totais: TEAMS_4 tem 2, TEAMS_6 tem 3
+    if (confronto.totalPartidas === 3) {
+      return false; // TEAMS_6 não usa decider
+    }
+
     const partidasRegulares = partidas.filter(
       (p) => p.tipoJogo !== TipoJogoTeams.DECIDER
     );

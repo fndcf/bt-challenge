@@ -5,8 +5,10 @@ import { StatusPartida } from "./Partida";
 
 /**
  * Variantes do formato TEAMS
- * - TEAMS_4: 4 jogadores por equipe, 2 jogos (+1 decider se 1-1)
- * - TEAMS_6: 6 jogadores por equipe, 3 jogos (sempre misto)
+ * - TEAMS_4: 4 jogadores por equipe (2M+2F misto, ou 4M, ou 4F)
+ *   → 2 partidas iniciais + decider (misto se misto, mesmo gênero senão) se empatar 1-1
+ * - TEAMS_6: 6 jogadores por equipe (3M+3F misto, ou 6M, ou 6F)
+ *   → 3 partidas fixas (masculino, feminino, misto se misto | ou 3 do mesmo gênero), SEM decider
  */
 export enum VarianteTeams {
   TEAMS_4 = 4,

@@ -258,18 +258,9 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
       });
     }
 
-    // Validação: TEAMS_6 deve ser sempre misto
-    if (
-      data.formato === FormatoEtapa.TEAMS &&
-      data.varianteTeams === VarianteTeams.TEAMS_6 &&
-      data.isMisto !== true
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "TEAMS com 6 jogadores deve ser obrigatoriamente misto",
-        path: ["isMisto"],
-      });
-    }
+    // Validação removida: TEAMS_6 pode ser misto ou não misto
+    // TEAMS_6 MISTO: 3M + 3F → 3 jogos fixos (masculino, feminino, misto)
+    // TEAMS_6 NÃO MISTO: 6M ou 6F → 3 jogos fixos do mesmo gênero
 
     // Validação: maxJogadores para TEAMS deve ser múltiplo da variante
     if (data.formato === FormatoEtapa.TEAMS && data.varianteTeams) {
