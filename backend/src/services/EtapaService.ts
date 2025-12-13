@@ -3,6 +3,7 @@
  */
 
 import { Timestamp } from "firebase-admin/firestore";
+import { db } from "../config/firebase";
 import {
   Etapa,
   CriarEtapaDTO,
@@ -316,6 +317,185 @@ export class EtapaService {
         {
           etapaId,
           jogadorId: data.jogadorId,
+        },
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Inscrever múltiplos jogadores em lote (otimizado)
+   */
+  async inscreverJogadoresEmLote(
+    etapaId: string,
+    arenaId: string,
+    jogadorIds: string[]
+  ): Promise<{ inscricoes: Inscricao[]; erros: Array<{ jogadorId: string; erro: string }> }> {
+    try {
+      const inscricoes: Inscricao[] = [];
+      const erros: Array<{ jogadorId: string; erro: string }> = [];
+
+      // Buscar etapa uma única vez
+      const etapa = await this.buscarPorId(etapaId, arenaId);
+      if (!etapa) {
+        throw new Error("Etapa não encontrada");
+      }
+
+      if (etapa.status !== StatusEtapa.INSCRICOES_ABERTAS) {
+        throw new Error("Inscrições não estão abertas para esta etapa");
+      }
+
+      // Buscar inscrições existentes uma única vez
+      const inscricoesExistentes = await this.inscricaoRepository.buscarConfirmadas(
+        etapaId,
+        arenaId
+      );
+
+      // Verificar limite total
+      const vagas = etapa.maxJogadores - inscricoesExistentes.length;
+      if (jogadorIds.length > vagas) {
+        throw new Error(
+          `Apenas ${vagas} vagas disponíveis. Tentando inscrever ${jogadorIds.length} jogadores.`
+        );
+      }
+
+      // Buscar todos os jogadores de uma vez
+      const jogadoresPromises = jogadorIds.map((id) =>
+        this.jogadorRepository.buscarPorIdEArena(id, arenaId)
+      );
+      const jogadores = await Promise.all(jogadoresPromises);
+
+      // Preparar dados para validação
+      const isMisto = etapa.genero === GeneroJogador.MISTO;
+      const isTeams = etapa.formato === FormatoEtapa.TEAMS;
+
+      // Contar inscritos atuais por gênero (uma vez)
+      let masculinosCount = inscricoesExistentes.filter(
+        (i) => i.jogadorGenero === GeneroJogador.MASCULINO
+      ).length;
+      let femininasCount = inscricoesExistentes.filter(
+        (i) => i.jogadorGenero === GeneroJogador.FEMININO
+      ).length;
+
+      const inscricoesParaCriar: Partial<Inscricao>[] = [];
+      const jogadoresInscritos = new Set(
+        inscricoesExistentes.map((i) => i.jogadorId)
+      );
+
+      // Validar cada jogador
+      for (let i = 0; i < jogadorIds.length; i++) {
+        const jogadorId = jogadorIds[i];
+        const jogador = jogadores[i];
+
+        try {
+          // Validações
+          if (!jogador) {
+            erros.push({ jogadorId, erro: "Jogador não encontrado" });
+            continue;
+          }
+
+          if (jogadoresInscritos.has(jogadorId)) {
+            erros.push({ jogadorId, erro: "Jogador já está inscrito" });
+            continue;
+          }
+
+          // Validar nível (obrigatório para DUPLA_FIXA e REI_DA_PRAIA)
+          if (etapa.formato !== FormatoEtapa.SUPER_X && etapa.nivel) {
+            if (jogador.nivel !== etapa.nivel) {
+              erros.push({
+                jogadorId,
+                erro: `Nível incompatível. Etapa: ${etapa.nivel}, Jogador: ${jogador.nivel}`,
+              });
+              continue;
+            }
+          }
+
+          // Validar gênero
+          const generoValido = isMisto
+            ? jogador.genero === GeneroJogador.MASCULINO ||
+              jogador.genero === GeneroJogador.FEMININO
+            : jogador.genero === etapa.genero;
+
+          if (!generoValido) {
+            erros.push({
+              jogadorId,
+              erro: `Gênero incompatível. Etapa: ${etapa.genero}, Jogador: ${jogador.genero}`,
+            });
+            continue;
+          }
+
+          // Validar proporção de gênero para TEAMS misto
+          if (isTeams && isMisto) {
+            const maxPorGenero = etapa.maxJogadores / 2;
+
+            if (jogador.genero === GeneroJogador.MASCULINO) {
+              if (masculinosCount >= maxPorGenero) {
+                erros.push({
+                  jogadorId,
+                  erro: `Limite de jogadores masculinos atingido (${maxPorGenero})`,
+                });
+                continue;
+              }
+              masculinosCount++;
+            } else if (jogador.genero === GeneroJogador.FEMININO) {
+              if (femininasCount >= maxPorGenero) {
+                erros.push({
+                  jogadorId,
+                  erro: `Limite de jogadoras femininas atingido (${maxPorGenero})`,
+                });
+                continue;
+              }
+              femininasCount++;
+            }
+          }
+
+          // Adicionar à lista de inscrições para criar
+          inscricoesParaCriar.push({
+            etapaId,
+            arenaId,
+            jogadorId,
+            jogadorNome: jogador.nome,
+            jogadorNivel: jogador.nivel,
+            jogadorGenero: jogador.genero,
+          });
+
+          jogadoresInscritos.add(jogadorId);
+        } catch (error: any) {
+          erros.push({ jogadorId, erro: error.message });
+        }
+      }
+
+      // Criar todas as inscrições de uma vez (batch)
+      if (inscricoesParaCriar.length > 0) {
+        const novasInscricoes = await this.inscricaoRepository.criarEmLote(
+          inscricoesParaCriar
+        );
+        inscricoes.push(...novasInscricoes);
+
+        // Atualizar contador de inscritos na etapa (uma única vez)
+        const totalInscritos = inscricoesExistentes.length + novasInscricoes.length;
+        await db.collection("etapas").doc(etapaId).update({
+          jogadoresInscritos: Array.from(jogadoresInscritos),
+          totalInscritos,
+          atualizadoEm: Timestamp.now(),
+        });
+      }
+
+      logger.info("Inscrições em lote processadas", {
+        etapaId,
+        totalSolicitados: jogadorIds.length,
+        inscritos: inscricoes.length,
+        erros: erros.length,
+      });
+
+      return { inscricoes, erros };
+    } catch (error: any) {
+      logger.error(
+        "Erro ao inscrever jogadores em lote",
+        {
+          etapaId,
+          totalJogadores: jogadorIds.length,
         },
         error
       );

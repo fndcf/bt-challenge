@@ -16,12 +16,7 @@ import {
   SetPlacarTeams,
   StatusConfronto,
 } from "../models/Teams";
-import {
-  Etapa,
-  StatusEtapa,
-  FaseEtapa,
-  FormatoEtapa,
-} from "../models/Etapa";
+import { Etapa, StatusEtapa, FaseEtapa, FormatoEtapa } from "../models/Etapa";
 import { StatusPartida } from "../models/Partida";
 import { NivelJogador, GeneroJogador } from "../models/Jogador";
 import { IEquipeRepository } from "../repositories/interfaces/IEquipeRepository";
@@ -32,7 +27,10 @@ import ConfrontoEquipeRepository from "../repositories/firebase/ConfrontoEquipeR
 import PartidaTeamsRepository from "../repositories/firebase/PartidaTeamsRepository";
 import { EstatisticasJogadorService } from "./EstatisticasJogadorService";
 import { NotFoundError, ValidationError } from "../utils/errors";
-import { calcularDistribuicaoGrupos, LETRAS_GRUPOS } from "../utils/torneioUtils";
+import {
+  calcularDistribuicaoGrupos,
+  LETRAS_GRUPOS,
+} from "../utils/torneioUtils";
 import logger from "../utils/logger";
 
 interface Inscricao {
@@ -58,7 +56,11 @@ export class TeamsService {
   async gerarEquipes(
     etapa: Etapa,
     inscricoes: Inscricao[]
-  ): Promise<{ equipes: Equipe[]; estatisticas: any[]; temFaseGrupos: boolean }> {
+  ): Promise<{
+    equipes: Equipe[];
+    estatisticas: any[];
+    temFaseGrupos: boolean;
+  }> {
     // Validações básicas de etapa (rápidas e essenciais)
     this.validarEtapaParaGeracaoEquipes(etapa);
 
@@ -121,7 +123,10 @@ export class TeamsService {
 
     const criacaoEquipesStart = Date.now();
     const equipes = await this.equipeRepository.criarEmLote(equipeDTOs);
-    logger.info("[PERF] Equipes criadas no DB", { tempoMs: Date.now() - criacaoEquipesStart, quantidade: equipes.length });
+    logger.info("[PERF] Equipes criadas no DB", {
+      tempoMs: Date.now() - criacaoEquipesStart,
+      quantidade: equipes.length,
+    });
 
     // Criar estatísticas individuais para cada jogador EM LOTE (otimizado)
     const estatisticasDTOs = equipes.flatMap((equipe) =>
@@ -137,7 +142,9 @@ export class TeamsService {
       }))
     );
 
-    const estatisticas = await this.estatisticasService.criarEmLote(estatisticasDTOs);
+    const estatisticas = await this.estatisticasService.criarEmLote(
+      estatisticasDTOs
+    );
 
     logger.info("Equipes geradas com sucesso", {
       etapaId: etapa.id,
@@ -157,7 +164,11 @@ export class TeamsService {
     etapa: Etapa,
     inscricoes: Inscricao[],
     formacoes: FormacaoManualEquipeDTO[]
-  ): Promise<{ equipes: Equipe[]; estatisticas: any[]; temFaseGrupos: boolean }> {
+  ): Promise<{
+    equipes: Equipe[];
+    estatisticas: any[];
+    temFaseGrupos: boolean;
+  }> {
     this.validarEtapaParaGeracaoEquipes(etapa);
 
     const variante = etapa.varianteTeams!;
@@ -165,9 +176,7 @@ export class TeamsService {
     const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
 
     // Criar mapa de inscrições para acesso rápido
-    const inscricoesMap = new Map(
-      inscricoes.map((i) => [i.jogadorId, i])
-    );
+    const inscricoesMap = new Map(inscricoes.map((i) => [i.jogadorId, i]));
 
     // Validar cada formação
     for (const formacao of formacoes) {
@@ -179,18 +188,28 @@ export class TeamsService {
 
       // Validar proporção de gênero para etapas mistas
       if (isMisto) {
-        const jogadoresDaEquipe = formacao.jogadorIds.map(id => inscricoesMap.get(id));
-        const femininas = jogadoresDaEquipe.filter(j => j?.genero === GeneroJogador.FEMININO).length;
-        const masculinos = jogadoresDaEquipe.filter(j => j?.genero === GeneroJogador.MASCULINO).length;
+        const jogadoresDaEquipe = formacao.jogadorIds.map((id) =>
+          inscricoesMap.get(id)
+        );
+        const femininas = jogadoresDaEquipe.filter(
+          (j) => j?.genero === GeneroJogador.FEMININO
+        ).length;
+        const masculinos = jogadoresDaEquipe.filter(
+          (j) => j?.genero === GeneroJogador.MASCULINO
+        ).length;
 
         const femininasEsperadas = variante / 2;
         const masculinosEsperados = variante / 2;
 
-        if (femininas !== femininasEsperadas || masculinos !== masculinosEsperados) {
-          const nomeEquipe = formacao.nome || `Equipe ${formacoes.indexOf(formacao) + 1}`;
+        if (
+          femininas !== femininasEsperadas ||
+          masculinos !== masculinosEsperados
+        ) {
+          const nomeEquipe =
+            formacao.nome || `Equipe ${formacoes.indexOf(formacao) + 1}`;
           throw new ValidationError(
             `${nomeEquipe}: Cada equipe mista deve ter ${femininasEsperadas} jogadoras femininas e ${masculinosEsperados} jogadores masculinos. ` +
-            `Encontrado: ${femininas}F + ${masculinos}M`
+              `Encontrado: ${femininas}F + ${masculinos}M`
           );
         }
       }
@@ -262,7 +281,9 @@ export class TeamsService {
       }))
     );
 
-    const estatisticas = await this.estatisticasService.criarEmLote(estatisticasDTOs);
+    const estatisticas = await this.estatisticasService.criarEmLote(
+      estatisticasDTOs
+    );
 
     logger.info("Equipes formadas manualmente com sucesso", {
       etapaId: etapa.id,
@@ -286,14 +307,19 @@ export class TeamsService {
     tipoFormacaoJogos: TipoFormacaoJogos = TipoFormacaoJogos.SORTEIO
   ): Promise<ConfrontoEquipe[]> {
     const startTime = Date.now();
-    logger.info("[PERF] Iniciando geração de confrontos", { etapaId: etapa.id });
+    logger.info("[PERF] Iniciando geração de confrontos", {
+      etapaId: etapa.id,
+    });
 
     const buscarEquipesStart = Date.now();
     const equipes = await this.equipeRepository.buscarPorEtapaOrdenadas(
       etapa.id,
       etapa.arenaId
     );
-    logger.info("[PERF] Equipes buscadas", { tempoMs: Date.now() - buscarEquipesStart, quantidade: equipes.length });
+    logger.info("[PERF] Equipes buscadas", {
+      tempoMs: Date.now() - buscarEquipesStart,
+      quantidade: equipes.length,
+    });
 
     if (equipes.length < 2) {
       throw new ValidationError("Mínimo de 2 equipes para gerar confrontos");
@@ -319,7 +345,10 @@ export class TeamsService {
         tipoFormacaoJogos
       );
     }
-    logger.info("[PERF] Confrontos criados no DB", { tempoMs: Date.now() - geracaoStart, quantidade: confrontos.length });
+    logger.info("[PERF] Confrontos criados no DB", {
+      tempoMs: Date.now() - geracaoStart,
+      quantidade: confrontos.length,
+    });
 
     logger.info("Confrontos gerados com sucesso", {
       etapaId: etapa.id,
@@ -448,7 +477,9 @@ export class TeamsService {
     const numGrupos = grupoIds.length;
 
     if (numGrupos < 2 || numGrupos > 8) {
-      logger.warn(`Fase eliminatória suporta 2-8 grupos. Recebido: ${numGrupos}`);
+      logger.warn(
+        `Fase eliminatória suporta 2-8 grupos. Recebido: ${numGrupos}`
+      );
       return [];
     }
 
@@ -457,19 +488,47 @@ export class TeamsService {
 
     switch (numGrupos) {
       case 2:
-        return this.gerarEliminatoria2Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria2Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       case 3:
-        return this.gerarEliminatoria3Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria3Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       case 4:
-        return this.gerarEliminatoria4Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria4Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       case 5:
-        return this.gerarEliminatoria5Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria5Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       case 6:
-        return this.gerarEliminatoria6Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria6Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       case 7:
-        return this.gerarEliminatoria7Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria7Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       case 8:
-        return this.gerarEliminatoria8Grupos(etapa, gruposOrdenados, tipoFormacaoJogos);
+        return this.gerarEliminatoria8Grupos(
+          etapa,
+          gruposOrdenados,
+          tipoFormacaoJogos
+        );
       default:
         return [];
     }
@@ -1539,7 +1598,8 @@ export class TeamsService {
     grupos: string[],
     tipoFormacaoJogos: TipoFormacaoJogos
   ): Promise<ConfrontoEquipe[]> {
-    const [grupoA, grupoB, grupoC, grupoD, grupoE, grupoF, grupoG, grupoH] = grupos;
+    const [grupoA, grupoB, grupoC, grupoD, grupoE, grupoF, grupoG, grupoH] =
+      grupos;
 
     // Criar final
     const confrontoFinal = await this.confrontoRepository.criar({
@@ -1782,7 +1842,7 @@ export class TeamsService {
     if (!confronto.equipe1Id || !confronto.equipe2Id) {
       throw new ValidationError(
         "As equipes deste confronto ainda não foram definidas. " +
-        "Complete a fase de grupos primeiro para definir os classificados."
+          "Complete a fase de grupos primeiro para definir os classificados."
       );
     }
 
@@ -1796,8 +1856,12 @@ export class TeamsService {
       return this.criarPartidasVazias(confronto, etapa, variante, isMisto);
     }
 
-    const equipe1 = await this.equipeRepository.buscarPorId(confronto.equipe1Id);
-    const equipe2 = await this.equipeRepository.buscarPorId(confronto.equipe2Id);
+    const equipe1 = await this.equipeRepository.buscarPorId(
+      confronto.equipe1Id
+    );
+    const equipe2 = await this.equipeRepository.buscarPorId(
+      confronto.equipe2Id
+    );
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -1848,9 +1912,10 @@ export class TeamsService {
       } else {
         // Não misto: dividir em 2 duplas aleatórias
         // Usar o gênero da etapa para definir o tipo de jogo
-        const tipoJogo = etapa.genero === GeneroJogador.FEMININO
-          ? TipoJogoTeams.FEMININO
-          : TipoJogoTeams.MASCULINO;
+        const tipoJogo =
+          etapa.genero === GeneroJogador.FEMININO
+            ? TipoJogoTeams.FEMININO
+            : TipoJogoTeams.MASCULINO;
 
         const jogadores1 = this.shuffle([...equipe1.jogadores]);
         const jogadores2 = this.shuffle([...equipe2.jogadores]);
@@ -1937,9 +2002,10 @@ export class TeamsService {
         );
       } else {
         // TEAMS_6 NÃO MISTO: 6M ou 6F → 3 partidas do mesmo gênero
-        const tipoJogo = etapa.genero === GeneroJogador.FEMININO
-          ? TipoJogoTeams.FEMININO
-          : TipoJogoTeams.MASCULINO;
+        const tipoJogo =
+          etapa.genero === GeneroJogador.FEMININO
+            ? TipoJogoTeams.FEMININO
+            : TipoJogoTeams.MASCULINO;
 
         const jogadores1 = this.shuffle([...equipe1.jogadores]);
         const jogadores2 = this.shuffle([...equipe2.jogadores]);
@@ -2000,33 +2066,35 @@ export class TeamsService {
     etapa: Etapa,
     definicao: DefinirPartidasManualDTO
   ): Promise<PartidaTeams[]> {
-    const equipe1 = await this.equipeRepository.buscarPorId(confronto.equipe1Id);
-    const equipe2 = await this.equipeRepository.buscarPorId(confronto.equipe2Id);
+    const equipe1 = await this.equipeRepository.buscarPorId(
+      confronto.equipe1Id
+    );
+    const equipe2 = await this.equipeRepository.buscarPorId(
+      confronto.equipe2Id
+    );
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
     }
 
     // Mapear jogadores por ID
-    const jogadores1Map = new Map(
-      equipe1.jogadores.map((j) => [j.id, j])
-    );
-    const jogadores2Map = new Map(
-      equipe2.jogadores.map((j) => [j.id, j])
-    );
+    const jogadores1Map = new Map(equipe1.jogadores.map((j) => [j.id, j]));
+    const jogadores2Map = new Map(equipe2.jogadores.map((j) => [j.id, j]));
 
     const partidaDTOs: CriarPartidaTeamsDTO[] = [];
 
     for (const def of definicao.partidas) {
       const dupla1Jogadores = def.dupla1JogadorIds.map((id) => {
         const j = jogadores1Map.get(id);
-        if (!j) throw new ValidationError(`Jogador ${id} não pertence à equipe 1`);
+        if (!j)
+          throw new ValidationError(`Jogador ${id} não pertence à equipe 1`);
         return j;
       });
 
       const dupla2Jogadores = def.dupla2JogadorIds.map((id) => {
         const j = jogadores2Map.get(id);
-        if (!j) throw new ValidationError(`Jogador ${id} não pertence à equipe 2`);
+        if (!j)
+          throw new ValidationError(`Jogador ${id} não pertence à equipe 2`);
         return j;
       });
 
@@ -2080,8 +2148,12 @@ export class TeamsService {
     let equipe2Id = partida.equipe2Id;
 
     if (!equipe1Id || !equipe2Id) {
-      logger.warn("Partida sem IDs das equipes, buscando do confronto", { partidaId });
-      const confronto = await this.confrontoRepository.buscarPorId(partida.confrontoId);
+      logger.warn("Partida sem IDs das equipes, buscando do confronto", {
+        partidaId,
+      });
+      const confronto = await this.confrontoRepository.buscarPorId(
+        partida.confrontoId
+      );
       if (!confronto) {
         throw new NotFoundError("Confronto não encontrado");
       }
@@ -2111,13 +2183,19 @@ export class TeamsService {
 
     const dupla1Jogadores = dupla1JogadorIds.map((id) => {
       const j = jogadores1Map.get(id);
-      if (!j) throw new ValidationError(`Jogador ${id} não pertence à equipe ${equipe1.nome}`);
+      if (!j)
+        throw new ValidationError(
+          `Jogador ${id} não pertence à equipe ${equipe1.nome}`
+        );
       return j;
     });
 
     const dupla2Jogadores = dupla2JogadorIds.map((id) => {
       const j = jogadores2Map.get(id);
-      if (!j) throw new ValidationError(`Jogador ${id} não pertence à equipe ${equipe2.nome}`);
+      if (!j)
+        throw new ValidationError(
+          `Jogador ${id} não pertence à equipe ${equipe2.nome}`
+        );
       return j;
     });
 
@@ -2155,7 +2233,9 @@ export class TeamsService {
       })),
     });
 
-    return this.partidaRepository.buscarPorId(partidaId) as Promise<PartidaTeams>;
+    return this.partidaRepository.buscarPorId(
+      partidaId
+    ) as Promise<PartidaTeams>;
   }
 
   /**
@@ -2178,7 +2258,9 @@ export class TeamsService {
       .filter((id) => id !== partidaAtualId)
       .map((id) => this.partidaRepository.buscarPorId(id));
 
-    const partidas = (await Promise.all(partidasPromises)).filter((p) => p !== null) as PartidaTeams[];
+    const partidas = (await Promise.all(partidasPromises)).filter(
+      (p) => p !== null
+    ) as PartidaTeams[];
 
     // Criar conjunto de duplas já usadas
     const duplasUsadas = new Set<string>();
@@ -2198,7 +2280,9 @@ export class TeamsService {
     const dupla1Key = dupla1Ids.join("-");
     if (duplasUsadas.has(dupla1Key)) {
       throw new ValidationError(
-        `A dupla ${dupla1Jogadores.map((j) => j.nome).join(" / ")} já jogou neste confronto`
+        `A dupla ${dupla1Jogadores
+          .map((j) => j.nome)
+          .join(" / ")} já jogou neste confronto`
       );
     }
 
@@ -2207,7 +2291,9 @@ export class TeamsService {
     const dupla2Key = dupla2Ids.join("-");
     if (duplasUsadas.has(dupla2Key)) {
       throw new ValidationError(
-        `A dupla ${dupla2Jogadores.map((j) => j.nome).join(" / ")} já jogou neste confronto`
+        `A dupla ${dupla2Jogadores
+          .map((j) => j.nome)
+          .join(" / ")} já jogou neste confronto`
       );
     }
   }
@@ -2233,7 +2319,9 @@ export class TeamsService {
       .filter((id) => id !== partidaAtualId)
       .map((id) => this.partidaRepository.buscarPorId(id));
 
-    const partidas = (await Promise.all(partidasPromises)).filter((p) => p !== null) as PartidaTeams[];
+    const partidas = (await Promise.all(partidasPromises)).filter(
+      (p) => p !== null
+    ) as PartidaTeams[];
 
     // Criar conjunto de jogadores já usados (excluindo deciders)
     const jogadoresUsados = new Set<string>();
@@ -2278,8 +2366,12 @@ export class TeamsService {
     variante: VarianteTeams,
     isMisto: boolean
   ): Promise<PartidaTeams[]> {
-    const equipe1 = await this.equipeRepository.buscarPorId(confronto.equipe1Id!);
-    const equipe2 = await this.equipeRepository.buscarPorId(confronto.equipe2Id!);
+    const equipe1 = await this.equipeRepository.buscarPorId(
+      confronto.equipe1Id!
+    );
+    const equipe2 = await this.equipeRepository.buscarPorId(
+      confronto.equipe2Id!
+    );
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -2292,22 +2384,51 @@ export class TeamsService {
       if (isMisto) {
         // Jogo 1: Feminino
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 1, TipoJogoTeams.FEMININO, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            1,
+            TipoJogoTeams.FEMININO,
+            equipe1,
+            equipe2
+          )
         );
         // Jogo 2: Masculino
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 2, TipoJogoTeams.MASCULINO, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            2,
+            TipoJogoTeams.MASCULINO,
+            equipe1,
+            equipe2
+          )
         );
       } else {
         // TEAMS_4 não misto: 2 jogos do mesmo gênero
-        const tipoJogo = etapa.genero === GeneroJogador.FEMININO
-          ? TipoJogoTeams.FEMININO
-          : TipoJogoTeams.MASCULINO;
+        const tipoJogo =
+          etapa.genero === GeneroJogador.FEMININO
+            ? TipoJogoTeams.FEMININO
+            : TipoJogoTeams.MASCULINO;
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 1, tipoJogo, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            1,
+            tipoJogo,
+            equipe1,
+            equipe2
+          )
         );
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 2, tipoJogo, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            2,
+            tipoJogo,
+            equipe1,
+            equipe2
+          )
         );
       }
     } else {
@@ -2315,27 +2436,70 @@ export class TeamsService {
       if (isMisto) {
         // TEAMS_6 MISTO: 3 jogos (feminino, masculino, misto)
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 1, TipoJogoTeams.FEMININO, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            1,
+            TipoJogoTeams.FEMININO,
+            equipe1,
+            equipe2
+          )
         );
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 2, TipoJogoTeams.MASCULINO, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            2,
+            TipoJogoTeams.MASCULINO,
+            equipe1,
+            equipe2
+          )
         );
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 3, TipoJogoTeams.MISTO, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            3,
+            TipoJogoTeams.MISTO,
+            equipe1,
+            equipe2
+          )
         );
       } else {
         // TEAMS_6 NÃO MISTO: 3 jogos do mesmo gênero
-        const tipoJogo = etapa.genero === GeneroJogador.FEMININO
-          ? TipoJogoTeams.FEMININO
-          : TipoJogoTeams.MASCULINO;
+        const tipoJogo =
+          etapa.genero === GeneroJogador.FEMININO
+            ? TipoJogoTeams.FEMININO
+            : TipoJogoTeams.MASCULINO;
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 1, tipoJogo, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            1,
+            tipoJogo,
+            equipe1,
+            equipe2
+          )
         );
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 2, tipoJogo, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            2,
+            tipoJogo,
+            equipe1,
+            equipe2
+          )
         );
         partidaDTOs.push(
-          this.criarPartidaDTOVazia(confronto, etapa, 3, tipoJogo, equipe1, equipe2)
+          this.criarPartidaDTOVazia(
+            confronto,
+            etapa,
+            3,
+            tipoJogo,
+            equipe1,
+            equipe2
+          )
         );
       }
     }
@@ -2424,7 +2588,11 @@ export class TeamsService {
     );
 
     // Atualizar estatísticas dos jogadores
-    await this.atualizarEstatisticasJogadores(partida, dto.placar, vencedoraEquipeId);
+    await this.atualizarEstatisticasJogadores(
+      partida,
+      dto.placar,
+      vencedoraEquipeId
+    );
 
     // Atualizar confronto
     const partidasConfronto =
@@ -2460,7 +2628,9 @@ export class TeamsService {
     });
 
     // Verificar se precisa de decider (TEAMS_4 com empate 1-1)
-    const partidaAtualizada = await this.partidaRepository.buscarPorId(partidaId);
+    const partidaAtualizada = await this.partidaRepository.buscarPorId(
+      partidaId
+    );
     const confrontoAtualizado = await this.confrontoRepository.buscarPorId(
       confronto.id
     );
@@ -2508,41 +2678,56 @@ export class TeamsService {
       throw new ValidationError("Decider já existe para este confronto");
     }
 
-    const equipe1 = await this.equipeRepository.buscarPorId(confronto.equipe1Id);
-    const equipe2 = await this.equipeRepository.buscarPorId(confronto.equipe2Id);
+    const equipe1 = await this.equipeRepository.buscarPorId(
+      confronto.equipe1Id
+    );
+    const equipe2 = await this.equipeRepository.buscarPorId(
+      confronto.equipe2Id
+    );
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
     }
 
-    // Para TEAMS_4 misto: F+M vs F+M
-    // Etapa é mista se: isMisto é true, OU genero é MISTO
-    const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
+    // Verificar se a formação dos JOGOS (não equipes) foi manual
+    const tipoFormacaoJogos = etapa.tipoFormacaoJogos;
+    const isFormacaoManual = tipoFormacaoJogos === TipoFormacaoJogos.MANUAL;
 
     let dupla1Jogadores: JogadorEquipe[];
     let dupla2Jogadores: JogadorEquipe[];
 
-    if (isMisto) {
-      const f1 = equipe1.jogadores.filter(
-        (j) => j.genero === GeneroJogador.FEMININO
-      );
-      const m1 = equipe1.jogadores.filter(
-        (j) => j.genero === GeneroJogador.MASCULINO
-      );
-      const f2 = equipe2.jogadores.filter(
-        (j) => j.genero === GeneroJogador.FEMININO
-      );
-      const m2 = equipe2.jogadores.filter(
-        (j) => j.genero === GeneroJogador.MASCULINO
-      );
-
-      dupla1Jogadores = [this.shuffle(f1)[0], this.shuffle(m1)[0]];
-      dupla2Jogadores = [this.shuffle(f2)[0], this.shuffle(m2)[0]];
+    // Se formação manual, criar decider vazio para definir jogadores depois
+    if (isFormacaoManual) {
+      dupla1Jogadores = [];
+      dupla2Jogadores = [];
     } else {
-      const jogadores1 = this.shuffle([...equipe1.jogadores]);
-      const jogadores2 = this.shuffle([...equipe2.jogadores]);
-      dupla1Jogadores = jogadores1.slice(0, 2);
-      dupla2Jogadores = jogadores2.slice(0, 2);
+      // Formação automática: gerar duplas automaticamente
+      // Para TEAMS_4 misto: F+M vs F+M
+      // Etapa é mista se: isMisto é true, OU genero é MISTO
+      const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
+
+      if (isMisto) {
+        const f1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const m1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+        const f2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const m2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+
+        dupla1Jogadores = [this.shuffle(f1)[0], this.shuffle(m1)[0]];
+        dupla2Jogadores = [this.shuffle(f2)[0], this.shuffle(m2)[0]];
+      } else {
+        const jogadores1 = this.shuffle([...equipe1.jogadores]);
+        const jogadores2 = this.shuffle([...equipe2.jogadores]);
+        dupla1Jogadores = jogadores1.slice(0, 2);
+        dupla2Jogadores = jogadores2.slice(0, 2);
+      }
     }
 
     const partidaDTO = this.criarPartidaDTO(
@@ -2618,6 +2803,46 @@ export class TeamsService {
     return this.partidaRepository.buscarPorConfrontoOrdenadas(confrontoId);
   }
 
+  /**
+   * Renomear uma equipe
+   */
+  async renomearEquipe(
+    equipeId: string,
+    novoNome: string,
+    arenaId: string
+  ): Promise<void> {
+    // Buscar equipe
+    const equipe = await this.equipeRepository.buscarPorId(equipeId);
+    if (!equipe) {
+      throw new NotFoundError("Equipe não encontrada");
+    }
+
+    // Verificar permissão de arena
+    if (equipe.arenaId !== arenaId) {
+      throw new Error("Você não tem permissão para editar esta equipe");
+    }
+
+    // Validar nome
+    if (!novoNome || novoNome.trim().length === 0) {
+      throw new Error("Nome da equipe não pode ser vazio");
+    }
+
+    if (novoNome.trim().length > 100) {
+      throw new Error("Nome da equipe não pode ter mais de 100 caracteres");
+    }
+
+    // Atualizar nome
+    await this.equipeRepository.atualizar(equipeId, {
+      nome: novoNome.trim(),
+    });
+
+    logger.info("Equipe renomeada", {
+      equipeId,
+      nomeAntigo: equipe.nome,
+      nomeNovo: novoNome.trim(),
+    });
+  }
+
   // ==================== CANCELAR / RESETAR ====================
 
   /**
@@ -2635,13 +2860,19 @@ export class TeamsService {
     await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
 
     // Resetar contadores dos confrontos (usando método específico que remove vencedoraId/vencedoraNome)
-    const confrontos = await this.confrontoRepository.buscarPorEtapa(etapaId, arenaId);
+    const confrontos = await this.confrontoRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
     for (const confronto of confrontos) {
       await this.confrontoRepository.resetarConfronto(confronto.id);
     }
 
     // Resetar estatísticas das equipes e recriar estatísticas dos jogadores
-    const equipes = await this.equipeRepository.buscarPorEtapa(etapaId, arenaId);
+    const equipes = await this.equipeRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
     for (const equipe of equipes) {
       await this.equipeRepository.atualizar(equipe.id, {
         confrontos: 0,
@@ -2791,7 +3022,10 @@ export class TeamsService {
           (j) => j.genero === inscricao.genero
         ).length;
 
-        while (jogadoresMesmoGenero >= jogadoresPorEquipe && tentativas < equipes.length) {
+        while (
+          jogadoresMesmoGenero >= jogadoresPorEquipe &&
+          tentativas < equipes.length
+        ) {
           equipeIndex = (equipeIndex + 1) % equipes.length;
           tentativas++;
 
@@ -2806,10 +3040,13 @@ export class TeamsService {
         }
 
         if (tentativas >= equipes.length) {
-          logger.error(`Todas as equipes estão cheias para gênero ${inscricao.genero}`, {
-            jogador: inscricao.jogadorNome,
-            jogadoresPorEquipe,
-          });
+          logger.error(
+            `Todas as equipes estão cheias para gênero ${inscricao.genero}`,
+            {
+              jogador: inscricao.jogadorNome,
+              jogadoresPorEquipe,
+            }
+          );
         }
 
         equipes[equipeIndex].push({
@@ -2897,13 +3134,13 @@ export class TeamsService {
       confrontoId: confronto.id,
       ordem,
       tipoJogo,
-      dupla1: dupla1Jogadores.map(j => ({
+      dupla1: dupla1Jogadores.map((j) => ({
         id: j.id,
         nome: j.nome,
         nivel: j.nivel,
         genero: j.genero,
       })),
-      dupla2: dupla2Jogadores.map(j => ({
+      dupla2: dupla2Jogadores.map((j) => ({
         id: j.id,
         nome: j.nome,
         nivel: j.nivel,
@@ -2933,13 +3170,9 @@ export class TeamsService {
     }
 
     const vencedoraEquipeId =
-      setsDupla1 > setsDupla2
-        ? partida.equipe1Id!
-        : partida.equipe2Id!;
+      setsDupla1 > setsDupla2 ? partida.equipe1Id! : partida.equipe2Id!;
     const vencedoraEquipeNome =
-      setsDupla1 > setsDupla2
-        ? partida.equipe1Nome!
-        : partida.equipe2Nome!;
+      setsDupla1 > setsDupla2 ? partida.equipe1Nome! : partida.equipe2Nome!;
 
     return { setsDupla1, setsDupla2, vencedoraEquipeId, vencedoraEquipeNome };
   }
@@ -3087,10 +3320,7 @@ export class TeamsService {
     }
 
     // TEAMS_6: Se todas as 3 partidas finalizadas
-    if (
-      confronto.totalPartidas === 3 &&
-      finalizadas.length === 3
-    ) {
+    if (confronto.totalPartidas === 3 && finalizadas.length === 3) {
       return true;
     }
 
@@ -3152,7 +3382,11 @@ export class TeamsService {
       );
     } else if (confronto.fase === FaseEtapa.SEMIFINAL) {
       // Se semifinal terminou, preencher a final
-      await this.preencherProximoConfronto(confronto, vencedoraId, vencedoraNome);
+      await this.preencherProximoConfronto(
+        confronto,
+        vencedoraId,
+        vencedoraNome
+      );
     }
   }
 
@@ -3176,7 +3410,9 @@ export class TeamsService {
       return;
     }
 
-    logger.info("Fase de grupos finalizada, preenchendo fase eliminatória", { etapaId });
+    logger.info("Fase de grupos finalizada, preenchendo fase eliminatória", {
+      etapaId,
+    });
 
     // Buscar equipes classificadas por grupo
     const equipes = await this.equipeRepository.buscarPorEtapaOrdenadas(
@@ -3214,7 +3450,9 @@ export class TeamsService {
     const numGrupos = grupoIds.length;
 
     if (numGrupos < 2 || numGrupos > 8) {
-      logger.warn(`Fase eliminatória suporta 2-8 grupos. Recebido: ${numGrupos}`);
+      logger.warn(
+        `Fase eliminatória suporta 2-8 grupos. Recebido: ${numGrupos}`
+      );
       return;
     }
 
@@ -3231,10 +3469,8 @@ export class TeamsService {
     }
 
     // Buscar todos os confrontos da fase eliminatória
-    const confrontosEliminatoria = await this.confrontoRepository.buscarPorEtapa(
-      etapaId,
-      arenaId
-    );
+    const confrontosEliminatoria =
+      await this.confrontoRepository.buscarPorEtapa(etapaId, arenaId);
 
     // Filtrar apenas os confrontos eliminatórios (não grupos)
     const confrontosParaPreencher = confrontosEliminatoria.filter(
@@ -3244,7 +3480,11 @@ export class TeamsService {
     // Preencher cada confronto baseado na origem
     for (const confronto of confrontosParaPreencher) {
       // Pular se já tem equipes definidas
-      if (confronto.equipe1Id && confronto.equipe2Id && confronto.equipe2Id !== "BYE") {
+      if (
+        confronto.equipe1Id &&
+        confronto.equipe2Id &&
+        confronto.equipe2Id !== "BYE"
+      ) {
         continue;
       }
 
@@ -3271,7 +3511,11 @@ export class TeamsService {
             // Preencher o próximo confronto
             if (confronto.proximoConfrontoId) {
               await this.preencherProximoConfronto(
-                { ...confronto, equipe1Id: equipe.id, equipe1Nome: equipe.nome } as ConfrontoEquipe,
+                {
+                  ...confronto,
+                  equipe1Id: equipe.id,
+                  equipe1Nome: equipe.nome,
+                } as ConfrontoEquipe,
                 equipe.id,
                 equipe.nome
               );

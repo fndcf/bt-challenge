@@ -776,11 +776,21 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
       setError(null);
 
       const jogadorIds = jogadoresSelecionados.map((j) => j.id);
-      await etapaService.inscreverJogadores(etapaId, jogadorIds);
+      const inscricoes = await etapaService.inscreverJogadores(etapaId, jogadorIds);
 
-      alert(
-        `${jogadoresSelecionados.length} jogador(es) inscrito(s) com sucesso!`
-      );
+      // Verificar se houve erros parciais
+      if (inscricoes.length < jogadoresSelecionados.length) {
+        const sucesso = inscricoes.length;
+        const falhas = jogadoresSelecionados.length - inscricoes.length;
+        alert(
+          `${sucesso} jogador(es) inscrito(s) com sucesso!\n${falhas} inscrição(ões) falharam. Verifique os critérios (nível, gênero, limite).`
+        );
+      } else {
+        alert(
+          `${jogadoresSelecionados.length} jogador(es) inscrito(s) com sucesso!`
+        );
+      }
+
       onSuccess();
       onClose();
     } catch (err: any) {

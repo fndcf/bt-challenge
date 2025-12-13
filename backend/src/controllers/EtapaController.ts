@@ -272,6 +272,81 @@ class EtapaController extends BaseController {
   }
 
   /**
+   * Inscrever múltiplos jogadores em lote
+   * POST /api/etapas/:id/inscrever-lote
+   */
+  async inscreverJogadoresEmLote(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+      const { jogadorIds } = req.body;
+
+      if (!Array.isArray(jogadorIds) || jogadorIds.length === 0) {
+        ResponseHelper.badRequest(res, "jogadorIds deve ser um array não vazio");
+        return;
+      }
+
+      logger.info("Inscrevendo jogadores em lote", {
+        etapaId: id,
+        quantidade: jogadorIds.length,
+      });
+
+      const resultado = await etapaService.inscreverJogadoresEmLote(
+        id,
+        arenaId,
+        jogadorIds
+      );
+
+      if (resultado.erros.length > 0) {
+        logger.warn("Algumas inscrições falharam", {
+          etapaId: id,
+          sucessos: resultado.inscricoes.length,
+          falhas: resultado.erros.length,
+        });
+      }
+
+      ResponseHelper.success(res, {
+        message: `${resultado.inscricoes.length} jogador(es) inscrito(s) com sucesso`,
+        inscricoes: resultado.inscricoes,
+        erros: resultado.erros,
+        total: jogadorIds.length,
+        sucessos: resultado.inscricoes.length,
+        falhas: resultado.erros.length,
+      });
+    } catch (error: any) {
+      logger.error(
+        "Erro ao inscrever jogadores em lote",
+        { etapaId: req.params.id },
+        error
+      );
+
+      if (error.message?.includes("Inscrições não estão abertas")) {
+        ResponseHelper.badRequest(res, error.message);
+        return;
+      }
+
+      if (error.message?.includes("Etapa não encontrada")) {
+        ResponseHelper.notFound(res, error.message);
+        return;
+      }
+
+      if (error.message?.includes("vagas disponíveis")) {
+        ResponseHelper.badRequest(res, error.message);
+        return;
+      }
+
+      this.handleGenericError(res, error, "inscrever jogadores em lote", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
    * Cancelar inscrição
    * DELETE /api/etapas/:etapaId/inscricoes/:inscricaoId
    */
@@ -1720,6 +1795,42 @@ class EtapaController extends BaseController {
 
       this.handleGenericError(res, error, "gerar decider TEAMS", {
         confrontoId: req.params.confrontoId,
+      });
+    }
+  }
+
+  /**
+   * Renomear equipe TEAMS
+   * PATCH /api/etapas/:id/teams/equipes/:equipeId/renomear
+   */
+  async renomearEquipeTeams(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { equipeId } = req.params;
+      const { nome } = req.body;
+
+      if (!nome) {
+        ResponseHelper.badRequest(res, "Nome da equipe é obrigatório");
+        return;
+      }
+
+      logger.info("Renomeando equipe TEAMS", { equipeId, nome });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      await teamsService.renomearEquipe(equipeId, nome, arenaId);
+
+      ResponseHelper.success(res, {
+        message: "Equipe renomeada com sucesso",
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "renomear equipe TEAMS", {
+        equipeId: req.params.equipeId,
       });
     }
   }

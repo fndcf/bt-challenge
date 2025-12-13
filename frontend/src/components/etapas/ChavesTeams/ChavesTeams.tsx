@@ -147,6 +147,53 @@ const EquipeNome = styled.h4`
   font-size: 1.125rem;
   font-weight: 700;
   margin: 0;
+  flex: 1;
+`;
+
+const EquipeNomeInput = styled.input`
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  outline: none;
+
+  &:focus {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.3);
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const EditButton = styled.button`
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
 `;
 
 const PosicaoBadge = styled.div`
@@ -429,6 +476,8 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<"equipes" | "confrontos">("equipes");
+  const [editandoEquipeId, setEditandoEquipeId] = useState<string | null>(null);
+  const [nomeEditando, setNomeEditando] = useState("");
 
   const varianteInfo = getVarianteInfo(varianteTeams);
 
@@ -475,6 +524,43 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
     await carregarDados(true);
     if (onAtualizar) {
       onAtualizar();
+    }
+  };
+
+  // Renomear equipe
+  const handleRenomearEquipe = async (equipeId: string, novoNome: string) => {
+    try {
+      await teamsService.renomearEquipe(etapaId, equipeId, novoNome);
+
+      // Atualizar estado local
+      setEquipes((prev) =>
+        prev.map((eq) =>
+          eq.id === equipeId ? { ...eq, nome: novoNome } : eq
+        )
+      );
+
+      setEditandoEquipeId(null);
+      setNomeEditando("");
+    } catch (err: any) {
+      alert(err.message || "Erro ao renomear equipe");
+    }
+  };
+
+  const handleIniciarEdicao = (equipe: Equipe) => {
+    setEditandoEquipeId(equipe.id);
+    setNomeEditando(equipe.nome);
+  };
+
+  const handleCancelarEdicao = () => {
+    setEditandoEquipeId(null);
+    setNomeEditando("");
+  };
+
+  const handleSalvarNome = (equipeId: string) => {
+    if (nomeEditando.trim()) {
+      handleRenomearEquipe(equipeId, nomeEditando.trim());
+    } else {
+      handleCancelarEdicao();
     }
   };
 
@@ -532,12 +618,54 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   }
 
   // Função para renderizar card de equipe
-  const renderEquipeCard = (equipe: Equipe, index: number) => (
-    <EquipeCard key={equipe.id}>
-      <EquipeHeader $posicao={index + 1}>
-        <EquipeNome>{equipe.nome}</EquipeNome>
-        <PosicaoBadge>#{index + 1}</PosicaoBadge>
-      </EquipeHeader>
+  const renderEquipeCard = (equipe: Equipe, index: number) => {
+    const estaEditando = editandoEquipeId === equipe.id;
+
+    return (
+      <EquipeCard key={equipe.id}>
+        <EquipeHeader $posicao={index + 1}>
+          {estaEditando ? (
+            <EquipeNomeInput
+              value={nomeEditando}
+              onChange={(e) => setNomeEditando(e.target.value)}
+              onBlur={() => handleSalvarNome(equipe.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSalvarNome(equipe.id);
+                } else if (e.key === "Escape") {
+                  handleCancelarEdicao();
+                }
+              }}
+              autoFocus
+              maxLength={50}
+            />
+          ) : (
+            <EquipeNome>{equipe.nome}</EquipeNome>
+          )}
+          <HeaderActions>
+            {!etapaFinalizada && !estaEditando && (
+              <EditButton
+                onClick={() => handleIniciarEdicao(equipe)}
+                title="Renomear equipe"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
+                </svg>
+              </EditButton>
+            )}
+            <PosicaoBadge>#{index + 1}</PosicaoBadge>
+          </HeaderActions>
+        </EquipeHeader>
 
       <EquipeContent>
         <JogadoresList>
@@ -610,7 +738,8 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
         </StatsGrid>
       </EquipeContent>
     </EquipeCard>
-  );
+    );
+  };
 
   const confrontosFinalizados = confrontos.filter(
     (c) => c.status === StatusConfronto.FINALIZADO

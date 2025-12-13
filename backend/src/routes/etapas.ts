@@ -48,6 +48,14 @@ router.post("/:id/inscrever", (req, res) =>
 );
 
 /**
+ * @route   POST /api/etapas/:id/inscrever-lote
+ * @desc    Inscrever múltiplos jogadores na etapa (otimizado)
+ */
+router.post("/:id/inscrever-lote", (req, res) =>
+  etapaController.inscreverJogadoresEmLote(req, res)
+);
+
+/**
  * @route   GET /api/etapas/:id/inscricoes
  * @desc    Listar inscrições da etapa
  */
@@ -331,6 +339,14 @@ router.get("/:id/teams/confrontos/:confrontoId/partidas", (req, res) =>
  */
 router.post("/:id/teams/confrontos/:confrontoId/gerar-decider", (req, res) =>
   etapaController.gerarDeciderTeams(req, res)
+);
+
+/**
+ * @route   PATCH /api/etapas/:id/teams/equipes/:equipeId/renomear
+ * @desc    Renomear uma equipe TEAMS
+ */
+router.patch("/:id/teams/equipes/:equipeId/renomear", (req, res) =>
+  etapaController.renomearEquipeTeams(req, res)
 );
 
 /**

@@ -28,6 +28,7 @@ export interface ITeamsService {
   gerarEquipes(etapaId: string, dto?: GerarEquipesDTO): Promise<GerarEquipesResponse>;
   formarEquipesManual(etapaId: string, dto: FormarEquipesManualDTO): Promise<GerarEquipesResponse>;
   buscarEquipes(etapaId: string): Promise<Equipe[]>;
+  renomearEquipe(etapaId: string, equipeId: string, nome: string): Promise<void>;
 
   // Confrontos
   buscarConfrontos(etapaId: string): Promise<ConfrontoEquipe[]>;
@@ -146,6 +147,25 @@ class TeamsService implements ITeamsService {
       return response;
     } catch (error) {
       const appError = handleError(error, "TeamsService.buscarEquipes");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Renomear equipe
+   *
+   * PATCH /api/etapas/:etapaId/teams/equipes/:equipeId/renomear
+   */
+  async renomearEquipe(etapaId: string, equipeId: string, nome: string): Promise<void> {
+    try {
+      await apiClient.patch(
+        `${this.basePath}/${etapaId}${this.teamsPath}/equipes/${equipeId}/renomear`,
+        { nome }
+      );
+
+      logger.info("Equipe renomeada", { etapaId, equipeId, nome });
+    } catch (error) {
+      const appError = handleError(error, "TeamsService.renomearEquipe");
       throw new Error(appError.message);
     }
   }

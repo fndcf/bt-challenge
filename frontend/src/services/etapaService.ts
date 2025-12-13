@@ -172,22 +172,48 @@ class EtapaService implements IEtapaService {
   }
 
   /**
-   * Inscrever múltiplos jogadores
+   * Inscrever múltiplos jogadores (otimizado com batch)
    */
   async inscreverJogadores(
     etapaId: string,
     jogadorIds: string[]
   ): Promise<Inscricao[]> {
     try {
-      const inscricoes: Inscricao[] = [];
-
-      // Inscrever cada jogador sequencialmente
-      for (const jogadorId of jogadorIds) {
-        const inscricao = await this.inscreverJogador(etapaId, { jogadorId });
-        inscricoes.push(inscricao);
+      // Se for apenas 1 jogador, usa método individual
+      if (jogadorIds.length === 1) {
+        const inscricao = await this.inscreverJogador(etapaId, {
+          jogadorId: jogadorIds[0]
+        });
+        return [inscricao];
       }
 
-      return inscricoes;
+      // Para múltiplos jogadores, usa endpoint otimizado em lote
+      const resultado = await apiClient.post<{
+        inscricoes: Inscricao[];
+        erros: Array<{ jogadorId: string; erro: string }>;
+        total: number;
+        sucessos: number;
+        falhas: number;
+      }>(`${this.baseURL}/${etapaId}/inscrever-lote`, {
+        jogadorIds,
+      });
+
+      logger.info("Jogadores inscritos em lote", {
+        etapaId,
+        total: resultado.total,
+        sucessos: resultado.sucessos,
+        falhas: resultado.falhas,
+      });
+
+      // Se houver erros, logar mas não falhar
+      if (resultado.erros.length > 0) {
+        logger.warn("Alguns jogadores não foram inscritos", {
+          etapaId,
+          erros: resultado.erros,
+        });
+      }
+
+      return resultado.inscricoes;
     } catch (error) {
       const appError = handleError(error, "EtapaService.inscreverJogadores");
       throw new Error(appError.message);

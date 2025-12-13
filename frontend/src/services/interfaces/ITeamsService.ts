@@ -39,6 +39,11 @@ export interface ITeamsService {
    */
   buscarEquipes(etapaId: string): Promise<Equipe[]>;
 
+  /**
+   * Renomear uma equipe
+   */
+  renomearEquipe(etapaId: string, equipeId: string, nome: string): Promise<void>;
+
   // ============================================
   // CONFRONTOS
   // ============================================
