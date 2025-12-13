@@ -1,0 +1,1 @@
+export { ModalLancamentoResultadosLoteReiDaPraia } from "./ModalLancamentoResultadosLoteReiDaPraia";

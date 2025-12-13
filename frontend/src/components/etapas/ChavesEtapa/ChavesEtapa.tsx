@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getChaveService, getEtapaService } from "@/services";
-import { Dupla, Grupo } from "@/types/chave";
+import { Dupla, Grupo, Partida } from "@/types/chave";
 import { PartidasGrupo } from "../PartidasGrupo";
 import { FaseEliminatoria } from "../FaseEliminatoria";
 import { LoadingOverlay } from "@/components/ui";
+import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -447,6 +448,13 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   const [globalLoading, setGlobalLoading] = React.useState(false);
   const [globalLoadingMessage, setGlobalLoadingMessage] = React.useState("");
 
+  // Estado para modal de lançamento em lote
+  const [grupoModalAberto, setGrupoModalAberto] = useState<{
+    id: string;
+    nome: string;
+  } | null>(null);
+  const [partidasModal, setPartidasModal] = useState<Partida[]>([]);
+
   useEffect(() => {
     carregarChaves();
   }, [etapaId, abaAtiva]);
@@ -488,6 +496,36 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
 
   const toggleGrupo = (grupoId: string) => {
     setGrupoSelecionado((prev) => (prev === grupoId ? null : grupoId));
+  };
+
+  const handleAbrirModalResultados = async (grupoId: string, grupoNome: string) => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Carregando partidas...");
+
+      const todasPartidas = await chaveService.buscarPartidas(etapaId);
+      const partidasDoGrupo = todasPartidas.filter((p) => p.grupoId === grupoId);
+
+      setPartidasModal(partidasDoGrupo);
+      setGrupoModalAberto({ id: grupoId, nome: grupoNome });
+    } catch (err: any) {
+      alert(err.message || "Erro ao carregar partidas");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  const handleResultadosSalvos = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Atualizando classificação...");
+      setGrupoModalAberto(null);
+      await carregarChaves();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
   };
 
   if (loading) {
@@ -671,26 +709,11 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                       )}
                     </FooterInfo>
 
-                    <VerPartidasButton onClick={() => toggleGrupo(grupo.id)}>
-                      {grupoSelecionado === grupo.id
-                        ? " ▼ Ocultar Partidas"
-                        : " Ver Partidas"}
+                    <VerPartidasButton
+                      onClick={() => handleAbrirModalResultados(grupo.id, grupo.nome)}
+                    >
+                      Registrar Resultados
                     </VerPartidasButton>
-
-                    {grupoSelecionado === grupo.id && (
-                      <PartidasContainer>
-                        <PartidasGrupo
-                          etapaId={etapaId}
-                          grupoId={grupo.id}
-                          grupoNome={grupo.nome}
-                          onAtualizarGrupos={carregarChaves}
-                          eliminatoriaExiste={eliminatoriaExiste}
-                          etapaFinalizada={etapaFinalizada}
-                          setGlobalLoading={setGlobalLoading}
-                          setGlobalLoadingMessage={setGlobalLoadingMessage}
-                        />
-                      </PartidasContainer>
-                    )}
                   </GrupoFooter>
                 </GrupoCard>
               );
@@ -710,6 +733,16 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           etapaId={etapaId}
           arenaId={arenaId || ""}
           grupos={grupos}
+        />
+      )}
+
+      {/* Modal de lançamento em lote */}
+      {grupoModalAberto && (
+        <ModalLancamentoResultadosLoteDuplaFixa
+          partidas={partidasModal}
+          grupoNome={grupoModalAberto.nome}
+          onClose={() => setGrupoModalAberto(null)}
+          onSuccess={handleResultadosSalvos}
         />
       )}
 

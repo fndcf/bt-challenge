@@ -1,0 +1,1 @@
+export { ModalLancamentoResultadosLoteDuplaFixa } from "./ModalLancamentoResultadosLoteDuplaFixa";

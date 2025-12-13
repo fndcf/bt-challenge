@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getSuperXService } from "@/services";
 import { Grupo } from "@/types/chave";
-import { EstatisticasJogador } from "@/types/reiDaPraia";
+import { EstatisticasJogador, PartidaReiDaPraia } from "@/types/reiDaPraia";
 import { VarianteSuperX } from "@/types/etapa";
-import { PartidasSuperX } from "../PartidasSuperX";
+import { ModalLancamentoResultadosLoteSuperX } from "../ModalLancamentoResultadosLoteSuperX";
 import { LoadingOverlay } from "@/components/ui";
 
 interface ChavesSuperXProps {
@@ -307,10 +307,6 @@ const VerPartidasButton = styled.button`
   }
 `;
 
-const PartidasContainer = styled.div`
-  margin-top: 1rem;
-`;
-
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -425,7 +421,8 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
   const [jogadores, setJogadores] = useState<EstatisticasJogador[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mostrarPartidas, setMostrarPartidas] = useState(false);
+  const [partidas, setPartidas] = useState<PartidaReiDaPraia[]>([]);
+  const [mostrarModalResultados, setMostrarModalResultados] = useState(false);
 
   // Estado global de loading para operações críticas que bloqueiam toda a tela
   const [globalLoading, setGlobalLoading] = useState(false);
@@ -453,6 +450,33 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       setError(err.message || "Erro ao carregar chaves");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAbrirModalResultados = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Carregando partidas...");
+      const partidasData = await superXService.buscarPartidas(etapaId);
+      setPartidas(partidasData);
+      setMostrarModalResultados(true);
+    } catch (err: any) {
+      alert(err.message || "Erro ao carregar partidas");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  const handleResultadosSalvos = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Atualizando classificação...");
+      setMostrarModalResultados(false);
+      await carregarChaves();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -622,24 +646,11 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
           </FooterInfo>
 
           <VerPartidasButton
-            onClick={() => setMostrarPartidas(!mostrarPartidas)}
+            onClick={handleAbrirModalResultados}
+            disabled={etapaFinalizada}
           >
-            {mostrarPartidas ? "▼ Ocultar Partidas" : "Ver Partidas"}
+            Registrar Resultados
           </VerPartidasButton>
-
-          {mostrarPartidas && (
-            <PartidasContainer>
-              <PartidasSuperX
-                etapaId={etapaId}
-                grupoId={grupo.id}
-                grupoNome={grupo.nome || "Grupo Principal"}
-                onAtualizarGrupos={carregarChaves}
-                etapaFinalizada={etapaFinalizada}
-                setGlobalLoading={setGlobalLoading}
-                setGlobalLoadingMessage={setGlobalLoadingMessage}
-              />
-            </PartidasContainer>
-          )}
         </GrupoFooter>
       </GrupoCard>
 
@@ -658,6 +669,15 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
           <li>Nao ha fase eliminatoria - o campeonato e decidido no grupo</li>
         </ul>
       </InfoCard>
+
+      {/* Modal de Lançamento de Resultados em Lote */}
+      {mostrarModalResultados && (
+        <ModalLancamentoResultadosLoteSuperX
+          partidas={partidas}
+          onClose={() => setMostrarModalResultados(false)}
+          onSuccess={handleResultadosSalvos}
+        />
+      )}
 
       {/* Loading Overlay Global - Bloqueia toda a tela */}
       <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />

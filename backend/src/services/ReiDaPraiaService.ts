@@ -1206,63 +1206,141 @@ export class ReiDaPraiaService {
     const totalDuplas = duplas.length;
     const proximaPotencia = Math.pow(2, Math.ceil(Math.log2(totalDuplas)));
     const byes = proximaPotencia - totalDuplas;
-
-    let ordem = 1;
-
-    // Confrontos com BYE (duplas que passam direto)
-    for (let i = 0; i < byes; i++) {
-      const dupla = duplas[i];
-
-      const confronto = await this.confrontoRepository.criar({
-        etapaId,
-        arenaId,
-        fase: determinarTipoFase(totalDuplas),
-        ordem: ordem++,
-        dupla1Id: dupla.id,
-        dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        dupla1Origem: `Dupla ${i + 1}`,
-      });
-
-      // Registrar como BYE (dupla passa direto)
-      await this.confrontoRepository.registrarResultado(confronto.id, {
-        status: StatusConfrontoEliminatorio.BYE,
-        vencedoraId: dupla.id,
-        vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-      });
-
-      confrontos.push({
-        ...confronto,
-        status: StatusConfrontoEliminatorio.BYE,
-        vencedoraId: dupla.id,
-        vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-      });
-    }
-
-    // Confrontos reais (pares de duplas)
     const confrontosReais = (totalDuplas - byes) / 2;
 
-    for (let i = 0; i < confrontosReais; i++) {
-      const seed1Index = byes + i;
-      const seed2Index = totalDuplas - 1 - i;
+    /**
+     * NOVA LÓGICA DE DISTRIBUIÇÃO INTELIGENTE
+     *
+     * Objetivo: Evitar que duplas fortes (primeiras do array) se enfrentem antes da final
+     *
+     * Estratégia:
+     * - Posições ímpares (Q1, Q3): Duplas FORTES (com BYE se houver)
+     * - Posições pares (Q2, Q4): Jogos entre duplas FRACAS/MÉDIAS
+     *
+     * Isso garante que quando usar pareamento sequencial (1-2, 3-4):
+     * - S1: Forte (Q1) vs Fraca (Q2)
+     * - S2: Forte (Q3) vs Média (Q4)
+     * - FINAL: Forte vs Forte ✅
+     */
 
-      const dupla1 = duplas[seed1Index];
-      const dupla2 = duplas[seed2Index];
+    let ordem = 1;
+    let byeIndex = 0;
+    let jogoIndex = 0;
 
-      const confronto = await this.confrontoRepository.criar({
-        etapaId,
-        arenaId,
-        fase: determinarTipoFase(totalDuplas),
-        ordem: ordem++,
-        dupla1Id: dupla1.id,
-        dupla1Nome: `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`,
-        dupla1Origem: `Dupla ${seed1Index + 1}`,
-        dupla2Id: dupla2.id,
-        dupla2Nome: `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`,
-        dupla2Origem: `Dupla ${seed2Index + 1}`,
-      });
+    const totalConfrontos = proximaPotencia / 2;
 
-      confrontos.push(confronto);
+    for (let i = 0; i < totalConfrontos; i++) {
+      const posicaoImpar = i % 2 === 0; // Q1, Q3, Q5, Q7 (0, 2, 4, 6)
+
+      if (posicaoImpar && byeIndex < byes) {
+        // Posição ímpar + ainda tem BYE → Criar BYE para dupla forte
+        const dupla = duplas[byeIndex];
+
+        const confronto = await this.confrontoRepository.criar({
+          etapaId,
+          arenaId,
+          fase: determinarTipoFase(totalDuplas),
+          ordem: ordem++,
+          dupla1Id: dupla.id,
+          dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+          dupla1Origem: `Dupla ${byeIndex + 1}`,
+        });
+
+        // Registrar como BYE (dupla passa direto)
+        await this.confrontoRepository.registrarResultado(confronto.id, {
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: dupla.id,
+          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+        });
+
+        confrontos.push({
+          ...confronto,
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: dupla.id,
+          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+        });
+
+        byeIndex++;
+      } else if (jogoIndex < confrontosReais) {
+        // Posição par OU não tem mais BYE → Criar jogo real
+
+        // Estratégia de pareamento:
+        // - Pegar duplas das extremidades do array restante (após os BYEs)
+        // - Isso coloca duplas mais fracas jogando entre si
+        const duplasRestantes = totalDuplas - byes;
+        const metadeRestantes = Math.floor(duplasRestantes / 2);
+
+        let seed1Index: number;
+        let seed2Index: number;
+
+        if (jogoIndex < metadeRestantes) {
+          // Primeira metade dos jogos: pegar das extremidades (mais fracas)
+          seed1Index = byes + jogoIndex;
+          seed2Index = totalDuplas - 1 - jogoIndex;
+        } else {
+          // Segunda metade: pegar do meio (médias)
+          const offsetMeio = jogoIndex - metadeRestantes;
+          seed1Index = byes + metadeRestantes + offsetMeio;
+          seed2Index = byes + duplasRestantes - 1 - metadeRestantes - offsetMeio;
+        }
+
+        const dupla1 = duplas[seed1Index];
+        const dupla2 = duplas[seed2Index];
+
+        const confronto = await this.confrontoRepository.criar({
+          etapaId,
+          arenaId,
+          fase: determinarTipoFase(totalDuplas),
+          ordem: ordem++,
+          dupla1Id: dupla1.id,
+          dupla1Nome: `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`,
+          dupla1Origem: `Dupla ${seed1Index + 1}`,
+          dupla2Id: dupla2.id,
+          dupla2Nome: `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`,
+          dupla2Origem: `Dupla ${seed2Index + 1}`,
+        });
+
+        confrontos.push(confronto);
+        jogoIndex++;
+      } else if (byeIndex < byes) {
+        // Sobrou BYE para criar (casos com 3 BYEs)
+        const dupla = duplas[byeIndex];
+
+        const confronto = await this.confrontoRepository.criar({
+          etapaId,
+          arenaId,
+          fase: determinarTipoFase(totalDuplas),
+          ordem: ordem++,
+          dupla1Id: dupla.id,
+          dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+          dupla1Origem: `Dupla ${byeIndex + 1}`,
+        });
+
+        // Registrar como BYE (dupla passa direto)
+        await this.confrontoRepository.registrarResultado(confronto.id, {
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: dupla.id,
+          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+        });
+
+        confrontos.push({
+          ...confronto,
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: dupla.id,
+          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+        });
+
+        byeIndex++;
+      }
     }
+
+    logger.info("Confrontos eliminatórios gerados com distribuição inteligente", {
+      etapaId,
+      totalDuplas,
+      totalByes: byes,
+      totalJogos: confrontosReais,
+      totalConfrontos: confrontos.length,
+    });
 
     return confrontos;
   }

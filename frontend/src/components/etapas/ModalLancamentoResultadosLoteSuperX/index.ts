@@ -1,0 +1,1 @@
+export { ModalLancamentoResultadosLoteSuperX } from "./ModalLancamentoResultadosLoteSuperX";
