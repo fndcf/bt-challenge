@@ -182,6 +182,7 @@ export function createMockGrupoRepository(): MockedGrupoRepository {
     adicionarDupla: jest.fn(),
     removerDupla: jest.fn(),
     adicionarPartida: jest.fn(),
+    adicionarPartidasEmLote: jest.fn(),
     incrementarPartidasFinalizadas: jest.fn(),
     decrementarPartidasFinalizadas: jest.fn(),
     marcarCompleto: jest.fn(),

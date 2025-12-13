@@ -245,6 +245,28 @@ export class GrupoRepository implements IGrupoRepository {
   }
 
   /**
+   * Adicionar múltiplas partidas ao grupo em batch
+   * ✅ OTIMIZAÇÃO: Reduz múltiplas escritas para uma única operação
+   */
+  async adicionarPartidasEmLote(
+    id: string,
+    partidasIds: string[]
+  ): Promise<void> {
+    const grupo = await this.buscarPorId(id);
+    if (!grupo) {
+      throw new NotFoundError("Grupo não encontrado");
+    }
+
+    const partidas = [...grupo.partidas, ...partidasIds];
+
+    await this.collection.doc(id).update({
+      partidas,
+      totalPartidas: partidas.length,
+      atualizadoEm: Timestamp.now(),
+    });
+  }
+
+  /**
    * Incrementar partidas finalizadas
    */
   async incrementarPartidasFinalizadas(id: string): Promise<void> {

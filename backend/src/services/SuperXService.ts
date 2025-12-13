@@ -22,7 +22,6 @@ import { embaralhar } from "../utils/arrayUtils";
 import {
   getSuperXSchedule,
   getTotalRodadas,
-  getTotalPartidas,
 } from "../config/SuperXSchedules";
 
 // Interfaces dos repositories
@@ -128,15 +127,14 @@ export class SuperXService {
         variant
       );
 
-      // Atualizar grupoId em cada jogador
-      for (const jogador of jogadores) {
-        await estatisticasJogadorService.atualizarGrupo(
-          jogador.jogadorId,
-          etapaId,
-          grupo.id,
-          grupo.nome
-        );
-      }
+      // ✅ OTIMIZAÇÃO: Atualizar grupoId em todos os jogadores em batch
+      const atualizacoesGrupo = jogadores.map((jogador) => ({
+        jogadorId: jogador.jogadorId,
+        etapaId,
+        grupoId: grupo.id,
+        grupoNome: grupo.nome,
+      }));
+      await estatisticasJogadorService.atualizarGrupoEmLote(atualizacoesGrupo);
 
       // Gerar partidas usando o schedule
       const partidas = await this.gerarPartidas(
@@ -183,27 +181,27 @@ export class SuperXService {
     variant: 8 | 10 | 12
   ): Promise<EstatisticasJogador[]> {
     try {
-      const jogadores: EstatisticasJogador[] = [];
       const grupoNome = `Super ${variant}`;
 
       // Embaralhar para distribuição aleatória
       const inscricoesEmbaralhadas = embaralhar([...inscricoes]);
 
-      for (const inscricao of inscricoesEmbaralhadas) {
-        const estatisticas = await estatisticasJogadorService.criar({
-          etapaId,
-          arenaId,
-          jogadorId: inscricao.jogadorId,
-          jogadorNome: inscricao.jogadorNome,
-          jogadorNivel: inscricao.jogadorNivel,
-          jogadorGenero: inscricao.jogadorGenero,
-          grupoNome,
-        });
+      // ✅ OTIMIZAÇÃO: Criar todas as estatísticas em batch
+      const estatisticasDTOs = inscricoesEmbaralhadas.map((inscricao) => ({
+        etapaId,
+        arenaId,
+        jogadorId: inscricao.jogadorId,
+        jogadorNome: inscricao.jogadorNome,
+        jogadorNivel: inscricao.jogadorNivel,
+        jogadorGenero: inscricao.jogadorGenero,
+        grupoNome,
+      }));
 
-        jogadores.push(estatisticas as unknown as EstatisticasJogador);
-      }
+      const jogadores = await estatisticasJogadorService.criarEmLote(
+        estatisticasDTOs
+      );
 
-      return jogadores;
+      return jogadores as unknown as EstatisticasJogador[];
     } catch (error) {
       logger.error(
         "Erro ao criar estatísticas dos jogadores",
@@ -262,8 +260,9 @@ export class SuperXService {
   ): Promise<PartidaReiDaPraia[]> {
     try {
       const schedule = getSuperXSchedule(variant);
-      const todasPartidas: PartidaReiDaPraia[] = [];
-      const partidasIds: string[] = [];
+
+      // ✅ OTIMIZAÇÃO: Construir todos os DTOs primeiro, depois criar em batch
+      const partidaDTOs: CriarPartidaReiDaPraiaDTO[] = [];
 
       for (const rodada of schedule) {
         for (const partida of rodada.partidas) {
@@ -272,7 +271,7 @@ export class SuperXService {
           const jogador2A = jogadores[partida.dupla2[0]];
           const jogador2B = jogadores[partida.dupla2[1]];
 
-          const partidaDTO: CriarPartidaReiDaPraiaDTO = {
+          partidaDTOs.push({
             etapaId,
             arenaId,
             fase: FaseEtapa.GRUPOS,
@@ -289,25 +288,17 @@ export class SuperXService {
             jogador2BId: jogador2B.jogadorId,
             jogador2BNome: jogador2B.jogadorNome,
             dupla2Nome: `${jogador2A.jogadorNome} & ${jogador2B.jogadorNome}`,
-          };
-
-          const partidaCriada =
-            await this.partidaReiDaPraiaRepository.criar(partidaDTO);
-          todasPartidas.push(partidaCriada);
-          partidasIds.push(partidaCriada.id);
+          });
         }
       }
 
-      // Atualizar grupo com total de partidas
-      const totalPartidas = getTotalPartidas(variant);
-      await this.grupoRepository.atualizarContadores(grupo.id, {
-        totalPartidas,
-      });
+      // ✅ OTIMIZAÇÃO: Criar todas as partidas em batch
+      const todasPartidas =
+        await this.partidaReiDaPraiaRepository.criarEmLote(partidaDTOs);
+      const partidasIds = todasPartidas.map((p) => p.id);
 
-      // Adicionar partidas ao grupo
-      for (const partidaId of partidasIds) {
-        await this.grupoRepository.adicionarPartida(grupo.id, partidaId);
-      }
+      // ✅ OTIMIZAÇÃO: Adicionar todas as partidas ao grupo em uma única operação
+      await this.grupoRepository.adicionarPartidasEmLote(grupo.id, partidasIds);
 
       return todasPartidas;
     } catch (error) {

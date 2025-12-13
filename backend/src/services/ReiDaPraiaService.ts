@@ -208,13 +208,23 @@ export class ReiDaPraiaService {
         }
       }
 
-      // Criar estatísticas para cada jogador
+      // ✅ OTIMIZAÇÃO: Criar todas as estatísticas em batch
+      const estatisticasDTOs: Array<{
+        etapaId: string;
+        arenaId: string;
+        jogadorId: string;
+        jogadorNome: string;
+        jogadorNivel: string;
+        jogadorGenero: string;
+        grupoNome: string;
+      }> = [];
+
       for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
         const nomeGrupo = `Grupo ${letras[grupoIndex]}`;
         const jogadoresGrupo = gruposComCabecas[grupoIndex];
 
         for (const inscricao of jogadoresGrupo) {
-          const estatisticas = await estatisticasJogadorService.criar({
+          estatisticasDTOs.push({
             etapaId,
             arenaId,
             jogadorId: inscricao.jogadorId,
@@ -223,11 +233,14 @@ export class ReiDaPraiaService {
             jogadorGenero: inscricao.jogadorGenero,
             grupoNome: nomeGrupo,
           });
-
-          // Cast necessário pois o service retorna o model e não a interface do repository
-          jogadores.push(estatisticas as unknown as EstatisticasJogador);
         }
       }
+
+      const estatisticasCriadas =
+        await estatisticasJogadorService.criarEmLote(estatisticasDTOs);
+      jogadores.push(
+        ...(estatisticasCriadas as unknown as EstatisticasJogador[])
+      );
 
       return jogadores;
     } catch (error) {
@@ -265,6 +278,12 @@ export class ReiDaPraiaService {
 
       // Criar documento de grupo para cada conjunto
       let grupoIndex = 0;
+      const atualizacoesGrupo: Array<{
+        estatisticaId: string;
+        grupoId: string;
+        grupoNome: string;
+      }> = [];
+
       for (const [nomeGrupo, jogadoresGrupo] of jogadoresPorGrupo) {
         // Criar grupo via repository
         const grupo = await this.grupoRepository.criar({
@@ -278,18 +297,22 @@ export class ReiDaPraiaService {
 
         grupos.push(grupo);
 
-        // Atualizar grupoId em cada jogador
+        // Preparar atualizações para batch usando o ID da estatística diretamente
         for (const jogador of jogadoresGrupo) {
-          await estatisticasJogadorService.atualizarGrupo(
-            jogador.jogadorId,
-            etapaId,
-            grupo.id,
-            nomeGrupo
-          );
+          atualizacoesGrupo.push({
+            estatisticaId: jogador.id,
+            grupoId: grupo.id,
+            grupoNome: nomeGrupo,
+          });
         }
 
         grupoIndex++;
       }
+
+      // ✅ OTIMIZAÇÃO: Atualizar grupos usando IDs diretamente (sem busca adicional)
+      await estatisticasJogadorService.atualizarGrupoEmLotePorId(
+        atualizacoesGrupo
+      );
 
       return grupos;
     } catch (error) {
@@ -332,26 +355,16 @@ export class ReiDaPraiaService {
           jogadores
         );
 
-        const partidasIds: string[] = [];
+        // ✅ OTIMIZAÇÃO: Criar todas as partidas em batch (3 partidas por grupo)
+        const partidas = await this.partidaReiDaPraiaRepository.criarEmLote(
+          partidasDTO
+        );
+        todasPartidas.push(...partidas);
 
-        // Criar partidas via repository
-        for (const partidaDTO of partidasDTO) {
-          const partida = await this.partidaReiDaPraiaRepository.criar(
-            partidaDTO
-          );
-          todasPartidas.push(partida);
-          partidasIds.push(partida.id);
-        }
+        const partidasIds = partidas.map((p) => p.id);
 
-        // Atualizar grupo com partidas via repository
-        await this.grupoRepository.atualizarContadores(grupo.id, {
-          totalPartidas: 3,
-        });
-
-        // Adicionar partidas ao grupo
-        for (const partidaId of partidasIds) {
-          await this.grupoRepository.adicionarPartida(grupo.id, partidaId);
-        }
+        // ✅ OTIMIZAÇÃO: Adicionar todas as partidas ao grupo em uma única operação
+        await this.grupoRepository.adicionarPartidasEmLote(grupo.id, partidasIds);
       }
 
       return todasPartidas;

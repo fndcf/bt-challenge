@@ -705,6 +705,91 @@ export class EstatisticasJogadorService {
   }
 
   /**
+   * Atualizar grupo de múltiplos jogadores em batch usando estatisticaId
+   * ✅ OTIMIZAÇÃO: Usa IDs diretamente, sem busca adicional
+   */
+  async atualizarGrupoEmLotePorId(
+    atualizacoes: Array<{
+      estatisticaId: string;
+      grupoId: string;
+      grupoNome: string;
+    }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    try {
+      const batch = db.batch();
+      const now = Timestamp.now();
+
+      for (const { estatisticaId, grupoId, grupoNome } of atualizacoes) {
+        const docRef = db.collection(this.collection).doc(estatisticaId);
+        batch.update(docRef, {
+          grupoId,
+          grupoNome,
+          atualizadoEm: now,
+        });
+      }
+
+      await batch.commit();
+
+      logger.info("Grupos atualizados em lote", {
+        total: atualizacoes.length,
+      });
+    } catch (error) {
+      logger.error("Erro ao atualizar grupos em lote", {}, error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualizar grupo de múltiplos jogadores em batch (busca por jogadorId+etapaId)
+   * ⚠️ NOTA: Para melhor performance, use atualizarGrupoEmLotePorId quando tiver os IDs
+   */
+  async atualizarGrupoEmLote(
+    atualizacoes: Array<{
+      jogadorId: string;
+      etapaId: string;
+      grupoId: string;
+      grupoNome: string;
+    }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    try {
+      // Buscar todos os IDs em paralelo primeiro
+      const buscas = await Promise.all(
+        atualizacoes.map(({ jogadorId, etapaId }) =>
+          this.buscarPorJogadorEtapa(jogadorId, etapaId)
+        )
+      );
+
+      const batch = db.batch();
+      const now = Timestamp.now();
+
+      for (let i = 0; i < atualizacoes.length; i++) {
+        const estatisticas = buscas[i];
+        if (estatisticas) {
+          const docRef = db.collection(this.collection).doc(estatisticas.id);
+          batch.update(docRef, {
+            grupoId: atualizacoes[i].grupoId,
+            grupoNome: atualizacoes[i].grupoNome,
+            atualizadoEm: now,
+          });
+        }
+      }
+
+      await batch.commit();
+
+      logger.info("Grupos atualizados em lote", {
+        total: atualizacoes.length,
+      });
+    } catch (error) {
+      logger.error("Erro ao atualizar grupos em lote", {}, error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * Atualizar posição no grupo
    */
   async atualizarPosicaoGrupo(

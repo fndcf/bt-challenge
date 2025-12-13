@@ -64,6 +64,11 @@ export interface IGrupoRepository
   adicionarPartida(id: string, partidaId: string): Promise<void>;
 
   /**
+   * Adicionar múltiplas partidas ao grupo em batch
+   */
+  adicionarPartidasEmLote(id: string, partidasIds: string[]): Promise<void>;
+
+  /**
    * Incrementar partidas finalizadas
    */
   incrementarPartidasFinalizadas(id: string): Promise<void>;

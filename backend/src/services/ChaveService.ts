@@ -122,8 +122,9 @@ export class ChaveService implements IChaveService {
       );
 
       // 4. Criar estatísticas dos jogadores
-      for (const dupla of duplas) {
-        await estatisticasJogadorService.criar({
+      // ✅ OTIMIZAÇÃO: Usar batch operation para criar todas estatísticas de uma vez
+      const estatisticasDTOs = duplas.flatMap((dupla) => [
+        {
           etapaId,
           arenaId,
           jogadorId: dupla.jogador1Id,
@@ -132,9 +133,8 @@ export class ChaveService implements IChaveService {
           jogadorGenero: dupla.jogador1Genero,
           grupoId: dupla.grupoId,
           grupoNome: dupla.grupoNome,
-        });
-
-        await estatisticasJogadorService.criar({
+        },
+        {
           etapaId,
           arenaId,
           jogadorId: dupla.jogador2Id,
@@ -143,8 +143,9 @@ export class ChaveService implements IChaveService {
           jogadorGenero: dupla.jogador2Genero,
           grupoId: dupla.grupoId,
           grupoNome: dupla.grupoNome,
-        });
-      }
+        },
+      ]);
+      await estatisticasJogadorService.criarEmLote(estatisticasDTOs);
 
       // 5. Criar grupos
       const grupos = await this.grupos.criarGrupos(

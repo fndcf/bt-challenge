@@ -65,6 +65,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
 
   /**
    * Gerar partidas de todos contra todos para cada grupo
+   * OTIMIZADO: Usa batch operations para melhor performance
    */
   async gerarPartidas(
     etapaId: string,
@@ -78,14 +79,14 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         // Buscar duplas do grupo
         const duplas = await this.duplaRepo.buscarPorGrupo(grupo.id);
 
-        // Gerar combinações (todos contra todos)
-        const partidas: Partida[] = [];
+        // Gerar DTOs das combinações (todos contra todos)
+        const partidaDTOs: any[] = [];
         for (let i = 0; i < duplas.length; i++) {
           for (let j = i + 1; j < duplas.length; j++) {
             const dupla1 = duplas[i];
             const dupla2 = duplas[j];
 
-            const partida = await this.partidaRepo.criar({
+            partidaDTOs.push({
               etapaId,
               arenaId,
               fase: FaseEtapa.GRUPOS,
@@ -97,20 +98,22 @@ export class PartidaGrupoService implements IPartidaGrupoService {
               dupla2Id: dupla2.id,
               dupla2Nome: `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`,
             });
-
-            partidas.push(partida);
-            todasPartidas.push(partida);
           }
         }
 
-        // Atualizar grupo com IDs das partidas
+        // ✅ OTIMIZAÇÃO: Criar todas as partidas em 1 batch operation
+        const partidas = await this.partidaRepo.criarEmLote(partidaDTOs);
+        todasPartidas.push(...partidas);
+
+        // Atualizar grupo com IDs das partidas e contadores
+        const partidasIds = partidas.map(p => p.id);
         await this.grupoRepo.atualizarContadores(grupo.id, {
           totalPartidas: partidas.length,
         });
 
-        // Adicionar partidas ao grupo
-        for (const partida of partidas) {
-          await this.grupoRepo.adicionarPartida(grupo.id, partida.id);
+        // ✅ OTIMIZAÇÃO: Adicionar todas as partidas de uma vez
+        for (const partidaId of partidasIds) {
+          await this.grupoRepo.adicionarPartida(grupo.id, partidaId);
         }
       }
 
