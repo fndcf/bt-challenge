@@ -420,8 +420,13 @@ export const ModalLancamentoResultadosLoteReiDaPraia: React.FC<
     campo: "gamesDupla1" | "gamesDupla2",
     valor: string
   ) => {
-    const novoResultado = {
-      ...(resultados.get(partidaId) || { partidaId }),
+    const resultadoAtual = resultados.get(partidaId) || {
+      partidaId,
+      gamesDupla1: undefined,
+      gamesDupla2: undefined,
+    };
+    const novoResultado: ResultadoPartida = {
+      ...resultadoAtual,
       [campo]: valor === "" ? undefined : parseInt(valor),
     };
 

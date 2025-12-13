@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo, Partida } from "@/types/chave";
-import { PartidasGrupo } from "../PartidasGrupo";
 import { FaseEliminatoria } from "../FaseEliminatoria";
 import { LoadingOverlay } from "@/components/ui";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
@@ -364,10 +363,6 @@ const VerPartidasButton = styled.button`
   }
 `;
 
-const PartidasContainer = styled.div`
-  margin-top: 1rem;
-`;
-
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -439,9 +434,8 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   const [duplas, setDuplas] = useState<Dupla[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [grupoSelecionado, setGrupoSelecionado] = useState<string | null>(null);
-  const [eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
-  const [etapaFinalizada, setEtapaFinalizada] = useState(false);
+  const [_eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
+  const [_etapaFinalizada, setEtapaFinalizada] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
 
   // Estado global de loading para operações críticas que bloqueiam toda a tela
@@ -492,10 +486,6 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleGrupo = (grupoId: string) => {
-    setGrupoSelecionado((prev) => (prev === grupoId ? null : grupoId));
   };
 
   const handleAbrirModalResultados = async (grupoId: string, grupoNome: string) => {
