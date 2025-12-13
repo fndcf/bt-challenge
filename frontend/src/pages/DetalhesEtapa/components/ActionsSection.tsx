@@ -12,11 +12,11 @@ interface ActionsSectionProps {
   isSuperX?: boolean;
   isTeams?: boolean;
   todasPartidasFinalizadas?: boolean;
-  onAbrirInscricoes: () => void;
-  onEncerrarInscricoes: () => void;
-  onGerarChaves: () => void;
+  onAbrirInscricoes: () => Promise<void>;
+  onEncerrarInscricoes: () => Promise<void>;
+  onGerarChaves: () => Promise<void>;
   onApagarChaves: () => void;
-  onFinalizarEtapa: () => void;
+  onFinalizarEtapa: () => Promise<void>;
   onVerChaves: () => void;
 }
 
@@ -48,21 +48,30 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         {/* Abrir inscrições */}
         {etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS &&
           !etapa.chavesGeradas && (
-            <S.Button $variant="green" onClick={onAbrirInscricoes}>
+            <S.Button
+              $variant="green"
+              onClick={onAbrirInscricoes}
+            >
               <span>Reabrir Inscrições</span>
             </S.Button>
           )}
 
         {/* Encerrar inscrições */}
         {podeEncerrar && (
-          <S.Button $variant="orange" onClick={onEncerrarInscricoes}>
+          <S.Button
+            $variant="orange"
+            onClick={onEncerrarInscricoes}
+          >
             <span>Encerrar Inscrições</span>
           </S.Button>
         )}
 
         {/* Gerar chaves/equipes */}
         {podeGerarChaves && (
-          <S.Button $variant="blue" onClick={onGerarChaves}>
+          <S.Button
+            $variant="blue"
+            onClick={onGerarChaves}
+          >
             <span>{isTeams ? "Gerar Equipes" : "Gerar Chaves"}</span>
           </S.Button>
         )}
@@ -87,7 +96,10 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           (etapa.status === StatusEtapa.EM_ANDAMENTO ||
             etapa.status === StatusEtapa.CHAVES_GERADAS) &&
           todasPartidasFinalizadas && (
-            <S.Button $variant="green" onClick={onFinalizarEtapa}>
+            <S.Button
+              $variant="green"
+              onClick={onFinalizarEtapa}
+            >
               <span>Finalizar Etapa</span>
             </S.Button>
           )}

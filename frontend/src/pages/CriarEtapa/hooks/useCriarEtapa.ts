@@ -66,6 +66,8 @@ export interface UseCriarEtapaReturn {
   error: string | null;
   errosDatas: ErrosDatas;
   formData: CriarEtapaFormData;
+  globalLoading: boolean;
+  globalLoadingMessage: string;
 
   // Cálculos
   infoDuplaFixa: DistribuicaoDuplaFixa;
@@ -107,6 +109,8 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
   const [errosDatas, setErrosDatas] = useState<ErrosDatas>({});
   const [formData, setFormData] =
     useState<CriarEtapaFormData>(INITIAL_FORM_DATA);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   // ============== CÁLCULOS DE DISTRIBUIÇÃO ==============
 
@@ -450,6 +454,8 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
       try {
         setLoading(true);
         setError(null);
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Criando etapa...");
 
         // Validar datas
         if (!validarDatas()) {
@@ -639,6 +645,9 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
       } catch (err: any) {
         setError(err.message || "Erro ao criar etapa");
         setLoading(false);
+      } finally {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
       }
     },
     [formData, validarDatas, infoDuplaFixa.qtdGrupos, navigate]
@@ -650,6 +659,8 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
     error,
     errosDatas,
     formData,
+    globalLoading,
+    globalLoadingMessage,
 
     // Cálculos
     infoDuplaFixa,

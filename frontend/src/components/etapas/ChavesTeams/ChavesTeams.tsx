@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { getTeamsService } from "@/services";
 import { Equipe, ConfrontoEquipe, StatusConfronto, VarianteTeams } from "@/types/teams";
 import { ConfrontosTeams } from "../ConfrontosTeams";
+import { LoadingOverlay } from "@/components/ui";
 
 interface ChavesTeamsProps {
   etapaId: string;
@@ -479,6 +480,10 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   const [editandoEquipeId, setEditandoEquipeId] = useState<string | null>(null);
   const [nomeEditando, setNomeEditando] = useState("");
 
+  // Estado global de loading para operações críticas que bloqueiam toda a tela
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
+
   const varianteInfo = getVarianteInfo(varianteTeams);
 
   useEffect(() => {
@@ -827,10 +832,15 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
               etapaFinalizada={etapaFinalizada}
               onAtualizarLocal={() => carregarDados(true)}
               onAtualizar={handleAtualizarComNotificacao}
+              setGlobalLoading={setGlobalLoading}
+              setGlobalLoadingMessage={setGlobalLoadingMessage}
             />
           )}
         </TabContent>
       </TabContainer>
+
+      {/* Loading Overlay Global - Bloqueia toda a tela */}
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </Container>
   );
 };

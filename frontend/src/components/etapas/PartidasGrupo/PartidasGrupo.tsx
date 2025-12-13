@@ -11,6 +11,8 @@ interface PartidasGrupoProps {
   onAtualizarGrupos?: () => void;
   eliminatoriaExiste?: boolean;
   etapaFinalizada?: boolean;
+  setGlobalLoading?: (loading: boolean) => void;
+  setGlobalLoadingMessage?: (message: string) => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -254,6 +256,8 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
   onAtualizarGrupos,
   eliminatoriaExiste = false,
   etapaFinalizada = false,
+  setGlobalLoading,
+  setGlobalLoadingMessage,
 }) => {
   const chaveService = getChaveService();
   const [partidas, setPartidas] = useState<Partida[]>([]);
@@ -283,12 +287,24 @@ export const PartidasGrupo: React.FC<PartidasGrupoProps> = ({
     }
   };
 
-  const handleResultadoRegistrado = () => {
-    setPartidaSelecionada(null);
-    carregarPartidas();
+  const handleResultadoRegistrado = async () => {
+    try {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Salvando resultado...");
+      }
 
-    if (onAtualizarGrupos) {
-      onAtualizarGrupos();
+      setPartidaSelecionada(null);
+      await carregarPartidas();
+
+      if (onAtualizarGrupos) {
+        await onAtualizarGrupos();
+      }
+    } finally {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
     }
   };
 

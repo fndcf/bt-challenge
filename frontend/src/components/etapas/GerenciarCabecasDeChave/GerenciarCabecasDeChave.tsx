@@ -4,7 +4,7 @@ import { getCabecaDeChaveService } from "@/services";
 import { CabecaDeChave } from "@/types/cabecaDeChave";
 import { Inscricao } from "@/types/etapa";
 import { FormatoEtapa } from "@/types/etapa";
-import { Pagination } from "@/components/ui";
+import { Pagination, LoadingOverlay } from "@/components/ui";
 
 // ===== STYLES =====
 
@@ -149,12 +149,20 @@ const Divider = styled.div`
 
 const JogadoresLista = styled.div``;
 
-const JogadorItem = styled.div<{ $ehCabeca: boolean }>`
+const JogadorItem = styled.div<{ $ehCabeca: boolean; $estaSelecionado: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: ${(props) => (props.$ehCabeca ? "#fffbeb" : "white")};
-  border: 2px solid ${(props) => (props.$ehCabeca ? "#fbbf24" : "#e5e7eb")};
+  background: ${(props) => {
+    if (props.$ehCabeca) return "#fde68a"; // Amarelo forte/vibrante para quem JÁ é cabeça
+    if (props.$estaSelecionado) return "#fef9e7"; // Amarelo bem claro para selecionado
+    return "white";
+  }};
+  border: 2px solid ${(props) => {
+    if (props.$ehCabeca) return "#f59e0b"; // Laranja para quem JÁ é cabeça (mais forte)
+    if (props.$estaSelecionado) return "#fbbf24"; // Amarelo para selecionado
+    return "#e5e7eb";
+  }};
   border-radius: 0.375rem;
   padding: 0.75rem;
   margin-bottom: 0.5rem;
@@ -162,17 +170,12 @@ const JogadorItem = styled.div<{ $ehCabeca: boolean }>`
   transition: all 0.2s;
 
   &:hover {
-    border-color: #fbbf24;
+    border-color: ${(props) => props.$ehCabeca ? "#f59e0b" : "#fbbf24"};
     transform: translateX(4px);
   }
 `;
 
-const JogadorCheckbox = styled.input`
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: #fbbf24;
-`;
+// Checkbox removido - seleção por clique no card inteiro
 
 const JogadorInfo = styled.div`
   flex: 1;
@@ -217,6 +220,53 @@ const EmptyState = styled.div`
   }
 `;
 
+const ActionsBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid #fbbf24;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+`;
+
+const SelectionInfo = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #92400e;
+`;
+
+const ActionsButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ActionBarButton = styled.button<{ $variant: "primary" | "danger" }>`
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  ${props => props.$variant === "primary" ? `
+    background: #fbbf24;
+    color: white;
+    &:hover:not(:disabled) { background: #f59e0b; }
+  ` : `
+    background: #dc2626;
+    color: white;
+    &:hover:not(:disabled) { background: #b91c1c; }
+  `}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 interface Props {
   arenaId: string;
   etapaId: string;
@@ -243,6 +293,9 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
 
@@ -289,50 +342,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     return null;
   }
 
-  const handleToggleCabeca = async (inscricao: Inscricao) => {
-    if (readOnly) return;
-    const ehCabecaAtual = cabecas.some(
-      (c) => c.jogadorId === inscricao.jogadorId
-    );
-
-    try {
-      setLoading(true);
-
-      if (ehCabecaAtual) {
-        await cabecaDeChaveService.remover(
-          arenaId,
-          etapaId,
-          inscricao.jogadorId
-        );
-        setCabecas(cabecas.filter((c) => c.jogadorId !== inscricao.jogadorId));
-      } else {
-        if (cabecas.length >= limiteCabecas) {
-          alert(
-            `Limite atingido! Máximo de ${limiteCabecas} cabeça(s) de chave para este formato.`
-          );
-          return;
-        }
-
-        const maiorOrdem =
-          cabecas.length > 0 ? Math.max(...cabecas.map((c) => c.ordem)) : 0;
-
-        const novaCabeca = await cabecaDeChaveService.criar({
-          arenaId,
-          etapaId,
-          jogadorId: inscricao.jogadorId,
-          jogadorNome: inscricao.jogadorNome,
-          ordem: maiorOrdem + 1,
-        });
-        setCabecas([...cabecas, novaCabeca]);
-      }
-
-      onUpdate();
-    } catch (error: any) {
-      alert(error.message || "Erro ao atualizar cabeças");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // handleToggleCabeca removida - agora usa handleAdicionarSelecionados e handleRemoverCabeca
 
   const handleMoverOrdem = async (
     cabeca: CabecaDeChave,
@@ -358,14 +368,33 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     }));
 
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage(`Reordenando cabeça de chave...`);
       await cabecaDeChaveService.reordenar(arenaId, etapaId, ordens);
       await carregarCabecas();
       onUpdate();
     } catch (error: any) {
       alert("Erro ao reordenar cabeças");
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  const handleRemoverCabeca = async (jogadorId: string, jogadorNome: string) => {
+    if (readOnly) return;
+
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage(`Removendo ${jogadorNome} das cabeças de chave...`);
+      await cabecaDeChaveService.remover(arenaId, etapaId, jogadorId);
+      await carregarCabecas();
+      onUpdate();
+    } catch (error: any) {
+      alert(error.message || "Erro ao remover cabeça");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -374,6 +403,71 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     const cabeca = cabecas.find((c) => c.jogadorId === jogadorId);
     return cabeca ? cabeca.ordem : null;
   };
+
+  const toggleSelecao = (jogadorId: string) => {
+    setSelecionados(prev => {
+      const novo = new Set(prev);
+      if (novo.has(jogadorId)) {
+        novo.delete(jogadorId);
+      } else {
+        // Não permitir selecionar jogadores que JÁ são cabeças
+        const jaEhCabeca = cabecas.some(c => c.jogadorId === jogadorId);
+        if (!jaEhCabeca) {
+          novo.add(jogadorId);
+        }
+      }
+      return novo;
+    });
+  };
+
+  const handleAdicionarSelecionados = async () => {
+    if (selecionados.size === 0) {
+      alert("Selecione pelo menos um jogador");
+      return;
+    }
+
+    // Validar limite
+    if (cabecas.length + selecionados.size > limiteCabecas) {
+      alert(
+        `Limite atingido! Máximo de ${limiteCabecas} cabeça(s) de chave. ` +
+        `Você já tem ${cabecas.length} e está tentando adicionar ${selecionados.size}.`
+      );
+      return;
+    }
+
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage(`Adicionando ${selecionados.size} cabeça(s) de chave...`);
+
+      const maiorOrdem =
+        cabecas.length > 0 ? Math.max(...cabecas.map((c) => c.ordem)) : 0;
+
+      const promises = Array.from(selecionados).map(async (jogadorId, index) => {
+        const inscricao = inscricoes.find(i => i.jogadorId === jogadorId);
+        if (!inscricao) return null;
+
+        return cabecaDeChaveService.criar({
+          arenaId,
+          etapaId,
+          jogadorId: inscricao.jogadorId,
+          jogadorNome: inscricao.jogadorNome,
+          ordem: maiorOrdem + index + 1,
+        });
+      });
+
+      await Promise.all(promises);
+      await carregarCabecas();
+      setSelecionados(new Set());
+      onUpdate();
+    } catch (error: any) {
+      alert(error.message || "Erro ao adicionar cabeças");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Função de remover selecionados foi removida - remoção feita apenas pelos botões individuais X
 
   return (
     <Container>
@@ -403,6 +497,23 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
         </p>
       </InfoBox>
 
+      {!readOnly && selecionados.size > 0 && (
+        <ActionsBar>
+          <SelectionInfo>
+            {selecionados.size} jogador(es) selecionado(s)
+          </SelectionInfo>
+          <ActionsButtons>
+            <ActionBarButton
+              $variant="primary"
+              onClick={handleAdicionarSelecionados}
+              disabled={loading || globalLoading}
+            >
+              Adicionar Selecionados
+            </ActionBarButton>
+          </ActionsButtons>
+        </ActionsBar>
+      )}
+
       {cabecas.length > 0 && (
         <CabecasLista>
           <ListaTitle>
@@ -422,26 +533,21 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
                   <CabecaActions>
                     <ActionButton
                       onClick={() => handleMoverOrdem(cabeca, "up")}
-                      disabled={index === 0 || loading}
+                      disabled={index === 0 || globalLoading}
                       title="Mover para cima"
                     >
                       ▲
                     </ActionButton>
                     <ActionButton
                       onClick={() => handleMoverOrdem(cabeca, "down")}
-                      disabled={index === cabecas.length - 1 || loading}
+                      disabled={index === cabecas.length - 1 || globalLoading}
                       title="Mover para baixo"
                     >
                       ▼
                     </ActionButton>
                     <RemoveButton
-                      onClick={() => {
-                        const inscricao = inscricoes.find(
-                          (i) => i.jogadorId === cabeca.jogadorId
-                        );
-                        if (inscricao) handleToggleCabeca(inscricao);
-                      }}
-                      disabled={loading}
+                      onClick={() => handleRemoverCabeca(cabeca.jogadorId, cabeca.jogadorNome)}
+                      disabled={globalLoading}
                       title="Remover"
                     >
                       ✕
@@ -463,18 +569,15 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
             {paginatedInscricoes.map((inscricao) => {
               const ordem = getCabecaOrdem(inscricao.jogadorId);
               const ehCabeca = ordem !== null;
+              const estaSelecionado = selecionados.has(inscricao.jogadorId);
 
               return (
                 <JogadorItem
                   key={inscricao.id}
                   $ehCabeca={ehCabeca}
-                  onClick={() => handleToggleCabeca(inscricao)}
+                  $estaSelecionado={estaSelecionado}
+                  onClick={() => toggleSelecao(inscricao.jogadorId)}
                 >
-                  <JogadorCheckbox
-                    type="checkbox"
-                    checked={ehCabeca}
-                    readOnly
-                  />
                   <JogadorInfo>
                     <JogadorNome>{inscricao.jogadorNome}</JogadorNome>
                     <JogadorNivel>
@@ -509,6 +612,8 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
           <p>Nenhuma cabeça de chave foi definida para esta etapa.</p>
         </EmptyState>
       )}
+
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </Container>
   );
 };

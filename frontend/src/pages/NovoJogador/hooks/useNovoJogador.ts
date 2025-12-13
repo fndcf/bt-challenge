@@ -21,6 +21,8 @@ export interface UseNovoJogadorReturn {
   loading: boolean;
   errorMessage: string;
   successMessage: string;
+  globalLoading: boolean;
+  globalLoadingMessage: string;
 
   // Funções
   handleChange: (
@@ -40,6 +42,8 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   const [formData, setFormData] = useState<CriarJogadorDTO>({
     nome: "",
@@ -164,6 +168,8 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
       try {
         setLoading(true);
         setErrorMessage("");
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Cadastrando jogador...");
 
         const dataToSend: any = { ...formData };
         Object.keys(dataToSend).forEach((key) => {
@@ -194,6 +200,8 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
         setErrorMessage(mensagem);
       } finally {
         setLoading(false);
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
       }
     },
     [formData, validateForm, navigate]
@@ -212,6 +220,8 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
     loading,
     errorMessage,
     successMessage,
+    globalLoading,
+    globalLoadingMessage,
 
     // Funções
     handleChange,

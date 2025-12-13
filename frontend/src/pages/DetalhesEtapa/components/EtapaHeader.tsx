@@ -13,12 +13,14 @@ interface EtapaHeaderProps {
   etapa: Etapa;
   onEditar: () => void;
   onExcluir: () => void;
+  loadingExcluir?: boolean;
 }
 
 export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
   etapa,
   onEditar,
   onExcluir,
+  loadingExcluir = false,
 }) => {
   const navigate = useNavigate();
 
@@ -62,8 +64,12 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
 
         <S.HeaderActions>
           <S.ActionButton onClick={onEditar}>Editar</S.ActionButton>
-          <S.ActionButton $variant="danger" onClick={onExcluir}>
-            Excluir
+          <S.ActionButton
+            $variant="danger"
+            onClick={onExcluir}
+            disabled={loadingExcluir}
+          >
+            {loadingExcluir ? "Excluindo..." : "Excluir"}
           </S.ActionButton>
         </S.HeaderActions>
       </S.HeaderRow>

@@ -446,6 +446,7 @@ export const ModalFormacaoManualEquipes: React.FC<ModalFormacaoManualEquipesProp
       size="xl"
       footer={footer}
       closeOnOverlayClick={false}
+      loading={loading}
     >
       <Container>
         <InfoBox>

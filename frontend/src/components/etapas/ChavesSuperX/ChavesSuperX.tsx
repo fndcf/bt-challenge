@@ -5,6 +5,7 @@ import { Grupo } from "@/types/chave";
 import { EstatisticasJogador } from "@/types/reiDaPraia";
 import { VarianteSuperX } from "@/types/etapa";
 import { PartidasSuperX } from "../PartidasSuperX";
+import { LoadingOverlay } from "@/components/ui";
 
 interface ChavesSuperXProps {
   etapaId: string;
@@ -426,6 +427,10 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [mostrarPartidas, setMostrarPartidas] = useState(false);
 
+  // Estado global de loading para operações críticas que bloqueiam toda a tela
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
+
   const varianteInfo = getVarianteInfo(varianteSuperX);
 
   useEffect(() => {
@@ -630,6 +635,8 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
                 grupoNome={grupo.nome || "Grupo Principal"}
                 onAtualizarGrupos={carregarChaves}
                 etapaFinalizada={etapaFinalizada}
+                setGlobalLoading={setGlobalLoading}
+                setGlobalLoadingMessage={setGlobalLoadingMessage}
               />
             </PartidasContainer>
           )}
@@ -651,6 +658,9 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
           <li>Nao ha fase eliminatoria - o campeonato e decidido no grupo</li>
         </ul>
       </InfoCard>
+
+      {/* Loading Overlay Global - Bloqueia toda a tela */}
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </Container>
   );
 };

@@ -78,6 +78,11 @@ const CloseButton = styled.button`
   &:hover {
     color: #4b5563;
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const DuplasBox = styled.div`
@@ -403,7 +408,7 @@ export const ModalRegistrarResultadoSuperX: React.FC<
 
   return (
     <Overlay>
-      <OverlayBackground onClick={onClose} />
+      <OverlayBackground onClick={!loading ? onClose : undefined} />
 
       <ModalWrapper>
         <ModalContainer>
@@ -411,7 +416,7 @@ export const ModalRegistrarResultadoSuperX: React.FC<
             <Title>
               {isEdicao ? "Editar Resultado" : "Registrar Resultado"} - Super X
             </Title>
-            <CloseButton onClick={onClose}>x</CloseButton>
+            <CloseButton onClick={onClose} disabled={loading}>x</CloseButton>
           </Header>
 
           <DuplasBox>

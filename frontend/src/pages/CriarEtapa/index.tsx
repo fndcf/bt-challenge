@@ -13,6 +13,7 @@ import { InformacoesBasicas } from "./components/InformacoesBasicas";
 import { ConfiguracoesDatas } from "./components/ConfiguracoesDatas";
 import { ConfiguracoesJogadores } from "./components/ConfiguracoesJogadores";
 import { DistribuicaoPreview } from "./components/DistribuicaoPreview";
+import { LoadingOverlay } from "@/components/ui";
 import * as S from "./CriarEtapa.styles";
 
 export const CriarEtapa: React.FC = () => {
@@ -25,6 +26,8 @@ export const CriarEtapa: React.FC = () => {
     error,
     errosDatas,
     formData,
+    globalLoading,
+    globalLoadingMessage,
     infoDuplaFixa,
     infoReiDaPraia,
     infoSuperX,
@@ -161,6 +164,8 @@ export const CriarEtapa: React.FC = () => {
           </S.Button>
         </S.ButtonsRow>
       </S.Form>
+
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
 
       <Footer />
     </S.Container>

@@ -81,6 +81,11 @@ const CloseButton = styled.button`
   &:hover {
     color: #4b5563;
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const Form = styled.form`
@@ -378,7 +383,7 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
 
   return (
     <Overlay>
-      <OverlayBackground onClick={onClose} />
+      <OverlayBackground onClick={!loading ? onClose : undefined} />
 
       <ModalWrapper>
         <ModalContainer>
@@ -386,7 +391,7 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
             <Title>
               {isEdicao ? " Editar Resultado" : " Registrar Resultado"}
             </Title>
-            <CloseButton onClick={onClose}>✕</CloseButton>
+            <CloseButton onClick={onClose} disabled={loading}>✕</CloseButton>
           </Header>
 
           <Form onSubmit={handleSubmit}>

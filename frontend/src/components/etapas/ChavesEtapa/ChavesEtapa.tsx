@@ -4,6 +4,7 @@ import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo } from "@/types/chave";
 import { PartidasGrupo } from "../PartidasGrupo";
 import { FaseEliminatoria } from "../FaseEliminatoria";
+import { LoadingOverlay } from "@/components/ui";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -442,6 +443,10 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   const [etapaFinalizada, setEtapaFinalizada] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
 
+  // Estado global de loading para operações críticas que bloqueiam toda a tela
+  const [globalLoading, setGlobalLoading] = React.useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = React.useState("");
+
   useEffect(() => {
     carregarChaves();
   }, [etapaId, abaAtiva]);
@@ -681,6 +686,8 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                           onAtualizarGrupos={carregarChaves}
                           eliminatoriaExiste={eliminatoriaExiste}
                           etapaFinalizada={etapaFinalizada}
+                          setGlobalLoading={setGlobalLoading}
+                          setGlobalLoadingMessage={setGlobalLoadingMessage}
                         />
                       </PartidasContainer>
                     )}
@@ -705,6 +712,9 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           grupos={grupos}
         />
       )}
+
+      {/* Loading Overlay Global - Bloqueia toda a tela */}
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </Container>
   );
 };

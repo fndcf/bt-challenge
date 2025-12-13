@@ -82,8 +82,13 @@ const CloseButton = styled.button`
   padding: 0;
   transition: color 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: #4b5563;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
@@ -825,7 +830,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   };
 
   return (
-    <Overlay onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <Overlay onClick={(e) => e.target === e.currentTarget && !loading && onClose()}>
       <ModalContainer>
         <Header>
           <HeaderTop>
@@ -833,7 +838,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
               <Title>Inscrever Jogadores</Title>
               <Subtitle>{etapaNome}</Subtitle>
             </HeaderContent>
-            <CloseButton onClick={onClose}>×</CloseButton>
+            <CloseButton onClick={onClose} disabled={loading}>×</CloseButton>
           </HeaderTop>
 
           <InfoRow>

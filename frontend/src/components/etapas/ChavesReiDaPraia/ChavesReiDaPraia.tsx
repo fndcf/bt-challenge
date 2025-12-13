@@ -8,6 +8,7 @@ import {
 } from "@/types/reiDaPraia";
 import { PartidasGrupoReiDaPraia } from "../PartidasGrupoReiDaPraia";
 import { FaseEliminatoriaReiDaPraia } from "../FaseEliminatoriaReiDaPraia";
+import { LoadingOverlay } from "@/components/ui";
 
 interface ChavesReiDaPraiaProps {
   etapaId: string;
@@ -487,6 +488,10 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   const [eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
 
+  // Estado global de loading para operações críticas que bloqueiam toda a tela
+  const [globalLoading, setGlobalLoading] = React.useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = React.useState("");
+
   useEffect(() => {
     carregarChaves();
   }, [etapaId, abaAtiva]);
@@ -726,6 +731,8 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                           grupoNome={grupo.nome}
                           onAtualizarGrupos={carregarChaves}
                           eliminatoriaExiste={eliminatoriaExiste}
+                          setGlobalLoading={setGlobalLoading}
+                          setGlobalLoadingMessage={setGlobalLoadingMessage}
                         />
                       </PartidasContainer>
                     )}
@@ -755,6 +762,9 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           etapaTipoChaveamento={tipoChaveamento}
         />
       )}
+
+      {/* Loading Overlay Global - Bloqueia toda a tela */}
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </Container>
   );
 };

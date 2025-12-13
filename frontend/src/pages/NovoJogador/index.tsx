@@ -10,6 +10,7 @@ import { InformacoesBasicas } from "./components/InformacoesBasicas";
 import { NivelStatus } from "./components/NivelStatus";
 import { ObservacoesField } from "./components/ObservacoesField";
 import { Footer } from "@/components/layout/Footer";
+import { LoadingOverlay } from "@/components/ui";
 import * as S from "./NovoJogador.styles";
 
 export const NovoJogador: React.FC = () => {
@@ -21,6 +22,8 @@ export const NovoJogador: React.FC = () => {
     loading,
     errorMessage,
     successMessage,
+    globalLoading,
+    globalLoadingMessage,
     handleChange,
     handleSubmit,
     handleCancel,
@@ -93,6 +96,9 @@ export const NovoJogador: React.FC = () => {
           </S.Button>
         </S.FormActions>
       </S.Form>
+
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+
       <Footer />
     </S.PageContainer>
   );

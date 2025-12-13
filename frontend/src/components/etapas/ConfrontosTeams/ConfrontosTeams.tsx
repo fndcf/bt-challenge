@@ -20,6 +20,8 @@ interface ConfrontosTeamsProps {
   onAtualizarLocal?: () => void;
   /** Atualiza dados e notifica o pai (para todasPartidasFinalizadas) */
   onAtualizar?: () => void;
+  setGlobalLoading?: (loading: boolean) => void;
+  setGlobalLoadingMessage?: (message: string) => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -396,6 +398,8 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
   etapaFinalizada = false,
   onAtualizarLocal,
   onAtualizar,
+  setGlobalLoading,
+  setGlobalLoadingMessage,
 }) => {
   // equipes disponível para uso futuro (ex: exibir detalhes)
   void _equipes;
@@ -408,6 +412,10 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
   const handleGerarPartidas = async (confrontoId: string) => {
     try {
       setLoadingGerarPartidas(confrontoId);
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Gerando partidas...");
+      }
       await teamsService.gerarPartidasConfronto(etapaId, confrontoId);
       // Apenas atualiza dados locais, não muda aba
       if (onAtualizarLocal) onAtualizarLocal();
@@ -415,12 +423,20 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
       alert(err.message || "Erro ao gerar partidas");
     } finally {
       setLoadingGerarPartidas(null);
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
     }
   };
 
   const handleGerarDecider = async (confrontoId: string) => {
     try {
       setLoadingGerarDecider(confrontoId);
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Gerando decider...");
+      }
       await teamsService.gerarDecider(etapaId, confrontoId);
       // Apenas atualiza dados locais, não muda aba
       if (onAtualizarLocal) onAtualizarLocal();
@@ -428,6 +444,10 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
       alert(err.message || "Erro ao gerar decider");
     } finally {
       setLoadingGerarDecider(null);
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
     }
   };
 
@@ -446,6 +466,10 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
 
     try {
       setLoadingResetarPartidas(true);
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Resetando partidas...");
+      }
       await teamsService.resetarPartidas(etapaId);
       if (onAtualizar) onAtualizar();
       alert("Partidas resetadas com sucesso!");
@@ -453,6 +477,10 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
       alert(err.message || "Erro ao resetar partidas");
     } finally {
       setLoadingResetarPartidas(false);
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
     }
   };
 
@@ -605,6 +633,8 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
                   totalPartidas={confronto.partidas?.length || 0}
                   etapaFinalizada={etapaFinalizada}
                   onAtualizar={onAtualizar}
+                  setGlobalLoading={setGlobalLoading}
+                  setGlobalLoadingMessage={setGlobalLoadingMessage}
                 />
               </PartidasContainer>
             )}

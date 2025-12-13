@@ -13,6 +13,7 @@ import { ChavesSuperX } from "@/components/etapas/ChavesSuperX";
 import { ChavesTeams } from "@/components/etapas/ChavesTeams";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 import { Footer } from "@/components/layout/Footer";
+import { LoadingOverlay } from "@/components/ui";
 import { getEtapaService } from "@/services";
 import { StatusEtapa } from "@/types/etapa";
 import logger from "@/utils/logger";
@@ -64,6 +65,13 @@ const DetalhesEtapa: React.FC = () => {
     setModalConfirmacaoAberto,
   } = useDetalhesEtapa(id);
 
+  // Estado de loading para ação de excluir - DEVE VIR ANTES DOS EARLY RETURNS
+  const [loadingExcluir, setLoadingExcluir] = React.useState(false);
+
+  // Estado global de loading para operações críticas que bloqueiam toda a tela
+  const [globalLoading, setGlobalLoading] = React.useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = React.useState("");
+
   // Estados de loading e erro
   if (loading) {
     return (
@@ -103,6 +111,9 @@ const DetalhesEtapa: React.FC = () => {
     if (!confirmar) return;
 
     try {
+      setLoadingExcluir(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Excluindo etapa...");
       await etapaService.deletar(etapa.id);
       logger.info("Etapa excluída com sucesso", {
         etapaId: etapa.id,
@@ -113,6 +124,87 @@ const DetalhesEtapa: React.FC = () => {
     } catch (err: any) {
       logger.error("Erro ao excluir etapa", { etapaId: etapa.id }, err);
       alert(err.message || "Erro ao excluir etapa");
+    } finally {
+      setLoadingExcluir(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Wrapper para handleCancelarMultiplosInscricoes com loading global
+  const handleCancelarMultiplosInscricoesWithLoading = async (inscricaoIds: string[]) => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage(`Excluindo ${inscricaoIds.length} inscrição(ões)...`);
+      await handleCancelarMultiplosInscricoes(inscricaoIds);
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Wrapper para handleAbrirInscricoes com loading global
+  const handleAbrirInscricoesWithLoading = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Reabrindo inscrições...");
+      await handleAbrirInscricoes();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Wrapper para handleEncerrarInscricoes com loading global
+  const handleEncerrarInscricoesWithLoading = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Encerrando inscrições...");
+      await handleEncerrarInscricoes();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Wrapper para handleGerarChaves com loading global
+  const handleGerarChavesWithLoading = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Gerando chaves...");
+      // Se é TEAMS com formação manual, abre o modal
+      if (isFormacaoManual) {
+        setModalFormacaoManualAberto(true);
+      } else {
+        await handleGerarChaves();
+      }
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Wrapper para handleApagarChaves com loading global
+  const handleApagarChavesWithLoading = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Excluindo chaves...");
+      await handleApagarChaves();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  // Wrapper para handleFinalizarEtapa com loading global
+  const handleFinalizarEtapaWithLoading = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Finalizando etapa...");
+      await handleFinalizarEtapa();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -125,6 +217,7 @@ const DetalhesEtapa: React.FC = () => {
           etapa={etapa}
           onEditar={handleEditar}
           onExcluir={handleExcluir}
+          loadingExcluir={loadingExcluir}
         />
 
         {/* Cards de Informação */}
@@ -143,18 +236,11 @@ const DetalhesEtapa: React.FC = () => {
           isSuperX={isSuperX}
           isTeams={isTeams}
           todasPartidasFinalizadas={todasPartidasFinalizadas}
-          onAbrirInscricoes={handleAbrirInscricoes}
-          onEncerrarInscricoes={handleEncerrarInscricoes}
-          onGerarChaves={() => {
-            // Se é TEAMS com formação manual, abre o modal
-            if (isFormacaoManual) {
-              setModalFormacaoManualAberto(true);
-            } else {
-              handleGerarChaves();
-            }
-          }}
+          onAbrirInscricoes={handleAbrirInscricoesWithLoading}
+          onEncerrarInscricoes={handleEncerrarInscricoesWithLoading}
+          onGerarChaves={handleGerarChavesWithLoading}
           onApagarChaves={() => setModalConfirmacaoAberto(true)}
-          onFinalizarEtapa={handleFinalizarEtapa}
+          onFinalizarEtapa={handleFinalizarEtapaWithLoading}
           onVerChaves={() => {
             setAbaAtiva("chaves");
             setTimeout(() => {
@@ -204,7 +290,7 @@ const DetalhesEtapa: React.FC = () => {
               inscricoes={etapa.inscricoes || []}
               onInscricao={() => setModalInscricaoAberto(true)}
               onCancelar={handleCancelarInscricao}
-              onCancelarMultiplos={handleCancelarMultiplosInscricoes}
+              onCancelarMultiplos={handleCancelarMultiplosInscricoesWithLoading}
             />
           )}
 
@@ -267,8 +353,8 @@ const DetalhesEtapa: React.FC = () => {
           mensagem="Tem certeza que deseja excluir todas as chaves? Esta ação não pode ser desfeita!"
           palavraConfirmacao="EXCLUIR"
           onConfirm={async () => {
-            await handleApagarChaves();
             setModalConfirmacaoAberto(false);
+            await handleApagarChavesWithLoading();
           }}
           onClose={() => setModalConfirmacaoAberto(false)}
         />
@@ -287,6 +373,9 @@ const DetalhesEtapa: React.FC = () => {
           isMisto={etapa.isMisto}
         />
       )}
+
+      {/* Loading Overlay Global - Bloqueia toda a tela */}
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </>
   );
 };

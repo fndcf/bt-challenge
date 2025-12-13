@@ -18,6 +18,7 @@ interface ModalProps {
   footer?: React.ReactNode;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
+  loading?: boolean;
 }
 
 const fadeIn = keyframes`
@@ -164,6 +165,11 @@ const CloseButton = styled.button`
     outline-offset: 2px;
   }
 
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   svg {
     width: 1.25rem;
     height: 1.25rem;
@@ -206,11 +212,12 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   closeOnOverlayClick = true,
   closeOnEscape = true,
+  loading = false,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isOpen || !closeOnEscape) return;
+    if (!isOpen || !closeOnEscape || loading) return;
 
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -220,7 +227,7 @@ export const Modal: React.FC<ModalProps> = ({
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose, closeOnEscape]);
+  }, [isOpen, onClose, closeOnEscape, loading]);
 
   useEffect(() => {
     if (isOpen) {
@@ -236,7 +243,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   // Handle overlay click
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (closeOnOverlayClick && e.target === e.currentTarget) {
+    if (closeOnOverlayClick && !loading && e.target === e.currentTarget) {
       onClose();
     }
   };
@@ -254,7 +261,7 @@ export const Modal: React.FC<ModalProps> = ({
         {title && (
           <ModalHeader>
             <ModalTitle>{title}</ModalTitle>
-            <CloseButton onClick={onClose} aria-label="Fechar modal">
+            <CloseButton onClick={onClose} aria-label="Fechar modal" disabled={loading}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"

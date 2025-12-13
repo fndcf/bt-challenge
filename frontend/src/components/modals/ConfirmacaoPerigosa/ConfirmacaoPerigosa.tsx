@@ -200,6 +200,7 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
   };
 
   const handleClose = () => {
+    if (loading) return;
     setInputValue("");
     onClose();
   };
@@ -210,7 +211,7 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
 
   return (
     <Overlay>
-      <OverlayBackground onClick={handleClose} />
+      <OverlayBackground onClick={!loading ? handleClose : undefined} />
 
       <ModalWrapper>
         <ModalContainer>

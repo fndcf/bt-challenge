@@ -9,6 +9,7 @@ import { useEditarEtapa } from "./hooks/useEditarEtapa";
 import { FormatoDisplay } from "./components/FormatoDisplay";
 import { RestricoesList } from "./components/RestricoesList";
 import { ConfiguracoesJogadoresEdit } from "./components/ConfiguracoesJogadoresEdit";
+import { LoadingOverlay } from "@/components/ui";
 
 // Componentes reutilizados de CriarEtapa
 import { InformacoesBasicas } from "../CriarEtapa/components/InformacoesBasicas";
@@ -30,6 +31,8 @@ export const EditarEtapa: React.FC = () => {
     formData,
     temInscritos,
     chavesGeradas,
+    globalLoading,
+    globalLoadingMessage,
     handleChange,
     handleSubmit,
     calcularMinimoJogadores,
@@ -109,6 +112,13 @@ export const EditarEtapa: React.FC = () => {
             chavesGeradas={chavesGeradas}
             onTipoChaveamentoChange={(tipo) =>
               handleChange("tipoChaveamento", tipo)
+            }
+            // TEAMS props
+            varianteTeams={etapa.varianteTeams}
+            tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
+            tipoFormacaoJogos={formData.tipoFormacaoJogos}
+            onTipoFormacaoJogosChange={(tipo) =>
+              handleChange("tipoFormacaoJogos", tipo)
             }
           />
 
@@ -196,6 +206,8 @@ export const EditarEtapa: React.FC = () => {
           </S.Button>
         </S.ButtonsRow>
       </S.Form>
+
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
 
       <Footer />
     </S.Container>

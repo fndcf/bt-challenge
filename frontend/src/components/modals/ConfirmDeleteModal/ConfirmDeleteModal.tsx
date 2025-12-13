@@ -140,7 +140,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Overlay onClick={onCancel}>
+    <Overlay onClick={!loading ? onCancel : undefined}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <Header>
           <Title>{title}</Title>

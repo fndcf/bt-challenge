@@ -11,6 +11,8 @@ interface PartidasConfrontoTeamsProps {
   totalPartidas?: number; // Usado para forçar refresh quando novas partidas são geradas (ex: decider)
   etapaFinalizada?: boolean;
   onAtualizar?: () => void;
+  setGlobalLoading?: (loading: boolean) => void;
+  setGlobalLoadingMessage?: (message: string) => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -262,6 +264,8 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
   totalPartidas,
   etapaFinalizada = false,
   onAtualizar,
+  setGlobalLoading,
+  setGlobalLoadingMessage,
 }) => {
   const teamsService = getTeamsService();
   const [partidas, setPartidas] = useState<PartidaTeams[]>([]);
@@ -298,10 +302,24 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
     }
   };
 
-  const handleResultadoRegistrado = () => {
-    setPartidaSelecionada(null);
-    carregarPartidas();
-    if (onAtualizar) onAtualizar();
+  const handleResultadoRegistrado = async () => {
+    try {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Salvando resultado...");
+      }
+
+      setPartidaSelecionada(null);
+      await carregarPartidas();
+      if (onAtualizar) {
+        await onAtualizar();
+      }
+    } finally {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
+    }
   };
 
   const handleAbrirModalDefinirJogadores = async (partida: PartidaTeams) => {

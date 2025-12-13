@@ -10,6 +10,8 @@ interface PartidasSuperXProps {
   grupoNome: string;
   onAtualizarGrupos?: () => void;
   etapaFinalizada?: boolean;
+  setGlobalLoading?: (loading: boolean) => void;
+  setGlobalLoadingMessage?: (message: string) => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -304,6 +306,8 @@ export const PartidasSuperX: React.FC<PartidasSuperXProps> = ({
   grupoNome,
   onAtualizarGrupos,
   etapaFinalizada = false,
+  setGlobalLoading,
+  setGlobalLoadingMessage,
 }) => {
   const superXService = getSuperXService();
   const [partidas, setPartidas] = useState<PartidaReiDaPraia[]>([]);
@@ -329,12 +333,24 @@ export const PartidasSuperX: React.FC<PartidasSuperXProps> = ({
     }
   };
 
-  const handleResultadoRegistrado = () => {
-    setPartidaSelecionada(null);
-    carregarPartidas();
+  const handleResultadoRegistrado = async () => {
+    try {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Salvando resultado...");
+      }
 
-    if (onAtualizarGrupos) {
-      onAtualizarGrupos();
+      setPartidaSelecionada(null);
+      await carregarPartidas();
+
+      if (onAtualizarGrupos) {
+        await onAtualizarGrupos();
+      }
+    } finally {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
     }
   };
 

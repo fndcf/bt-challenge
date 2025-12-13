@@ -14,6 +14,8 @@ export interface UseEditarEtapaReturn {
   loading: boolean;
   salvando: boolean;
   error: string | null;
+  globalLoading: boolean;
+  globalLoadingMessage: string;
 
   // Estado do Formulário
   formData: AtualizarEtapaDTO;
@@ -40,6 +42,8 @@ export const useEditarEtapa = (
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   const [formData, setFormData] = useState<AtualizarEtapaDTO>({
     nome: "",
@@ -53,6 +57,7 @@ export const useEditarEtapa = (
     maxJogadores: 16,
     tipoChaveamento: undefined,
     contaPontosRanking: true,
+    tipoFormacaoJogos: undefined, // TEAMS
   });
 
   // ============== INFO COMPUTADA ==============
@@ -97,6 +102,7 @@ export const useEditarEtapa = (
         tipoChaveamento: data.tipoChaveamento,
         varianteSuperX: data.varianteSuperX,
         contaPontosRanking: data.contaPontosRanking ?? true,
+        tipoFormacaoJogos: data.tipoFormacaoJogos, // TEAMS
       });
     } catch (err: any) {
       setError(err.message || "Erro ao carregar etapa");
@@ -174,6 +180,8 @@ export const useEditarEtapa = (
       try {
         setSalvando(true);
         setError(null);
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Salvando alterações...");
 
         if (!formData.maxJogadores) {
           setError("Número máximo de jogadores é obrigatório");
@@ -269,6 +277,9 @@ export const useEditarEtapa = (
       } catch (err: any) {
         setError(err.message || "Erro ao atualizar etapa");
         setSalvando(false);
+      } finally {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
       }
     },
     [id, etapa, formData, isReiDaPraia, isSuperX, navigate]
@@ -280,6 +291,8 @@ export const useEditarEtapa = (
     loading,
     salvando,
     error,
+    globalLoading,
+    globalLoadingMessage,
 
     // Estado do Formulário
     formData,

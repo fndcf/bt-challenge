@@ -336,7 +336,7 @@ export const ModalDefinirJogadoresPartida: React.FC<ModalDefinirJogadoresPartida
   const canConfirm = selectedEquipe1.length === 2 && selectedEquipe2.length === 2 && !loading;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Definir Jogadores da Partida">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Definir Jogadores da Partida" loading={loading}>
       <Container>
         <PartidaInfo>
           {partida.tipoJogo === "feminino" && "Partida Feminina"}

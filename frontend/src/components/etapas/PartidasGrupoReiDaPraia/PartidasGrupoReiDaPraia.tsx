@@ -10,6 +10,8 @@ interface PartidasGrupoReiDaPraiaProps {
   grupoNome: string;
   onAtualizarGrupos?: () => void;
   eliminatoriaExiste?: boolean;
+  setGlobalLoading?: (loading: boolean) => void;
+  setGlobalLoadingMessage?: (message: string) => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -267,6 +269,8 @@ export const PartidasGrupoReiDaPraia: React.FC<
   grupoNome,
   onAtualizarGrupos,
   eliminatoriaExiste = false,
+  setGlobalLoading,
+  setGlobalLoadingMessage,
 }) => {
   const reiDaPraiaService = getReiDaPraiaService();
   const [partidas, setPartidas] = useState<PartidaReiDaPraia[]>([]);
@@ -294,12 +298,24 @@ export const PartidasGrupoReiDaPraia: React.FC<
     }
   };
 
-  const handleResultadoRegistrado = () => {
-    setPartidaSelecionada(null);
-    carregarPartidas();
+  const handleResultadoRegistrado = async () => {
+    try {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Salvando resultado...");
+      }
 
-    if (onAtualizarGrupos) {
-      onAtualizarGrupos();
+      setPartidaSelecionada(null);
+      await carregarPartidas();
+
+      if (onAtualizarGrupos) {
+        await onAtualizarGrupos();
+      }
+    } finally {
+      if (setGlobalLoading && setGlobalLoadingMessage) {
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
     }
   };
 

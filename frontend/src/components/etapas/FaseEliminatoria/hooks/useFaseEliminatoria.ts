@@ -20,6 +20,8 @@ export interface UseFaseEliminatoriaReturn {
   confrontoSelecionado: ConfrontoEliminatorio | null;
   faseAtual: TipoFase | "todas";
   etapaFinalizada: boolean;
+  globalLoading: boolean;
+  globalLoadingMessage: string;
 
   // Dados computados
   todosGruposCompletos: boolean;
@@ -52,6 +54,8 @@ export const useFaseEliminatoria = ({
     useState<ConfrontoEliminatorio | null>(null);
   const [faseAtual, setFaseAtual] = useState<TipoFase | "todas">("todas");
   const [etapaFinalizada, setEtapaFinalizada] = useState(false);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   // Dados computados
   const todosGruposCompletos = useMemo(() => {
@@ -130,7 +134,8 @@ export const useFaseEliminatoria = ({
    */
   const gerarEliminatoria = async () => {
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Gerando fase eliminatória...");
       await chaveService.gerarFaseEliminatoria(etapaId, 2);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       alert("Fase eliminatória gerada com sucesso!");
@@ -138,7 +143,8 @@ export const useFaseEliminatoria = ({
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -147,14 +153,16 @@ export const useFaseEliminatoria = ({
    */
   const cancelarEliminatoria = async () => {
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Cancelando eliminatória...");
       await chaveService.cancelarFaseEliminatoria(etapaId);
       alert("Fase eliminatória cancelada!");
       await carregarConfrontos();
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -163,14 +171,16 @@ export const useFaseEliminatoria = ({
    */
   const encerrarEtapa = async () => {
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Encerrando etapa e atribuindo pontos...");
       await etapaService.encerrarEtapa(etapaId);
       alert("Etapa encerrada com sucesso!");
       window.location.reload();
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -182,6 +192,8 @@ export const useFaseEliminatoria = ({
     confrontoSelecionado,
     faseAtual,
     etapaFinalizada,
+    globalLoading,
+    globalLoadingMessage,
 
     // Dados computados
     todosGruposCompletos,
