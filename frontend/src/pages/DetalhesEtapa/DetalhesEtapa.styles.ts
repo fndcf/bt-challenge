@@ -441,18 +441,20 @@ export const ActionsGrid = styled.div`
 export const Button = styled.button<{
   $variant?: "blue" | "orange" | "green" | "purple" | "red" | "gray";
   $fullWidth?: boolean;
+  disabled?: boolean;
 }>`
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-weight: 600;
   font-size: 0.875rem;
-  cursor: pointer;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   border: none;
+  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
   ${(props) => props.$fullWidth && "width: 100%;"}
 
   ${(props) => {

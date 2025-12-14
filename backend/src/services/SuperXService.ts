@@ -373,58 +373,57 @@ export class SuperXService {
         status: StatusPartida.FINALIZADA,
       });
 
-      // Atualizar estatísticas dos jogadores
+      // ✅ OTIMIZAÇÃO: Atualizar estatísticas dos 4 jogadores em batch (1 commit ao invés de 4)
       const dupla1Venceu = vencedorDupla === 1;
 
-      // Jogadores da dupla 1
-      await estatisticasJogadorService.atualizarAposPartidaGrupo(
-        partida.jogador1AId,
-        partida.etapaId,
+      await estatisticasJogadorService.atualizarAposPartidaGrupoEmLote([
+        // Jogadores da dupla 1
         {
-          venceu: dupla1Venceu,
-          setsVencidos: setsDupla1,
-          setsPerdidos: setsDupla2,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
-        }
-      );
-
-      await estatisticasJogadorService.atualizarAposPartidaGrupo(
-        partida.jogador1BId,
-        partida.etapaId,
+          jogadorId: partida.jogador1AId,
+          etapaId: partida.etapaId,
+          dto: {
+            venceu: dupla1Venceu,
+            setsVencidos: setsDupla1,
+            setsPerdidos: setsDupla2,
+            gamesVencidos: set.gamesDupla1,
+            gamesPerdidos: set.gamesDupla2,
+          },
+        },
         {
-          venceu: dupla1Venceu,
-          setsVencidos: setsDupla1,
-          setsPerdidos: setsDupla2,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
-        }
-      );
-
-      // Jogadores da dupla 2
-      await estatisticasJogadorService.atualizarAposPartidaGrupo(
-        partida.jogador2AId,
-        partida.etapaId,
+          jogadorId: partida.jogador1BId,
+          etapaId: partida.etapaId,
+          dto: {
+            venceu: dupla1Venceu,
+            setsVencidos: setsDupla1,
+            setsPerdidos: setsDupla2,
+            gamesVencidos: set.gamesDupla1,
+            gamesPerdidos: set.gamesDupla2,
+          },
+        },
+        // Jogadores da dupla 2
         {
-          venceu: !dupla1Venceu,
-          setsVencidos: setsDupla2,
-          setsPerdidos: setsDupla1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
-        }
-      );
-
-      await estatisticasJogadorService.atualizarAposPartidaGrupo(
-        partida.jogador2BId,
-        partida.etapaId,
+          jogadorId: partida.jogador2AId,
+          etapaId: partida.etapaId,
+          dto: {
+            venceu: !dupla1Venceu,
+            setsVencidos: setsDupla2,
+            setsPerdidos: setsDupla1,
+            gamesVencidos: set.gamesDupla2,
+            gamesPerdidos: set.gamesDupla1,
+          },
+        },
         {
-          venceu: !dupla1Venceu,
-          setsVencidos: setsDupla2,
-          setsPerdidos: setsDupla1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
-        }
-      );
+          jogadorId: partida.jogador2BId,
+          etapaId: partida.etapaId,
+          dto: {
+            venceu: !dupla1Venceu,
+            setsVencidos: setsDupla2,
+            setsPerdidos: setsDupla1,
+            gamesVencidos: set.gamesDupla2,
+            gamesPerdidos: set.gamesDupla1,
+          },
+        },
+      ]);
 
       // Recalcular classificação do grupo
       if (partida.grupoId) {
@@ -454,6 +453,7 @@ export class SuperXService {
 
   /**
    * Reverter estatísticas dos jogadores (para edição de resultado)
+   * ✅ OTIMIZAÇÃO: Reverte estatísticas dos 4 jogadores em batch (1 commit ao invés de 4)
    */
   private async reverterEstatisticasJogadores(
     partida: PartidaReiDaPraia
@@ -471,59 +471,60 @@ export class SuperXService {
     const setsDupla1 = partida.setsDupla1 || 0;
     const setsDupla2 = partida.setsDupla2 || 0;
 
-    // Reverter jogadores da dupla 1
-    await estatisticasJogadorService.reverterAposPartida(
-      partida.jogador1AId,
-      partida.etapaId,
+    // ✅ OTIMIZAÇÃO: Reverter todos os 4 jogadores em batch
+    await estatisticasJogadorService.reverterAposPartidaEmLote([
+      // Jogadores da dupla 1
       {
-        venceu: dupla1Venceu,
-        setsVencidos: setsDupla1,
-        setsPerdidos: setsDupla2,
-        gamesVencidos: gamesVencidosDupla1,
-        gamesPerdidos: gamesPerdidosDupla1,
-      }
-    );
-
-    await estatisticasJogadorService.reverterAposPartida(
-      partida.jogador1BId,
-      partida.etapaId,
+        jogadorId: partida.jogador1AId,
+        etapaId: partida.etapaId,
+        dto: {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesVencidosDupla1,
+          gamesPerdidos: gamesPerdidosDupla1,
+        },
+      },
       {
-        venceu: dupla1Venceu,
-        setsVencidos: setsDupla1,
-        setsPerdidos: setsDupla2,
-        gamesVencidos: gamesVencidosDupla1,
-        gamesPerdidos: gamesPerdidosDupla1,
-      }
-    );
-
-    // Reverter jogadores da dupla 2
-    await estatisticasJogadorService.reverterAposPartida(
-      partida.jogador2AId,
-      partida.etapaId,
+        jogadorId: partida.jogador1BId,
+        etapaId: partida.etapaId,
+        dto: {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesVencidosDupla1,
+          gamesPerdidos: gamesPerdidosDupla1,
+        },
+      },
+      // Jogadores da dupla 2
       {
-        venceu: !dupla1Venceu,
-        setsVencidos: setsDupla2,
-        setsPerdidos: setsDupla1,
-        gamesVencidos: gamesVencidosDupla2,
-        gamesPerdidos: gamesPerdidosDupla2,
-      }
-    );
-
-    await estatisticasJogadorService.reverterAposPartida(
-      partida.jogador2BId,
-      partida.etapaId,
+        jogadorId: partida.jogador2AId,
+        etapaId: partida.etapaId,
+        dto: {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesVencidosDupla2,
+          gamesPerdidos: gamesPerdidosDupla2,
+        },
+      },
       {
-        venceu: !dupla1Venceu,
-        setsVencidos: setsDupla2,
-        setsPerdidos: setsDupla1,
-        gamesVencidos: gamesVencidosDupla2,
-        gamesPerdidos: gamesPerdidosDupla2,
-      }
-    );
+        jogadorId: partida.jogador2BId,
+        etapaId: partida.etapaId,
+        dto: {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesVencidosDupla2,
+          gamesPerdidos: gamesPerdidosDupla2,
+        },
+      },
+    ]);
   }
 
   /**
    * Recalcular classificação do grupo
+   * ✅ OTIMIZAÇÃO: Atualiza posições de todos os jogadores em batch (1 commit ao invés de 8-12)
    */
   private async recalcularClassificacao(
     grupoId: string,
@@ -557,15 +558,13 @@ export class SuperXService {
       return 0;
     });
 
-    // Atualizar posição de cada jogador
-    for (let i = 0; i < jogadoresOrdenados.length; i++) {
-      await this.estatisticasJogadorRepository.atualizar(
-        jogadoresOrdenados[i].id,
-        {
-          posicaoGrupo: i + 1,
-        }
-      );
-    }
+    // ✅ OTIMIZAÇÃO: Atualizar posição de todos os jogadores em batch
+    const atualizacoesPosicao = jogadoresOrdenados.map((jogador, index) => ({
+      estatisticaId: jogador.id,
+      posicaoGrupo: index + 1,
+    }));
+
+    await estatisticasJogadorService.atualizarPosicoesGrupoEmLote(atualizacoesPosicao);
   }
 
   /**

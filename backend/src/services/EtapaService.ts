@@ -563,6 +563,75 @@ export class EtapaService {
   }
 
   /**
+   * Cancelar múltiplas inscrições em lote (batch)
+   */
+  async cancelarInscricoesEmLote(
+    inscricaoIds: string[],
+    etapaId: string,
+    arenaId: string
+  ): Promise<{ canceladas: number; erros: string[] }> {
+    const erros: string[] = [];
+    let canceladas = 0;
+
+    // Validar etapa primeiro
+    const etapa = await this.buscarPorId(etapaId, arenaId);
+    if (!etapa) {
+      throw new Error("Etapa não encontrada");
+    }
+
+    if (etapa.chavesGeradas) {
+      throw new Error(
+        "Não é possível cancelar inscrições após geração de chaves"
+      );
+    }
+
+    // Buscar todas as inscrições de uma vez
+    const inscricoes = await Promise.all(
+      inscricaoIds.map((id) =>
+        this.inscricaoRepository.buscarPorIdEtapaArena(id, etapaId, arenaId)
+      )
+    );
+
+    // Filtrar inscrições válidas
+    const inscricoesValidas = inscricoes.filter(
+      (inscricao, index) => {
+        if (!inscricao) {
+          erros.push(`Inscrição ${inscricaoIds[index]} não encontrada`);
+          return false;
+        }
+        return true;
+      }
+    );
+
+    if (inscricoesValidas.length === 0) {
+      return { canceladas: 0, erros };
+    }
+
+    // Cancelar todas as inscrições em batch
+    const inscricaoIdsValidos = inscricoesValidas.map((i) => i!.id);
+    const jogadorIds = inscricoesValidas.map((i) => i!.jogadorId);
+
+    await this.inscricaoRepository.cancelarEmLote(inscricaoIdsValidos);
+
+    // Decrementar contador de inscritos uma vez só
+    await this.etapaRepository.decrementarInscritosEmLote(
+      etapaId,
+      jogadorIds.length,
+      jogadorIds
+    );
+
+    canceladas = inscricoesValidas.length;
+
+    logger.info("Inscrições canceladas em lote", {
+      etapaId,
+      canceladas,
+      erros: erros.length,
+    });
+
+    return { canceladas, erros };
+  }
+
+  /**
    * Listar inscrições de uma etapa
    */
   async listarInscricoes(

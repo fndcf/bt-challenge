@@ -22,9 +22,11 @@ import { NivelJogador, GeneroJogador } from "../models/Jogador";
 import { IEquipeRepository } from "../repositories/interfaces/IEquipeRepository";
 import { IConfrontoEquipeRepository } from "../repositories/interfaces/IConfrontoEquipeRepository";
 import { IPartidaTeamsRepository } from "../repositories/interfaces/IPartidaTeamsRepository";
+import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
 import EquipeRepository from "../repositories/firebase/EquipeRepository";
 import ConfrontoEquipeRepository from "../repositories/firebase/ConfrontoEquipeRepository";
 import PartidaTeamsRepository from "../repositories/firebase/PartidaTeamsRepository";
+import { EtapaRepository } from "../repositories/firebase/EtapaRepository";
 import { EstatisticasJogadorService } from "./EstatisticasJogadorService";
 import { NotFoundError, ValidationError } from "../utils/errors";
 import {
@@ -45,7 +47,8 @@ export class TeamsService {
     private equipeRepository: IEquipeRepository = EquipeRepository,
     private confrontoRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository,
     private partidaRepository: IPartidaTeamsRepository = PartidaTeamsRepository,
-    private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService()
+    private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService(),
+    private etapaRepository: IEtapaRepository = new EtapaRepository()
   ) {}
 
   // ==================== FORMAÇÃO DE EQUIPES ====================
@@ -350,10 +353,35 @@ export class TeamsService {
       quantidade: confrontos.length,
     });
 
+    // Gerar partidas automaticamente para confrontos com equipes definidas (fase de grupos)
+    const geracaoPartidasStart = Date.now();
+    const confrontosComEquipes = confrontos.filter(
+      (c) => c.equipe1Id && c.equipe2Id && c.fase === FaseEtapa.GRUPOS
+    );
+
+    let partidasGeradas = 0;
+    for (const confronto of confrontosComEquipes) {
+      try {
+        const partidas = await this.gerarPartidasConfronto(confronto, etapa);
+        partidasGeradas += partidas.length;
+      } catch (error) {
+        logger.error("Erro ao gerar partidas para confronto", {
+          confrontoId: confronto.id,
+          error,
+        });
+      }
+    }
+    logger.info("[PERF] Partidas geradas automaticamente", {
+      tempoMs: Date.now() - geracaoPartidasStart,
+      confrontosProcessados: confrontosComEquipes.length,
+      partidasGeradas,
+    });
+
     logger.info("Confrontos gerados com sucesso", {
       etapaId: etapa.id,
       numConfrontos: confrontos.length,
       temFaseGrupos,
+      partidasGeradas,
       tempoTotalMs: Date.now() - startTime,
     });
 
@@ -2635,10 +2663,33 @@ export class TeamsService {
       confronto.id
     );
 
-    const precisaDecider = await this.verificarPrecisaDecider(
+    let precisaDecider = await this.verificarPrecisaDecider(
       confrontoAtualizado!,
       partidasConfronto
     );
+
+    // Se precisa decider e ainda não existe, gerar automaticamente
+    if (precisaDecider && !confrontoAtualizado!.temDecider) {
+      try {
+        const etapa = await this.etapaRepository.buscarPorId(partida.etapaId);
+        if (etapa) {
+          await this.gerarDecider(confrontoAtualizado!, etapa);
+          logger.info("Decider gerado automaticamente após empate 1-1", {
+            confrontoId: confronto.id,
+            etapaId: etapa.id,
+          });
+          // Após gerar o decider, não precisa mais (já foi gerado)
+          precisaDecider = false;
+        }
+      } catch (error) {
+        // Se falhar ao gerar decider, apenas logar e continuar
+        // O frontend ainda pode gerar manualmente
+        logger.error("Erro ao gerar decider automaticamente", {
+          confrontoId: confronto.id,
+          error,
+        });
+      }
+    }
 
     // Verificar se confronto está finalizado
     const confrontoFinalizado = await this.verificarConfrontoFinalizado(

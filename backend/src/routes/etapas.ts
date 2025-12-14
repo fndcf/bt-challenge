@@ -72,6 +72,15 @@ router.delete("/:etapaId/inscricoes/:inscricaoId", (req, res) =>
 );
 
 /**
+ * @route   DELETE /api/etapas/:etapaId/inscricoes-lote
+ * @desc    Cancelar múltiplas inscrições em lote
+ * @body    { inscricaoIds: string[] }
+ */
+router.delete("/:etapaId/inscricoes-lote", (req, res) =>
+  etapaController.cancelarInscricoesEmLote(req, res)
+);
+
+/**
  * @route   POST /api/etapas/:id/encerrar-inscricoes
  * @desc    Encerrar inscrições da etapa
  */

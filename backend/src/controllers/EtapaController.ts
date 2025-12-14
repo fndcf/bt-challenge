@@ -411,6 +411,84 @@ class EtapaController extends BaseController {
   }
 
   /**
+   * Cancelar múltiplas inscrições em lote
+   * DELETE /api/etapas/:etapaId/inscricoes-lote
+   */
+  async cancelarInscricoesEmLote(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { etapaId } = req.params;
+      const { inscricaoIds } = req.body;
+
+      if (!Array.isArray(inscricaoIds) || inscricaoIds.length === 0) {
+        ResponseHelper.badRequest(res, "inscricaoIds deve ser um array não vazio");
+        return;
+      }
+
+      logger.info("Cancelando inscrições em lote", {
+        etapaId,
+        quantidade: inscricaoIds.length,
+      });
+
+      const resultado = await etapaService.cancelarInscricoesEmLote(
+        inscricaoIds,
+        etapaId,
+        arenaId
+      );
+
+      // Tentar remover cabeças de chave em paralelo (não bloqueia se falhar)
+      try {
+        const cabecaDeChaveService = (
+          await import("../services/CabecaDeChaveService")
+        ).default;
+
+        // Buscar jogadorIds das inscrições canceladas para remover cabeças de chave
+        const inscricoes = await Promise.all(
+          inscricaoIds.map((id) =>
+            etapaService.buscarInscricao(etapaId, arenaId, id)
+          )
+        );
+
+        const jogadorIds = inscricoes
+          .filter((i) => i !== null)
+          .map((i) => i!.jogadorId);
+
+        for (const jogadorId of jogadorIds) {
+          try {
+            await cabecaDeChaveService.remover(arenaId, etapaId, jogadorId);
+          } catch {
+            // Ignorar erros individuais - jogador pode não ser cabeça de chave
+          }
+        }
+      } catch {
+        logger.debug("Nenhuma cabeça de chave para remover");
+      }
+
+      logger.info("Inscrições canceladas em lote", {
+        etapaId,
+        canceladas: resultado.canceladas,
+        erros: resultado.erros.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: `${resultado.canceladas} inscrição(ões) cancelada(s) com sucesso`,
+        canceladas: resultado.canceladas,
+        erros: resultado.erros,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "cancelar inscrições em lote", {
+        etapaId: req.params.etapaId,
+      });
+    }
+  }
+
+  /**
    * Listar inscrições
    * GET /api/etapas/:id/inscricoes
    */

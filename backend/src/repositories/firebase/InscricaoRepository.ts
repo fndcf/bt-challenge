@@ -269,6 +269,28 @@ export class InscricaoRepository implements IInscricaoRepository {
   }
 
   /**
+   * Cancelar múltiplas inscrições em lote
+   */
+  async cancelarEmLote(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+
+    const batch = db.batch();
+    const agora = Timestamp.now();
+
+    for (const id of ids) {
+      batch.update(this.collection.doc(id), {
+        status: StatusInscricao.CANCELADA,
+        canceladoEm: agora,
+        atualizadoEm: agora,
+      });
+    }
+
+    await batch.commit();
+
+    logger.info("Inscrições canceladas em lote", { quantidade: ids.length });
+  }
+
+  /**
    * Atribuir dupla à inscrição
    */
   async atribuirDupla(

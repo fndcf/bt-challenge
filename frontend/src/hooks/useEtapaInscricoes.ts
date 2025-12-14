@@ -148,7 +148,7 @@ export const useEtapaInscricoes = ({
   );
 
   /**
-   * Cancelar múltiplas inscrições
+   * Cancelar múltiplas inscrições (batch)
    */
   const handleCancelarMultiplosInscricoes = useCallback(
     async (inscricaoIds: string[]) => {
@@ -157,16 +157,29 @@ export const useEtapaInscricoes = ({
       try {
         const etapaService = getEtapaService();
 
-        // Cancelar sequencialmente para evitar sobrecarga
-        for (const inscricaoId of inscricaoIds) {
-          await etapaService.cancelarInscricao(etapa.id, inscricaoId);
-        }
+        // Usar método batch para cancelar todas de uma vez
+        const resultado = await etapaService.cancelarInscricoesEmLote(
+          etapa.id,
+          inscricaoIds
+        );
 
         if (onSuccess) await onSuccess();
 
-        alert(
-          `${inscricaoIds.length} inscrição(ões) cancelada(s) com sucesso!`
-        );
+        if (resultado.erros.length > 0) {
+          logger.warn("Alguns cancelamentos falharam", {
+            etapaId: etapa.id,
+            canceladas: resultado.canceladas,
+            erros: resultado.erros,
+          });
+          alert(
+            `${resultado.canceladas} inscrição(ões) cancelada(s).\n` +
+              `${resultado.erros.length} erro(s): ${resultado.erros.join(", ")}`
+          );
+        } else {
+          alert(
+            `${resultado.canceladas} inscrição(ões) cancelada(s) com sucesso!`
+          );
+        }
       } catch (err: any) {
         logger.error(
           "Erro ao cancelar múltiplas inscrições",

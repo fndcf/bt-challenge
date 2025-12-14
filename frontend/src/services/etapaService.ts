@@ -258,6 +258,42 @@ class EtapaService implements IEtapaService {
   }
 
   /**
+   * Cancelar múltiplas inscrições em lote (batch)
+   */
+  async cancelarInscricoesEmLote(
+    etapaId: string,
+    inscricaoIds: string[]
+  ): Promise<{ canceladas: number; erros: string[] }> {
+    try {
+      // Se for apenas 1 inscrição, usa método individual
+      if (inscricaoIds.length === 1) {
+        await this.cancelarInscricao(etapaId, inscricaoIds[0]);
+        return { canceladas: 1, erros: [] };
+      }
+
+      // Para múltiplas inscrições, usa endpoint em lote
+      // DELETE com body precisa ser passado no config.data
+      const resultado = await apiClient.delete<{
+        canceladas: number;
+        erros: string[];
+      }>(`${this.baseURL}/${etapaId}/inscricoes-lote`, {
+        data: { inscricaoIds },
+      });
+
+      logger.info("Inscrições canceladas em lote", {
+        etapaId,
+        canceladas: resultado.canceladas,
+        erros: resultado.erros.length,
+      });
+
+      return resultado;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.cancelarInscricoesEmLote");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
    * Encerrar inscrições
    */
   async encerrarInscricoes(etapaId: string): Promise<Etapa> {

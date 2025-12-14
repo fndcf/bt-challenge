@@ -85,6 +85,11 @@ export interface IInscricaoRepository
   cancelar(id: string): Promise<void>;
 
   /**
+   * Cancelar múltiplas inscrições em lote
+   */
+  cancelarEmLote(ids: string[]): Promise<void>;
+
+  /**
    * Atribuir dupla à inscrição
    */
   atribuirDupla(

@@ -63,6 +63,15 @@ export interface IEtapaRepository
   decrementarInscritos(id: string, jogadorId: string): Promise<void>;
 
   /**
+   * Decrementar múltiplos inscritos em lote
+   */
+  decrementarInscritosEmLote(
+    id: string,
+    quantidade: number,
+    jogadorIds: string[]
+  ): Promise<void>;
+
+  /**
    * Definir campeão da etapa
    */
   definirCampeao(

@@ -36,8 +36,14 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   const inscricoesAbertas = etapa.status === StatusEtapa.INSCRICOES_ABERTAS;
   const inscricoesEncerradas =
     etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS;
-  const podeGerarChaves =
-    inscricoesEncerradas && !etapa.chavesGeradas && etapa.totalInscritos >= 4;
+
+  // Validação simples: inscritos completos quando totalInscritos === maxJogadores
+  const inscritosCompletos = etapa.totalInscritos === etapa.maxJogadores;
+  const faltam = (etapa.maxJogadores || 0) - etapa.totalInscritos;
+  const mensagemIncompleto = `Faltam ${faltam} jogador${faltam !== 1 ? "es" : ""} (${etapa.totalInscritos}/${etapa.maxJogadores})`;
+
+  const mostrarBotaoGerarChaves = inscricoesEncerradas && !etapa.chavesGeradas;
+  const podeGerarChaves = mostrarBotaoGerarChaves && inscritosCompletos;
   const podeEncerrar = inscricoesAbertas && etapa.totalInscritos >= 4;
 
   return (
@@ -67,10 +73,12 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         )}
 
         {/* Gerar chaves/equipes */}
-        {podeGerarChaves && (
+        {mostrarBotaoGerarChaves && (
           <S.Button
             $variant="blue"
             onClick={onGerarChaves}
+            disabled={!podeGerarChaves}
+            title={!podeGerarChaves ? mensagemIncompleto : ""}
           >
             <span>{isTeams ? "Gerar Equipes" : "Gerar Chaves"}</span>
           </S.Button>
@@ -183,6 +191,15 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           <p>
             <strong>Bloqueado:</strong> Não é possível excluir etapa após
             geração de chaves.
+          </p>
+        </S.Alert>
+      )}
+
+      {/* Alerta: inscrições incompletas para gerar chaves */}
+      {mostrarBotaoGerarChaves && !inscritosCompletos && (
+        <S.Alert $variant="yellow">
+          <p>
+            <strong>Inscrições incompletas:</strong> {mensagemIncompleto}
           </p>
         </S.Alert>
       )}

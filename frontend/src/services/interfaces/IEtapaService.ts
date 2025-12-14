@@ -38,6 +38,10 @@ export interface IEtapaService {
   ): Promise<Inscricao[]>;
   listarInscricoes(etapaId: string): Promise<Inscricao[]>;
   cancelarInscricao(etapaId: string, inscricaoId: string): Promise<void>;
+  cancelarInscricoesEmLote(
+    etapaId: string,
+    inscricaoIds: string[]
+  ): Promise<{ canceladas: number; erros: string[] }>;
   encerrarInscricoes(etapaId: string): Promise<Etapa>;
   reabrirInscricoes(etapaId: string): Promise<Etapa>;
 
