@@ -1,1 +1,0 @@
-export { ModalRegistrarResultadoReiDaPraia } from "./ModalRegistrarResultadoReiDaPraia";

@@ -413,6 +413,7 @@ class EtapaController extends BaseController {
   /**
    * Cancelar múltiplas inscrições em lote
    * DELETE /api/etapas/:etapaId/inscricoes-lote
+   * ✅ OTIMIZAÇÃO: Usa jogadorIds do resultado ao invés de buscar novamente
    */
   async cancelarInscricoesEmLote(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -432,38 +433,30 @@ class EtapaController extends BaseController {
         quantidade: inscricaoIds.length,
       });
 
+      // ✅ O service agora retorna jogadorIds junto com o resultado
       const resultado = await etapaService.cancelarInscricoesEmLote(
         inscricaoIds,
         etapaId,
         arenaId
       );
 
-      // Tentar remover cabeças de chave em paralelo (não bloqueia se falhar)
-      try {
-        const cabecaDeChaveService = (
-          await import("../services/CabecaDeChaveService")
-        ).default;
-
-        // Buscar jogadorIds das inscrições canceladas para remover cabeças de chave
-        const inscricoes = await Promise.all(
-          inscricaoIds.map((id) =>
-            etapaService.buscarInscricao(etapaId, arenaId, id)
-          )
-        );
-
-        const jogadorIds = inscricoes
-          .filter((i) => i !== null)
-          .map((i) => i!.jogadorId);
-
-        for (const jogadorId of jogadorIds) {
-          try {
-            await cabecaDeChaveService.remover(arenaId, etapaId, jogadorId);
-          } catch {
-            // Ignorar erros individuais - jogador pode não ser cabeça de chave
-          }
-        }
-      } catch {
-        logger.debug("Nenhuma cabeça de chave para remover");
+      // ✅ OTIMIZAÇÃO: Remover cabeças de chave em background (não bloqueia a resposta)
+      // Usa os jogadorIds já retornados pelo service
+      if (resultado.jogadorIds.length > 0) {
+        // Fire and forget - não espera completar
+        import("../services/CabecaDeChaveService").then((module) => {
+          const cabecaDeChaveService = module.default;
+          // Remover em paralelo (Promise.allSettled ignora erros individuais)
+          Promise.allSettled(
+            resultado.jogadorIds.map((jogadorId) =>
+              cabecaDeChaveService.remover(arenaId, etapaId, jogadorId)
+            )
+          ).catch(() => {
+            // Ignorar erros - jogadores podem não ser cabeças de chave
+          });
+        }).catch(() => {
+          logger.debug("Nenhuma cabeça de chave para remover");
+        });
       }
 
       logger.info("Inscrições canceladas em lote", {
@@ -1068,10 +1061,10 @@ class EtapaController extends BaseController {
   }
 
   /**
-   * Registrar resultado partida Rei da Praia
-   * POST /api/etapas/:id/rei-da-praia/partidas/:partidaId/resultado
+   * Registrar múltiplos resultados de partidas Rei da Praia em lote
+   * POST /api/etapas/:id/rei-da-praia/resultados-lote
    */
-  async registrarResultadoReiDaPraia(
+  async registrarResultadosEmLoteReiDaPraia(
     req: AuthRequest,
     res: Response
   ): Promise<void> {
@@ -1079,30 +1072,52 @@ class EtapaController extends BaseController {
       if (!this.checkAuth(req, res)) return;
 
       const { arenaId } = req.user;
-      const { partidaId } = req.params;
-      const { placar } = req.body;
+      const { id: etapaId } = req.params;
+      const { resultados } = req.body;
 
-      logger.info("Registrando resultado Rei da Praia", { partidaId });
+      // Validação
+      if (!resultados || !Array.isArray(resultados) || resultados.length === 0) {
+        ResponseHelper.badRequest(res, "Lista de resultados inválida");
+        return;
+      }
 
-      const reiDaPraiaService = (await import("../services/ReiDaPraiaService"))
-        .default;
-      await reiDaPraiaService.registrarResultadoPartida(
-        partidaId,
+      // Validar cada resultado
+      for (const resultado of resultados) {
+        if (!resultado.partidaId) {
+          ResponseHelper.badRequest(res, "partidaId é obrigatório em cada resultado");
+          return;
+        }
+        if (!resultado.placar || !Array.isArray(resultado.placar) || resultado.placar.length !== 1) {
+          ResponseHelper.badRequest(res, `Placar deve ter exatamente 1 set para partida ${resultado.partidaId}`);
+          return;
+        }
+      }
+
+      const reiDaPraiaService = (await import("../services/ReiDaPraiaService")).default;
+      const response = await reiDaPraiaService.registrarResultadosEmLote(
+        etapaId,
         arenaId,
-        placar
+        resultados
       );
 
-      logger.info("Resultado Rei da Praia registrado", { partidaId });
+      logger.info("Resultados em lote registrados (Rei da Praia)", {
+        etapaId,
+        total: resultados.length,
+        processados: response.processados,
+        erros: response.erros.length,
+        arenaId,
+      });
 
-      ResponseHelper.success(res, null, "Resultado registrado com sucesso");
+      ResponseHelper.success(res, response, response.message);
     } catch (error: any) {
       if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
         return;
       }
 
-      this.handleGenericError(res, error, "registrar resultado Rei da Praia", {
-        partidaId: req.params.partidaId,
-      });
+      logger.error("Erro ao registrar resultados em lote Rei da Praia", {
+        etapaId: req.params.id,
+      }, error);
+      this.handleGenericError(res, error, "registrar resultados em lote Rei da Praia");
     }
   }
 
@@ -1383,6 +1398,67 @@ class EtapaController extends BaseController {
     }
   }
 
+  /**
+   * Registrar múltiplos resultados de partidas Super X em lote
+   * POST /api/etapas/:id/super-x/resultados-lote
+   */
+  async registrarResultadosEmLoteSuperX(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id: etapaId } = req.params;
+      const { resultados } = req.body;
+
+      // Validação
+      if (!resultados || !Array.isArray(resultados) || resultados.length === 0) {
+        ResponseHelper.badRequest(res, "Lista de resultados inválida");
+        return;
+      }
+
+      // Validar cada resultado
+      for (const resultado of resultados) {
+        if (!resultado.partidaId) {
+          ResponseHelper.badRequest(res, "partidaId é obrigatório em cada resultado");
+          return;
+        }
+        if (!resultado.placar || !Array.isArray(resultado.placar) || resultado.placar.length !== 1) {
+          ResponseHelper.badRequest(res, `Placar deve ter exatamente 1 set para partida ${resultado.partidaId}`);
+          return;
+        }
+      }
+
+      const superXService = (await import("../services/SuperXService")).default;
+      const response = await superXService.registrarResultadosEmLote(
+        etapaId,
+        arenaId,
+        resultados
+      );
+
+      logger.info("Resultados em lote registrados (Super X)", {
+        etapaId,
+        total: resultados.length,
+        processados: response.processados,
+        erros: response.erros.length,
+        arenaId,
+      });
+
+      ResponseHelper.success(res, response, response.message);
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      logger.error("Erro ao registrar resultados em lote Super X", {
+        etapaId: req.params.id,
+      }, error);
+      this.handleGenericError(res, error, "registrar resultados em lote Super X");
+    }
+  }
+
   // ==================== TEAMS ====================
 
   /**
@@ -1418,10 +1494,11 @@ class EtapaController extends BaseController {
 
       const resultado = await teamsService.gerarEquipes(etapa, inscricoes);
 
-      // Gerar confrontos automaticamente
+      // Gerar confrontos automaticamente (passando equipes já criadas para evitar query extra)
       const confrontos = await teamsService.gerarConfrontos(
         etapa,
-        tipoFormacaoJogos
+        tipoFormacaoJogos,
+        resultado.equipes
       );
 
       // Atualizar status da etapa para indicar que chaves foram geradas
@@ -1818,6 +1895,63 @@ class EtapaController extends BaseController {
 
       this.handleGenericError(res, error, "registrar resultado TEAMS", {
         partidaId: req.params.partidaId,
+      });
+    }
+  }
+
+  /**
+   * Registrar múltiplos resultados de partidas TEAMS em lote
+   * POST /api/etapas/:id/teams/resultados-lote
+   */
+  async registrarResultadosEmLoteTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id: etapaId } = req.params;
+      const { resultados } = req.body;
+
+      // Validação básica
+      if (!resultados || !Array.isArray(resultados) || resultados.length === 0) {
+        ResponseHelper.badRequest(res, "É necessário enviar ao menos um resultado");
+        return;
+      }
+
+      logger.info("Registrando resultados TEAMS em lote", {
+        etapaId,
+        quantidade: resultados.length,
+      });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      const resultado = await teamsService.registrarResultadosEmLote(
+        etapaId,
+        arenaId,
+        resultados
+      );
+
+      logger.info("Resultados TEAMS em lote registrados", {
+        etapaId,
+        processados: resultado.processados,
+        erros: resultado.erros.length,
+        confrontosFinalizados: resultado.confrontosFinalizados.length,
+      });
+
+      ResponseHelper.success(res, {
+        message: `${resultado.processados} resultado(s) registrado(s) com sucesso`,
+        processados: resultado.processados,
+        erros: resultado.erros,
+        confrontosFinalizados: resultado.confrontosFinalizados,
+      });
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "registrar resultados TEAMS em lote", {
+        etapaId: req.params.id,
       });
     }
   }

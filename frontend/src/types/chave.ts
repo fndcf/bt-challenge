@@ -183,3 +183,23 @@ export interface FaseEliminatoria {
   criadoEm: string;
   atualizadoEm: string;
 }
+
+// ==================== DTOs para registro em lote ====================
+
+/**
+ * DTO para resultado de uma partida em lote
+ */
+export interface ResultadoPartidaLoteDTO {
+  partidaId: string;
+  placar: SetPartida[];
+}
+
+/**
+ * Resposta do registro de resultados em lote
+ */
+export interface RegistrarResultadosEmLoteResponse {
+  message: string;
+  processados: number;
+  erros: Array<{ partidaId: string; erro: string }>;
+  gruposRecalculados: string[];
+}

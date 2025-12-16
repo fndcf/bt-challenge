@@ -26,9 +26,26 @@ export interface IEquipeRepository {
     id: string,
     incrementos: Partial<AtualizarEstatisticasEquipeDTO>
   ): Promise<void>;
+  incrementarEstatisticasEmLote(
+    atualizacoes: Array<{
+      id: string;
+      incrementos: Partial<AtualizarEstatisticasEquipeDTO>;
+    }>
+  ): Promise<void>;
+
+  // Busca por IDs
+  buscarPorIds(ids: string[]): Promise<Equipe[]>;
+
+  // Atualização em lote
+  atualizarEmLote(
+    atualizacoes: Array<{ id: string; dados: Partial<Equipe> }>
+  ): Promise<void>;
 
   // Classificação
   atualizarPosicao(id: string, posicao: number): Promise<void>;
+  atualizarPosicoesEmLote(
+    atualizacoes: Array<{ id: string; posicao: number }>
+  ): Promise<void>;
   marcarClassificada(id: string, classificada: boolean): Promise<void>;
   buscarClassificadas(etapaId: string, arenaId: string): Promise<Equipe[]>;
 

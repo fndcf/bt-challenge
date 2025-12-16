@@ -247,6 +247,19 @@ export class ConfrontoEquipeRepository implements IConfrontoEquipeRepository {
     });
   }
 
+  /**
+   * ✅ OTIMIZAÇÃO: Adicionar múltiplas partidas de uma vez
+   */
+  async adicionarPartidasEmLote(confrontoId: string, partidaIds: string[]): Promise<void> {
+    if (partidaIds.length === 0) return;
+
+    await this.collection.doc(confrontoId).update({
+      partidas: FieldValue.arrayUnion(...partidaIds),
+      totalPartidas: FieldValue.increment(partidaIds.length),
+      atualizadoEm: Timestamp.now(),
+    });
+  }
+
   async incrementarPartidasFinalizadas(confrontoId: string): Promise<void> {
     await this.collection.doc(confrontoId).update({
       partidasFinalizadas: FieldValue.increment(1),

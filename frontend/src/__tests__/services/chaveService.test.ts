@@ -189,33 +189,6 @@ describe("ChaveService", () => {
     });
   });
 
-  describe("registrarResultadoPartida", () => {
-    it("deve registrar resultado de partida", async () => {
-      mockPut.mockResolvedValue(undefined);
-
-      const placar = [
-        { numero: 1, gamesDupla1: 6, gamesDupla2: 4 },
-        { numero: 2, gamesDupla1: 6, gamesDupla2: 3 },
-      ];
-
-      await chaveService.registrarResultadoPartida("partida-123", placar);
-
-      expect(mockPut).toHaveBeenCalledWith("/partidas/partida-123/resultado", {
-        placar,
-      });
-    });
-
-    it("deve lançar erro quando registro de resultado falha", async () => {
-      mockPut.mockRejectedValue(new Error("Partida não encontrada"));
-
-      const placar = [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }];
-
-      await expect(
-        chaveService.registrarResultadoPartida("partida-123", placar)
-      ).rejects.toThrow();
-    });
-  });
-
   describe("gerarFaseEliminatoria", () => {
     it("deve gerar fase eliminatória com classificados padrão", async () => {
       mockPost.mockResolvedValue(undefined);

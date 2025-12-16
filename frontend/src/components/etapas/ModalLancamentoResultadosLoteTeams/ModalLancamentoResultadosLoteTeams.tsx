@@ -5,8 +5,8 @@ import {
   PartidaTeams,
   ConfrontoEquipe,
   Equipe,
-  SetPlacarTeams,
   StatusPartidaTeams,
+  ResultadoPartidaLoteDTO,
 } from "@/types/teams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 
@@ -669,23 +669,40 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
     try {
       setLoading(true);
 
-      // Salvar cada resultado individualmente
-      for (const resultado of resultadosPreenchidos) {
-        const partida = partidasAtuais.find((p) => p.id === resultado.partidaId);
-        if (!partida) continue;
+      // Montar DTOs para o endpoint em lote
+      const resultadosLote: ResultadoPartidaLoteDTO[] = resultadosPreenchidos.map(
+        (resultado) => ({
+          partidaId: resultado.partidaId,
+          placar: [
+            {
+              numero: 1,
+              gamesDupla1: resultado.gamesDupla1!,
+              gamesDupla2: resultado.gamesDupla2!,
+            },
+          ],
+        })
+      );
 
-        const placar: SetPlacarTeams[] = [
-          {
-            numero: 1,
-            gamesDupla1: resultado.gamesDupla1!,
-            gamesDupla2: resultado.gamesDupla2!,
-          },
-        ];
+      // Chamar endpoint em lote
+      const response = await teamsService.registrarResultadosEmLote(
+        etapaId,
+        resultadosLote
+      );
 
-        await teamsService.registrarResultado(etapaId, partida.id, placar);
+      // Verificar se houve erros parciais
+      if (response.erros && response.erros.length > 0) {
+        const errosMap = new Map<string, string>();
+        response.erros.forEach((item: { partidaId: string; erro: string }) => {
+          errosMap.set(item.partidaId, item.erro);
+        });
+        setErros(errosMap);
+        setErroGlobal(
+          `${response.processados} resultado(s) salvo(s), mas ${response.erros.length} erro(s) ocorreram.`
+        );
+        return;
       }
 
-      alert(`${resultadosPreenchidos.length} resultado(s) salvo(s) com sucesso!`);
+      alert(`${response.processados} resultado(s) salvo(s) com sucesso!`);
       onSuccess();
     } catch (err: any) {
       setErroGlobal(

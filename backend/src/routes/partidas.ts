@@ -10,12 +10,12 @@ const router = Router();
 router.use(requireAuth);
 
 /**
- * @route   PUT /api/partidas/:id/resultado
- * @desc    Registrar resultado de uma partida
+ * @route   POST /api/partidas/resultados-lote
+ * @desc    Registrar múltiplos resultados de partidas em lote (Dupla Fixa)
  * @access  Private
  */
-router.put("/:id/resultado", (req, res) =>
-  partidaController.registrarResultado(req, res)
+router.post("/resultados-lote", (req, res) =>
+  partidaController.registrarResultadosEmLote(req, res)
 );
 
 export default router;

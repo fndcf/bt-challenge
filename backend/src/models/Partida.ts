@@ -82,3 +82,41 @@ export const AgendarPartidaSchema = z.object({
 });
 
 export type AgendarPartidaDTO = z.infer<typeof AgendarPartidaSchema>;
+
+// ============================================
+// DTOs para registro em lote
+// ============================================
+
+/**
+ * Placar de um set
+ */
+export interface SetPlacarDTO {
+  numero: number;
+  gamesDupla1: number;
+  gamesDupla2: number;
+}
+
+/**
+ * DTO para resultado de uma partida em lote
+ */
+export interface ResultadoPartidaLoteDTO {
+  partidaId: string;
+  placar: SetPlacarDTO[];
+}
+
+/**
+ * DTO para registrar múltiplos resultados em lote
+ */
+export interface RegistrarResultadosEmLoteDTO {
+  resultados: ResultadoPartidaLoteDTO[];
+}
+
+/**
+ * Resposta do registro de resultados em lote
+ */
+export interface RegistrarResultadosEmLoteResponse {
+  message: string;
+  processados: number;
+  erros: Array<{ partidaId: string; erro: string }>;
+  gruposRecalculados: string[];
+}

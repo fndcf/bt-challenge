@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { PartidaReiDaPraia } from "@/types/reiDaPraia";
+import {
+  PartidaReiDaPraia,
+  ResultadoPartidaLoteSuperXDTO,
+} from "@/types/reiDaPraia";
 import { getReiDaPraiaService } from "@/services";
 
 interface ModalLancamentoResultadosLoteReiDaPraiaProps {
@@ -543,26 +546,46 @@ export const ModalLancamentoResultadosLoteReiDaPraia: React.FC<
     try {
       setLoading(true);
 
-      // Salvar cada resultado individualmente
-      for (const resultado of resultadosPreenchidos) {
-        const partida = partidas.find((p) => p.id === resultado.partidaId);
-        if (!partida) continue;
+      // Obter etapaId da primeira partida
+      const etapaId = partidas[0]?.etapaId;
+      if (!etapaId) {
+        throw new Error("Etapa não encontrada");
+      }
 
-        await reiDaPraiaService.registrarResultado(
-          partida.etapaId,
-          partida.id,
-          [
+      // Preparar payload para endpoint em lote
+      const resultadosLote: ResultadoPartidaLoteSuperXDTO[] =
+        resultadosPreenchidos.map((resultado) => ({
+          partidaId: resultado.partidaId,
+          placar: [
             {
               numero: 1,
               gamesDupla1: resultado.gamesDupla1!,
               gamesDupla2: resultado.gamesDupla2!,
             },
-          ]
-        );
-      }
+          ],
+        }));
 
-      alert(`${resultadosPreenchidos.length} resultado(s) salvo(s) com sucesso!`);
-      onSuccess();
+      // Chamar endpoint em lote
+      const response = await reiDaPraiaService.registrarResultadosEmLote(
+        etapaId,
+        resultadosLote
+      );
+
+      if (response.erros && response.erros.length > 0) {
+        const novosErros = new Map<string, string>();
+        response.erros.forEach((erro) => {
+          novosErros.set(erro.partidaId, erro.erro);
+        });
+        setErros(novosErros);
+        setErroGlobal(
+          `${response.processados} resultado(s) salvo(s), mas ${response.erros.length} erro(s) encontrado(s).`
+        );
+      } else {
+        alert(
+          `${response.processados} resultado(s) salvo(s) com sucesso!`
+        );
+        onSuccess();
+      }
     } catch (err: any) {
       setErroGlobal(
         err.message || "Erro ao salvar resultados. Tente novamente."

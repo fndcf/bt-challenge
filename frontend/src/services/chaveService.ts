@@ -10,7 +10,6 @@ import {
   ResultadoGeracaoChaves,
   ConfrontoEliminatorio,
   TipoFase,
-  SetPartida,
 } from "../types/chave";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger";
@@ -134,36 +133,6 @@ class ChaveService implements IChaveService {
       return response;
     } catch (error) {
       const appError = handleError(error, "ChaveService.buscarPartidas");
-      throw new Error(appError.message);
-    }
-  }
-
-  // ============================================
-  // RESULTADOS - FASE DE GRUPOS
-  // ============================================
-
-  /**
-   * Registrar resultado de partida da fase de grupos
-   */
-  async registrarResultadoPartida(
-    partidaId: string,
-    placar: SetPartida[]
-  ): Promise<void> {
-    try {
-      await apiClient.put(`/partidas/${partidaId}/resultado`, { placar });
-
-      logger.info("Resultado partida Dupla Fixa registrado", {
-        partidaId,
-        totalSets: placar.length,
-        placar: placar
-          .map((s) => `${s.gamesDupla1}-${s.gamesDupla2}`)
-          .join(", "),
-      });
-    } catch (error) {
-      const appError = handleError(
-        error,
-        "ChaveService.registrarResultadoPartida"
-      );
       throw new Error(appError.message);
     }
   }

@@ -8,7 +8,12 @@
 
 import { Dupla } from "../models/Dupla";
 import { Grupo } from "../models/Grupo";
-import { Partida, StatusPartida } from "../models/Partida";
+import {
+  Partida,
+  StatusPartida,
+  ResultadoPartidaLoteDTO,
+  RegistrarResultadosEmLoteResponse,
+} from "../models/Partida";
 import { FaseEtapa } from "../models/Etapa";
 import { IPartidaRepository } from "../repositories/interfaces/IPartidaRepository";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
@@ -48,6 +53,11 @@ export interface IPartidaGrupoService {
     placar: PlacarSet[]
   ): Promise<void>;
 
+  registrarResultadosEmLote(
+    arenaId: string,
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse>;
+
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<Partida[]>;
   buscarPorGrupo(grupoId: string): Promise<Partida[]>;
 }
@@ -65,28 +75,40 @@ export class PartidaGrupoService implements IPartidaGrupoService {
 
   /**
    * Gerar partidas de todos contra todos para cada grupo
-   * OTIMIZADO: Usa batch operations para melhor performance
+   * ✅ OTIMIZAÇÃO v3: Buscar duplas em paralelo e criar todas partidas em um único batch
    */
   async gerarPartidas(
     etapaId: string,
     arenaId: string,
     grupos: Grupo[]
   ): Promise<Partida[]> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
     try {
-      const todasPartidas: Partida[] = [];
+      // 1. Buscar duplas de todos os grupos em paralelo
+      let inicio = Date.now();
+      const duplasPorGrupo = await Promise.all(
+        grupos.map((grupo) => this.duplaRepo.buscarPorGrupo(grupo.id))
+      );
+      tempos["1_buscarDuplas"] = Date.now() - inicio;
 
-      for (const grupo of grupos) {
-        // Buscar duplas do grupo
-        const duplas = await this.duplaRepo.buscarPorGrupo(grupo.id);
+      // 2. Gerar todos os DTOs de partidas
+      inicio = Date.now();
+      const todosPartidaDTOs: any[] = [];
+      const partidasPorGrupo: Map<string, number> = new Map(); // grupoId -> quantidade de partidas
 
-        // Gerar DTOs das combinações (todos contra todos)
-        const partidaDTOs: any[] = [];
+      for (let g = 0; g < grupos.length; g++) {
+        const grupo = grupos[g];
+        const duplas = duplasPorGrupo[g];
+        const startIndex = todosPartidaDTOs.length;
+
         for (let i = 0; i < duplas.length; i++) {
           for (let j = i + 1; j < duplas.length; j++) {
             const dupla1 = duplas[i];
             const dupla2 = duplas[j];
 
-            partidaDTOs.push({
+            todosPartidaDTOs.push({
               etapaId,
               arenaId,
               fase: FaseEtapa.GRUPOS,
@@ -101,34 +123,48 @@ export class PartidaGrupoService implements IPartidaGrupoService {
           }
         }
 
-        // ✅ OTIMIZAÇÃO: Criar todas as partidas em 1 batch operation
-        const partidas = await this.partidaRepo.criarEmLote(partidaDTOs);
-        todasPartidas.push(...partidas);
-
-        // Atualizar grupo com IDs das partidas e contadores
-        const partidasIds = partidas.map(p => p.id);
-        await this.grupoRepo.atualizarContadores(grupo.id, {
-          totalPartidas: partidas.length,
-        });
-
-        // ✅ OTIMIZAÇÃO: Adicionar todas as partidas de uma vez
-        for (const partidaId of partidasIds) {
-          await this.grupoRepo.adicionarPartida(grupo.id, partidaId);
-        }
+        partidasPorGrupo.set(grupo.id, todosPartidaDTOs.length - startIndex);
       }
+      tempos["2_gerarDTOs"] = Date.now() - inicio;
 
-      logger.info("Partidas de grupos geradas", {
+      // 3. Criar todas as partidas em um único batch
+      inicio = Date.now();
+      const todasPartidas = await this.partidaRepo.criarEmLote(todosPartidaDTOs);
+      tempos["3_criarPartidas"] = Date.now() - inicio;
+
+      // 4. Atualizar grupos com IDs das partidas em paralelo
+      inicio = Date.now();
+      let partidaIndex = 0;
+      const atualizacoesGrupos = grupos.map((grupo) => {
+        const qtdPartidas = partidasPorGrupo.get(grupo.id) || 0;
+        const partidasDoGrupo = todasPartidas.slice(
+          partidaIndex,
+          partidaIndex + qtdPartidas
+        );
+        partidaIndex += qtdPartidas;
+
+        const partidasIds = partidasDoGrupo.map((p) => p.id);
+        return this.grupoRepo.adicionarPartidasEmLote(grupo.id, partidasIds);
+      });
+
+      await Promise.all(atualizacoesGrupos);
+      tempos["4_atualizarGrupos"] = Date.now() - inicio;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS gerarPartidas", {
         etapaId,
-        arenaId,
-        totalGrupos: grupos.length,
-        totalPartidas: todasPartidas.length,
+        grupos: grupos.length,
+        partidas: todasPartidas.length,
+        tempos,
       });
 
       return todasPartidas;
     } catch (error) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao gerar partidas",
-        { etapaId, arenaId },
+        { etapaId, arenaId, tempos },
         error as Error
       );
       throw new Error("Falha ao gerar partidas");
@@ -190,11 +226,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
           throw new Error("Duplas não encontradas após reversão");
         }
 
-        logger.info("Estatísticas revertidas e duplas re-buscadas", {
-          partidaId,
-          dupla1Jogos: dupla1.jogos,
-          dupla2Jogos: dupla2.jogos,
-        });
       }
 
       // Calcular estatísticas do novo placar
@@ -237,14 +268,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         );
       }
 
-      logger.info("Resultado partida registrado", {
-        partidaId,
-        etapaId: partida.etapaId,
-        grupoNome: partida.grupoNome,
-        vencedoraNome: vencedoraNome,
-        placar: `${stats.setsDupla1}-${stats.setsDupla2}`,
-        isEdicao,
-      });
     } catch (error: any) {
       logger.error(
         "Erro ao registrar resultado",
@@ -530,6 +553,436 @@ export class PartidaGrupoService implements IPartidaGrupoService {
       saldoSets: dupla.saldoSets - (setsVencidos - setsPerdidos),
       saldoGames: dupla.saldoGames - (gamesVencidos - gamesPerdidos),
     });
+  }
+
+  /**
+   * Registrar múltiplos resultados de partidas em lote
+   *
+   * OTIMIZAÇÃO v2:
+   * - Busca todas duplas e estatísticas em paralelo no início
+   * - Verifica eliminatória uma única vez
+   * - Usa FieldValue.increment para estatísticas (evita race conditions)
+   * - Agrupa por grupo para recalcular classificação uma única vez
+   */
+  async registrarResultadosEmLote(
+    arenaId: string,
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
+    const erros: Array<{ partidaId: string; erro: string }> = [];
+    const gruposParaRecalcular = new Set<string>();
+    let processados = 0;
+
+    try {
+      // 1. Buscar todas as partidas em paralelo
+      let inicio = Date.now();
+      const partidasPromises = resultados.map((r) =>
+        this.partidaRepo.buscarPorIdEArena(r.partidaId, arenaId)
+      );
+      const partidas = await Promise.all(partidasPromises);
+      tempos["1_buscarPartidas"] = Date.now() - inicio;
+
+      // 2. Coletar todas as duplas e jogadores únicos e verificar eliminatória uma vez
+      inicio = Date.now();
+      const duplaIdsSet = new Set<string>();
+      const jogadorIdsSet = new Set<string>();
+      let etapaIdParaVerificar: string | null = null;
+      let temEdicao = false;
+
+      for (const partida of partidas) {
+        if (partida) {
+          duplaIdsSet.add(partida.dupla1Id);
+          duplaIdsSet.add(partida.dupla2Id);
+          if (partida.status === StatusPartida.FINALIZADA) {
+            temEdicao = true;
+            etapaIdParaVerificar = partida.etapaId;
+          }
+        }
+      }
+
+      // Verificar eliminatória uma única vez (se houver edição)
+      let eliminatoriaGerada = false;
+      if (temEdicao && etapaIdParaVerificar) {
+        const confrontos = await this.confrontoRepo.buscarPorEtapa(etapaIdParaVerificar, arenaId);
+        eliminatoriaGerada = confrontos.length > 0;
+      }
+
+      // Buscar todas as duplas em paralelo
+      const duplaIds = Array.from(duplaIdsSet);
+      const duplasArray = await Promise.all(
+        duplaIds.map((id) => this.duplaRepo.buscarPorId(id))
+      );
+      const duplasMap = new Map<string, Dupla>();
+      duplasArray.forEach((dupla) => {
+        if (dupla) {
+          duplasMap.set(dupla.id, dupla);
+          jogadorIdsSet.add(dupla.jogador1Id);
+          jogadorIdsSet.add(dupla.jogador2Id);
+        }
+      });
+
+      // Buscar etapaId da primeira partida válida
+      const primeiraPartidaValida = partidas.find((p) => p !== null);
+      const etapaId = primeiraPartidaValida?.etapaId || "";
+
+      // Buscar todas as estatísticas dos jogadores de uma vez
+      const jogadorIds = Array.from(jogadorIdsSet);
+      const estatisticasMap = etapaId
+        ? await estatisticasJogadorService.buscarPorJogadoresEtapa(jogadorIds, etapaId)
+        : new Map();
+      tempos["2_buscarDuplasEstatisticas"] = Date.now() - inicio;
+
+      // 3. Processar cada resultado - OTIMIZADO: paralelo
+      inicio = Date.now();
+
+      // 3.1 Preparar dados e validar
+      const resultadosValidos: Array<{
+        resultado: ResultadoPartidaLoteDTO;
+        partida: Partida;
+        dupla1: Dupla;
+        dupla2: Dupla;
+        isEdicao: boolean;
+      }> = [];
+
+      for (let i = 0; i < resultados.length; i++) {
+        const resultado = resultados[i];
+        const partida = partidas[i];
+
+        if (!partida) {
+          erros.push({ partidaId: resultado.partidaId, erro: "Partida não encontrada" });
+          continue;
+        }
+
+        const dupla1 = duplasMap.get(partida.dupla1Id);
+        const dupla2 = duplasMap.get(partida.dupla2Id);
+
+        if (!dupla1 || !dupla2) {
+          erros.push({ partidaId: resultado.partidaId, erro: "Duplas não encontradas" });
+          continue;
+        }
+
+        const isEdicao = partida.status === StatusPartida.FINALIZADA;
+
+        if (isEdicao && eliminatoriaGerada) {
+          erros.push({
+            partidaId: resultado.partidaId,
+            erro: "Não é possível editar após gerar eliminatória",
+          });
+          continue;
+        }
+
+        resultadosValidos.push({ resultado, partida, dupla1, dupla2, isEdicao });
+
+        if (partida.grupoId) {
+          gruposParaRecalcular.add(partida.grupoId);
+        }
+      }
+
+      // 3.2 Reverter estatísticas de edições em paralelo
+      const reversoes = resultadosValidos
+        .filter(r => r.isEdicao && r.partida.placar && r.partida.placar.length > 0)
+        .map(r => this.reverterEstatisticasComIncrement(r.partida, r.dupla1, r.dupla2, estatisticasMap));
+
+      if (reversoes.length > 0) {
+        await Promise.all(reversoes);
+      }
+
+      // 3.3 Aplicar novos resultados em paralelo
+      const aplicacoes = resultadosValidos.map(async ({ resultado, partida, dupla1, dupla2 }) => {
+        try {
+          const stats = this.calcularEstatisticasPlacar(
+            resultado.placar,
+            partida.dupla1Id,
+            partida.dupla2Id
+          );
+
+          const vencedoraNome = stats.dupla1Venceu
+            ? `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`
+            : `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`;
+
+          await Promise.all([
+            this.partidaRepo.registrarResultado(resultado.partidaId, {
+              status: StatusPartida.FINALIZADA,
+              setsDupla1: stats.setsDupla1,
+              setsDupla2: stats.setsDupla2,
+              placar: stats.placarComVencedor,
+              vencedoraId: stats.vencedoraId,
+              vencedoraNome: vencedoraNome,
+            }),
+            this.atualizarEstatisticasDuplaComIncrement(dupla1.id, stats, true),
+            this.atualizarEstatisticasDuplaComIncrement(dupla2.id, stats, false),
+            this.atualizarEstatisticasJogadoresComIncrement(dupla1, dupla2, stats, estatisticasMap),
+          ]);
+
+          return { success: true, partidaId: resultado.partidaId };
+        } catch (error: any) {
+          return { success: false, partidaId: resultado.partidaId, erro: error.message || "Erro desconhecido" };
+        }
+      });
+
+      const resultadosAplicacao = await Promise.all(aplicacoes);
+
+      for (const res of resultadosAplicacao) {
+        if (res.success) {
+          processados++;
+        } else {
+          erros.push({ partidaId: res.partidaId, erro: res.erro! });
+        }
+      }
+
+      tempos["3_processarResultados"] = Date.now() - inicio;
+
+      // 4. Recalcular classificação de todos os grupos afetados em paralelo
+      inicio = Date.now();
+      const gruposRecalculados: string[] = [];
+      const recalcPromises = Array.from(gruposParaRecalcular).map(async (grupoId) => {
+        try {
+          await classificacaoService.recalcularClassificacaoGrupo(grupoId);
+          gruposRecalculados.push(grupoId);
+        } catch (error: any) {
+          logger.error("Erro ao recalcular classificação do grupo", { grupoId }, error);
+        }
+      });
+      await Promise.all(recalcPromises);
+      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS registrarResultadosEmLote (Dupla Fixa)", {
+        total: resultados.length,
+        processados,
+        erros: erros.length,
+        gruposRecalculados: gruposRecalculados.length,
+        tempos,
+      });
+
+      return {
+        message:
+          erros.length === 0
+            ? `${processados} resultado(s) registrado(s) com sucesso`
+            : `${processados} resultado(s) registrado(s), ${erros.length} erro(s)`,
+        processados,
+        erros,
+        gruposRecalculados,
+      };
+    } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
+      logger.error(
+        "Erro ao registrar resultados em lote",
+        { total: resultados.length, tempos },
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Reverter estatísticas usando FieldValue.increment (para operações em lote)
+   */
+  private async reverterEstatisticasComIncrement(
+    partida: Partida,
+    dupla1: Dupla,
+    dupla2: Dupla,
+    estatisticasMap: Map<string, any>
+  ): Promise<void> {
+    if (!partida.placar || partida.placar.length === 0) return;
+
+    // Calcular estatísticas antigas
+    let setsAntigo1 = 0;
+    let setsAntigo2 = 0;
+    let gamesAntigo1 = 0;
+    let gamesPerdidosAntigo1 = 0;
+    let gamesAntigo2 = 0;
+    let gamesPerdidosAntigo2 = 0;
+
+    partida.placar.forEach((set: any) => {
+      if (set.gamesDupla1 > set.gamesDupla2) setsAntigo1++;
+      else setsAntigo2++;
+      gamesAntigo1 += set.gamesDupla1;
+      gamesPerdidosAntigo1 += set.gamesDupla2;
+      gamesAntigo2 += set.gamesDupla2;
+      gamesPerdidosAntigo2 += set.gamesDupla1;
+    });
+
+    const dupla1VenceuAntigo = setsAntigo1 > setsAntigo2;
+
+    // Obter estatisticaIds do map
+    const est1A = estatisticasMap.get(dupla1.jogador1Id);
+    const est1B = estatisticasMap.get(dupla1.jogador2Id);
+    const est2A = estatisticasMap.get(dupla2.jogador1Id);
+    const est2B = estatisticasMap.get(dupla2.jogador2Id);
+
+    // Construir array de reversões apenas com IDs válidos
+    const reversoes = [
+      est1A && {
+        estatisticaId: est1A.id,
+        dto: {
+          venceu: dupla1VenceuAntigo,
+          setsVencidos: setsAntigo1,
+          setsPerdidos: setsAntigo2,
+          gamesVencidos: gamesAntigo1,
+          gamesPerdidos: gamesPerdidosAntigo1,
+        },
+      },
+      est1B && {
+        estatisticaId: est1B.id,
+        dto: {
+          venceu: dupla1VenceuAntigo,
+          setsVencidos: setsAntigo1,
+          setsPerdidos: setsAntigo2,
+          gamesVencidos: gamesAntigo1,
+          gamesPerdidos: gamesPerdidosAntigo1,
+        },
+      },
+      est2A && {
+        estatisticaId: est2A.id,
+        dto: {
+          venceu: !dupla1VenceuAntigo,
+          setsVencidos: setsAntigo2,
+          setsPerdidos: setsAntigo1,
+          gamesVencidos: gamesAntigo2,
+          gamesPerdidos: gamesPerdidosAntigo2,
+        },
+      },
+      est2B && {
+        estatisticaId: est2B.id,
+        dto: {
+          venceu: !dupla1VenceuAntigo,
+          setsVencidos: setsAntigo2,
+          setsPerdidos: setsAntigo1,
+          gamesVencidos: gamesAntigo2,
+          gamesPerdidos: gamesPerdidosAntigo2,
+        },
+      },
+    ].filter(Boolean) as Array<{ estatisticaId: string; dto: any }>;
+
+    // Reverter em paralelo usando increment
+    await Promise.all([
+      // Reverter dupla 1
+      this.duplaRepo.atualizarEstatisticasComIncrement(dupla1.id, {
+        jogos: -1,
+        vitorias: dupla1VenceuAntigo ? -1 : 0,
+        derrotas: dupla1VenceuAntigo ? 0 : -1,
+        pontos: dupla1VenceuAntigo ? -3 : 0,
+        setsVencidos: -setsAntigo1,
+        setsPerdidos: -setsAntigo2,
+        gamesVencidos: -gamesAntigo1,
+        gamesPerdidos: -gamesPerdidosAntigo1,
+        saldoSets: -(setsAntigo1 - setsAntigo2),
+        saldoGames: -(gamesAntigo1 - gamesPerdidosAntigo1),
+      }),
+      // Reverter dupla 2
+      this.duplaRepo.atualizarEstatisticasComIncrement(dupla2.id, {
+        jogos: -1,
+        vitorias: !dupla1VenceuAntigo ? -1 : 0,
+        derrotas: !dupla1VenceuAntigo ? 0 : -1,
+        pontos: !dupla1VenceuAntigo ? -3 : 0,
+        setsVencidos: -setsAntigo2,
+        setsPerdidos: -setsAntigo1,
+        gamesVencidos: -gamesAntigo2,
+        gamesPerdidos: -gamesPerdidosAntigo2,
+        saldoSets: -(setsAntigo2 - setsAntigo1),
+        saldoGames: -(gamesAntigo2 - gamesPerdidosAntigo2),
+      }),
+      // Reverter jogadores
+      estatisticasJogadorService.reverterAposPartidaComIncrement(reversoes),
+    ]);
+  }
+
+  /**
+   * Atualizar estatísticas da dupla usando FieldValue.increment
+   */
+  private async atualizarEstatisticasDuplaComIncrement(
+    duplaId: string,
+    stats: ReturnType<typeof this.calcularEstatisticasPlacar>,
+    isDupla1: boolean
+  ): Promise<void> {
+    const venceu = isDupla1 ? stats.dupla1Venceu : !stats.dupla1Venceu;
+    const setsVencidos = isDupla1 ? stats.setsDupla1 : stats.setsDupla2;
+    const setsPerdidos = isDupla1 ? stats.setsDupla2 : stats.setsDupla1;
+    const gamesVencidos = isDupla1
+      ? stats.gamesVencidosDupla1
+      : stats.gamesVencidosDupla2;
+    const gamesPerdidos = isDupla1
+      ? stats.gamesPerdidosDupla1
+      : stats.gamesPerdidosDupla2;
+
+    await this.duplaRepo.atualizarEstatisticasComIncrement(duplaId, {
+      jogos: 1,
+      vitorias: venceu ? 1 : 0,
+      derrotas: venceu ? 0 : 1,
+      pontos: venceu ? 3 : 0,
+      setsVencidos,
+      setsPerdidos,
+      gamesVencidos,
+      gamesPerdidos,
+      saldoSets: setsVencidos - setsPerdidos,
+      saldoGames: gamesVencidos - gamesPerdidos,
+    });
+  }
+
+  /**
+   * Atualizar estatísticas dos jogadores usando FieldValue.increment
+   */
+  private async atualizarEstatisticasJogadoresComIncrement(
+    dupla1: Dupla,
+    dupla2: Dupla,
+    stats: ReturnType<typeof this.calcularEstatisticasPlacar>,
+    estatisticasMap: Map<string, any>
+  ): Promise<void> {
+    // Obter estatisticaIds do map
+    const est1A = estatisticasMap.get(dupla1.jogador1Id);
+    const est1B = estatisticasMap.get(dupla1.jogador2Id);
+    const est2A = estatisticasMap.get(dupla2.jogador1Id);
+    const est2B = estatisticasMap.get(dupla2.jogador2Id);
+
+    // Construir array de atualizações apenas com IDs válidos
+    const atualizacoes = [
+      est1A && {
+        estatisticaId: est1A.id,
+        dto: {
+          venceu: stats.dupla1Venceu,
+          setsVencidos: stats.setsDupla1,
+          setsPerdidos: stats.setsDupla2,
+          gamesVencidos: stats.gamesVencidosDupla1,
+          gamesPerdidos: stats.gamesPerdidosDupla1,
+        },
+      },
+      est1B && {
+        estatisticaId: est1B.id,
+        dto: {
+          venceu: stats.dupla1Venceu,
+          setsVencidos: stats.setsDupla1,
+          setsPerdidos: stats.setsDupla2,
+          gamesVencidos: stats.gamesVencidosDupla1,
+          gamesPerdidos: stats.gamesPerdidosDupla1,
+        },
+      },
+      est2A && {
+        estatisticaId: est2A.id,
+        dto: {
+          venceu: !stats.dupla1Venceu,
+          setsVencidos: stats.setsDupla2,
+          setsPerdidos: stats.setsDupla1,
+          gamesVencidos: stats.gamesVencidosDupla2,
+          gamesPerdidos: stats.gamesPerdidosDupla2,
+        },
+      },
+      est2B && {
+        estatisticaId: est2B.id,
+        dto: {
+          venceu: !stats.dupla1Venceu,
+          setsVencidos: stats.setsDupla2,
+          setsPerdidos: stats.setsDupla1,
+          gamesVencidos: stats.gamesVencidosDupla2,
+          gamesPerdidos: stats.gamesPerdidosDupla2,
+        },
+      },
+    ].filter(Boolean) as Array<{ estatisticaId: string; dto: any }>;
+
+    await estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(atualizacoes);
   }
 
   /**

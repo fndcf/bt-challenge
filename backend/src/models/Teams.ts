@@ -275,6 +275,32 @@ export interface RegistrarResultadoTeamsDTO {
 }
 
 /**
+ * DTO para registrar resultado de uma partida em lote
+ */
+export interface ResultadoPartidaLoteDTO {
+  partidaId: string;
+  placar: SetPlacarTeams[];
+}
+
+/**
+ * DTO para registrar múltiplos resultados em lote
+ */
+export interface RegistrarResultadosEmLoteDTO {
+  resultados: ResultadoPartidaLoteDTO[];
+}
+
+/**
+ * Resultado de processamento de um item do lote
+ */
+export interface ResultadoItemLote {
+  partidaId: string;
+  sucesso: boolean;
+  erro?: string;
+  precisaDecider?: boolean;
+  confrontoFinalizado?: boolean;
+}
+
+/**
  * DTO para atualizar estatísticas de equipe
  */
 export interface AtualizarEstatisticasEquipeDTO {

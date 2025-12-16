@@ -12,6 +12,8 @@ import {
   DefinirPartidasManualDTO,
   GerarEquipesResponse,
   RegistrarResultadoResponse,
+  RegistrarResultadosEmLoteResponse,
+  ResultadoPartidaLoteDTO,
   GerarPartidasResponse,
   GerarDeciderResponse,
 } from "@/types/teams";
@@ -98,6 +100,14 @@ export interface ITeamsService {
     partidaId: string,
     placar: SetPlacarTeams[]
   ): Promise<RegistrarResultadoResponse>;
+
+  /**
+   * Registrar múltiplos resultados de partidas em lote
+   */
+  registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse>;
 
   // ============================================
   // DECIDER

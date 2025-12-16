@@ -9,7 +9,6 @@ import {
   ResultadoGeracaoChaves,
   ConfrontoEliminatorio,
   TipoFase,
-  SetPartida,
 } from "@/types/chave";
 
 export interface IChaveService {
@@ -55,18 +54,6 @@ export interface IChaveService {
    * @returns Promise com lista de partidas
    */
   buscarPartidas(etapaId: string): Promise<Partida[]>;
-
-  /**
-   * Registrar resultado de partida da fase de grupos
-   * Formato: Múltiplos sets (melhor de 3 ou 5)
-   * @param partidaId - ID da partida
-   * @param placar - Array de sets com games de cada dupla
-   * @returns Promise void
-   */
-  registrarResultadoPartida(
-    partidaId: string,
-    placar: SetPartida[]
-  ): Promise<void>;
 
   /**
    * Gerar fase eliminatória

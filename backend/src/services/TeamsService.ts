@@ -55,6 +55,7 @@ export class TeamsService {
 
   /**
    * Gera equipes automaticamente baseado no tipo de formação
+   * ✅ OTIMIZAÇÃO v4: Adiciona logs de timing completos
    */
   async gerarEquipes(
     etapa: Etapa,
@@ -64,6 +65,9 @@ export class TeamsService {
     estatisticas: any[];
     temFaseGrupos: boolean;
   }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
     // Validações básicas de etapa (rápidas e essenciais)
     this.validarEtapaParaGeracaoEquipes(etapa);
 
@@ -72,11 +76,8 @@ export class TeamsService {
     const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
     const numEquipes = inscricoes.length / variante;
 
-    // NOTA: Validações pesadas de distribuição de gênero e contagem de jogadores
-    // já foram realizadas durante as inscrições individuais (EtapaService.inscreverJogador).
-    // Mantemos apenas verificações de sanidade rápidas aqui para evitar operações lentas.
-
-    // Distribuir jogadores em equipes
+    // 1. Distribuir jogadores em equipes
+    let inicio = Date.now();
     let jogadoresPorEquipe: JogadorEquipe[][];
 
     switch (tipoFormacao) {
@@ -98,12 +99,14 @@ export class TeamsService {
         );
         break;
     }
+    tempos["1_distribuirJogadores"] = Date.now() - inicio;
 
     // Com 6+ equipes, dividir em grupos
     const temFaseGrupos = numEquipes >= 6;
     const grupos = temFaseGrupos ? this.calcularGrupos(numEquipes) : null;
 
-    // Criar equipes com atribuição de grupos
+    // 2. Preparar DTOs de equipes
+    inicio = Date.now();
     const equipeDTOs: CriarEquipeDTO[] = jogadoresPorEquipe.map(
       (jogadores, index) => {
         const dto: CriarEquipeDTO = {
@@ -113,7 +116,6 @@ export class TeamsService {
           jogadores,
         };
 
-        // Atribuir grupo se aplicável
         if (grupos) {
           const grupoInfo = this.atribuirGrupo(index, grupos);
           dto.grupoId = grupoInfo.grupoId;
@@ -123,15 +125,15 @@ export class TeamsService {
         return dto;
       }
     );
+    tempos["2_prepararDTOs"] = Date.now() - inicio;
 
-    const criacaoEquipesStart = Date.now();
+    // 3. Criar equipes no banco
+    inicio = Date.now();
     const equipes = await this.equipeRepository.criarEmLote(equipeDTOs);
-    logger.info("[PERF] Equipes criadas no DB", {
-      tempoMs: Date.now() - criacaoEquipesStart,
-      quantidade: equipes.length,
-    });
+    tempos["3_criarEquipes"] = Date.now() - inicio;
 
-    // Criar estatísticas individuais para cada jogador EM LOTE (otimizado)
+    // 4. Criar estatísticas individuais para cada jogador EM LOTE
+    inicio = Date.now();
     const estatisticasDTOs = equipes.flatMap((equipe) =>
       equipe.jogadores.map((jogador) => ({
         etapaId: etapa.id,
@@ -148,13 +150,17 @@ export class TeamsService {
     const estatisticas = await this.estatisticasService.criarEmLote(
       estatisticasDTOs
     );
+    tempos["4_criarEstatisticas"] = Date.now() - inicio;
 
-    logger.info("Equipes geradas com sucesso", {
+    tempos["TOTAL"] = Date.now() - inicioTotal;
+
+    logger.info("⏱️ TEMPOS gerarEquipes Teams", {
       etapaId: etapa.id,
-      numEquipes: equipes.length,
-      tipoFormacao,
+      inscricoes: inscricoes.length,
+      equipes: equipes.length,
+      estatisticas: estatisticas.length,
       temFaseGrupos,
-      grupos: grupos ? grupos.length : 0,
+      tempos,
     });
 
     return { equipes, estatisticas, temFaseGrupos };
@@ -304,99 +310,157 @@ export class TeamsService {
    * Gera confrontos round-robin entre equipes
    * Com 6+ equipes: gera fase de grupos + fase eliminatória
    * Com 2-5 equipes: gera todos contra todos
+   * ✅ OTIMIZAÇÃO v3: Gerar partidas de todos os confrontos em paralelo
    */
   async gerarConfrontos(
     etapa: Etapa,
-    tipoFormacaoJogos: TipoFormacaoJogos = TipoFormacaoJogos.SORTEIO
+    tipoFormacaoJogos: TipoFormacaoJogos = TipoFormacaoJogos.SORTEIO,
+    equipesJaCriadas?: Equipe[]
   ): Promise<ConfrontoEquipe[]> {
-    const startTime = Date.now();
-    logger.info("[PERF] Iniciando geração de confrontos", {
-      etapaId: etapa.id,
-    });
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
 
-    const buscarEquipesStart = Date.now();
-    const equipes = await this.equipeRepository.buscarPorEtapaOrdenadas(
-      etapa.id,
-      etapa.arenaId
-    );
-    logger.info("[PERF] Equipes buscadas", {
-      tempoMs: Date.now() - buscarEquipesStart,
-      quantidade: equipes.length,
-    });
-
-    if (equipes.length < 2) {
-      throw new ValidationError("Mínimo de 2 equipes para gerar confrontos");
-    }
-
-    const temFaseGrupos = equipes.length >= 6;
-
-    let confrontos: ConfrontoEquipe[];
-
-    const geracaoStart = Date.now();
-    if (temFaseGrupos) {
-      // Gerar confrontos por grupo + fase eliminatória
-      confrontos = await this.gerarConfrontosFaseGrupos(
-        etapa,
-        equipes,
-        tipoFormacaoJogos
+    try {
+      // 1. Usar equipes já criadas ou buscar do banco
+      let inicio = Date.now();
+      const equipes = equipesJaCriadas || await this.equipeRepository.buscarPorEtapaOrdenadas(
+        etapa.id,
+        etapa.arenaId
       );
-    } else {
-      // Gerar round-robin simples (todos contra todos)
-      confrontos = await this.gerarConfrontosRoundRobin(
-        etapa,
-        equipes,
-        tipoFormacaoJogos
-      );
-    }
-    logger.info("[PERF] Confrontos criados no DB", {
-      tempoMs: Date.now() - geracaoStart,
-      quantidade: confrontos.length,
-    });
+      tempos["1_buscarEquipes"] = Date.now() - inicio;
+      tempos["1_equipesJaCriadas"] = equipesJaCriadas ? 1 : 0;
 
-    // Gerar partidas automaticamente para confrontos com equipes definidas (fase de grupos)
-    const geracaoPartidasStart = Date.now();
-    const confrontosComEquipes = confrontos.filter(
-      (c) => c.equipe1Id && c.equipe2Id && c.fase === FaseEtapa.GRUPOS
-    );
-
-    let partidasGeradas = 0;
-    for (const confronto of confrontosComEquipes) {
-      try {
-        const partidas = await this.gerarPartidasConfronto(confronto, etapa);
-        partidasGeradas += partidas.length;
-      } catch (error) {
-        logger.error("Erro ao gerar partidas para confronto", {
-          confrontoId: confronto.id,
-          error,
-        });
+      if (equipes.length < 2) {
+        throw new ValidationError("Mínimo de 2 equipes para gerar confrontos");
       }
+
+      const temFaseGrupos = equipes.length >= 6;
+
+      // 2. Gerar confrontos
+      inicio = Date.now();
+      let confrontos: ConfrontoEquipe[];
+      if (temFaseGrupos) {
+        confrontos = await this.gerarConfrontosFaseGrupos(
+          etapa,
+          equipes,
+          tipoFormacaoJogos
+        );
+      } else {
+        confrontos = await this.gerarConfrontosRoundRobin(
+          etapa,
+          equipes,
+          tipoFormacaoJogos
+        );
+      }
+      tempos["2_gerarConfrontos"] = Date.now() - inicio;
+
+      // 3. Gerar partidas para confrontos com equipes definidas (fase de grupos)
+      // ✅ OTIMIZAÇÃO v4: Criar Map de equipes e gerar TODAS partidas em um único batch
+      inicio = Date.now();
+      const confrontosComEquipes = confrontos.filter(
+        (c) => c.equipe1Id && c.equipe2Id && c.fase === FaseEtapa.GRUPOS
+      );
+
+      // Criar Map de equipes para lookup O(1)
+      const equipesMap = new Map(equipes.map((e) => [e.id, e]));
+
+      // Gerar todos os DTOs de partidas de uma vez
+      const todosPartidaDTOs: CriarPartidaTeamsDTO[] = [];
+      const partidasPorConfronto: Map<string, number> = new Map();
+
+      const variante = etapa.varianteTeams!;
+      const tipoFormacao = etapa.tipoFormacaoJogos || TipoFormacaoJogos.SORTEIO;
+      const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
+
+      for (const confronto of confrontosComEquipes) {
+        const equipe1 = equipesMap.get(confronto.equipe1Id);
+        const equipe2 = equipesMap.get(confronto.equipe2Id);
+
+        if (!equipe1 || !equipe2) {
+          logger.error("Equipe não encontrada para confronto", {
+            confrontoId: confronto.id,
+            equipe1Id: confronto.equipe1Id,
+            equipe2Id: confronto.equipe2Id,
+          });
+          continue;
+        }
+
+        // Se for formação MANUAL, pular (partidas vazias serão criadas depois)
+        if (tipoFormacao === TipoFormacaoJogos.MANUAL) {
+          continue;
+        }
+
+        const startIndex = todosPartidaDTOs.length;
+        const partidasDTO = this.montarPartidasConfrontoDTO(
+          confronto,
+          etapa,
+          equipe1,
+          equipe2,
+          variante,
+          isMisto
+        );
+        todosPartidaDTOs.push(...partidasDTO);
+        partidasPorConfronto.set(confronto.id, todosPartidaDTOs.length - startIndex);
+      }
+      tempos["3a_prepararDTOs"] = Date.now() - inicio;
+
+      // Criar todas as partidas em um único batch
+      inicio = Date.now();
+      let partidasGeradas = 0;
+      if (todosPartidaDTOs.length > 0) {
+        const todasPartidas = await this.partidaRepository.criarEmLote(todosPartidaDTOs);
+        partidasGeradas = todasPartidas.length;
+
+        // Atualizar confrontos com IDs das partidas em paralelo
+        let partidaIndex = 0;
+        const atualizacoesConfrontos = confrontosComEquipes
+          .filter((c) => partidasPorConfronto.has(c.id))
+          .map((confronto) => {
+            const qtdPartidas = partidasPorConfronto.get(confronto.id) || 0;
+            const partidasDoConfronto = todasPartidas.slice(
+              partidaIndex,
+              partidaIndex + qtdPartidas
+            );
+            partidaIndex += qtdPartidas;
+
+            const partidasIds = partidasDoConfronto.map((p) => p.id);
+            return this.confrontoRepository.adicionarPartidasEmLote(confronto.id, partidasIds);
+          });
+
+        await Promise.all(atualizacoesConfrontos);
+      }
+      tempos["3b_criarPartidas"] = Date.now() - inicio;
+      tempos["3_gerarPartidas"] = tempos["3a_prepararDTOs"] + tempos["3b_criarPartidas"];
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS gerarConfrontos Teams", {
+        etapaId: etapa.id,
+        equipes: equipes.length,
+        confrontos: confrontos.length,
+        partidasGeradas,
+        temFaseGrupos,
+        tempos,
+      });
+
+      return confrontos;
+    } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
+      logger.error("Erro ao gerar confrontos Teams", { etapaId: etapa.id, tempos }, error);
+      throw error;
     }
-    logger.info("[PERF] Partidas geradas automaticamente", {
-      tempoMs: Date.now() - geracaoPartidasStart,
-      confrontosProcessados: confrontosComEquipes.length,
-      partidasGeradas,
-    });
-
-    logger.info("Confrontos gerados com sucesso", {
-      etapaId: etapa.id,
-      numConfrontos: confrontos.length,
-      temFaseGrupos,
-      partidasGeradas,
-      tempoTotalMs: Date.now() - startTime,
-    });
-
-    return confrontos;
   }
 
   /**
-   * Gera confrontos round-robin simples (todos contra todos)
+   * ✅ OTIMIZAÇÃO v5: Gera apenas os DTOs de confrontos round-robin (sem criar no banco)
    */
-  private async gerarConfrontosRoundRobin(
+  private montarConfrontosRoundRobinDTO(
     etapa: Etapa,
     equipes: Equipe[],
     tipoFormacaoJogos: TipoFormacaoJogos,
-    grupoId?: string
-  ): Promise<ConfrontoEquipe[]> {
+    grupoId?: string,
+    ordemInicial: number = 1
+  ): CriarConfrontoDTO[] {
     const confrontoDTOs: CriarConfrontoDTO[] = [];
     const n = equipes.length;
 
@@ -410,7 +474,7 @@ export class TeamsService {
     }
 
     const numEquipesComBye = equipesArray.length;
-    let ordem = 1;
+    let ordem = ordemInicial;
 
     for (let rodada = 1; rodada <= numRodadas; rodada++) {
       for (let i = 0; i < numEquipesComBye / 2; i++) {
@@ -441,11 +505,31 @@ export class TeamsService {
       equipesArray.splice(0, equipesArray.length, fixed, ...rotating);
     }
 
+    return confrontoDTOs;
+  }
+
+  /**
+   * Gera confrontos round-robin simples (todos contra todos)
+   * Usado quando não há fase de grupos (< 6 equipes)
+   */
+  private async gerarConfrontosRoundRobin(
+    etapa: Etapa,
+    equipes: Equipe[],
+    tipoFormacaoJogos: TipoFormacaoJogos,
+    grupoId?: string
+  ): Promise<ConfrontoEquipe[]> {
+    const confrontoDTOs = this.montarConfrontosRoundRobinDTO(
+      etapa,
+      equipes,
+      tipoFormacaoJogos,
+      grupoId
+    );
     return this.confrontoRepository.criarEmLote(confrontoDTOs);
   }
 
   /**
    * Gera confrontos com fase de grupos + fase eliminatória
+   * ✅ OTIMIZAÇÃO v5: Gerar todos DTOs de grupos e criar em um ÚNICO batch
    */
   private async gerarConfrontosFaseGrupos(
     etapa: Etapa,
@@ -462,28 +546,33 @@ export class TeamsService {
       gruposMap.get(grupoId)!.push(equipe);
     }
 
-    const todosConfrontos: ConfrontoEquipe[] = [];
+    // ✅ OTIMIZAÇÃO v5: Gerar todos os DTOs de confrontos de grupos em memória
+    const todosConfrontoDTOs: CriarConfrontoDTO[] = [];
+    let ordemGlobal = 1;
 
-    // Gerar confrontos dentro de cada grupo
-    for (const [grupoId, equipesDoGrupo] of gruposMap) {
-      const confrontosGrupo = await this.gerarConfrontosRoundRobin(
+    for (const [grupoId, equipesDoGrupo] of gruposMap.entries()) {
+      const dtos = this.montarConfrontosRoundRobinDTO(
         etapa,
         equipesDoGrupo,
         tipoFormacaoJogos,
-        grupoId
+        grupoId,
+        ordemGlobal
       );
-      todosConfrontos.push(...confrontosGrupo);
+      todosConfrontoDTOs.push(...dtos);
+      ordemGlobal += dtos.length;
     }
 
-    // Gerar fase eliminatória (semifinais e final)
+    // ✅ Criar todos os confrontos de grupos em um ÚNICO batch
+    const confrontosGrupos = await this.confrontoRepository.criarEmLote(todosConfrontoDTOs);
+
+    // Gerar fase eliminatória (semifinais e final) - precisa de batch separado pois tem dependências de IDs
     const confrontosEliminatoria = await this.gerarFaseEliminatoria(
       etapa,
       Array.from(gruposMap.keys()),
       tipoFormacaoJogos
     );
-    todosConfrontos.push(...confrontosEliminatoria);
 
-    return todosConfrontos;
+    return [...confrontosGrupos, ...confrontosEliminatoria];
   }
 
   /**
@@ -2078,12 +2167,147 @@ export class TeamsService {
 
     const partidas = await this.partidaRepository.criarEmLote(partidaDTOs);
 
-    // Atualizar confronto com partidas
-    for (const partida of partidas) {
-      await this.confrontoRepository.adicionarPartida(confronto.id, partida.id);
-    }
+    // ✅ OTIMIZAÇÃO: Atualizar confronto com todas as partidas de uma vez
+    const partidasIds = partidas.map((p) => p.id);
+    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, partidasIds);
 
     return partidas;
+  }
+
+  /**
+   * ✅ OTIMIZAÇÃO v4: Montar DTOs de partidas sem fazer queries
+   * Recebe equipes já carregadas para evitar buscas repetidas
+   */
+  private montarPartidasConfrontoDTO(
+    confronto: ConfrontoEquipe,
+    etapa: Etapa,
+    equipe1: Equipe,
+    equipe2: Equipe,
+    variante: VarianteTeams,
+    isMisto: boolean
+  ): CriarPartidaTeamsDTO[] {
+    const partidaDTOs: CriarPartidaTeamsDTO[] = [];
+
+    if (variante === VarianteTeams.TEAMS_4) {
+      // TEAMS_4: 2 jogos + decider se necessário
+      if (isMisto) {
+        const femininas1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const masculinos1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+        const femininas2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const masculinos2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            1,
+            TipoJogoTeams.FEMININO,
+            this.shuffle(femininas1),
+            this.shuffle(femininas2)
+          )
+        );
+
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            2,
+            TipoJogoTeams.MASCULINO,
+            this.shuffle(masculinos1),
+            this.shuffle(masculinos2)
+          )
+        );
+      } else {
+        const tipoJogo =
+          etapa.genero === GeneroJogador.FEMININO
+            ? TipoJogoTeams.FEMININO
+            : TipoJogoTeams.MASCULINO;
+
+        const jogadores1 = this.shuffle([...equipe1.jogadores]);
+        const jogadores2 = this.shuffle([...equipe2.jogadores]);
+
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            1,
+            tipoJogo,
+            jogadores1.slice(0, 2),
+            jogadores2.slice(0, 2)
+          )
+        );
+
+        partidaDTOs.push(
+          this.criarPartidaDTO(
+            confronto,
+            etapa,
+            2,
+            tipoJogo,
+            jogadores1.slice(2, 4),
+            jogadores2.slice(2, 4)
+          )
+        );
+      }
+    } else {
+      // TEAMS_6: 3 jogos fixos
+      if (isMisto) {
+        const femininas1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const masculinos1 = equipe1.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+        const femininas2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.FEMININO
+        );
+        const masculinos2 = equipe2.jogadores.filter(
+          (j) => j.genero === GeneroJogador.MASCULINO
+        );
+
+        const f1 = this.shuffle(femininas1);
+        const m1 = this.shuffle(masculinos1);
+        const f2 = this.shuffle(femininas2);
+        const m2 = this.shuffle(masculinos2);
+
+        partidaDTOs.push(
+          this.criarPartidaDTO(confronto, etapa, 1, TipoJogoTeams.FEMININO, f1.slice(0, 2), f2.slice(0, 2))
+        );
+        partidaDTOs.push(
+          this.criarPartidaDTO(confronto, etapa, 2, TipoJogoTeams.MASCULINO, m1.slice(0, 2), m2.slice(0, 2))
+        );
+        partidaDTOs.push(
+          this.criarPartidaDTO(confronto, etapa, 3, TipoJogoTeams.MISTO, [f1[2], m1[2]], [f2[2], m2[2]])
+        );
+      } else {
+        const tipoJogo =
+          etapa.genero === GeneroJogador.FEMININO
+            ? TipoJogoTeams.FEMININO
+            : TipoJogoTeams.MASCULINO;
+
+        const jogadores1 = this.shuffle([...equipe1.jogadores]);
+        const jogadores2 = this.shuffle([...equipe2.jogadores]);
+
+        partidaDTOs.push(
+          this.criarPartidaDTO(confronto, etapa, 1, tipoJogo, jogadores1.slice(0, 2), jogadores2.slice(0, 2))
+        );
+        partidaDTOs.push(
+          this.criarPartidaDTO(confronto, etapa, 2, tipoJogo, jogadores1.slice(2, 4), jogadores2.slice(2, 4))
+        );
+        partidaDTOs.push(
+          this.criarPartidaDTO(confronto, etapa, 3, tipoJogo, jogadores1.slice(4, 6), jogadores2.slice(4, 6))
+        );
+      }
+    }
+
+    return partidaDTOs;
   }
 
   /**
@@ -2140,9 +2364,9 @@ export class TeamsService {
 
     const partidas = await this.partidaRepository.criarEmLote(partidaDTOs);
 
-    for (const partida of partidas) {
-      await this.confrontoRepository.adicionarPartida(confronto.id, partida.id);
-    }
+    // ✅ OTIMIZAÇÃO: Atualizar confronto com todas as partidas de uma vez
+    const partidasIds = partidas.map((p) => p.id);
+    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, partidasIds);
 
     return partidas;
   }
@@ -2573,6 +2797,7 @@ export class TeamsService {
 
   /**
    * Registra resultado de uma partida
+   * ✅ DEBUG: Logs de timing para identificar gargalos
    */
   async registrarResultadoPartida(
     partidaId: string,
@@ -2584,28 +2809,41 @@ export class TeamsService {
     precisaDecider: boolean;
     confrontoFinalizado: boolean;
   }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
+    // ✅ OTIMIZAÇÃO v3: Buscar partida primeiro (necessário para obter confrontoId)
     const partida = await this.partidaRepository.buscarPorId(partidaId);
+    tempos["1_buscarPartida"] = Date.now() - inicio;
     if (!partida) {
       throw new NotFoundError("Partida não encontrada");
     }
 
-    const confronto = await this.confrontoRepository.buscarPorId(
-      partida.confrontoId
-    );
+    // ✅ OTIMIZAÇÃO v3: Buscar confronto e partidas do confronto em paralelo
+    inicio = Date.now();
+    const [confronto, partidasConfronto] = await Promise.all([
+      this.confrontoRepository.buscarPorId(partida.confrontoId),
+      this.partidaRepository.buscarPorConfrontoOrdenadas(partida.confrontoId),
+    ]);
+    tempos["2_buscarConfrontoEPartidas"] = Date.now() - inicio;
     if (!confronto) {
       throw new NotFoundError("Confronto não encontrado");
     }
 
     // Calcular resultado
     const { setsDupla1, setsDupla2, vencedoraEquipeId, vencedoraEquipeNome } =
-      this.calcularResultadoPartida(dto.placar, partida);
+      this.calcularResultadoPartida(dto.placar, partida, confronto);
 
     // Se já tinha resultado, reverter estatísticas
     if (partida.status === StatusPartida.FINALIZADA) {
+      inicio = Date.now();
       await this.reverterEstatisticasPartida(partida);
+      tempos["3_reverterEstatisticas"] = Date.now() - inicio;
     }
 
     // Registrar resultado
+    inicio = Date.now();
     await this.partidaRepository.registrarResultado(
       partidaId,
       dto.placar,
@@ -2614,66 +2852,95 @@ export class TeamsService {
       vencedoraEquipeId,
       vencedoraEquipeNome
     );
+    tempos["4_registrarResultado"] = Date.now() - inicio;
 
     // Atualizar estatísticas dos jogadores
+    inicio = Date.now();
     await this.atualizarEstatisticasJogadores(
       partida,
       dto.placar,
-      vencedoraEquipeId
+      vencedoraEquipeId,
+      confronto
+    );
+    tempos["5_atualizarEstatisticas"] = Date.now() - inicio;
+
+    // ✅ OTIMIZAÇÃO v3: partidasConfronto já foi buscado no início em paralelo
+    // Precisamos atualizar a lista com o resultado recém-registrado
+    const partidasAtualizadas = partidasConfronto.map((p) =>
+      p.id === partidaId
+        ? {
+            ...p,
+            placar: dto.placar,
+            setsDupla1,
+            setsDupla2,
+            vencedoraEquipeId,
+            vencedoraEquipeNome,
+            status: StatusPartida.FINALIZADA,
+          }
+        : p
     );
 
-    // Atualizar confronto
-    const partidasConfronto =
-      await this.partidaRepository.buscarPorConfrontoOrdenadas(confronto.id);
-
-    const jogosEquipe1 = partidasConfronto.filter(
+    const jogosEquipe1 = partidasAtualizadas.filter(
       (p) =>
         p.status === StatusPartida.FINALIZADA &&
         p.vencedoraEquipeId === confronto.equipe1Id
     ).length;
 
-    const jogosEquipe2 = partidasConfronto.filter(
+    const jogosEquipe2 = partidasAtualizadas.filter(
       (p) =>
         p.status === StatusPartida.FINALIZADA &&
         p.vencedoraEquipeId === confronto.equipe2Id
     ).length;
 
     // Contar partidas finalizadas
-    const partidasFinalizadas = partidasConfronto.filter(
+    const partidasFinalizadas = partidasAtualizadas.filter(
       (p) => p.status === StatusPartida.FINALIZADA
     ).length;
 
-    await this.confrontoRepository.atualizarContadorJogos(
-      confronto.id,
-      jogosEquipe1,
-      jogosEquipe2
-    );
-
-    // Atualizar contador de partidas finalizadas
+    // ✅ OTIMIZAÇÃO v3: Combinar atualizações do confronto
+    inicio = Date.now();
     await this.confrontoRepository.atualizar(confronto.id, {
+      jogosEquipe1,
+      jogosEquipe2,
       partidasFinalizadas,
-      totalPartidas: partidasConfronto.length,
+      totalPartidas: partidasAtualizadas.length,
     });
+    tempos["6_atualizarConfronto"] = Date.now() - inicio;
 
-    // Verificar se precisa de decider (TEAMS_4 com empate 1-1)
-    const partidaAtualizada = await this.partidaRepository.buscarPorId(
-      partidaId
-    );
-    const confrontoAtualizado = await this.confrontoRepository.buscarPorId(
-      confronto.id
-    );
+    // ✅ OTIMIZAÇÃO v3: Construir confronto atualizado localmente em vez de buscar novamente
+    const confrontoAtualizado: ConfrontoEquipe = {
+      ...confronto,
+      jogosEquipe1,
+      jogosEquipe2,
+      partidasFinalizadas,
+      totalPartidas: partidasAtualizadas.length,
+    };
 
+    // ✅ OTIMIZAÇÃO v3: Construir partida atualizada localmente
+    const partidaAtualizada: PartidaTeams = {
+      ...partida,
+      placar: dto.placar,
+      setsDupla1,
+      setsDupla2,
+      vencedoraEquipeId,
+      vencedoraEquipeNome,
+      status: StatusPartida.FINALIZADA,
+    };
+
+    inicio = Date.now();
     let precisaDecider = await this.verificarPrecisaDecider(
-      confrontoAtualizado!,
-      partidasConfronto
+      confrontoAtualizado,
+      partidasAtualizadas
     );
+    tempos["7_verificarDecider"] = Date.now() - inicio;
 
     // Se precisa decider e ainda não existe, gerar automaticamente
-    if (precisaDecider && !confrontoAtualizado!.temDecider) {
+    if (precisaDecider && !confrontoAtualizado.temDecider) {
       try {
+        inicio = Date.now();
         const etapa = await this.etapaRepository.buscarPorId(partida.etapaId);
         if (etapa) {
-          await this.gerarDecider(confrontoAtualizado!, etapa);
+          await this.gerarDecider(confrontoAtualizado, etapa);
           logger.info("Decider gerado automaticamente após empate 1-1", {
             confrontoId: confronto.id,
             etapaId: etapa.id,
@@ -2681,6 +2948,7 @@ export class TeamsService {
           // Após gerar o decider, não precisa mais (já foi gerado)
           precisaDecider = false;
         }
+        tempos["8_gerarDecider"] = Date.now() - inicio;
       } catch (error) {
         // Se falhar ao gerar decider, apenas logar e continuar
         // O frontend ainda pode gerar manualmente
@@ -2692,21 +2960,381 @@ export class TeamsService {
     }
 
     // Verificar se confronto está finalizado
+    inicio = Date.now();
     const confrontoFinalizado = await this.verificarConfrontoFinalizado(
-      confrontoAtualizado!,
+      confrontoAtualizado,
+      partidasAtualizadas
+    );
+    tempos["9_verificarFinalizado"] = Date.now() - inicio;
+
+    // ✅ OTIMIZAÇÃO v3: Se confronto finalizado, buscar versão final; caso contrário usar local
+    let confrontoFinal = confrontoAtualizado;
+    if (confrontoFinalizado) {
+      inicio = Date.now();
+      await this.finalizarConfronto(confrontoAtualizado);
+      // Só busca se finalizou (para pegar vencedorId etc)
+      confrontoFinal = (await this.confrontoRepository.buscarPorId(confronto.id))!;
+      tempos["10_finalizarConfronto"] = Date.now() - inicio;
+    }
+
+    tempos["TOTAL"] = Date.now() - inicioTotal;
+
+    logger.info("⏱️ TEMPOS registrarResultadoPartida Teams v3", {
+      partidaId,
+      confrontoId: confronto.id,
+      confrontoFinalizado,
+      tempos,
+    });
+
+    return {
+      partida: partidaAtualizada,
+      confronto: confrontoFinal,
+      precisaDecider,
+      confrontoFinalizado,
+    };
+  }
+
+  /**
+   * ✅ OTIMIZAÇÃO v5: Registrar múltiplos resultados em lote
+   * Agrupa por confronto para otimizar buscas e operações
+   */
+  async registrarResultadosEmLote(
+    etapaId: string,
+    arenaId: string,
+    resultados: Array<{ partidaId: string; placar: SetPlacarTeams[] }>
+  ): Promise<{
+    processados: number;
+    erros: Array<{ partidaId: string; erro: string }>;
+    confrontosFinalizados: string[];
+  }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
+    if (resultados.length === 0) {
+      return { processados: 0, erros: [], confrontosFinalizados: [] };
+    }
+
+    const erros: Array<{ partidaId: string; erro: string }> = [];
+    const confrontosFinalizados: string[] = [];
+    let processados = 0;
+
+    // 1. Buscar todas as partidas de uma vez
+    inicio = Date.now();
+    const partidaIds = resultados.map((r) => r.partidaId);
+    const partidas = await Promise.all(
+      partidaIds.map((id) => this.partidaRepository.buscarPorId(id))
+    );
+    tempos["1_buscarPartidas"] = Date.now() - inicio;
+
+    // Mapear partidas por ID
+    const partidasMap = new Map<string, PartidaTeams>();
+    for (let i = 0; i < partidaIds.length; i++) {
+      if (partidas[i]) {
+        partidasMap.set(partidaIds[i], partidas[i]!);
+      }
+    }
+
+    // 2. Agrupar resultados por confronto
+    const resultadosPorConfronto = new Map<
+      string,
+      Array<{ partida: PartidaTeams; placar: SetPlacarTeams[] }>
+    >();
+
+    for (const resultado of resultados) {
+      const partida = partidasMap.get(resultado.partidaId);
+      if (!partida) {
+        erros.push({
+          partidaId: resultado.partidaId,
+          erro: "Partida não encontrada",
+        });
+        continue;
+      }
+
+      const confrontoId = partida.confrontoId;
+      if (!resultadosPorConfronto.has(confrontoId)) {
+        resultadosPorConfronto.set(confrontoId, []);
+      }
+      resultadosPorConfronto.get(confrontoId)!.push({
+        partida,
+        placar: resultado.placar,
+      });
+    }
+
+    // 3. Buscar todos os confrontos únicos
+    inicio = Date.now();
+    const confrontoIds = Array.from(resultadosPorConfronto.keys());
+    const confrontos = await Promise.all(
+      confrontoIds.map((id) => this.confrontoRepository.buscarPorId(id))
+    );
+    tempos["2_buscarConfrontos"] = Date.now() - inicio;
+
+    const confrontosMap = new Map<string, ConfrontoEquipe>();
+    for (let i = 0; i < confrontoIds.length; i++) {
+      if (confrontos[i]) {
+        confrontosMap.set(confrontoIds[i], confrontos[i]!);
+      }
+    }
+
+    // 4. Processar cada confronto
+    inicio = Date.now();
+    for (const [confrontoId, partidasDoConfronto] of resultadosPorConfronto) {
+      const confronto = confrontosMap.get(confrontoId);
+      if (!confronto) {
+        for (const { partida } of partidasDoConfronto) {
+          erros.push({
+            partidaId: partida.id,
+            erro: "Confronto não encontrado",
+          });
+        }
+        continue;
+      }
+
+      try {
+        // Processar todas as partidas deste confronto
+        const resultado = await this.processarResultadosConfronto(
+          confronto,
+          partidasDoConfronto
+        );
+
+        processados += partidasDoConfronto.length;
+
+        if (resultado.confrontoFinalizado) {
+          confrontosFinalizados.push(confrontoId);
+        }
+      } catch (error: any) {
+        for (const { partida } of partidasDoConfronto) {
+          erros.push({
+            partidaId: partida.id,
+            erro: error.message || "Erro ao processar resultado",
+          });
+        }
+      }
+    }
+    tempos["3_processarConfrontos"] = Date.now() - inicio;
+
+    // 5. Recalcular classificação uma única vez se houve mudanças
+    if (processados > 0) {
+      inicio = Date.now();
+      await this.recalcularClassificacao(etapaId, arenaId);
+      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
+    }
+
+    tempos["TOTAL"] = Date.now() - inicioTotal;
+
+    logger.info("⏱️ TEMPOS registrarResultadosEmLote Teams v5", {
+      totalResultados: resultados.length,
+      processados,
+      erros: erros.length,
+      confrontosProcessados: resultadosPorConfronto.size,
+      confrontosFinalizados: confrontosFinalizados.length,
+      tempos,
+    });
+
+    return { processados, erros, confrontosFinalizados };
+  }
+
+  /**
+   * Processa resultados de múltiplas partidas de um mesmo confronto
+   */
+  private async processarResultadosConfronto(
+    confronto: ConfrontoEquipe,
+    partidasComPlacar: Array<{ partida: PartidaTeams; placar: SetPlacarTeams[] }>
+  ): Promise<{ confrontoFinalizado: boolean }> {
+    // Coletar todas as atualizações de estatísticas de jogadores
+    const atualizacoesJogadores: Array<{
+      estatisticaId: string;
+      dto: {
+        venceu: boolean;
+        setsVencidos: number;
+        setsPerdidos: number;
+        gamesVencidos: number;
+        gamesPerdidos: number;
+      };
+    }> = [];
+
+    // Coletar incrementos de equipes
+    const incrementosEquipes = new Map<
+      string,
+      { jogosVencidos: number; jogosPerdidos: number; gamesVencidos: number; gamesPerdidos: number }
+    >();
+
+    // Usar IDs das equipes do confronto
+    const equipe1Id = confronto.equipe1Id;
+    const equipe2Id = confronto.equipe2Id;
+
+    // Inicializar incrementos
+    incrementosEquipes.set(equipe1Id, {
+      jogosVencidos: 0,
+      jogosPerdidos: 0,
+      gamesVencidos: 0,
+      gamesPerdidos: 0,
+    });
+    incrementosEquipes.set(equipe2Id, {
+      jogosVencidos: 0,
+      jogosPerdidos: 0,
+      gamesVencidos: 0,
+      gamesPerdidos: 0,
+    });
+
+    // Buscar estatísticas de todos os jogadores envolvidos
+    const todosJogadorIds = new Set<string>();
+    for (const { partida } of partidasComPlacar) {
+      partida.dupla1.forEach((j) => todosJogadorIds.add(j.id));
+      partida.dupla2.forEach((j) => todosJogadorIds.add(j.id));
+    }
+
+    const estatisticasMap = await this.estatisticasService.buscarPorJogadoresEtapa(
+      Array.from(todosJogadorIds),
+      confronto.etapaId
+    );
+
+    // Processar cada partida
+    for (const { partida, placar } of partidasComPlacar) {
+      // Calcular resultado
+      const { setsDupla1, setsDupla2, vencedoraEquipeId, vencedoraEquipeNome } =
+        this.calcularResultadoPartida(placar, partida, confronto);
+
+      // Registrar resultado da partida
+      await this.partidaRepository.registrarResultado(
+        partida.id,
+        placar,
+        setsDupla1,
+        setsDupla2,
+        vencedoraEquipeId,
+        vencedoraEquipeNome
+      );
+
+      // Calcular games
+      let gamesVencidosDupla1 = 0;
+      let gamesPerdidosDupla1 = 0;
+      let gamesVencidosDupla2 = 0;
+      let gamesPerdidosDupla2 = 0;
+
+      for (const set of placar) {
+        gamesVencidosDupla1 += set.gamesDupla1;
+        gamesPerdidosDupla1 += set.gamesDupla2;
+        gamesVencidosDupla2 += set.gamesDupla2;
+        gamesPerdidosDupla2 += set.gamesDupla1;
+      }
+
+      const dupla1Venceu = vencedoraEquipeId === equipe1Id;
+      const setsVencidosDupla1 = placar.filter(
+        (s) => s.gamesDupla1 > s.gamesDupla2
+      ).length;
+      const setsPerdidosDupla1 = placar.filter(
+        (s) => s.gamesDupla2 > s.gamesDupla1
+      ).length;
+
+      // Coletar atualizações de estatísticas de jogadores
+      for (const jogador of partida.dupla1) {
+        const estatistica = estatisticasMap.get(jogador.id);
+        if (estatistica) {
+          atualizacoesJogadores.push({
+            estatisticaId: estatistica.id,
+            dto: {
+              venceu: dupla1Venceu,
+              setsVencidos: setsVencidosDupla1,
+              setsPerdidos: setsPerdidosDupla1,
+              gamesVencidos: gamesVencidosDupla1,
+              gamesPerdidos: gamesPerdidosDupla1,
+            },
+          });
+        }
+      }
+
+      for (const jogador of partida.dupla2) {
+        const estatistica = estatisticasMap.get(jogador.id);
+        if (estatistica) {
+          atualizacoesJogadores.push({
+            estatisticaId: estatistica.id,
+            dto: {
+              venceu: !dupla1Venceu,
+              setsVencidos: setsPerdidosDupla1,
+              setsPerdidos: setsVencidosDupla1,
+              gamesVencidos: gamesVencidosDupla2,
+              gamesPerdidos: gamesPerdidosDupla2,
+            },
+          });
+        }
+      }
+
+      // Acumular incrementos das equipes
+      const inc1 = incrementosEquipes.get(equipe1Id)!;
+      inc1.jogosVencidos += dupla1Venceu ? 1 : 0;
+      inc1.jogosPerdidos += dupla1Venceu ? 0 : 1;
+      inc1.gamesVencidos += gamesVencidosDupla1;
+      inc1.gamesPerdidos += gamesPerdidosDupla1;
+
+      const inc2 = incrementosEquipes.get(equipe2Id)!;
+      inc2.jogosVencidos += dupla1Venceu ? 0 : 1;
+      inc2.jogosPerdidos += dupla1Venceu ? 1 : 0;
+      inc2.gamesVencidos += gamesVencidosDupla2;
+      inc2.gamesPerdidos += gamesPerdidosDupla2;
+    }
+
+    // Aplicar todas as atualizações em batch
+    await Promise.all([
+      // Atualizar estatísticas de jogadores
+      this.estatisticasService.atualizarAposPartidaComIncrement(
+        atualizacoesJogadores
+      ),
+      // Atualizar estatísticas das equipes
+      this.equipeRepository.incrementarEstatisticasEmLote([
+        { id: equipe1Id, incrementos: incrementosEquipes.get(equipe1Id)! },
+        { id: equipe2Id, incrementos: incrementosEquipes.get(equipe2Id)! },
+      ]),
+    ]);
+
+    // Buscar partidas atualizadas do confronto para verificar finalização
+    const partidasConfronto =
+      await this.partidaRepository.buscarPorConfrontoOrdenadas(confronto.id);
+
+    // Calcular contadores do confronto
+    const jogosEquipe1 = partidasConfronto.filter(
+      (p) =>
+        p.status === StatusPartida.FINALIZADA &&
+        p.vencedoraEquipeId === equipe1Id
+    ).length;
+
+    const jogosEquipe2 = partidasConfronto.filter(
+      (p) =>
+        p.status === StatusPartida.FINALIZADA &&
+        p.vencedoraEquipeId === equipe2Id
+    ).length;
+
+    const partidasFinalizadas = partidasConfronto.filter(
+      (p) => p.status === StatusPartida.FINALIZADA
+    ).length;
+
+    // Atualizar confronto
+    await this.confrontoRepository.atualizar(confronto.id, {
+      jogosEquipe1,
+      jogosEquipe2,
+      partidasFinalizadas,
+      totalPartidas: partidasConfronto.length,
+    });
+
+    // Construir confronto atualizado
+    const confrontoAtualizado: ConfrontoEquipe = {
+      ...confronto,
+      jogosEquipe1,
+      jogosEquipe2,
+      partidasFinalizadas,
+      totalPartidas: partidasConfronto.length,
+    };
+
+    // Verificar se confronto finalizou
+    const confrontoFinalizado = await this.verificarConfrontoFinalizado(
+      confrontoAtualizado,
       partidasConfronto
     );
 
     if (confrontoFinalizado) {
-      await this.finalizarConfronto(confrontoAtualizado!);
+      await this.finalizarConfronto(confrontoAtualizado);
     }
 
-    return {
-      partida: partidaAtualizada!,
-      confronto: (await this.confrontoRepository.buscarPorId(confronto.id))!,
-      precisaDecider,
-      confrontoFinalizado,
-    };
+    return { confrontoFinalizado };
   }
 
   /**
@@ -2826,15 +3454,19 @@ export class TeamsService {
       return a.nome.localeCompare(b.nome);
     });
 
-    // Atualizar posições
-    for (let i = 0; i < equipesOrdenadas.length; i++) {
-      await this.equipeRepository.atualizarPosicao(
-        equipesOrdenadas[i].id,
-        i + 1
-      );
-    }
+    // ✅ OTIMIZAÇÃO: Atualizar todas as posições em um único batch
+    const atualizacoes = equipesOrdenadas.map((equipe, index) => ({
+      id: equipe.id,
+      posicao: index + 1,
+    }));
+    await this.equipeRepository.atualizarPosicoesEmLote(atualizacoes);
 
-    return this.equipeRepository.buscarPorEtapaOrdenadas(etapaId, arenaId);
+    // ✅ OTIMIZAÇÃO v4: Retornar equipes com posições atualizadas localmente
+    // em vez de buscar novamente do banco
+    return equipesOrdenadas.map((equipe, index) => ({
+      ...equipe,
+      posicao: index + 1,
+    }));
   }
 
   // ==================== BUSCAR ====================
@@ -3202,7 +3834,8 @@ export class TeamsService {
 
   private calcularResultadoPartida(
     placar: SetPlacarTeams[],
-    partida: PartidaTeams
+    partida: PartidaTeams,
+    confronto: ConfrontoEquipe
   ): {
     setsDupla1: number;
     setsDupla2: number;
@@ -3220,19 +3853,34 @@ export class TeamsService {
       }
     }
 
-    const vencedoraEquipeId =
-      setsDupla1 > setsDupla2 ? partida.equipe1Id! : partida.equipe2Id!;
-    const vencedoraEquipeNome =
-      setsDupla1 > setsDupla2 ? partida.equipe1Nome! : partida.equipe2Nome!;
+    // Usar IDs da partida, ou fallback para confronto (compatibilidade com partidas antigas)
+    const equipe1Id = partida.equipe1Id || confronto.equipe1Id;
+    const equipe2Id = partida.equipe2Id || confronto.equipe2Id;
+    const equipe1Nome = partida.equipe1Nome || confronto.equipe1Nome;
+    const equipe2Nome = partida.equipe2Nome || confronto.equipe2Nome;
+
+    const vencedoraEquipeId = setsDupla1 > setsDupla2 ? equipe1Id! : equipe2Id!;
+    const vencedoraEquipeNome = setsDupla1 > setsDupla2 ? equipe1Nome! : equipe2Nome!;
 
     return { setsDupla1, setsDupla2, vencedoraEquipeId, vencedoraEquipeNome };
   }
 
+  /**
+   * ✅ OTIMIZAÇÃO v2: Atualiza estatísticas de jogadores e equipes em batch
+   * - Busca todas as estatísticas de jogadores em uma única query
+   * - Atualiza jogadores e equipes em batch único
+   * - Reduz de ~2.4s para ~500ms
+   */
   private async atualizarEstatisticasJogadores(
     partida: PartidaTeams,
     placar: SetPlacarTeams[],
-    vencedoraEquipeId: string
+    vencedoraEquipeId: string,
+    confronto: ConfrontoEquipe
   ): Promise<void> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
     // Calcular totais
     let gamesVencidosDupla1 = 0;
     let gamesPerdidosDupla1 = 0;
@@ -3246,77 +3894,127 @@ export class TeamsService {
       gamesPerdidosDupla2 += set.gamesDupla1;
     }
 
-    const dupla1Venceu = vencedoraEquipeId === partida.equipe1Id;
+    // Usar IDs da partida, ou fallback para confronto (compatibilidade com partidas antigas)
+    const equipe1Id = partida.equipe1Id || confronto.equipe1Id;
+    const equipe2Id = partida.equipe2Id || confronto.equipe2Id;
 
-    // Atualizar jogadores da dupla 1
+    const dupla1Venceu = vencedoraEquipeId === equipe1Id;
+    const setsVencidosDupla1 = placar.filter((s) => s.gamesDupla1 > s.gamesDupla2).length;
+    const setsPerdidosDupla1 = placar.filter((s) => s.gamesDupla2 > s.gamesDupla1).length;
+
+    // ✅ 1. Buscar todas as estatísticas de jogadores em uma única query
+    inicio = Date.now();
+    const todosJogadorIds = [
+      ...partida.dupla1.map((j) => j.id),
+      ...partida.dupla2.map((j) => j.id),
+    ];
+    const estatisticasMap = await this.estatisticasService.buscarPorJogadoresEtapa(
+      todosJogadorIds,
+      partida.etapaId
+    );
+    tempos["1_buscarEstatisticas"] = Date.now() - inicio;
+
+    // ✅ 2. Preparar atualizações de jogadores e atualizar em batch
+    inicio = Date.now();
+    const atualizacoesJogadores: Array<{
+      estatisticaId: string;
+      dto: { venceu: boolean; setsVencidos: number; setsPerdidos: number; gamesVencidos: number; gamesPerdidos: number };
+    }> = [];
+
+    // Jogadores da dupla 1
     for (const jogador of partida.dupla1) {
-      await this.estatisticasService.atualizarAposPartida(
-        jogador.id,
-        partida.etapaId,
-        {
-          venceu: dupla1Venceu,
-          setsVencidos: placar.filter((s) => s.gamesDupla1 > s.gamesDupla2)
-            .length,
-          setsPerdidos: placar.filter((s) => s.gamesDupla2 > s.gamesDupla1)
-            .length,
+      const estatistica = estatisticasMap.get(jogador.id);
+      if (estatistica) {
+        atualizacoesJogadores.push({
+          estatisticaId: estatistica.id,
+          dto: {
+            venceu: dupla1Venceu,
+            setsVencidos: setsVencidosDupla1,
+            setsPerdidos: setsPerdidosDupla1,
+            gamesVencidos: gamesVencidosDupla1,
+            gamesPerdidos: gamesPerdidosDupla1,
+          },
+        });
+      }
+    }
+
+    // Jogadores da dupla 2
+    for (const jogador of partida.dupla2) {
+      const estatistica = estatisticasMap.get(jogador.id);
+      if (estatistica) {
+        atualizacoesJogadores.push({
+          estatisticaId: estatistica.id,
+          dto: {
+            venceu: !dupla1Venceu,
+            setsVencidos: setsPerdidosDupla1, // Invertido para dupla 2
+            setsPerdidos: setsVencidosDupla1, // Invertido para dupla 2
+            gamesVencidos: gamesVencidosDupla2,
+            gamesPerdidos: gamesPerdidosDupla2,
+          },
+        });
+      }
+    }
+
+    // Atualizar todos os jogadores em um único batch com increment
+    if (atualizacoesJogadores.length > 0) {
+      await this.estatisticasService.atualizarAposPartidaComIncrement(atualizacoesJogadores);
+    }
+    tempos["2_atualizarJogadores"] = Date.now() - inicio;
+
+    // ✅ 3. Atualizar estatísticas das equipes em batch
+    // Só atualizar se ambos os IDs existem
+    if (!equipe1Id || !equipe2Id) {
+      logger.warn("Partida e confronto sem equipe1Id ou equipe2Id, pulando atualização de estatísticas de equipes", {
+        partidaId: partida.id,
+        equipe1Id,
+        equipe2Id,
+      });
+      tempos["3_incrementarEquipes"] = 0;
+      tempos["4_buscarEquipes"] = 0;
+      tempos["5_atualizarSaldos"] = 0;
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+      logger.info("⏱️ TEMPOS atualizarEstatisticasJogadores Teams v3", {
+        partidaId: partida.id,
+        jogadoresDupla1: partida.dupla1.length,
+        jogadoresDupla2: partida.dupla2.length,
+        tempos,
+      });
+      return;
+    }
+
+    // ✅ OTIMIZAÇÃO v3: Incrementar estatísticas E saldos em uma única operação
+    // Saldos são calculados automaticamente no repositório
+    inicio = Date.now();
+    await this.equipeRepository.incrementarEstatisticasEmLote([
+      {
+        id: equipe1Id,
+        incrementos: {
+          jogosVencidos: dupla1Venceu ? 1 : 0,
+          jogosPerdidos: dupla1Venceu ? 0 : 1,
           gamesVencidos: gamesVencidosDupla1,
           gamesPerdidos: gamesPerdidosDupla1,
-        }
-      );
-    }
-
-    // Atualizar jogadores da dupla 2
-    for (const jogador of partida.dupla2) {
-      await this.estatisticasService.atualizarAposPartida(
-        jogador.id,
-        partida.etapaId,
-        {
-          venceu: !dupla1Venceu,
-          setsVencidos: placar.filter((s) => s.gamesDupla2 > s.gamesDupla1)
-            .length,
-          setsPerdidos: placar.filter((s) => s.gamesDupla1 > s.gamesDupla2)
-            .length,
+        },
+      },
+      {
+        id: equipe2Id,
+        incrementos: {
+          jogosVencidos: dupla1Venceu ? 0 : 1,
+          jogosPerdidos: dupla1Venceu ? 1 : 0,
           gamesVencidos: gamesVencidosDupla2,
           gamesPerdidos: gamesPerdidosDupla2,
-        }
-      );
-    }
+        },
+      },
+    ]);
+    tempos["3_incrementarEquipes"] = Date.now() - inicio;
 
-    // Atualizar estatísticas das equipes
-    const equipe1Id = partida.equipe1Id!;
-    const equipe2Id = partida.equipe2Id!;
+    tempos["TOTAL"] = Date.now() - inicioTotal;
 
-    await this.equipeRepository.incrementarEstatisticas(equipe1Id, {
-      jogosVencidos: dupla1Venceu ? 1 : 0,
-      jogosPerdidos: dupla1Venceu ? 0 : 1,
-      gamesVencidos: gamesVencidosDupla1,
-      gamesPerdidos: gamesPerdidosDupla1,
+    logger.info("⏱️ TEMPOS atualizarEstatisticasJogadores Teams v3", {
+      partidaId: partida.id,
+      jogadoresDupla1: partida.dupla1.length,
+      jogadoresDupla2: partida.dupla2.length,
+      tempos,
     });
-
-    await this.equipeRepository.incrementarEstatisticas(equipe2Id, {
-      jogosVencidos: dupla1Venceu ? 0 : 1,
-      jogosPerdidos: dupla1Venceu ? 1 : 0,
-      gamesVencidos: gamesVencidosDupla2,
-      gamesPerdidos: gamesPerdidosDupla2,
-    });
-
-    // Recalcular saldos
-    const equipe1 = await this.equipeRepository.buscarPorId(equipe1Id);
-    const equipe2 = await this.equipeRepository.buscarPorId(equipe2Id);
-
-    if (equipe1) {
-      await this.equipeRepository.atualizar(equipe1Id, {
-        saldoJogos: equipe1.jogosVencidos - equipe1.jogosPerdidos,
-        saldoGames: equipe1.gamesVencidos - equipe1.gamesPerdidos,
-      });
-    }
-
-    if (equipe2) {
-      await this.equipeRepository.atualizar(equipe2Id, {
-        saldoJogos: equipe2.jogosVencidos - equipe2.jogosPerdidos,
-        saldoGames: equipe2.gamesVencidos - equipe2.gamesPerdidos,
-      });
-    }
   }
 
   private async reverterEstatisticasPartida(
@@ -3389,6 +4087,10 @@ export class TeamsService {
   }
 
   private async finalizarConfronto(confronto: ConfrontoEquipe): Promise<void> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
     const vencedoraId =
       confronto.jogosEquipe1 > confronto.jogosEquipe2
         ? confronto.equipe1Id
@@ -3402,43 +4104,83 @@ export class TeamsService {
         ? confronto.equipe2Id
         : confronto.equipe1Id;
 
-    await this.confrontoRepository.registrarResultado(
-      confronto.id,
-      confronto.jogosEquipe1,
-      confronto.jogosEquipe2,
-      vencedoraId,
-      vencedoraNome
-    );
-
     // Atualizar estatísticas de confrontos das equipes (apenas para fase de grupos)
     if (confronto.fase === FaseEtapa.GRUPOS) {
-      await this.equipeRepository.incrementarEstatisticas(vencedoraId, {
-        confrontos: 1,
-        vitorias: 1,
-        pontos: 3,
-      });
-
-      await this.equipeRepository.incrementarEstatisticas(perdedoraId, {
-        confrontos: 1,
-        derrotas: 1,
-      });
+      // ✅ OTIMIZAÇÃO v4: Paralelizar registrarResultado + incrementarEquipes
+      inicio = Date.now();
+      await Promise.all([
+        this.confrontoRepository.registrarResultado(
+          confronto.id,
+          confronto.jogosEquipe1,
+          confronto.jogosEquipe2,
+          vencedoraId,
+          vencedoraNome
+        ),
+        this.equipeRepository.incrementarEstatisticasEmLote([
+          {
+            id: vencedoraId,
+            incrementos: { confrontos: 1, vitorias: 1, pontos: 3 },
+          },
+          {
+            id: perdedoraId,
+            incrementos: { confrontos: 1, derrotas: 1 },
+          },
+        ]),
+      ]);
+      tempos["1_registrarEIncrementar"] = Date.now() - inicio;
 
       // Recalcular classificação
+      inicio = Date.now();
       await this.recalcularClassificacao(confronto.etapaId, confronto.arenaId);
+      tempos["2_recalcularClassificacao"] = Date.now() - inicio;
 
       // Verificar se fase de grupos terminou para preencher semifinais
+      inicio = Date.now();
       await this.verificarEPreencherFaseEliminatoria(
         confronto.etapaId,
         confronto.arenaId
       );
+      tempos["3_verificarEliminatoria"] = Date.now() - inicio;
     } else if (confronto.fase === FaseEtapa.SEMIFINAL) {
+      // Para semifinal, registrar resultado primeiro
+      inicio = Date.now();
+      await this.confrontoRepository.registrarResultado(
+        confronto.id,
+        confronto.jogosEquipe1,
+        confronto.jogosEquipe2,
+        vencedoraId,
+        vencedoraNome
+      );
+      tempos["1_registrarResultado"] = Date.now() - inicio;
+
       // Se semifinal terminou, preencher a final
+      inicio = Date.now();
       await this.preencherProximoConfronto(
         confronto,
         vencedoraId,
         vencedoraNome
       );
+      tempos["2_preencherProximo"] = Date.now() - inicio;
+    } else {
+      // Para outras fases (FINAL, etc), apenas registrar resultado
+      inicio = Date.now();
+      await this.confrontoRepository.registrarResultado(
+        confronto.id,
+        confronto.jogosEquipe1,
+        confronto.jogosEquipe2,
+        vencedoraId,
+        vencedoraNome
+      );
+      tempos["1_registrarResultado"] = Date.now() - inicio;
     }
+
+    tempos["TOTAL"] = Date.now() - inicioTotal;
+
+    logger.info("⏱️ TEMPOS finalizarConfronto Teams v4", {
+      confrontoId: confronto.id,
+      fase: confronto.fase,
+      tempos,
+    });
   }
 
   /**

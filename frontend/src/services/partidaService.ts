@@ -3,7 +3,10 @@
  */
 
 import { apiClient } from "./apiClient";
-import { SetPartida } from "../types/chave";
+import {
+  ResultadoPartidaLoteDTO,
+  RegistrarResultadosEmLoteResponse,
+} from "../types/chave";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger";
 import { IPartidaService } from "./interfaces/IPartidaService";
@@ -12,24 +15,29 @@ class PartidaService implements IPartidaService {
   private baseURL = "/partidas";
 
   /**
-   * Registrar resultado de uma partida DUPLA FIXA
+   * Registrar múltiplos resultados de partidas em lote
    */
-  async registrarResultado(
-    partidaId: string,
-    placar: SetPartida[]
-  ): Promise<void> {
+  async registrarResultadosEmLote(
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse> {
     try {
-      await apiClient.put(`${this.baseURL}/${partidaId}/resultado`, { placar });
+      const response = await apiClient.post<RegistrarResultadosEmLoteResponse>(
+        `${this.baseURL}/resultados-lote`,
+        { resultados }
+      );
 
-      logger.info("Resultado Dupla Fixa registrado", {
-        partidaId,
-        totalSets: placar.length,
-        placar: placar
-          .map((s) => `${s.gamesDupla1}-${s.gamesDupla2}`)
-          .join(", "),
+      logger.info("Resultados Dupla Fixa registrados em lote", {
+        total: resultados.length,
+        processados: response.processados,
+        erros: response.erros?.length || 0,
       });
+
+      return response;
     } catch (error) {
-      const appError = handleError(error, "PartidaService.registrarResultado");
+      const appError = handleError(
+        error,
+        "PartidaService.registrarResultadosEmLote"
+      );
       throw new Error(appError.message);
     }
   }

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { PartidaReiDaPraia } from "@/types/reiDaPraia";
+import { PartidaReiDaPraia, ResultadoPartidaLoteSuperXDTO } from "@/types/reiDaPraia";
 import { getSuperXService } from "@/services";
 
 interface ModalLancamentoResultadosLoteSuperXProps {
@@ -612,26 +612,49 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
     try {
       setLoading(true);
 
-      // Salvar cada resultado individualmente
-      for (const resultado of resultadosPreenchidos) {
-        const partida = partidas.find((p) => p.id === resultado.partidaId);
-        if (!partida) continue;
-
-        await superXService.registrarResultado(partida.etapaId, partida.id, [
-          {
-            numero: 1,
-            gamesDupla1: resultado.gamesDupla1!,
-            gamesDupla2: resultado.gamesDupla2!,
-          },
-        ]);
+      // Pegar etapaId da primeira partida
+      const primeiraPartida = partidas[0];
+      if (!primeiraPartida) {
+        alert("Nenhuma partida encontrada");
+        return;
       }
 
-      alert(
-        `${resultadosPreenchidos.length} resultado(s) ${
-          resultadosPreenchidos.length === 1 ? "salvo" : "salvos"
-        } com sucesso!`
+      // Montar array de resultados em lote
+      const resultadosLote: ResultadoPartidaLoteSuperXDTO[] = resultadosPreenchidos.map(
+        (resultado) => ({
+          partidaId: resultado.partidaId,
+          placar: [
+            {
+              numero: 1,
+              gamesDupla1: resultado.gamesDupla1!,
+              gamesDupla2: resultado.gamesDupla2!,
+            },
+          ],
+        })
       );
-      onSuccess();
+
+      // Enviar todos os resultados em uma única requisição
+      const response = await superXService.registrarResultadosEmLote(
+        primeiraPartida.etapaId,
+        resultadosLote
+      );
+
+      if (response.erros && response.erros.length > 0) {
+        if (response.processados > 0) {
+          alert(
+            `${response.processados} resultado(s) salvo(s) com sucesso, ${response.erros.length} erro(s).`
+          );
+        } else {
+          alert("Nenhum resultado foi salvo. Verifique os erros.");
+        }
+      } else {
+        alert(
+          `${response.processados} resultado(s) ${
+            response.processados === 1 ? "salvo" : "salvos"
+          } com sucesso!`
+        );
+        onSuccess();
+      }
     } catch (err: any) {
       alert(err.message || "Erro ao salvar resultados");
     } finally {

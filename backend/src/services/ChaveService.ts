@@ -22,8 +22,11 @@ import duplaService, { IDuplaService } from "./DuplaService";
 import grupoService, { IGrupoService } from "./GrupoService";
 import partidaGrupoService, {
   IPartidaGrupoService,
-  PlacarSet,
 } from "./PartidaGrupoService";
+import {
+  ResultadoPartidaLoteDTO,
+  RegistrarResultadosEmLoteResponse,
+} from "../models/Partida";
 import eliminatoriaService, {
   IEliminatoriaService,
 } from "./EliminatoriaService";
@@ -43,11 +46,10 @@ export interface IChaveService {
 
   excluirChaves(etapaId: string, arenaId: string): Promise<void>;
 
-  registrarResultadoPartida(
-    partidaId: string,
+  registrarResultadosEmLote(
     arenaId: string,
-    placar: PlacarSet[]
-  ): Promise<void>;
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse>;
 
   gerarFaseEliminatoria(
     etapaId: string,
@@ -101,28 +103,36 @@ export class ChaveService implements IChaveService {
     etapaId: string,
     arenaId: string
   ): Promise<{ duplas: Dupla[]; grupos: Grupo[]; partidas: Partida[] }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
     try {
       // 1. Validar etapa
+      let inicio = Date.now();
       const etapa = await etapaService.buscarPorId(etapaId, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
-
       this.validarEtapaParaGeracaoChaves(etapa);
+      tempos["1_buscarEtapa"] = Date.now() - inicio;
 
       // 2. Buscar inscrições
+      inicio = Date.now();
       const inscricoes = await etapaService.listarInscricoes(etapaId, arenaId);
+      tempos["2_buscarInscricoes"] = Date.now() - inicio;
 
       // 3. Formar duplas
+      inicio = Date.now();
       const duplas = await this.duplas.formarDuplasComCabecasDeChave(
         etapaId,
         etapa.nome,
         arenaId,
         inscricoes
       );
+      tempos["3_formarDuplas"] = Date.now() - inicio;
 
       // 4. Criar estatísticas dos jogadores
-      // ✅ OTIMIZAÇÃO: Usar batch operation para criar todas estatísticas de uma vez
+      inicio = Date.now();
       const estatisticasDTOs = duplas.flatMap((dupla) => [
         {
           etapaId,
@@ -146,42 +156,53 @@ export class ChaveService implements IChaveService {
         },
       ]);
       await estatisticasJogadorService.criarEmLote(estatisticasDTOs);
+      tempos["4_criarEstatisticas"] = Date.now() - inicio;
 
       // 5. Criar grupos
+      inicio = Date.now();
       const grupos = await this.grupos.criarGrupos(
         etapaId,
         arenaId,
         duplas,
         etapa.jogadoresPorGrupo
       );
+      tempos["5_criarGrupos"] = Date.now() - inicio;
 
       // 6. Gerar partidas
+      inicio = Date.now();
       const partidas = await this.partidasGrupo.gerarPartidas(
         etapaId,
         arenaId,
         grupos
       );
+      tempos["6_gerarPartidas"] = Date.now() - inicio;
 
       // 7. Atualizar status da etapa
+      inicio = Date.now();
       await db.collection("etapas").doc(etapaId).update({
         chavesGeradas: true,
         dataGeracaoChaves: Timestamp.now(),
         status: StatusEtapa.CHAVES_GERADAS,
         atualizadoEm: Timestamp.now(),
       });
+      tempos["7_atualizarEtapa"] = Date.now() - inicio;
 
-      logger.info("Chaves geradas", {
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      // Log detalhado de tempos
+      logger.info("⏱️ TEMPOS gerarChaves", {
         etapaId,
-        nome: etapa.nome,
-        arenaId,
-        totalDuplas: duplas.length,
-        totalGrupos: grupos.length,
-        totalPartidas: partidas.length,
+        inscritos: inscricoes.length,
+        duplas: duplas.length,
+        grupos: grupos.length,
+        partidas: partidas.length,
+        tempos,
       });
 
       return { duplas, grupos, partidas };
     } catch (error: any) {
-      logger.error("Erro ao gerar chaves", { etapaId, arenaId }, error);
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
+      logger.error("Erro ao gerar chaves", { etapaId, arenaId, tempos }, error);
       throw error;
     }
   }
@@ -269,14 +290,13 @@ export class ChaveService implements IChaveService {
   }
 
   /**
-   * Registrar resultado de partida da fase de grupos
+   * Registrar múltiplos resultados de partidas em lote
    */
-  async registrarResultadoPartida(
-    partidaId: string,
+  async registrarResultadosEmLote(
     arenaId: string,
-    placar: PlacarSet[]
-  ): Promise<void> {
-    await this.partidasGrupo.registrarResultado(partidaId, arenaId, placar);
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse> {
+    return this.partidasGrupo.registrarResultadosEmLote(arenaId, resultados);
   }
 
   /**

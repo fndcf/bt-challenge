@@ -13,43 +13,57 @@ class PartidaController extends BaseController {
   protected controllerName = "PartidaController";
 
   /**
-   * Registrar resultado de uma partida
-   * PUT /api/partidas/:id/resultado
+   * Registrar múltiplos resultados de partidas em lote
+   * POST /api/partidas/resultados-lote
    */
-  async registrarResultado(req: AuthRequest, res: Response): Promise<void> {
+  async registrarResultadosEmLote(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
     try {
       if (!this.checkAuth(req, res)) return;
 
       const { arenaId } = req.user;
-      const { id } = req.params;
-      const { placar } = req.body;
+      const { resultados } = req.body;
 
-      // Validação do placar
-      if (!placar || !Array.isArray(placar) || placar.length === 0) {
-        ResponseHelper.badRequest(res, "Placar inválido");
+      // Validação
+      if (!resultados || !Array.isArray(resultados) || resultados.length === 0) {
+        ResponseHelper.badRequest(res, "Lista de resultados inválida");
         return;
       }
 
-      await chaveService.registrarResultadoPartida(id, arenaId, placar);
+      // Validar cada resultado
+      for (const resultado of resultados) {
+        if (!resultado.partidaId) {
+          ResponseHelper.badRequest(res, "partidaId é obrigatório em cada resultado");
+          return;
+        }
+        if (!resultado.placar || !Array.isArray(resultado.placar) || resultado.placar.length === 0) {
+          ResponseHelper.badRequest(res, `Placar inválido para partida ${resultado.partidaId}`);
+          return;
+        }
+      }
 
-      logger.info("Resultado registrado", {
-        partidaId: id,
-        placar,
+      const response = await chaveService.registrarResultadosEmLote(
+        arenaId,
+        resultados
+      );
+
+      logger.info("Resultados em lote registrados (Dupla Fixa)", {
+        total: resultados.length,
+        processados: response.processados,
+        erros: response.erros.length,
         arenaId,
       });
 
-      ResponseHelper.success(res, null, "Resultado registrado com sucesso");
+      ResponseHelper.success(res, response, response.message);
     } catch (error: any) {
       if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
         return;
       }
 
-      logger.error(
-        "Erro ao registrar resultado",
-        { partidaId: req.params.id },
-        error
-      );
-      this.handleGenericError(res, error, "registrar resultado");
+      logger.error("Erro ao registrar resultados em lote", {}, error);
+      this.handleGenericError(res, error, "registrar resultados em lote");
     }
   }
 }

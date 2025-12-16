@@ -138,3 +138,31 @@ export interface RegistrarResultadoReiDaPraiaDTO {
     gamesDupla2: number;
   }>;
 }
+
+// ==================== DTOs para registro em lote ====================
+
+/**
+ * Placar de um set (Super X / Rei da Praia)
+ */
+export interface SetPlacarSuperX {
+  numero: number;
+  gamesDupla1: number;
+  gamesDupla2: number;
+}
+
+/**
+ * DTO para resultado de uma partida em lote (Super X / Rei da Praia)
+ */
+export interface ResultadoPartidaLoteSuperXDTO {
+  partidaId: string;
+  placar: SetPlacarSuperX[];
+}
+
+/**
+ * Resposta do registro de resultados em lote (Super X / Rei da Praia)
+ */
+export interface RegistrarResultadosEmLoteSuperXResponse {
+  message: string;
+  processados: number;
+  erros: Array<{ partidaId: string; erro: string }>;
+}

@@ -85,6 +85,15 @@ export interface IInscricaoRepository
   cancelar(id: string): Promise<void>;
 
   /**
+   * Buscar múltiplas inscrições por IDs em uma única query
+   */
+  buscarPorIds(
+    ids: string[],
+    etapaId: string,
+    arenaId: string
+  ): Promise<Inscricao[]>;
+
+  /**
    * Cancelar múltiplas inscrições em lote
    */
   cancelarEmLote(ids: string[]): Promise<void>;

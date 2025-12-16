@@ -316,7 +316,7 @@ export class SuperXService {
 
   /**
    * Registrar resultado de partida
-   * Reutiliza a mesma lógica do Rei da Praia
+   * ✅ SUPER OTIMIZAÇÃO v2: Máxima performance com mínimo de operações
    */
   async registrarResultadoPartida(
     partidaId: string,
@@ -324,8 +324,13 @@ export class SuperXService {
     placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
   ): Promise<void> {
     try {
+      // Validar placar (apenas 1 set no Super X)
+      if (placar.length !== 1) {
+        throw new Error("Placar inválido: deve ter apenas 1 set");
+      }
+
       // Buscar partida via repository
-      let partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
+      const partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
         partidaId,
         arenaId
       );
@@ -335,261 +340,360 @@ export class SuperXService {
       }
 
       const isEdicao = partida.status === StatusPartida.FINALIZADA;
+      const jogadorIds = [
+        partida.jogador1AId,
+        partida.jogador1BId,
+        partida.jogador2AId,
+        partida.jogador2BId,
+      ];
 
-      // Se for edição, reverter estatísticas anteriores
+      // ✅ OTIMIZAÇÃO: Buscar estatísticas UMA VEZ no início (reutilizada para reversão e atualização)
+      const estatisticasMap = await estatisticasJogadorService.buscarPorJogadoresEtapa(
+        jogadorIds,
+        partida.etapaId
+      );
+
+      // Se for edição, reverter estatísticas anteriores (sem re-buscar partida)
       if (isEdicao && partida.placar && partida.placar.length > 0) {
-        await this.reverterEstatisticasJogadores(partida);
-
-        partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
-          partidaId,
-          arenaId
-        );
-
-        if (!partida) {
-          throw new Error("Partida não encontrada após reversão");
-        }
-
-        logger.info("Estatísticas revertidas, partida re-buscada", {
-          partidaId,
-        });
-      }
-
-      // Validar placar (apenas 1 set no Super X)
-      if (placar.length !== 1) {
-        throw new Error("Placar inválido: deve ter apenas 1 set");
+        await this.reverterEstatisticasComMap(partida, estatisticasMap);
       }
 
       const set = placar[0];
       const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
       const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
       const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
-
-      // Atualizar partida via repository
-      await this.partidaReiDaPraiaRepository.atualizar(partidaId, {
-        placar,
-        setsDupla1,
-        setsDupla2,
-        vencedorDupla,
-        status: StatusPartida.FINALIZADA,
-      });
-
-      // ✅ OTIMIZAÇÃO: Atualizar estatísticas dos 4 jogadores em batch (1 commit ao invés de 4)
       const dupla1Venceu = vencedorDupla === 1;
 
-      await estatisticasJogadorService.atualizarAposPartidaGrupoEmLote([
-        // Jogadores da dupla 1
+      // ✅ OTIMIZAÇÃO: Executar atualização da partida e estatísticas em PARALELO
+      const atualizacoes = [
         {
-          jogadorId: partida.jogador1AId,
-          etapaId: partida.etapaId,
-          dto: {
-            venceu: dupla1Venceu,
-            setsVencidos: setsDupla1,
-            setsPerdidos: setsDupla2,
-            gamesVencidos: set.gamesDupla1,
-            gamesPerdidos: set.gamesDupla2,
-          },
+          estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
+          dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
         },
         {
-          jogadorId: partida.jogador1BId,
-          etapaId: partida.etapaId,
-          dto: {
-            venceu: dupla1Venceu,
-            setsVencidos: setsDupla1,
-            setsPerdidos: setsDupla2,
-            gamesVencidos: set.gamesDupla1,
-            gamesPerdidos: set.gamesDupla2,
-          },
-        },
-        // Jogadores da dupla 2
-        {
-          jogadorId: partida.jogador2AId,
-          etapaId: partida.etapaId,
-          dto: {
-            venceu: !dupla1Venceu,
-            setsVencidos: setsDupla2,
-            setsPerdidos: setsDupla1,
-            gamesVencidos: set.gamesDupla2,
-            gamesPerdidos: set.gamesDupla1,
-          },
+          estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
+          dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
         },
         {
-          jogadorId: partida.jogador2BId,
-          etapaId: partida.etapaId,
-          dto: {
-            venceu: !dupla1Venceu,
-            setsVencidos: setsDupla2,
-            setsPerdidos: setsDupla1,
-            gamesVencidos: set.gamesDupla2,
-            gamesPerdidos: set.gamesDupla1,
-          },
+          estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
+          dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
         },
+        {
+          estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
+          dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+        },
+      ].filter(a => a.estatisticaId);
+
+      // Executar em paralelo: atualizar partida + atualizar estatísticas
+      await Promise.all([
+        this.partidaReiDaPraiaRepository.atualizar(partidaId, {
+          placar,
+          setsDupla1,
+          setsDupla2,
+          vencedorDupla,
+          status: StatusPartida.FINALIZADA,
+        }),
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(atualizacoes),
       ]);
 
-      // Recalcular classificação do grupo
+      // Recalcular classificação e verificar grupo completo
       if (partida.grupoId) {
-        await this.recalcularClassificacao(partida.grupoId, partida.etapaId);
+        // ✅ OTIMIZAÇÃO: Buscar dados para classificação e verificação em PARALELO
+        const [jogadoresGrupo, partidasGrupo] = await Promise.all([
+          this.estatisticasJogadorRepository.buscarPorGrupo(partida.grupoId),
+          this.partidaReiDaPraiaRepository.buscarPorGrupo(partida.grupoId),
+        ]);
 
-        // Verificar se grupo está completo
-        await this.verificarGrupoCompleto(partida.grupoId);
+        // Ordenar e atualizar posições
+        const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
+          if (a.pontosGrupo !== b.pontosGrupo) return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+          if (a.saldoGamesGrupo !== b.saldoGamesGrupo) return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
+          if (a.saldoSetsGrupo !== b.saldoSetsGrupo) return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
+          if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
+          return 0;
+        });
+
+        const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
+          estatisticaId: j.id,
+          posicaoGrupo: i + 1,
+        }));
+
+        // Verificar se grupo está completo (contando a partida atual como finalizada)
+        const partidasFinalizadas = partidasGrupo.filter(
+          (p) => p.status === StatusPartida.FINALIZADA || p.id === partidaId
+        ).length;
+        const grupoCompleto = partidasFinalizadas === partidasGrupo.length && partidasGrupo.length > 0;
+
+        // ✅ OTIMIZAÇÃO: Atualizar posições e status do grupo em PARALELO
+        await Promise.all([
+          estatisticasJogadorService.atualizarPosicoesGrupoEmLote(atualizacoesPosicao),
+          this.grupoRepository.atualizar(partida.grupoId, {
+            completo: grupoCompleto,
+            partidasFinalizadas,
+          }),
+        ]);
       }
 
-      logger.info("Resultado Super X registrado", {
-        partidaId,
-        vencedorDupla,
-        placar,
-      });
+      logger.info("Resultado Super X registrado", { partidaId, vencedorDupla, placar });
     } catch (error: any) {
-      logger.error(
-        "Erro ao registrar resultado Super X",
-        {
-          partidaId,
-          arenaId,
-        },
-        error
-      );
+      logger.error("Erro ao registrar resultado Super X", { partidaId, arenaId }, error);
       throw error;
     }
   }
 
   /**
-   * Reverter estatísticas dos jogadores (para edição de resultado)
-   * ✅ OTIMIZAÇÃO: Reverte estatísticas dos 4 jogadores em batch (1 commit ao invés de 4)
+   * Reverter estatísticas usando Map já carregado (evita query adicional)
    */
-  private async reverterEstatisticasJogadores(
-    partida: PartidaReiDaPraia
+  private async reverterEstatisticasComMap(
+    partida: PartidaReiDaPraia,
+    estatisticasMap: Map<string, import("../models/EstatisticasJogador").EstatisticasJogador>
   ): Promise<void> {
     if (!partida.placar || partida.placar.length === 0) return;
 
     const set = partida.placar[0];
     const dupla1Venceu = partida.vencedorDupla === 1;
-
-    const gamesVencidosDupla1 = set.gamesDupla1;
-    const gamesPerdidosDupla1 = set.gamesDupla2;
-    const gamesVencidosDupla2 = set.gamesDupla2;
-    const gamesPerdidosDupla2 = set.gamesDupla1;
-
     const setsDupla1 = partida.setsDupla1 || 0;
     const setsDupla2 = partida.setsDupla2 || 0;
 
-    // ✅ OTIMIZAÇÃO: Reverter todos os 4 jogadores em batch
-    await estatisticasJogadorService.reverterAposPartidaEmLote([
-      // Jogadores da dupla 1
+    const reversoes = [
       {
-        jogadorId: partida.jogador1AId,
-        etapaId: partida.etapaId,
-        dto: {
-          venceu: dupla1Venceu,
-          setsVencidos: setsDupla1,
-          setsPerdidos: setsDupla2,
-          gamesVencidos: gamesVencidosDupla1,
-          gamesPerdidos: gamesPerdidosDupla1,
-        },
+        estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
+        dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
       },
       {
-        jogadorId: partida.jogador1BId,
-        etapaId: partida.etapaId,
-        dto: {
-          venceu: dupla1Venceu,
-          setsVencidos: setsDupla1,
-          setsPerdidos: setsDupla2,
-          gamesVencidos: gamesVencidosDupla1,
-          gamesPerdidos: gamesPerdidosDupla1,
-        },
-      },
-      // Jogadores da dupla 2
-      {
-        jogadorId: partida.jogador2AId,
-        etapaId: partida.etapaId,
-        dto: {
-          venceu: !dupla1Venceu,
-          setsVencidos: setsDupla2,
-          setsPerdidos: setsDupla1,
-          gamesVencidos: gamesVencidosDupla2,
-          gamesPerdidos: gamesPerdidosDupla2,
-        },
+        estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
+        dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
       },
       {
-        jogadorId: partida.jogador2BId,
-        etapaId: partida.etapaId,
-        dto: {
-          venceu: !dupla1Venceu,
-          setsVencidos: setsDupla2,
-          setsPerdidos: setsDupla1,
-          gamesVencidos: gamesVencidosDupla2,
-          gamesPerdidos: gamesPerdidosDupla2,
-        },
+        estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
+        dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
       },
-    ]);
+      {
+        estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
+        dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+      },
+    ].filter(r => r.estatisticaId);
+
+    await estatisticasJogadorService.reverterAposPartidaComIncrement(reversoes);
   }
 
   /**
-   * Recalcular classificação do grupo
-   * ✅ OTIMIZAÇÃO: Atualiza posições de todos os jogadores em batch (1 commit ao invés de 8-12)
+   * Registrar múltiplos resultados de partidas Super X em lote
    */
-  private async recalcularClassificacao(
-    grupoId: string,
-    _etapaId: string
-  ): Promise<void> {
-    const jogadores =
-      await this.estatisticasJogadorRepository.buscarPorGrupo(grupoId);
+  async registrarResultadosEmLote(
+    etapaId: string,
+    arenaId: string,
+    resultados: Array<{
+      partidaId: string;
+      placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[];
+    }>
+  ): Promise<{
+    message: string;
+    processados: number;
+    erros: Array<{ partidaId: string; erro: string }>;
+  }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
 
-    // Ordenar por critérios de desempate
-    const jogadoresOrdenados = [...jogadores].sort((a, b) => {
-      // 1. Pontos (vitórias × 3)
-      if (a.pontosGrupo !== b.pontosGrupo) {
-        return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+    const erros: Array<{ partidaId: string; erro: string }> = [];
+    let processados = 0;
+
+    try {
+      // 1. Buscar todas as partidas em paralelo
+      let inicio = Date.now();
+      const partidasPromises = resultados.map((r) =>
+        this.partidaReiDaPraiaRepository.buscarPorIdEArena(r.partidaId, arenaId)
+      );
+      const partidas = await Promise.all(partidasPromises);
+      tempos["1_buscarPartidas"] = Date.now() - inicio;
+
+      // 2. Coletar todos os jogadorIds únicos
+      inicio = Date.now();
+      const jogadorIdsSet = new Set<string>();
+      for (const partida of partidas) {
+        if (partida) {
+          jogadorIdsSet.add(partida.jogador1AId);
+          jogadorIdsSet.add(partida.jogador1BId);
+          jogadorIdsSet.add(partida.jogador2AId);
+          jogadorIdsSet.add(partida.jogador2BId);
+        }
+      }
+      const jogadorIds = Array.from(jogadorIdsSet);
+
+      // Buscar todas as estatísticas de uma vez
+      const estatisticasMap = await estatisticasJogadorService.buscarPorJogadoresEtapa(
+        jogadorIds,
+        etapaId
+      );
+      tempos["2_buscarEstatisticas"] = Date.now() - inicio;
+
+      // 3. Processar cada resultado - OTIMIZADO: paralelo
+      inicio = Date.now();
+      const gruposParaRecalcular = new Set<string>();
+
+      // 3.1 Validar e preparar dados
+      type ResultadoValido = {
+        resultado: typeof resultados[0];
+        partida: NonNullable<typeof partidas[0]>;
+        isEdicao: boolean;
+      };
+      const resultadosValidos: ResultadoValido[] = [];
+
+      for (let i = 0; i < resultados.length; i++) {
+        const resultado = resultados[i];
+        const partida = partidas[i];
+
+        if (!partida) {
+          erros.push({ partidaId: resultado.partidaId, erro: "Partida não encontrada" });
+          continue;
+        }
+
+        if (!resultado.placar || resultado.placar.length !== 1) {
+          erros.push({ partidaId: resultado.partidaId, erro: "Placar deve ter exatamente 1 set" });
+          continue;
+        }
+
+        const isEdicao = partida.status === StatusPartida.FINALIZADA;
+        resultadosValidos.push({ resultado, partida, isEdicao });
+
+        if (partida.grupoId) {
+          gruposParaRecalcular.add(partida.grupoId);
+        }
       }
 
-      // 2. Saldo de games
-      if (a.saldoGamesGrupo !== b.saldoGamesGrupo) {
-        return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
+      // 3.2 Reverter estatísticas de edições em paralelo
+      const reversoes = resultadosValidos
+        .filter(r => r.isEdicao && r.partida.placar && r.partida.placar.length > 0)
+        .map(r => this.reverterEstatisticasComMap(r.partida, estatisticasMap));
+
+      if (reversoes.length > 0) {
+        await Promise.all(reversoes);
       }
 
-      // 3. Saldo de sets
-      if (a.saldoSetsGrupo !== b.saldoSetsGrupo) {
-        return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
-      }
+      // 3.3 Aplicar novos resultados em paralelo
+      const aplicacoes = resultadosValidos.map(async ({ resultado, partida }) => {
+        try {
+          const set = resultado.placar[0];
+          const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
+          const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
+          const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
+          const dupla1Venceu = vencedorDupla === 1;
 
-      // 4. Games vencidos
-      if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
-        return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
-      }
+          const atualizacoes = [
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
+              dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+            },
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
+              dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+            },
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
+              dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+            },
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
+              dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+            },
+          ].filter(a => a.estatisticaId);
 
-      return 0;
-    });
+          await Promise.all([
+            this.partidaReiDaPraiaRepository.atualizar(resultado.partidaId, {
+              placar: resultado.placar,
+              setsDupla1,
+              setsDupla2,
+              vencedorDupla,
+              status: StatusPartida.FINALIZADA,
+            }),
+            estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(atualizacoes),
+          ]);
 
-    // ✅ OTIMIZAÇÃO: Atualizar posição de todos os jogadores em batch
-    const atualizacoesPosicao = jogadoresOrdenados.map((jogador, index) => ({
-      estatisticaId: jogador.id,
-      posicaoGrupo: index + 1,
-    }));
-
-    await estatisticasJogadorService.atualizarPosicoesGrupoEmLote(atualizacoesPosicao);
-  }
-
-  /**
-   * Verificar se o grupo está completo (todas as partidas finalizadas)
-   */
-  private async verificarGrupoCompleto(grupoId: string): Promise<void> {
-    const grupo = await this.grupoRepository.buscarPorId(grupoId);
-    if (!grupo) return;
-
-    const partidas =
-      await this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId);
-    const partidasFinalizadas = partidas.filter(
-      (p) => p.status === StatusPartida.FINALIZADA
-    );
-
-    if (partidasFinalizadas.length === partidas.length && partidas.length > 0) {
-      await this.grupoRepository.atualizar(grupoId, {
-        completo: true,
-        partidasFinalizadas: partidasFinalizadas.length,
+          return { success: true, partidaId: resultado.partidaId };
+        } catch (error: any) {
+          return { success: false, partidaId: resultado.partidaId, erro: error.message || "Erro desconhecido" };
+        }
       });
-    } else {
-      await this.grupoRepository.atualizar(grupoId, {
-        completo: false,
-        partidasFinalizadas: partidasFinalizadas.length,
+
+      const resultadosAplicacao = await Promise.all(aplicacoes);
+
+      for (const res of resultadosAplicacao) {
+        if (res.success) {
+          processados++;
+        } else {
+          erros.push({ partidaId: res.partidaId, erro: res.erro! });
+        }
+      }
+
+      tempos["3_processarResultados"] = Date.now() - inicio;
+
+      // 4. Recalcular classificação de todos os grupos afetados - OTIMIZADO: paralelo
+      inicio = Date.now();
+      const recalcPromises = Array.from(gruposParaRecalcular).map(async (grupoId) => {
+        try {
+          const [jogadoresGrupo, partidasGrupo] = await Promise.all([
+            this.estatisticasJogadorRepository.buscarPorGrupo(grupoId),
+            this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId),
+          ]);
+
+          const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
+            if (a.pontosGrupo !== b.pontosGrupo) return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+            if (a.saldoGamesGrupo !== b.saldoGamesGrupo) return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
+            if (a.saldoSetsGrupo !== b.saldoSetsGrupo) return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
+            if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
+            return 0;
+          });
+
+          const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
+            estatisticaId: j.id,
+            posicaoGrupo: i + 1,
+          }));
+
+          const partidasFinalizadas = partidasGrupo.filter(
+            (p) => p.status === StatusPartida.FINALIZADA
+          ).length;
+          const grupoCompleto = partidasFinalizadas === partidasGrupo.length && partidasGrupo.length > 0;
+
+          await Promise.all([
+            estatisticasJogadorService.atualizarPosicoesGrupoEmLote(atualizacoesPosicao),
+            this.grupoRepository.atualizar(grupoId, {
+              completo: grupoCompleto,
+              partidasFinalizadas,
+            }),
+          ]);
+        } catch (error: any) {
+          logger.error("Erro ao recalcular classificação do grupo Super X", { grupoId }, error);
+        }
       });
+      await Promise.all(recalcPromises);
+      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS registrarResultadosEmLote (Super X)", {
+        etapaId,
+        total: resultados.length,
+        processados,
+        erros: erros.length,
+        tempos,
+      });
+
+      return {
+        message:
+          erros.length === 0
+            ? `${processados} resultado(s) registrado(s) com sucesso`
+            : `${processados} resultado(s) registrado(s), ${erros.length} erro(s)`,
+        processados,
+        erros,
+      };
+    } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
+      logger.error(
+        "Erro ao registrar resultados em lote Super X",
+        { etapaId, total: resultados.length, tempos },
+        error
+      );
+      throw error;
     }
   }
 

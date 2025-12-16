@@ -99,6 +99,14 @@ export interface IDuplaRepository
   ): Promise<void>;
 
   /**
+   * Atualizar estatísticas usando FieldValue.increment (operações atômicas)
+   */
+  atualizarEstatisticasComIncrement(
+    id: string,
+    stats: AtualizarEstatisticasDuplaDTO
+  ): Promise<void>;
+
+  /**
    * Incrementar estatísticas após partida
    */
   registrarResultadoPartida(

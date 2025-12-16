@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { Partida, SetPartida } from "@/types/chave";
+import { Partida, SetPartida, ResultadoPartidaLoteDTO } from "@/types/chave";
 import { getPartidaService } from "@/services";
 
 interface ModalLancamentoResultadosLoteDuplaFixaProps {
@@ -543,23 +543,45 @@ export const ModalLancamentoResultadosLoteDuplaFixa: React.FC<
     try {
       setLoading(true);
 
-      // Salvar cada resultado individualmente
-      for (const resultado of resultadosPreenchidos) {
-        const partida = partidas.find((p) => p.id === resultado.partidaId);
-        if (!partida) continue;
+      // Montar array de resultados em lote
+      const resultadosLote: ResultadoPartidaLoteDTO[] = resultadosPreenchidos.map(
+        (resultado) => {
+          const set: SetPartida = {
+            numero: 1,
+            gamesDupla1: resultado.gamesDupla1!,
+            gamesDupla2: resultado.gamesDupla2!,
+            vencedorId: "",
+          };
 
-        const set: SetPartida = {
-          numero: 1,
-          gamesDupla1: resultado.gamesDupla1!,
-          gamesDupla2: resultado.gamesDupla2!,
-          vencedorId: "",
-        };
+          return {
+            partidaId: resultado.partidaId,
+            placar: [set],
+          };
+        }
+      );
 
-        await partidaService.registrarResultado(partida.id, [set]);
+      // Enviar todos os resultados em uma única requisição
+      const response = await partidaService.registrarResultadosEmLote(resultadosLote);
+
+      if (response.erros.length > 0) {
+        // Mostrar erros específicos
+        const novosErros = new Map<string, string>();
+        response.erros.forEach((item: { partidaId: string; erro: string }) => {
+          novosErros.set(item.partidaId, item.erro);
+        });
+        setErros(novosErros);
+
+        if (response.processados > 0) {
+          alert(
+            `${response.processados} resultado(s) salvo(s) com sucesso, ${response.erros.length} erro(s).`
+          );
+        } else {
+          setErroGlobal("Nenhum resultado foi salvo. Verifique os erros.");
+        }
+      } else {
+        alert(`${response.processados} resultado(s) salvo(s) com sucesso!`);
+        onSuccess();
       }
-
-      alert(`${resultadosPreenchidos.length} resultado(s) salvo(s) com sucesso!`);
-      onSuccess();
     } catch (err: any) {
       setErroGlobal(
         err.message || "Erro ao salvar resultados. Tente novamente."

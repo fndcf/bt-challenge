@@ -28,7 +28,7 @@ export const mockEtapaService = {
 export const mockPartidaService = {
   listar: jest.fn(),
   buscarPorId: jest.fn(),
-  registrarResultado: jest.fn(),
+  registrarResultadosEmLote: jest.fn(),
 };
 
 // Mock do chaveService

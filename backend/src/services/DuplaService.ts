@@ -8,7 +8,6 @@
 
 import { Inscricao } from "../models/Inscricao";
 import { Dupla } from "../models/Dupla";
-import { EstatisticasCombinacoes } from "../models/HistoricoDupla";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { duplaRepository } from "../repositories/firebase/DuplaRepository";
 import cabecaDeChaveService from "./CabecaDeChaveService";
@@ -53,14 +52,20 @@ export class DuplaService implements IDuplaService {
     arenaId: string,
     inscricoes: Inscricao[]
   ): Promise<Dupla[]> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
     try {
       // Obter IDs dos cabeças de chave
+      let inicio = Date.now();
       const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
         arenaId,
         etapaId
       );
+      tempos["1_obterCabecas"] = Date.now() - inicio;
 
       // Separar cabeças de chave dos jogadores normais
+      inicio = Date.now();
       const cabecas: Inscricao[] = [];
       const normais: Inscricao[] = [];
 
@@ -71,16 +76,20 @@ export class DuplaService implements IDuplaService {
           normais.push(inscricao);
         }
       }
+      tempos["2_separarCabecas"] = Date.now() - inicio;
 
       // Verificar estatísticas de combinações
+      inicio = Date.now();
       const stats = await historicoDuplaService.calcularEstatisticas(
         arenaId,
         etapaId
       );
+      tempos["3_calcularEstatisticas"] = Date.now() - inicio;
 
       let duplas: Dupla[];
 
       // Se todas combinações de cabeças já foram feitas, formar livremente
+      inicio = Date.now();
       if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
         duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
       } else {
@@ -89,42 +98,45 @@ export class DuplaService implements IDuplaService {
           etapaId,
           arenaId,
           cabecas,
-          normais,
-          stats
+          normais
         );
       }
+      tempos["4_formarDuplas"] = Date.now() - inicio;
 
       // Registrar histórico de duplas formadas
-      for (const dupla of duplas) {
-        const ambosForamCabecas =
-          cabecasIds.includes(dupla.jogador1Id) &&
-          cabecasIds.includes(dupla.jogador2Id);
-
-        await historicoDuplaService.registrar({
-          arenaId,
-          etapaId,
-          etapaNome,
-          jogador1Id: dupla.jogador1Id,
-          jogador1Nome: dupla.jogador1Nome,
-          jogador2Id: dupla.jogador2Id,
-          jogador2Nome: dupla.jogador2Nome,
-          ambosForamCabecas,
-        });
-      }
-
-      logger.info("Duplas formadas", {
-        etapaId,
+      // ✅ OTIMIZAÇÃO v2: Usar registrarEmLote ao invés de loop sequencial
+      inicio = Date.now();
+      const historicosDTOs = duplas.map((dupla) => ({
         arenaId,
-        totalDuplas: duplas.length,
-        cabecasDeChave: cabecas.length,
-        todasCombinacoesFeitas: stats.todasCombinacoesFeitas,
+        etapaId,
+        etapaNome,
+        jogador1Id: dupla.jogador1Id,
+        jogador1Nome: dupla.jogador1Nome,
+        jogador2Id: dupla.jogador2Id,
+        jogador2Nome: dupla.jogador2Nome,
+        ambosForamCabecas:
+          cabecasIds.includes(dupla.jogador1Id) &&
+          cabecasIds.includes(dupla.jogador2Id),
+      }));
+      await historicoDuplaService.registrarEmLote(historicosDTOs);
+      tempos["5_registrarHistorico"] = Date.now() - inicio;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS formarDuplasComCabecasDeChave", {
+        etapaId,
+        inscricoes: inscricoes.length,
+        duplas: duplas.length,
+        cabecas: cabecas.length,
+        tempos,
       });
 
       return duplas;
     } catch (error) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao formar duplas com cabeças",
-        { etapaId, arenaId },
+        { etapaId, arenaId, tempos },
         error as Error
       );
       throw error;
@@ -134,15 +146,14 @@ export class DuplaService implements IDuplaService {
   /**
    * Formar duplas protegendo cabeças de chave
    * Cabeças de chave são pareadas com jogadores normais
+   * ✅ OTIMIZAÇÃO v3: Usar criarEmLote ao invés de criar sequencialmente
    */
   private async formarDuplasProtegendoCabecas(
     etapaId: string,
     arenaId: string,
     cabecas: Inscricao[],
-    normais: Inscricao[],
-    _stats: EstatisticasCombinacoes
+    normais: Inscricao[]
   ): Promise<Dupla[]> {
-    const duplas: Dupla[] = [];
     const totalJogadores = cabecas.length + normais.length;
 
     // Validações
@@ -161,13 +172,14 @@ export class DuplaService implements IDuplaService {
     const cabecasEmbaralhadas = embaralhar([...cabecas]);
     const normaisEmbaralhados = embaralhar([...normais]);
 
+    // Preparar DTOs para criação em lote
+    const duplaDTOs: Array<Partial<Dupla>> = [];
+
     // Parear cabeças com normais
     for (let i = 0; i < cabecasEmbaralhadas.length; i++) {
       const cabeca = cabecasEmbaralhadas[i];
       const normal = normaisEmbaralhados[i];
-
-      const dupla = await this.criarDupla(etapaId, arenaId, cabeca, normal);
-      duplas.push(dupla);
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, cabeca, normal));
     }
 
     // Parear jogadores normais restantes entre si
@@ -179,58 +191,53 @@ export class DuplaService implements IDuplaService {
       if (i + 1 < normaisRestantes.length) {
         const jogador1 = normaisRestantes[i];
         const jogador2 = normaisRestantes[i + 1];
-
-        const dupla = await this.criarDupla(
-          etapaId,
-          arenaId,
-          jogador1,
-          jogador2
-        );
-        duplas.push(dupla);
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, jogador1, jogador2));
       }
     }
 
-    return duplas;
+    // ✅ Criar todas as duplas em uma única operação batch
+    return this.repository.criarEmLote(duplaDTOs);
   }
 
   /**
    * Formar duplas livremente (sem proteção de cabeças)
    * Usado quando todas combinações de cabeças já foram feitas
+   * ✅ OTIMIZAÇÃO v3: Usar criarEmLote ao invés de criar sequencialmente
    */
   private async formarDuplasLivre(
     etapaId: string,
     arenaId: string,
     inscricoes: Inscricao[]
   ): Promise<Dupla[]> {
-    const duplas: Dupla[] = [];
-
     if (inscricoes.length % 2 !== 0) {
       throw new Error("Número ímpar de jogadores");
     }
 
     const embaralhado = embaralhar([...inscricoes]);
 
+    // Preparar DTOs para criação em lote
+    const duplaDTOs: Array<Partial<Dupla>> = [];
+
     for (let i = 0; i < embaralhado.length; i += 2) {
       const jogador1 = embaralhado[i];
       const jogador2 = embaralhado[i + 1];
-
-      const dupla = await this.criarDupla(etapaId, arenaId, jogador1, jogador2);
-      duplas.push(dupla);
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, jogador1, jogador2));
     }
 
-    return duplas;
+    // ✅ Criar todas as duplas em uma única operação batch
+    return this.repository.criarEmLote(duplaDTOs);
   }
 
   /**
-   * Criar dupla no banco de dados
+   * Montar DTO para criação de dupla
    */
-  private async criarDupla(
+  private montarDuplaDTO(
     etapaId: string,
     arenaId: string,
     jogador1: Inscricao,
     jogador2: Inscricao
-  ): Promise<Dupla> {
-    return this.repository.criar({
+  ): Partial<Dupla> {
+    return {
       etapaId,
       arenaId,
       jogador1Id: jogador1.jogadorId,
@@ -241,7 +248,7 @@ export class DuplaService implements IDuplaService {
       jogador2Nome: jogador2.jogadorNome,
       jogador2Nivel: jogador2.jogadorNivel,
       jogador2Genero: jogador2.jogadorGenero,
-    });
+    };
   }
 
   /**

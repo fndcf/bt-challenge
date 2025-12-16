@@ -198,29 +198,6 @@ describe("ChaveService", () => {
     });
   });
 
-  describe("registrarResultadoPartida", () => {
-    it("deve delegar para partidaGrupoService", async () => {
-      mockPartidaGrupoService.registrarResultado.mockResolvedValue(undefined);
-
-      const placar = [
-        { numero: 1, gamesDupla1: 6, gamesDupla2: 4 },
-        { numero: 2, gamesDupla1: 6, gamesDupla2: 3 },
-      ];
-
-      await chaveService.registrarResultadoPartida(
-        TEST_IDS.partida1,
-        TEST_ARENA_ID,
-        placar
-      );
-
-      expect(mockPartidaGrupoService.registrarResultado).toHaveBeenCalledWith(
-        TEST_IDS.partida1,
-        TEST_ARENA_ID,
-        placar
-      );
-    });
-  });
-
   describe("gerarFaseEliminatoria", () => {
     it("deve delegar para eliminatoriaService", async () => {
       const confrontos = [createConfrontoFixture()];

@@ -2,7 +2,12 @@
  * Interface do serviço Super X
  */
 
-import { EstatisticasJogador, PartidaReiDaPraia } from "@/types/reiDaPraia";
+import {
+  EstatisticasJogador,
+  PartidaReiDaPraia,
+  ResultadoPartidaLoteSuperXDTO,
+  RegistrarResultadosEmLoteSuperXResponse,
+} from "@/types/reiDaPraia";
 import { Grupo } from "@/types/chave";
 
 /**
@@ -55,4 +60,12 @@ export interface ISuperXService {
       gamesDupla2: number;
     }>
   ): Promise<void>;
+
+  /**
+   * Registrar múltiplos resultados de partidas em lote
+   */
+  registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteSuperXDTO[]
+  ): Promise<RegistrarResultadosEmLoteSuperXResponse>;
 }

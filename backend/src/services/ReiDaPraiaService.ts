@@ -66,6 +66,7 @@ export class ReiDaPraiaService {
 
   /**
    * Gerar chaves no formato Rei da Praia
+   * ✅ OTIMIZAÇÃO v3: Adiciona logs de tempo para debug de performance
    */
   async gerarChaves(
     etapaId: string,
@@ -75,7 +76,12 @@ export class ReiDaPraiaService {
     grupos: Grupo[];
     partidas: PartidaReiDaPraia[];
   }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
     try {
+      // 1. Buscar e validar etapa
+      let inicio = Date.now();
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
@@ -103,41 +109,59 @@ export class ReiDaPraiaService {
           `Etapa configurada para ${etapa.maxJogadores} jogadores, mas possui ${etapa.totalInscritos}`
         );
       }
+      tempos["1_validarEtapa"] = Date.now() - inicio;
 
-      // Buscar inscrições via repository
+      // 2. Buscar inscrições via repository
+      inicio = Date.now();
       const inscricoes = await this.inscricaoRepository.buscarConfirmadas(
         etapaId,
         arenaId
       );
+      tempos["2_buscarInscricoes"] = Date.now() - inicio;
 
+      // 3. Distribuir jogadores em grupos
+      inicio = Date.now();
       const jogadores = await this.distribuirJogadoresEmGrupos(
         etapaId,
         arenaId,
         inscricoes
       );
+      tempos["3_distribuirJogadores"] = Date.now() - inicio;
 
+      // 4. Criar grupos
+      inicio = Date.now();
       const grupos = await this.criarGrupos(etapaId, arenaId, jogadores);
+      tempos["4_criarGrupos"] = Date.now() - inicio;
 
+      // 5. Gerar partidas
+      inicio = Date.now();
       const partidas = await this.gerarPartidas(etapaId, arenaId, grupos);
+      tempos["5_gerarPartidas"] = Date.now() - inicio;
 
-      // Marcar chaves como geradas
+      // 6. Marcar chaves como geradas
+      inicio = Date.now();
       await this.etapaRepository.marcarChavesGeradas(etapaId, true);
+      tempos["6_marcarChavesGeradas"] = Date.now() - inicio;
 
-      logger.info("Chaves Rei da Praia geradas", {
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS gerarChaves Rei da Praia", {
         etapaId,
-        arenaId,
-        totalJogadores: jogadores.length,
-        totalGrupos: grupos.length,
-        totalPartidas: partidas.length,
+        inscritos: inscricoes.length,
+        grupos: grupos.length,
+        partidas: partidas.length,
+        tempos,
       });
 
       return { jogadores, grupos, partidas };
     } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao gerar chaves rei da praia",
         {
           etapaId,
           arenaId,
+          tempos,
         },
         error
       );
@@ -258,6 +282,7 @@ export class ReiDaPraiaService {
 
   /**
    * Criar grupos via repository
+   * ✅ OTIMIZAÇÃO v3: Criar todos os grupos em batch
    */
   private async criarGrupos(
     etapaId: string,
@@ -265,7 +290,6 @@ export class ReiDaPraiaService {
     jogadores: EstatisticasJogador[]
   ): Promise<Grupo[]> {
     try {
-      const grupos: Grupo[] = [];
       const jogadoresPorGrupo = new Map<string, EstatisticasJogador[]>();
 
       // Agrupar jogadores por nome do grupo
@@ -276,17 +300,22 @@ export class ReiDaPraiaService {
         jogadoresPorGrupo.get(jogador.grupoNome!)!.push(jogador);
       }
 
-      // Criar documento de grupo para cada conjunto
-      let grupoIndex = 0;
-      const atualizacoesGrupo: Array<{
-        estatisticaId: string;
-        grupoId: string;
-        grupoNome: string;
+      // ✅ OTIMIZAÇÃO v3: Preparar DTOs e criar todos os grupos em batch
+      const grupoDTOs: Array<{
+        etapaId: string;
+        arenaId: string;
+        nome: string;
+        ordem: number;
+        duplas: string[];
+        totalDuplas: number;
       }> = [];
 
+      let grupoIndex = 0;
+      const grupoNomeToIndex = new Map<string, number>();
+
       for (const [nomeGrupo, jogadoresGrupo] of jogadoresPorGrupo) {
-        // Criar grupo via repository
-        const grupo = await this.grupoRepository.criar({
+        grupoNomeToIndex.set(nomeGrupo, grupoIndex);
+        grupoDTOs.push({
           etapaId,
           arenaId,
           nome: nomeGrupo,
@@ -294,10 +323,23 @@ export class ReiDaPraiaService {
           duplas: jogadoresGrupo.map((j) => j.id),
           totalDuplas: jogadoresGrupo.length,
         });
+        grupoIndex++;
+      }
 
-        grupos.push(grupo);
+      // Criar todos os grupos em um único batch
+      const grupos = await this.grupoRepository.criarEmLote(grupoDTOs);
 
-        // Preparar atualizações para batch usando o ID da estatística diretamente
+      // Preparar atualizações para estatísticas dos jogadores
+      const atualizacoesGrupo: Array<{
+        estatisticaId: string;
+        grupoId: string;
+        grupoNome: string;
+      }> = [];
+
+      for (const [nomeGrupo, jogadoresGrupo] of jogadoresPorGrupo) {
+        const idx = grupoNomeToIndex.get(nomeGrupo)!;
+        const grupo = grupos[idx];
+
         for (const jogador of jogadoresGrupo) {
           atualizacoesGrupo.push({
             estatisticaId: jogador.id,
@@ -305,8 +347,6 @@ export class ReiDaPraiaService {
             grupoNome: nomeGrupo,
           });
         }
-
-        grupoIndex++;
       }
 
       // ✅ OTIMIZAÇÃO: Atualizar grupos usando IDs diretamente (sem busca adicional)
@@ -330,6 +370,7 @@ export class ReiDaPraiaService {
 
   /**
    * Gerar partidas (todas as combinações)
+   * ✅ OTIMIZAÇÃO v3: Buscar jogadores em paralelo e criar todas partidas em um único batch
    */
   private async gerarPartidas(
     etapaId: string,
@@ -337,35 +378,58 @@ export class ReiDaPraiaService {
     grupos: Grupo[]
   ): Promise<PartidaReiDaPraia[]> {
     try {
-      const todasPartidas: PartidaReiDaPraia[] = [];
+      // 1. Buscar jogadores de todos os grupos em paralelo
+      const jogadoresPorGrupo = await Promise.all(
+        grupos.map((grupo) =>
+          this.estatisticasJogadorRepository.buscarPorGrupo(grupo.id)
+        )
+      );
 
-      for (const grupo of grupos) {
-        // Buscar jogadores via repository
-        const jogadores =
-          await this.estatisticasJogadorRepository.buscarPorGrupo(grupo.id);
+      // 2. Validar e gerar todos os DTOs de partidas
+      const todosPartidaDTOs: CriarPartidaReiDaPraiaDTO[] = [];
+      const partidasPorGrupo: Map<string, number> = new Map();
+
+      for (let g = 0; g < grupos.length; g++) {
+        const grupo = grupos[g];
+        const jogadores = jogadoresPorGrupo[g];
 
         if (jogadores.length !== 4) {
           throw new Error(`Grupo ${grupo.nome} deve ter 4 jogadores`);
         }
 
+        const startIndex = todosPartidaDTOs.length;
         const partidasDTO = this.gerarCombinacoesPartidasDTO(
           etapaId,
           arenaId,
           grupo,
           jogadores
         );
-
-        // ✅ OTIMIZAÇÃO: Criar todas as partidas em batch (3 partidas por grupo)
-        const partidas = await this.partidaReiDaPraiaRepository.criarEmLote(
-          partidasDTO
-        );
-        todasPartidas.push(...partidas);
-
-        const partidasIds = partidas.map((p) => p.id);
-
-        // ✅ OTIMIZAÇÃO: Adicionar todas as partidas ao grupo em uma única operação
-        await this.grupoRepository.adicionarPartidasEmLote(grupo.id, partidasIds);
+        todosPartidaDTOs.push(...partidasDTO);
+        partidasPorGrupo.set(grupo.id, todosPartidaDTOs.length - startIndex);
       }
+
+      // 3. Criar todas as partidas em um único batch
+      const todasPartidas =
+        await this.partidaReiDaPraiaRepository.criarEmLote(todosPartidaDTOs);
+
+      // 4. Atualizar grupos com IDs das partidas em paralelo
+      let partidaIndex = 0;
+      const atualizacoesGrupos = grupos.map((grupo) => {
+        const qtdPartidas = partidasPorGrupo.get(grupo.id) || 0;
+        const partidasDoGrupo = todasPartidas.slice(
+          partidaIndex,
+          partidaIndex + qtdPartidas
+        );
+        partidaIndex += qtdPartidas;
+
+        const partidasIds = partidasDoGrupo.map((p) => p.id);
+        return this.grupoRepository.adicionarPartidasEmLote(
+          grupo.id,
+          partidasIds
+        );
+      });
+
+      await Promise.all(atualizacoesGrupos);
 
       return todasPartidas;
     } catch (error) {
@@ -451,131 +515,6 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * Registrar resultado de partida
-   */
-  async registrarResultadoPartida(
-    partidaId: string,
-    arenaId: string,
-    placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
-  ): Promise<void> {
-    try {
-      // Buscar partida via repository
-      let partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
-        partidaId,
-        arenaId
-      );
-
-      if (!partida) {
-        throw new Error("Partida não encontrada");
-      }
-
-      const isEdicao = partida.status === StatusPartida.FINALIZADA;
-
-      // Se for edição, verificar se a eliminatória já foi gerada
-      if (isEdicao) {
-        const confrontos = await this.confrontoRepository.buscarPorEtapa(
-          partida.etapaId,
-          arenaId
-        );
-        if (confrontos.length > 0) {
-          throw new Error(
-            "Não é possível editar resultados após gerar a fase eliminatória. Cancele a eliminatória primeiro."
-          );
-        }
-      }
-
-      if (isEdicao && partida.placar && partida.placar.length > 0) {
-        await this.reverterEstatisticasJogadores(partida);
-
-        partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
-          partidaId,
-          arenaId
-        );
-
-        if (!partida) {
-          throw new Error("Partida não encontrada após reversão");
-        }
-
-        logger.info("Estatísticas revertidas, partida re-buscada", {
-          partidaId,
-        });
-      }
-
-      // Validar placar (apenas 1 set no Rei da Praia)
-      if (placar.length !== 1) {
-        throw new Error("Placar inválido: deve ter apenas 1 set");
-      }
-
-      const set = placar[0];
-      const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
-      const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
-      const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
-
-      // Vencedores são os 2 jogadores da dupla vencedora
-      const vencedores =
-        setsDupla1 > setsDupla2
-          ? [partida.jogador1AId, partida.jogador1BId]
-          : [partida.jogador2AId, partida.jogador2BId];
-
-      const vencedoresNomes =
-        setsDupla1 > setsDupla2
-          ? `${partida.jogador1ANome} & ${partida.jogador1BNome}`
-          : `${partida.jogador2ANome} & ${partida.jogador2BNome}`;
-
-      // Registrar resultado via repository (agora com todos os campos)
-      await this.partidaReiDaPraiaRepository.registrarResultado(partidaId, {
-        setsDupla1,
-        setsDupla2,
-        sets: [
-          { pontosDupla1: set.gamesDupla1, pontosDupla2: set.gamesDupla2 },
-        ],
-
-        placar: placar,
-        vencedores: vencedores,
-        vencedoresNomes: vencedoresNomes,
-        vencedorDupla: vencedorDupla as 1 | 2,
-      });
-
-      await this.atualizarEstatisticasJogadores(
-        partida,
-        vencedores,
-        setsDupla1,
-        setsDupla2,
-        set.gamesDupla1,
-        set.gamesDupla2
-      );
-
-      // Recalcular classificação do grupo (se for fase de grupos)
-      if (partida.grupoId && partida.fase === FaseEtapa.GRUPOS) {
-        await this.recalcularClassificacaoGrupo(
-          partida.grupoId,
-          partida.etapaId
-        );
-      }
-
-      logger.info("Resultado partida Rei da Praia registrado", {
-        partidaId,
-        etapaId: partida.etapaId,
-        fase: partida.fase,
-        grupoNome: partida.grupoNome,
-        vencedoresNomes: vencedoresNomes,
-        placar: `${set.gamesDupla1}-${set.gamesDupla2}`,
-        isEdicao,
-      });
-    } catch (error: any) {
-      logger.error(
-        "Erro ao registrar resultado",
-        {
-          partidaId,
-          arenaId,
-        },
-        error
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Atualizar estatísticas dos 4 jogadores após resultado
    */
   private async atualizarEstatisticasJogadores(
@@ -624,6 +563,189 @@ export class ReiDaPraiaService {
           }
         );
       }
+    }
+  }
+
+  /**
+   * Registrar múltiplos resultados de partidas Rei da Praia em lote
+   */
+  async registrarResultadosEmLote(
+    etapaId: string,
+    arenaId: string,
+    resultados: Array<{
+      partidaId: string;
+      placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[];
+    }>
+  ): Promise<{
+    message: string;
+    processados: number;
+    erros: Array<{ partidaId: string; erro: string }>;
+  }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
+    const erros: Array<{ partidaId: string; erro: string }> = [];
+    let processados = 0;
+
+    try {
+      // 1. Buscar todas as partidas em paralelo
+      let inicio = Date.now();
+      const partidasPromises = resultados.map((r) =>
+        this.partidaReiDaPraiaRepository.buscarPorIdEArena(r.partidaId, arenaId)
+      );
+      const partidas = await Promise.all(partidasPromises);
+      tempos["1_buscarPartidas"] = Date.now() - inicio;
+
+      // 2. Verificar se eliminatória já foi gerada
+      inicio = Date.now();
+      const confrontos = await this.confrontoRepository.buscarPorEtapa(etapaId, arenaId);
+      const eliminatoriaGerada = confrontos.length > 0;
+      tempos["2_verificarEliminatoria"] = Date.now() - inicio;
+
+      // 3. Processar cada resultado - OTIMIZADO: paralelo
+      inicio = Date.now();
+      const gruposParaRecalcular = new Set<string>();
+
+      // 3.1 Validar e preparar dados
+      type ResultadoValido = {
+        resultado: typeof resultados[0];
+        partida: NonNullable<typeof partidas[0]>;
+        isEdicao: boolean;
+      };
+      const resultadosValidos: ResultadoValido[] = [];
+
+      for (let i = 0; i < resultados.length; i++) {
+        const resultado = resultados[i];
+        const partida = partidas[i];
+
+        if (!partida) {
+          erros.push({ partidaId: resultado.partidaId, erro: "Partida não encontrada" });
+          continue;
+        }
+
+        if (!resultado.placar || resultado.placar.length !== 1) {
+          erros.push({ partidaId: resultado.partidaId, erro: "Placar deve ter exatamente 1 set" });
+          continue;
+        }
+
+        const isEdicao = partida.status === StatusPartida.FINALIZADA;
+        if (isEdicao && eliminatoriaGerada) {
+          erros.push({
+            partidaId: resultado.partidaId,
+            erro: "Não é possível editar após gerar eliminatória",
+          });
+          continue;
+        }
+
+        resultadosValidos.push({ resultado, partida, isEdicao });
+
+        if (partida.grupoId) {
+          gruposParaRecalcular.add(partida.grupoId);
+        }
+      }
+
+      // 3.2 Reverter estatísticas de edições em paralelo
+      const reversoes = resultadosValidos
+        .filter(r => r.isEdicao && r.partida.placar && r.partida.placar.length > 0)
+        .map(r => this.reverterEstatisticasJogadores(r.partida));
+
+      if (reversoes.length > 0) {
+        await Promise.all(reversoes);
+      }
+
+      // 3.3 Aplicar novos resultados em paralelo
+      const aplicacoes = resultadosValidos.map(async ({ resultado, partida }) => {
+        try {
+          const set = resultado.placar[0];
+          const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
+          const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
+          const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
+          const dupla1Venceu = vencedorDupla === 1;
+
+          const vencedores = dupla1Venceu
+            ? [partida.jogador1AId, partida.jogador1BId]
+            : [partida.jogador2AId, partida.jogador2BId];
+
+          const vencedoresNomes = dupla1Venceu
+            ? `${partida.jogador1ANome} & ${partida.jogador1BNome}`
+            : `${partida.jogador2ANome} & ${partida.jogador2BNome}`;
+
+          await Promise.all([
+            this.partidaReiDaPraiaRepository.registrarResultado(resultado.partidaId, {
+              setsDupla1,
+              setsDupla2,
+              sets: [{ pontosDupla1: set.gamesDupla1, pontosDupla2: set.gamesDupla2 }],
+              placar: resultado.placar,
+              vencedores,
+              vencedoresNomes,
+              vencedorDupla: vencedorDupla as 1 | 2,
+            }),
+            this.atualizarEstatisticasJogadores(
+              partida,
+              vencedores,
+              setsDupla1,
+              setsDupla2,
+              set.gamesDupla1,
+              set.gamesDupla2
+            ),
+          ]);
+
+          return { success: true, partidaId: resultado.partidaId };
+        } catch (error: any) {
+          return { success: false, partidaId: resultado.partidaId, erro: error.message || "Erro desconhecido" };
+        }
+      });
+
+      const resultadosAplicacao = await Promise.all(aplicacoes);
+
+      for (const res of resultadosAplicacao) {
+        if (res.success) {
+          processados++;
+        } else {
+          erros.push({ partidaId: res.partidaId, erro: res.erro! });
+        }
+      }
+
+      tempos["3_processarResultados"] = Date.now() - inicio;
+
+      // 4. Recalcular classificação de todos os grupos afetados - OTIMIZADO: paralelo
+      inicio = Date.now();
+      const recalcPromises = Array.from(gruposParaRecalcular).map(async (grupoId) => {
+        try {
+          await this.recalcularClassificacaoGrupo(grupoId, etapaId);
+        } catch (error: any) {
+          logger.error("Erro ao recalcular classificação do grupo Rei da Praia", { grupoId }, error);
+        }
+      });
+      await Promise.all(recalcPromises);
+      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS registrarResultadosEmLote (Rei da Praia)", {
+        etapaId,
+        total: resultados.length,
+        processados,
+        erros: erros.length,
+        tempos,
+      });
+
+      return {
+        message:
+          erros.length === 0
+            ? `${processados} resultado(s) registrado(s) com sucesso`
+            : `${processados} resultado(s) registrado(s), ${erros.length} erro(s)`,
+        processados,
+        erros,
+      };
+    } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
+      logger.error(
+        "Erro ao registrar resultados em lote Rei da Praia",
+        { etapaId, total: resultados.length, tempos },
+        error
+      );
+      throw error;
     }
   }
 
@@ -711,25 +833,28 @@ export class ReiDaPraiaService {
       return 0;
     });
 
-    // Atualizar posição de cada jogador
-    for (let i = 0; i < jogadoresOrdenados.length; i++) {
-      await estatisticasJogadorService.atualizarPosicaoGrupo(
-        jogadoresOrdenados[i].jogadorId,
+    // Atualizar posição de cada jogador - OTIMIZADO: todas em paralelo
+    const atualizacoesPosicao = jogadoresOrdenados.map((jogador, i) =>
+      estatisticasJogadorService.atualizarPosicaoGrupo(
+        jogador.jogadorId,
         etapaId,
         i + 1
-      );
-    }
+      )
+    );
+    await Promise.all(atualizacoesPosicao);
 
-    // Verificar se grupo está completo via repository
+    // Verificar se grupo está completo e atualizar em paralelo
     const partidasFinalizadas =
       await this.partidaReiDaPraiaRepository.contarFinalizadasPorGrupo(grupoId);
     const completo = partidasFinalizadas === 3;
 
-    // Usar repository para marcar grupo como completo
-    await this.grupoRepository.marcarCompleto(grupoId, completo);
-    await this.grupoRepository.atualizarContadores(grupoId, {
-      partidasFinalizadas,
-    });
+    // Usar repository para marcar grupo como completo - em paralelo
+    await Promise.all([
+      this.grupoRepository.marcarCompleto(grupoId, completo),
+      this.grupoRepository.atualizarContadores(grupoId, {
+        partidasFinalizadas,
+      }),
+    ]);
   }
 
   /**

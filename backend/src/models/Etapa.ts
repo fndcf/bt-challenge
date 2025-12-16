@@ -224,16 +224,16 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
       });
     }
 
-    // Validação: jogadoresPorGrupo máximo 4 para DUPLA_FIXA e REI_DA_PRAIA
+    // Validação: jogadoresPorGrupo máximo 4 apenas para REI_DA_PRAIA
+    // DUPLA_FIXA, SUPER_X e TEAMS podem ter grupos maiores (grupo único/round-robin)
     if (
-      data.formato !== FormatoEtapa.SUPER_X &&
-      data.formato !== FormatoEtapa.TEAMS &&
+      data.formato === FormatoEtapa.REI_DA_PRAIA &&
       data.jogadoresPorGrupo &&
       data.jogadoresPorGrupo > 4
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Máximo de 4 jogadores por grupo para este formato",
+        message: "Máximo de 4 jogadores por grupo para Rei da Praia",
         path: ["jogadoresPorGrupo"],
       });
     }

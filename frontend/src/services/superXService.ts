@@ -5,7 +5,12 @@
 import { apiClient } from "./apiClient";
 import { handleError } from "../utils/errorHandler";
 import logger from "../utils/logger";
-import { EstatisticasJogador, PartidaReiDaPraia } from "../types/reiDaPraia";
+import {
+  EstatisticasJogador,
+  PartidaReiDaPraia,
+  ResultadoPartidaLoteSuperXDTO,
+  RegistrarResultadosEmLoteSuperXResponse,
+} from "../types/reiDaPraia";
 import { Grupo } from "../types/chave";
 
 /**
@@ -189,6 +194,38 @@ class SuperXService implements ISuperXService {
       });
     } catch (error) {
       const appError = handleError(error, "SuperXService.registrarResultado");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Registrar múltiplos resultados de partidas em lote
+   *
+   * POST /api/etapas/:etapaId/super-x/resultados-lote
+   */
+  async registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteSuperXDTO[]
+  ): Promise<RegistrarResultadosEmLoteSuperXResponse> {
+    try {
+      const response = await apiClient.post<RegistrarResultadosEmLoteSuperXResponse>(
+        `${this.basePath}/${etapaId}${this.superXPath}/resultados-lote`,
+        { resultados }
+      );
+
+      logger.info("Resultados Super X registrados em lote", {
+        etapaId,
+        total: resultados.length,
+        processados: response.processados,
+        erros: response.erros?.length || 0,
+      });
+
+      return response;
+    } catch (error) {
+      const appError = handleError(
+        error,
+        "SuperXService.registrarResultadosEmLote"
+      );
       throw new Error(appError.message);
     }
   }

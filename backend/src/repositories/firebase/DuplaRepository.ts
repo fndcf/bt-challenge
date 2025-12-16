@@ -3,7 +3,7 @@
  */
 
 import { db } from "../../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { Dupla } from "../../models/Dupla";
 import {
   IDuplaRepository,
@@ -285,6 +285,59 @@ export class DuplaRepository implements IDuplaRepository {
         delete updateData[key];
       }
     });
+
+    await this.collection.doc(id).update(updateData);
+  }
+
+  /**
+   * Atualizar estatísticas usando FieldValue.increment (operações atômicas)
+   */
+  async atualizarEstatisticasComIncrement(
+    id: string,
+    stats: AtualizarEstatisticasDuplaDTO
+  ): Promise<void> {
+    const updateData: any = {
+      atualizadoEm: Timestamp.now(),
+    };
+
+    // Usar FieldValue.increment para cada campo numérico
+    if (stats.jogos !== undefined) {
+      updateData.jogos = FieldValue.increment(stats.jogos);
+    }
+    if (stats.vitorias !== undefined) {
+      updateData.vitorias = FieldValue.increment(stats.vitorias);
+    }
+    if (stats.derrotas !== undefined) {
+      updateData.derrotas = FieldValue.increment(stats.derrotas);
+    }
+    if (stats.pontos !== undefined) {
+      updateData.pontos = FieldValue.increment(stats.pontos);
+    }
+    if (stats.setsVencidos !== undefined) {
+      updateData.setsVencidos = FieldValue.increment(stats.setsVencidos);
+    }
+    if (stats.setsPerdidos !== undefined) {
+      updateData.setsPerdidos = FieldValue.increment(stats.setsPerdidos);
+    }
+    if (stats.gamesVencidos !== undefined) {
+      updateData.gamesVencidos = FieldValue.increment(stats.gamesVencidos);
+    }
+    if (stats.gamesPerdidos !== undefined) {
+      updateData.gamesPerdidos = FieldValue.increment(stats.gamesPerdidos);
+    }
+    if (stats.saldoSets !== undefined) {
+      updateData.saldoSets = FieldValue.increment(stats.saldoSets);
+    }
+    if (stats.saldoGames !== undefined) {
+      updateData.saldoGames = FieldValue.increment(stats.saldoGames);
+    }
+    // Para posicaoGrupo e classificada, usar valor direto (não increment)
+    if (stats.posicaoGrupo !== undefined) {
+      updateData.posicaoGrupo = stats.posicaoGrupo;
+    }
+    if (stats.classificada !== undefined) {
+      updateData.classificada = stats.classificada;
+    }
 
     await this.collection.doc(id).update(updateData);
   }

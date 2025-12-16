@@ -67,26 +67,24 @@ export class ClassificacaoService implements IClassificacaoService {
         partidas
       );
 
-      // Atualizar posições no banco
-      for (let i = 0; i < duplasOrdenadas.length; i++) {
-        const dupla = duplasOrdenadas[i];
+      // Atualizar posições no banco - OTIMIZADO: todas em paralelo
+      const atualizacoesPosicao = duplasOrdenadas.flatMap((dupla, i) => {
         const posicao = i + 1;
-
-        await this.duplaRepo.atualizarPosicaoGrupo(dupla.id, posicao);
-
-        // Atualizar estatísticas dos jogadores
-        await estatisticasJogadorService.atualizarPosicaoGrupo(
-          dupla.jogador1Id,
-          dupla.etapaId,
-          posicao
-        );
-
-        await estatisticasJogadorService.atualizarPosicaoGrupo(
-          dupla.jogador2Id,
-          dupla.etapaId,
-          posicao
-        );
-      }
+        return [
+          this.duplaRepo.atualizarPosicaoGrupo(dupla.id, posicao),
+          estatisticasJogadorService.atualizarPosicaoGrupo(
+            dupla.jogador1Id,
+            dupla.etapaId,
+            posicao
+          ),
+          estatisticasJogadorService.atualizarPosicaoGrupo(
+            dupla.jogador2Id,
+            dupla.etapaId,
+            posicao
+          ),
+        ];
+      });
+      await Promise.all(atualizacoesPosicao);
 
       // Atualizar status do grupo
       const partidasFinalizadas = partidas.length;

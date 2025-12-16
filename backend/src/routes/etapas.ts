@@ -64,20 +64,21 @@ router.get("/:id/inscricoes", (req, res) =>
 );
 
 /**
- * @route   DELETE /api/etapas/:etapaId/inscricoes/:inscricaoId
- * @desc    Cancelar inscrição
- */
-router.delete("/:etapaId/inscricoes/:inscricaoId", (req, res) =>
-  etapaController.cancelarInscricao(req, res)
-);
-
-/**
  * @route   DELETE /api/etapas/:etapaId/inscricoes-lote
  * @desc    Cancelar múltiplas inscrições em lote
  * @body    { inscricaoIds: string[] }
+ * IMPORTANTE: Esta rota deve vir ANTES de /:etapaId/inscricoes/:inscricaoId
  */
 router.delete("/:etapaId/inscricoes-lote", (req, res) =>
   etapaController.cancelarInscricoesEmLote(req, res)
+);
+
+/**
+ * @route   DELETE /api/etapas/:etapaId/inscricoes/:inscricaoId
+ * @desc    Cancelar inscrição individual
+ */
+router.delete("/:etapaId/inscricoes/:inscricaoId", (req, res) =>
+  etapaController.cancelarInscricao(req, res)
 );
 
 /**
@@ -203,11 +204,11 @@ router.get("/:id/rei-da-praia/partidas", (req, res) =>
 );
 
 /**
- * @route   POST /api/etapas/:id/rei-da-praia/partidas/:partidaId/resultado
- * @desc    Registrar resultado de partida Rei da Praia
+ * @route   POST /api/etapas/:id/rei-da-praia/resultados-lote
+ * @desc    Registrar múltiplos resultados de partidas Rei da Praia em lote
  */
-router.post("/:id/rei-da-praia/partidas/:partidaId/resultado", (req, res) =>
-  etapaController.registrarResultadoReiDaPraia(req, res)
+router.post("/:id/rei-da-praia/resultados-lote", (req, res) =>
+  etapaController.registrarResultadosEmLoteReiDaPraia(req, res)
 );
 
 /**
@@ -282,6 +283,14 @@ router.get("/:id/super-x/grupo", (req, res) =>
  */
 router.post("/:id/super-x/partidas/:partidaId/resultado", (req, res) =>
   etapaController.registrarResultadoSuperX(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/super-x/resultados-lote
+ * @desc    Registrar múltiplos resultados de partidas Super X em lote
+ */
+router.post("/:id/super-x/resultados-lote", (req, res) =>
+  etapaController.registrarResultadosEmLoteSuperX(req, res)
 );
 
 // ==================== TEAMS ====================
@@ -372,6 +381,14 @@ router.post("/:id/teams/partidas/:partidaId/definir-jogadores", (req, res) =>
  */
 router.post("/:id/teams/partidas/:partidaId/resultado", (req, res) =>
   etapaController.registrarResultadoTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/resultados-lote
+ * @desc    Registrar múltiplos resultados de partidas TEAMS em lote
+ */
+router.post("/:id/teams/resultados-lote", (req, res) =>
+  etapaController.registrarResultadosEmLoteTeams(req, res)
 );
 
 /**

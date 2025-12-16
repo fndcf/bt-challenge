@@ -15,6 +15,8 @@ import {
   DefinirPartidasManualDTO,
   GerarEquipesResponse,
   RegistrarResultadoResponse,
+  RegistrarResultadosEmLoteResponse,
+  ResultadoPartidaLoteDTO,
   GerarPartidasResponse,
   GerarDeciderResponse,
 } from "../types/teams";
@@ -54,6 +56,11 @@ export interface ITeamsService {
     partidaId: string,
     placar: SetPlacarTeams[]
   ): Promise<RegistrarResultadoResponse>;
+
+  registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse>;
 
   // Decider
   gerarDecider(etapaId: string, confrontoId: string): Promise<GerarDeciderResponse>;
@@ -335,6 +342,35 @@ class TeamsService implements ITeamsService {
       return response;
     } catch (error) {
       const appError = handleError(error, "TeamsService.registrarResultado");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Registrar múltiplos resultados de partidas em lote
+   *
+   * POST /api/etapas/:etapaId/teams/resultados-lote
+   */
+  async registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteDTO[]
+  ): Promise<RegistrarResultadosEmLoteResponse> {
+    try {
+      const response = await apiClient.post<RegistrarResultadosEmLoteResponse>(
+        `${this.basePath}/${etapaId}${this.teamsPath}/resultados-lote`,
+        { resultados }
+      );
+
+      logger.info("Resultados TEAMS em lote registrados", {
+        etapaId,
+        processados: response.processados,
+        erros: response.erros?.length || 0,
+        confrontosFinalizados: response.confrontosFinalizados?.length || 0,
+      });
+
+      return response;
+    } catch (error) {
+      const appError = handleError(error, "TeamsService.registrarResultadosEmLote");
       throw new Error(appError.message);
     }
   }

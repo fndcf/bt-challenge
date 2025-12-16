@@ -60,20 +60,28 @@ export class GrupoService implements IGrupoService {
     duplas: Dupla[],
     _duplasPorGrupo: number
   ): Promise<Grupo[]> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+
     try {
       const grupos: Grupo[] = [];
 
       // Calcular distribuição ideal de grupos
+      let inicio = Date.now();
       const distribuicao = calcularDistribuicaoGrupos(duplas.length);
       const qtdGrupos = distribuicao.length;
+      tempos["1_calcularDistribuicao"] = Date.now() - inicio;
 
       // Obter cabeças de chave para distribuição equilibrada
+      inicio = Date.now();
       const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
         arenaId,
         etapaId
       );
+      tempos["2_obterCabecas"] = Date.now() - inicio;
 
       // Separar duplas com cabeças de chave das normais
+      inicio = Date.now();
       const duplasComCabecas: Dupla[] = [];
       const duplasNormais: Dupla[] = [];
 
@@ -128,14 +136,19 @@ export class GrupoService implements IGrupoService {
             `Total de duplas: ${duplas.length}, Distribuído: ${totalDistribuido}`
         );
       }
+      tempos["3_distribuirDuplas"] = Date.now() - inicio;
 
       // 3. Criar grupos no banco de dados
+      // ✅ OTIMIZAÇÃO v3: Criar todos os grupos em batch
+      inicio = Date.now();
+
+      // 3.1 Preparar DTOs e criar todos os grupos em batch
+      const grupoDTOs = [];
       for (let grupoIndex = 0; grupoIndex < qtdGrupos; grupoIndex++) {
         const nomeGrupo = `Grupo ${LETRAS_GRUPOS[grupoIndex]}`;
         const duplasDoGrupo = gruposDuplas[grupoIndex];
 
-        // Criar grupo
-        const grupo = await this.grupoRepo.criar({
+        grupoDTOs.push({
           etapaId,
           arenaId,
           nome: nomeGrupo,
@@ -143,28 +156,48 @@ export class GrupoService implements IGrupoService {
           duplas: duplasDoGrupo.map((d) => d.id),
           totalDuplas: duplasDoGrupo.length,
         });
-
-        grupos.push(grupo);
-
-        // Atualizar duplas com referência ao grupo
-        for (const dupla of duplasDoGrupo) {
-          await this.duplaRepo.atribuirGrupo(dupla.id, grupo.id, nomeGrupo);
-        }
       }
 
-      logger.info("Grupos criados", {
+      const gruposCriados = await this.grupoRepo.criarEmLote(grupoDTOs);
+      grupos.push(...gruposCriados);
+      const tempoCriarGrupos = Date.now() - inicio;
+
+      // 3.2 Atualizar todas as duplas em batch
+      inicio = Date.now();
+      const duplaUpdates: Array<{ id: string; data: Partial<Dupla> }> = [];
+      for (let grupoIndex = 0; grupoIndex < qtdGrupos; grupoIndex++) {
+        const grupo = grupos[grupoIndex];
+        const duplasDoGrupo = gruposDuplas[grupoIndex];
+
+        for (const dupla of duplasDoGrupo) {
+          duplaUpdates.push({
+            id: dupla.id,
+            data: { grupoId: grupo.id, grupoNome: grupo.nome },
+          });
+        }
+      }
+      await this.duplaRepo.atualizarEmLote(duplaUpdates);
+      const tempoAtualizarDuplas = Date.now() - inicio;
+
+      tempos["4a_criarGrupos"] = tempoCriarGrupos;
+      tempos["4b_atualizarDuplas"] = tempoAtualizarDuplas;
+      tempos["4_criarGruposNoBanco"] = tempoCriarGrupos + tempoAtualizarDuplas;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS criarGrupos", {
         etapaId,
-        arenaId,
-        totalGrupos: grupos.length,
-        distribuicao,
-        cabecasDistribuidos: duplasComCabecas.length,
+        duplas: duplas.length,
+        grupos: grupos.length,
+        tempos,
       });
 
       return grupos;
     } catch (error) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao criar grupos",
-        { etapaId, arenaId },
+        { etapaId, arenaId, tempos },
         error as Error
       );
       throw new Error("Falha ao criar grupos");

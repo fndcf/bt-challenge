@@ -8,6 +8,8 @@ import {
   ResultadoChavesReiDaPraia,
   ResultadoEliminatoriaReiDaPraia,
   TipoChaveamentoReiDaPraia,
+  ResultadoPartidaLoteSuperXDTO,
+  RegistrarResultadosEmLoteSuperXResponse,
 } from "@/types/reiDaPraia";
 import { Grupo } from "@/types/chave";
 
@@ -51,24 +53,6 @@ export interface IReiDaPraiaService {
     etapaId: string,
     grupoId: string
   ): Promise<EstatisticasJogador[]>;
-
-  /**
-   * Registrar resultado de partida Rei da Praia
-   * Formato: 1 set único
-   * @param etapaId - ID da etapa
-   * @param partidaId - ID da partida
-   * @param placar - Array com 1 set (gamesDupla1, gamesDupla2)
-   * @returns Promise void
-   */
-  registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: Array<{
-      numero: number;
-      gamesDupla1: number;
-      gamesDupla2: number;
-    }>
-  ): Promise<void>;
 
   /**
    * Gerar fase eliminatória com duplas fixas
@@ -130,4 +114,15 @@ export interface IReiDaPraiaService {
    * @returns Promise void
    */
   cancelarEliminatoria(etapaId: string): Promise<void>;
+
+  /**
+   * Registrar múltiplos resultados de partidas em lote
+   * @param etapaId - ID da etapa
+   * @param resultados - Array de resultados com partidaId e placar
+   * @returns Promise com resposta contendo processados e erros
+   */
+  registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteSuperXDTO[]
+  ): Promise<RegistrarResultadosEmLoteSuperXResponse>;
 }

@@ -1,1 +1,0 @@
-export { PartidasGrupoReiDaPraia } from "./PartidasGrupoReiDaPraia";

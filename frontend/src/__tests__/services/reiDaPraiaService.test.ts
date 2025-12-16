@@ -180,36 +180,6 @@ describe("ReiDaPraiaService", () => {
     });
   });
 
-  describe("registrarResultado", () => {
-    it("deve registrar resultado com 1 set", async () => {
-      mockPost.mockResolvedValue(undefined);
-
-      const placar = [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }];
-
-      await reiDaPraiaService.registrarResultado(
-        "etapa-123",
-        "partida-456",
-        placar
-      );
-
-      expect(mockPost).toHaveBeenCalledWith(
-        "/etapas/etapa-123/rei-da-praia/partidas/partida-456/resultado",
-        { placar }
-      );
-    });
-
-    it("deve lançar erro quando mais de 1 set", async () => {
-      const placar = [
-        { numero: 1, gamesDupla1: 6, gamesDupla2: 4 },
-        { numero: 2, gamesDupla1: 6, gamesDupla2: 3 },
-      ];
-
-      await expect(
-        reiDaPraiaService.registrarResultado("etapa-123", "partida-456", placar)
-      ).rejects.toThrow("Partida Rei da Praia deve ter apenas 1 set");
-    });
-  });
-
   describe("gerarEliminatoria", () => {
     it("deve gerar fase eliminatória com sucesso", async () => {
       const mockResultado = {

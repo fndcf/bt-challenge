@@ -564,14 +564,14 @@ export class EtapaService {
 
   /**
    * Cancelar múltiplas inscrições em lote (batch)
+   * ✅ OTIMIZAÇÃO: Usa buscarPorIds (1 query) ao invés de N queries paralelas
    */
   async cancelarInscricoesEmLote(
     inscricaoIds: string[],
     etapaId: string,
     arenaId: string
-  ): Promise<{ canceladas: number; erros: string[] }> {
+  ): Promise<{ canceladas: number; erros: string[]; jogadorIds: string[] }> {
     const erros: string[] = [];
-    let canceladas = 0;
 
     // Validar etapa primeiro
     const etapa = await this.buscarPorId(etapaId, arenaId);
@@ -585,50 +585,46 @@ export class EtapaService {
       );
     }
 
-    // Buscar todas as inscrições de uma vez
-    const inscricoes = await Promise.all(
-      inscricaoIds.map((id) =>
-        this.inscricaoRepository.buscarPorIdEtapaArena(id, etapaId, arenaId)
-      )
+    // ✅ OTIMIZAÇÃO: Buscar todas as inscrições em UMA única query (getAll)
+    const inscricoesValidas = await this.inscricaoRepository.buscarPorIds(
+      inscricaoIds,
+      etapaId,
+      arenaId
     );
 
-    // Filtrar inscrições válidas
-    const inscricoesValidas = inscricoes.filter(
-      (inscricao, index) => {
-        if (!inscricao) {
-          erros.push(`Inscrição ${inscricaoIds[index]} não encontrada`);
-          return false;
-        }
-        return true;
+    // Identificar IDs não encontrados
+    const idsEncontrados = new Set(inscricoesValidas.map((i) => i.id));
+    inscricaoIds.forEach((id) => {
+      if (!idsEncontrados.has(id)) {
+        erros.push(`Inscrição ${id} não encontrada`);
       }
-    );
+    });
 
     if (inscricoesValidas.length === 0) {
-      return { canceladas: 0, erros };
+      return { canceladas: 0, erros, jogadorIds: [] };
     }
 
     // Cancelar todas as inscrições em batch
-    const inscricaoIdsValidos = inscricoesValidas.map((i) => i!.id);
-    const jogadorIds = inscricoesValidas.map((i) => i!.jogadorId);
+    const inscricaoIdsValidos = inscricoesValidas.map((i) => i.id);
+    const jogadorIds = inscricoesValidas.map((i) => i.jogadorId);
 
-    await this.inscricaoRepository.cancelarEmLote(inscricaoIdsValidos);
-
-    // Decrementar contador de inscritos uma vez só
-    await this.etapaRepository.decrementarInscritosEmLote(
-      etapaId,
-      jogadorIds.length,
-      jogadorIds
-    );
-
-    canceladas = inscricoesValidas.length;
+    // ✅ OTIMIZAÇÃO: Executar cancelamento e decremento em paralelo
+    await Promise.all([
+      this.inscricaoRepository.cancelarEmLote(inscricaoIdsValidos),
+      this.etapaRepository.decrementarInscritosEmLote(
+        etapaId,
+        jogadorIds.length,
+        jogadorIds
+      ),
+    ]);
 
     logger.info("Inscrições canceladas em lote", {
       etapaId,
-      canceladas,
+      canceladas: inscricoesValidas.length,
       erros: erros.length,
     });
 
-    return { canceladas, erros };
+    return { canceladas: inscricoesValidas.length, erros, jogadorIds };
   }
 
   /**

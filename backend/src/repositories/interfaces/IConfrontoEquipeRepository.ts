@@ -47,6 +47,7 @@ export interface IConfrontoEquipeRepository {
 
   // Partidas
   adicionarPartida(confrontoId: string, partidaId: string): Promise<void>;
+  adicionarPartidasEmLote(confrontoId: string, partidaIds: string[]): Promise<void>;
   incrementarPartidasFinalizadas(confrontoId: string): Promise<void>;
   atualizarContadorJogos(
     confrontoId: string,

@@ -262,6 +262,34 @@ export class InscricaoRepository implements IInscricaoRepository {
   }
 
   /**
+   * Buscar múltiplas inscrições por IDs em uma única query
+   * ✅ OTIMIZAÇÃO: Usa getAll() do Firestore para buscar múltiplos docs de uma vez
+   */
+  async buscarPorIds(
+    ids: string[],
+    etapaId: string,
+    arenaId: string
+  ): Promise<Inscricao[]> {
+    if (ids.length === 0) return [];
+
+    // Firestore getAll permite buscar até 500 docs de uma vez
+    const docRefs = ids.map((id) => this.collection.doc(id));
+    const docs = await db.getAll(...docRefs);
+
+    return docs
+      .filter((doc) => {
+        if (!doc.exists) return false;
+        const data = doc.data();
+        // Validar etapa e arena
+        return data?.etapaId === etapaId && data?.arenaId === arenaId;
+      })
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Inscricao[];
+  }
+
+  /**
    * Cancelar inscrição
    */
   async cancelar(id: string): Promise<void> {

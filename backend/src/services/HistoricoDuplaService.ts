@@ -118,6 +118,65 @@ export class HistoricoDuplaService {
   }
 
   /**
+   * ✅ OTIMIZAÇÃO: Registrar múltiplas duplas em lote (batch)
+   * Usado na geração de chaves onde não há duplicatas possíveis
+   */
+  async registrarEmLote(
+    dtos: CriarHistoricoDuplaDTO[]
+  ): Promise<HistoricoDupla[]> {
+    if (dtos.length === 0) return [];
+
+    try {
+      const batch = db.batch();
+      const agora = Timestamp.now();
+      const historicos: HistoricoDupla[] = [];
+
+      for (const dto of dtos) {
+        const chaveNormalizada = this.normalizarChave(
+          dto.jogador1Id,
+          dto.jogador2Id
+        );
+
+        const docRef = db.collection(this.collection).doc();
+        const historico: Omit<HistoricoDupla, "id"> = {
+          arenaId: dto.arenaId,
+          etapaId: dto.etapaId,
+          etapaNome: dto.etapaNome,
+          jogador1Id: dto.jogador1Id,
+          jogador1Nome: dto.jogador1Nome,
+          jogador2Id: dto.jogador2Id,
+          jogador2Nome: dto.jogador2Nome,
+          chaveNormalizada,
+          ambosForamCabecas: dto.ambosForamCabecas,
+          criadoEm: agora,
+        };
+
+        batch.set(docRef, historico);
+        historicos.push({
+          id: docRef.id,
+          ...historico,
+        });
+      }
+
+      await batch.commit();
+
+      logger.info("Histórico de duplas registrado em lote", {
+        quantidade: historicos.length,
+        etapaId: dtos[0]?.etapaId,
+      });
+
+      return historicos;
+    } catch (error) {
+      logger.error(
+        "Erro ao registrar histórico de duplas em lote",
+        { quantidade: dtos.length },
+        error as Error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Verificar se dupla já foi formada anteriormente
    */
   async duplaJaFormada(

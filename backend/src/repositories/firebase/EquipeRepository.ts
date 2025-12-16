@@ -184,11 +184,136 @@ export class EquipeRepository implements IEquipeRepository {
     await this.collection.doc(id).update(updates);
   }
 
+  /**
+   * ✅ OTIMIZAÇÃO v3: Incrementar estatísticas E saldos de múltiplas equipes em batch
+   * Saldos são calculados automaticamente baseado nos incrementos de jogos/games
+   */
+  async incrementarEstatisticasEmLote(
+    atualizacoes: Array<{
+      id: string;
+      incrementos: Partial<AtualizarEstatisticasEquipeDTO>;
+    }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    const batch = db.batch();
+    const agora = Timestamp.now();
+
+    for (const { id, incrementos } of atualizacoes) {
+      const docRef = this.collection.doc(id);
+      const updates: Record<string, any> = {
+        atualizadoEm: agora,
+      };
+
+      if (incrementos.confrontos !== undefined) {
+        updates.confrontos = FieldValue.increment(incrementos.confrontos);
+      }
+      if (incrementos.vitorias !== undefined) {
+        updates.vitorias = FieldValue.increment(incrementos.vitorias);
+      }
+      if (incrementos.derrotas !== undefined) {
+        updates.derrotas = FieldValue.increment(incrementos.derrotas);
+      }
+      if (incrementos.pontos !== undefined) {
+        updates.pontos = FieldValue.increment(incrementos.pontos);
+      }
+      if (incrementos.jogosVencidos !== undefined) {
+        updates.jogosVencidos = FieldValue.increment(incrementos.jogosVencidos);
+      }
+      if (incrementos.jogosPerdidos !== undefined) {
+        updates.jogosPerdidos = FieldValue.increment(incrementos.jogosPerdidos);
+      }
+      if (incrementos.gamesVencidos !== undefined) {
+        updates.gamesVencidos = FieldValue.increment(incrementos.gamesVencidos);
+      }
+      if (incrementos.gamesPerdidos !== undefined) {
+        updates.gamesPerdidos = FieldValue.increment(incrementos.gamesPerdidos);
+      }
+
+      // ✅ OTIMIZAÇÃO v3: Calcular saldos automaticamente usando increment
+      // saldoJogos = jogosVencidos - jogosPerdidos
+      // saldoGames = gamesVencidos - gamesPerdidos
+      const saldoJogosIncrement =
+        (incrementos.jogosVencidos || 0) - (incrementos.jogosPerdidos || 0);
+      const saldoGamesIncrement =
+        (incrementos.gamesVencidos || 0) - (incrementos.gamesPerdidos || 0);
+
+      if (saldoJogosIncrement !== 0) {
+        updates.saldoJogos = FieldValue.increment(saldoJogosIncrement);
+      }
+      if (saldoGamesIncrement !== 0) {
+        updates.saldoGames = FieldValue.increment(saldoGamesIncrement);
+      }
+
+      batch.update(docRef, updates);
+    }
+
+    await batch.commit();
+  }
+
+  /**
+   * ✅ OTIMIZAÇÃO: Buscar múltiplas equipes por IDs em paralelo
+   */
+  async buscarPorIds(ids: string[]): Promise<Equipe[]> {
+    if (ids.length === 0) return [];
+
+    const promises = ids.map((id) => this.collection.doc(id).get());
+    const docs = await Promise.all(promises);
+
+    return docs
+      .filter((doc) => doc.exists)
+      .map((doc) => ({ id: doc.id, ...doc.data() } as Equipe));
+  }
+
+  /**
+   * ✅ OTIMIZAÇÃO: Atualizar múltiplas equipes em batch (para saldos)
+   */
+  async atualizarEmLote(
+    atualizacoes: Array<{ id: string; dados: Partial<Equipe> }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    const batch = db.batch();
+    const agora = Timestamp.now();
+
+    for (const { id, dados } of atualizacoes) {
+      const docRef = this.collection.doc(id);
+      batch.update(docRef, {
+        ...dados,
+        atualizadoEm: agora,
+      });
+    }
+
+    await batch.commit();
+  }
+
   async atualizarPosicao(id: string, posicao: number): Promise<void> {
     await this.collection.doc(id).update({
       posicao,
       atualizadoEm: Timestamp.now(),
     });
+  }
+
+  /**
+   * ✅ OTIMIZAÇÃO: Atualizar posições de múltiplas equipes em um único batch
+   */
+  async atualizarPosicoesEmLote(
+    atualizacoes: Array<{ id: string; posicao: number }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    const batch = db.batch();
+    const agora = Timestamp.now();
+
+    for (const { id, posicao } of atualizacoes) {
+      const docRef = this.collection.doc(id);
+      batch.update(docRef, {
+        posicao,
+        atualizadoEm: agora,
+      });
+    }
+
+    await batch.commit();
   }
 
   async marcarClassificada(id: string, classificada: boolean): Promise<void> {

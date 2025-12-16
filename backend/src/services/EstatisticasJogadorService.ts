@@ -3,7 +3,7 @@
  */
 
 import { db } from "../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import {
   EstatisticasJogador,
   CriarEstatisticasJogadorDTO,
@@ -62,14 +62,6 @@ export class EstatisticasJogadorService {
         ...estatisticas,
       };
 
-      logger.info("Estatísticas de jogador criadas", {
-        estatisticaId: novaEstatistica.id,
-        etapaId: dto.etapaId,
-        jogadorId: dto.jogadorId,
-        jogadorNome: dto.jogadorNome,
-        grupoId: dto.grupoId,
-      });
-
       return novaEstatistica;
     } catch (error) {
       logger.error(
@@ -88,6 +80,8 @@ export class EstatisticasJogadorService {
    * Criar estatísticas em lote (batch) - OTIMIZADO para performance
    */
   async criarEmLote(dtos: CriarEstatisticasJogadorDTO[]): Promise<EstatisticasJogador[]> {
+    const inicioTotal = Date.now();
+
     try {
       const batch = db.batch();
       const estatisticasArray: EstatisticasJogador[] = [];
@@ -138,18 +132,27 @@ export class EstatisticasJogadorService {
         });
       }
 
+      const inicioCommit = Date.now();
       await batch.commit();
+      const tempoCommit = Date.now() - inicioCommit;
 
-      logger.info("Estatísticas criadas em lote", {
+      const tempoTotal = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS criarEmLote (EstatisticasJogador)", {
         quantidade: estatisticasArray.length,
         etapaId: dtos[0]?.etapaId,
+        tempos: {
+          preparacao: tempoTotal - tempoCommit,
+          commit: tempoCommit,
+          TOTAL: tempoTotal,
+        },
       });
 
       return estatisticasArray;
     } catch (error) {
       logger.error(
         "Erro ao criar estatísticas em lote",
-        { quantidade: dtos.length },
+        { quantidade: dtos.length, tempoTotal: Date.now() - inicioTotal },
         error as Error
       );
       throw error;
@@ -220,14 +223,6 @@ export class EstatisticasJogadorService {
         .collection(this.collection)
         .doc(estatisticas.id)
         .update(novasEstatisticas);
-
-      logger.info("Estatísticas atualizadas após partida", {
-        jogadorId,
-        etapaId,
-        venceu: dto.venceu,
-        setsVencidos: dto.setsVencidos,
-        setsPerdidos: dto.setsPerdidos,
-      });
     } catch (error) {
       logger.error(
         "Erro ao atualizar estatísticas após partida",
@@ -280,11 +275,6 @@ export class EstatisticasJogadorService {
         .collection(this.collection)
         .doc(estatisticas.id)
         .update(estatisticasRevertidas);
-
-      logger.info("Estatísticas revertidas após edição de resultado", {
-        jogadorId,
-        etapaId,
-      });
     } catch (error) {
       logger.error(
         "Erro ao reverter estatísticas",
@@ -358,13 +348,6 @@ export class EstatisticasJogadorService {
         .collection(this.collection)
         .doc(estatisticas.id)
         .update(novasEstatisticas);
-
-      logger.info("Estatísticas atualizadas após partida de grupo", {
-        jogadorId,
-        etapaId,
-        grupoId: estatisticas.grupoId,
-        venceu: dto.venceu,
-      });
     } catch (error) {
       logger.error(
         "Erro ao atualizar estatísticas após partida de grupo",
@@ -461,11 +444,6 @@ export class EstatisticasJogadorService {
         .collection(this.collection)
         .doc(estatisticas.id)
         .update(estatisticasRevertidas);
-
-      logger.info("Estatísticas revertidas após edição de resultado de grupo", {
-        jogadorId,
-        etapaId,
-      });
     } catch (error) {
       logger.error(
         "Erro ao reverter estatísticas de grupo",
@@ -520,12 +498,6 @@ export class EstatisticasJogadorService {
         .collection(this.collection)
         .doc(estatisticas.id)
         .update(novasEstatisticas);
-
-      logger.info("Estatísticas atualizadas após partida eliminatória", {
-        jogadorId,
-        etapaId,
-        venceu: dto.venceu,
-      });
     } catch (error) {
       logger.error(
         "Erro ao atualizar estatísticas após partida eliminatória",
@@ -586,11 +558,6 @@ export class EstatisticasJogadorService {
         .collection(this.collection)
         .doc(estatisticas.id)
         .update(estatisticasRevertidas);
-
-      logger.info("Estatísticas revertidas após edição eliminatória", {
-        jogadorId,
-        etapaId,
-      });
     } catch (error) {
       logger.error(
         "Erro ao reverter estatísticas eliminatória",
@@ -636,6 +603,32 @@ export class EstatisticasJogadorService {
       id: doc.id,
       ...doc.data(),
     })) as EstatisticasJogador[];
+  }
+
+  /**
+   * ✅ OTIMIZAÇÃO: Buscar estatísticas de múltiplos jogadores de uma etapa em uma única query
+   * Retorna um Map de jogadorId -> EstatisticasJogador para acesso rápido O(1)
+   */
+  async buscarPorJogadoresEtapa(
+    jogadorIds: string[],
+    etapaId: string
+  ): Promise<Map<string, EstatisticasJogador>> {
+    if (jogadorIds.length === 0) return new Map();
+
+    // Firestore permite até 30 itens no 'in' - como temos max 4 jogadores por partida, está ok
+    const snapshot = await db
+      .collection(this.collection)
+      .where("etapaId", "==", etapaId)
+      .where("jogadorId", "in", jogadorIds)
+      .get();
+
+    const result = new Map<string, EstatisticasJogador>();
+    snapshot.docs.forEach((doc) => {
+      const data = { id: doc.id, ...doc.data() } as EstatisticasJogador;
+      result.set(data.jogadorId, data);
+    });
+
+    return result;
   }
 
   /**
@@ -731,10 +724,6 @@ export class EstatisticasJogadorService {
       }
 
       await batch.commit();
-
-      logger.info("Grupos atualizados em lote", {
-        total: atualizacoes.length,
-      });
     } catch (error) {
       logger.error("Erro ao atualizar grupos em lote", {}, error as Error);
       throw error;
@@ -982,6 +971,171 @@ export class EstatisticasJogadorService {
   }
 
   /**
+   * ✅ SUPER OTIMIZAÇÃO para TEAMS: Atualizar estatísticas usando FieldValue.increment
+   * Não precisa ler os documentos antes - usa increment atômico
+   * Recebe estatisticaId diretamente para evitar queries
+   */
+  async atualizarAposPartidaComIncrement(
+    atualizacoes: Array<{
+      estatisticaId: string;
+      dto: AtualizarEstatisticasPartidaDTO;
+    }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    try {
+      const batch = db.batch();
+      const now = Timestamp.now();
+
+      for (const { estatisticaId, dto } of atualizacoes) {
+        const docRef = db.collection(this.collection).doc(estatisticaId);
+
+        // Usar increment para atualizar sem precisar ler primeiro
+        batch.update(docRef, {
+          // Apenas estatísticas TOTAIS (para TEAMS - não tem fase de grupos)
+          jogos: FieldValue.increment(1),
+          vitorias: FieldValue.increment(dto.venceu ? 1 : 0),
+          derrotas: FieldValue.increment(dto.venceu ? 0 : 1),
+          setsVencidos: FieldValue.increment(dto.setsVencidos),
+          setsPerdidos: FieldValue.increment(dto.setsPerdidos),
+          saldoSets: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
+          gamesVencidos: FieldValue.increment(dto.gamesVencidos),
+          gamesPerdidos: FieldValue.increment(dto.gamesPerdidos),
+          saldoGames: FieldValue.increment(dto.gamesVencidos - dto.gamesPerdidos),
+          atualizadoEm: now,
+        });
+      }
+
+      await batch.commit();
+
+      logger.info("Estatísticas TEAMS atualizadas com increment (sem leitura)", {
+        quantidade: atualizacoes.length,
+      });
+    } catch (error) {
+      logger.error(
+        "Erro ao atualizar estatísticas TEAMS com increment",
+        { quantidade: atualizacoes.length },
+        error as Error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * ✅ SUPER OTIMIZAÇÃO: Atualizar estatísticas usando FieldValue.increment
+   * Não precisa ler os documentos antes - usa increment atômico
+   * Recebe estatisticaId diretamente para evitar queries
+   */
+  async atualizarAposPartidaGrupoComIncrement(
+    atualizacoes: Array<{
+      estatisticaId: string;
+      dto: AtualizarEstatisticasPartidaDTO;
+    }>
+  ): Promise<void> {
+    if (atualizacoes.length === 0) return;
+
+    try {
+      const batch = db.batch();
+      const now = Timestamp.now();
+
+      for (const { estatisticaId, dto } of atualizacoes) {
+        const docRef = db.collection(this.collection).doc(estatisticaId);
+
+        // Usar increment para atualizar sem precisar ler primeiro
+        batch.update(docRef, {
+          // Estatísticas de GRUPO
+          jogosGrupo: FieldValue.increment(1),
+          vitoriasGrupo: FieldValue.increment(dto.venceu ? 1 : 0),
+          derrotasGrupo: FieldValue.increment(dto.venceu ? 0 : 1),
+          pontosGrupo: FieldValue.increment(dto.venceu ? 3 : 0),
+          setsVencidosGrupo: FieldValue.increment(dto.setsVencidos),
+          setsPerdidosGrupo: FieldValue.increment(dto.setsPerdidos),
+          saldoSetsGrupo: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
+          gamesVencidosGrupo: FieldValue.increment(dto.gamesVencidos),
+          gamesPerdidosGrupo: FieldValue.increment(dto.gamesPerdidos),
+          saldoGamesGrupo: FieldValue.increment(dto.gamesVencidos - dto.gamesPerdidos),
+          // Estatísticas TOTAIS
+          jogos: FieldValue.increment(1),
+          vitorias: FieldValue.increment(dto.venceu ? 1 : 0),
+          derrotas: FieldValue.increment(dto.venceu ? 0 : 1),
+          setsVencidos: FieldValue.increment(dto.setsVencidos),
+          setsPerdidos: FieldValue.increment(dto.setsPerdidos),
+          saldoSets: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
+          gamesVencidos: FieldValue.increment(dto.gamesVencidos),
+          gamesPerdidos: FieldValue.increment(dto.gamesPerdidos),
+          saldoGames: FieldValue.increment(dto.gamesVencidos - dto.gamesPerdidos),
+          atualizadoEm: now,
+        });
+      }
+
+      await batch.commit();
+    } catch (error) {
+      logger.error(
+        "Erro ao atualizar estatísticas com increment",
+        { quantidade: atualizacoes.length },
+        error as Error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * ✅ SUPER OTIMIZAÇÃO: Reverter estatísticas usando FieldValue.increment negativo
+   */
+  async reverterAposPartidaComIncrement(
+    reversoes: Array<{
+      estatisticaId: string;
+      dto: AtualizarEstatisticasPartidaDTO;
+    }>
+  ): Promise<void> {
+    if (reversoes.length === 0) return;
+
+    try {
+      const batch = db.batch();
+      const now = Timestamp.now();
+
+      for (const { estatisticaId, dto } of reversoes) {
+        const docRef = db.collection(this.collection).doc(estatisticaId);
+
+        // Usar increment negativo para reverter
+        batch.update(docRef, {
+          // Estatísticas de GRUPO
+          jogosGrupo: FieldValue.increment(-1),
+          vitoriasGrupo: FieldValue.increment(dto.venceu ? -1 : 0),
+          derrotasGrupo: FieldValue.increment(dto.venceu ? 0 : -1),
+          pontosGrupo: FieldValue.increment(dto.venceu ? -3 : 0),
+          setsVencidosGrupo: FieldValue.increment(-dto.setsVencidos),
+          setsPerdidosGrupo: FieldValue.increment(-dto.setsPerdidos),
+          saldoSetsGrupo: FieldValue.increment(-(dto.setsVencidos - dto.setsPerdidos)),
+          gamesVencidosGrupo: FieldValue.increment(-dto.gamesVencidos),
+          gamesPerdidosGrupo: FieldValue.increment(-dto.gamesPerdidos),
+          saldoGamesGrupo: FieldValue.increment(-(dto.gamesVencidos - dto.gamesPerdidos)),
+          // Estatísticas TOTAIS
+          jogos: FieldValue.increment(-1),
+          vitorias: FieldValue.increment(dto.venceu ? -1 : 0),
+          derrotas: FieldValue.increment(dto.venceu ? 0 : -1),
+          setsVencidos: FieldValue.increment(-dto.setsVencidos),
+          setsPerdidos: FieldValue.increment(-dto.setsPerdidos),
+          saldoSets: FieldValue.increment(-(dto.setsVencidos - dto.setsPerdidos)),
+          gamesVencidos: FieldValue.increment(-dto.gamesVencidos),
+          gamesPerdidos: FieldValue.increment(-dto.gamesPerdidos),
+          saldoGames: FieldValue.increment(-(dto.gamesVencidos - dto.gamesPerdidos)),
+          atualizadoEm: now,
+        });
+      }
+
+      await batch.commit();
+    } catch (error) {
+      logger.error(
+        "Erro ao reverter estatísticas com increment",
+        { quantidade: reversoes.length },
+        error as Error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Atualizar posição no grupo
    */
   async atualizarPosicaoGrupo(
@@ -1003,12 +1157,6 @@ export class EstatisticasJogadorService {
       await db.collection(this.collection).doc(estatisticas.id).update({
         posicaoGrupo,
         atualizadoEm: Timestamp.now(),
-      });
-
-      logger.info("Posição no grupo atualizada", {
-        jogadorId,
-        etapaId,
-        posicaoGrupo,
       });
     } catch (error) {
       logger.error(

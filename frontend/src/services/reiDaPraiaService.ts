@@ -11,6 +11,8 @@ import {
   ResultadoChavesReiDaPraia,
   ResultadoEliminatoriaReiDaPraia,
   TipoChaveamentoReiDaPraia,
+  ResultadoPartidaLoteSuperXDTO,
+  RegistrarResultadosEmLoteSuperXResponse,
 } from "../types/reiDaPraia";
 import { Grupo } from "../types/chave";
 import { IReiDaPraiaService } from "./interfaces/IReiDaPraiaService";
@@ -134,49 +136,6 @@ class ReiDaPraiaService implements IReiDaPraiaService {
       const appError = handleError(
         error,
         "ReiDaPraiaService.buscarJogadoresDoGrupo"
-      );
-      throw new Error(appError.message);
-    }
-  }
-
-  // ============================================
-  // REGISTRAR RESULTADOS (FASE DE GRUPOS)
-  // ============================================
-
-  /**
-   * Registrar resultado de partida Rei da Praia (1 SET)
-   *
-   * PUT /api/partidas/rei-da-praia/:partidaId/resultado
-   */
-  async registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: Array<{
-      numero: number;
-      gamesDupla1: number;
-      gamesDupla2: number;
-    }>
-  ): Promise<void> {
-    try {
-      // Validar que é apenas 1 set
-      if (placar.length !== 1) {
-        throw new Error("Partida Rei da Praia deve ter apenas 1 set");
-      }
-
-      await apiClient.post(
-        `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/partidas/${partidaId}/resultado`,
-        { placar }
-      );
-
-      logger.info("Resultado Rei da Praia registrado", {
-        etapaId,
-        partidaId,
-        placar: `${placar[0].gamesDupla1}-${placar[0].gamesDupla2}`,
-      });
-    } catch (error) {
-      const appError = handleError(
-        error,
-        "ReiDaPraiaService.registrarResultado"
       );
       throw new Error(appError.message);
     }
@@ -381,6 +340,42 @@ class ReiDaPraiaService implements IReiDaPraiaService {
       const appError = handleError(
         error,
         "ReiDaPraiaService.cancelarEliminatoria"
+      );
+      throw new Error(appError.message);
+    }
+  }
+
+  // ============================================
+  // REGISTRO DE RESULTADOS EM LOTE
+  // ============================================
+
+  /**
+   * Registrar múltiplos resultados de partidas Rei da Praia em uma única chamada
+   *
+   * POST /api/etapas/:etapaId/rei-da-praia/resultados-lote
+   */
+  async registrarResultadosEmLote(
+    etapaId: string,
+    resultados: ResultadoPartidaLoteSuperXDTO[]
+  ): Promise<RegistrarResultadosEmLoteSuperXResponse> {
+    try {
+      const response =
+        await apiClient.post<RegistrarResultadosEmLoteSuperXResponse>(
+          `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/resultados-lote`,
+          { resultados }
+        );
+
+      logger.info("Resultados Rei da Praia registrados em lote", {
+        etapaId,
+        processados: response.processados,
+        erros: response.erros?.length || 0,
+      });
+
+      return response;
+    } catch (error) {
+      const appError = handleError(
+        error,
+        "ReiDaPraiaService.registrarResultadosEmLote"
       );
       throw new Error(appError.message);
     }
