@@ -49,11 +49,9 @@ const DetalhesEtapa: React.FC = () => {
     isSuperX,
     isTeams,
     progresso,
-    todasPartidasFinalizadas,
     carregarEtapa,
     handleAbrirInscricoes,
     handleEncerrarInscricoes,
-    handleFinalizarEtapa,
     handleCancelarInscricao,
     handleCancelarMultiplosInscricoes,
     handleGerarChaves,
@@ -196,18 +194,6 @@ const DetalhesEtapa: React.FC = () => {
     }
   };
 
-  // Wrapper para handleFinalizarEtapa com loading global
-  const handleFinalizarEtapaWithLoading = async () => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Finalizando etapa...");
-      await handleFinalizarEtapa();
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
-
   // Renderização principal
   return (
     <>
@@ -235,12 +221,10 @@ const DetalhesEtapa: React.FC = () => {
           isReiDaPraia={isReiDaPraia}
           isSuperX={isSuperX}
           isTeams={isTeams}
-          todasPartidasFinalizadas={todasPartidasFinalizadas}
           onAbrirInscricoes={handleAbrirInscricoesWithLoading}
           onEncerrarInscricoes={handleEncerrarInscricoesWithLoading}
           onGerarChaves={handleGerarChavesWithLoading}
           onApagarChaves={() => setModalConfirmacaoAberto(true)}
-          onFinalizarEtapa={handleFinalizarEtapaWithLoading}
           onVerChaves={() => {
             setAbaAtiva("chaves");
             setTimeout(() => {

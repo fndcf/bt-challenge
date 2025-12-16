@@ -11,12 +11,10 @@ interface ActionsSectionProps {
   isReiDaPraia: boolean;
   isSuperX?: boolean;
   isTeams?: boolean;
-  todasPartidasFinalizadas?: boolean;
   onAbrirInscricoes: () => Promise<void>;
   onEncerrarInscricoes: () => Promise<void>;
   onGerarChaves: () => Promise<void>;
   onApagarChaves: () => void;
-  onFinalizarEtapa: () => Promise<void>;
   onVerChaves: () => void;
 }
 
@@ -25,12 +23,10 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   isReiDaPraia,
   isSuperX = false,
   isTeams = false,
-  todasPartidasFinalizadas = false,
   onAbrirInscricoes,
   onEncerrarInscricoes,
   onGerarChaves,
   onApagarChaves,
-  onFinalizarEtapa,
   onVerChaves,
 }) => {
   const inscricoesAbertas = etapa.status === StatusEtapa.INSCRICOES_ABERTAS;
@@ -97,20 +93,6 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
             <span>{isTeams ? "Apagar Equipes" : "Apagar Chaves"}</span>
           </S.Button>
         )}
-
-        {/* Finalizar etapa - para Super X e TEAMS, após todas as partidas/confrontos serem finalizados */}
-        {etapa.chavesGeradas &&
-          (isSuperX || isTeams) &&
-          (etapa.status === StatusEtapa.EM_ANDAMENTO ||
-            etapa.status === StatusEtapa.CHAVES_GERADAS) &&
-          todasPartidasFinalizadas && (
-            <S.Button
-              $variant="green"
-              onClick={onFinalizarEtapa}
-            >
-              <span>Finalizar Etapa</span>
-            </S.Button>
-          )}
       </S.ActionsGrid>
 
       {/* Alertas */}
@@ -203,19 +185,6 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
           </p>
         </S.Alert>
       )}
-
-      {/* Alerta: finalizar todas as partidas antes de encerrar - para Super X e TEAMS */}
-      {etapa.chavesGeradas &&
-        (isSuperX || isTeams) &&
-        !todasPartidasFinalizadas &&
-        etapa.status !== StatusEtapa.FINALIZADA && (
-          <S.Alert $variant="blue">
-            <p>
-              <strong>Aguardando resultados:</strong> Para finalizar a etapa,
-              registre o resultado de {isTeams ? "todos os confrontos" : "todas as partidas"} primeiro.
-            </p>
-          </S.Alert>
-        )}
     </S.ActionsSection>
   );
 };
