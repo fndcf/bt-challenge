@@ -1973,12 +1973,13 @@ export class TeamsService {
       return this.criarPartidasVazias(confronto, etapa, variante, isMisto);
     }
 
-    const equipe1 = await this.equipeRepository.buscarPorId(
-      confronto.equipe1Id
-    );
-    const equipe2 = await this.equipeRepository.buscarPorId(
-      confronto.equipe2Id
-    );
+    // ✅ OTIMIZAÇÃO: Buscar ambas equipes em paralelo
+    const equipes = await this.equipeRepository.buscarPorIds([
+      confronto.equipe1Id,
+      confronto.equipe2Id,
+    ]);
+    const equipe1 = equipes.find((e) => e.id === confronto.equipe1Id);
+    const equipe2 = equipes.find((e) => e.id === confronto.equipe2Id);
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -2620,12 +2621,13 @@ export class TeamsService {
     variante: VarianteTeams,
     isMisto: boolean
   ): Promise<PartidaTeams[]> {
-    const equipe1 = await this.equipeRepository.buscarPorId(
-      confronto.equipe1Id!
-    );
-    const equipe2 = await this.equipeRepository.buscarPorId(
-      confronto.equipe2Id!
-    );
+    // ✅ OTIMIZAÇÃO: Buscar ambas equipes em paralelo
+    const equipes = await this.equipeRepository.buscarPorIds([
+      confronto.equipe1Id!,
+      confronto.equipe2Id!,
+    ]);
+    const equipe1 = equipes.find((e) => e.id === confronto.equipe1Id);
+    const equipe2 = equipes.find((e) => e.id === confronto.equipe2Id);
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");

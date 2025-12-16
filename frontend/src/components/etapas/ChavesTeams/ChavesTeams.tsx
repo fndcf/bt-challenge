@@ -878,13 +878,33 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
     }
   };
 
-  const handleExpandirConfronto = async (confrontoId: string) => {
+  const handleExpandirConfronto = async (confrontoId: string, confronto?: ConfrontoEquipe) => {
     if (confrontoExpandido === confrontoId) {
       setConfrontoExpandido(null);
       return;
     }
 
     try {
+      // Verificar se o confronto tem partidas geradas
+      const temPartidasGeradas = confronto?.partidas && confronto.partidas.length > 0;
+
+      // Se não tem partidas, gerar automaticamente
+      if (confronto && !temPartidasGeradas) {
+        setGlobalLoading(true);
+        setGlobalLoadingMessage("Gerando partidas...");
+        await teamsService.gerarPartidasConfronto(etapaId, confrontoId);
+
+        // Limpar cache e recarregar dados
+        setPartidasConfronto((prev) => {
+          const novo = new Map(prev);
+          novo.delete(confrontoId);
+          return novo;
+        });
+        await carregarDados(true);
+        setGlobalLoading(false);
+        setGlobalLoadingMessage("");
+      }
+
       // Buscar partidas do confronto se não estiverem em cache
       if (!partidasConfronto.has(confrontoId)) {
         const partidas = await teamsService.buscarPartidasConfronto(etapaId, confrontoId);
@@ -892,28 +912,9 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       }
       setConfrontoExpandido(confrontoId);
     } catch (err: any) {
-      alert(err.message || "Erro ao carregar partidas");
-    }
-  };
-
-  const handleGerarPartidas = async (confrontoId: string) => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Gerando partidas...");
-      await teamsService.gerarPartidasConfronto(etapaId, confrontoId);
-
-      // Limpar cache e recarregar
-      setPartidasConfronto((prev) => {
-        const novo = new Map(prev);
-        novo.delete(confrontoId);
-        return novo;
-      });
-      await carregarDados(true);
-    } catch (err: any) {
-      alert(err.message || "Erro ao gerar partidas");
-    } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
+      alert(err.message || "Erro ao carregar partidas");
     }
   };
 
@@ -941,6 +942,31 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   const handleAbrirModalResultados = async (confronto: ConfrontoEquipe) => {
     try {
       setGlobalLoading(true);
+
+      // Verificar se o confronto tem partidas geradas
+      const temPartidasGeradas = confronto.partidas && confronto.partidas.length > 0;
+
+      // Se não tem partidas, gerar automaticamente antes de abrir o modal
+      if (!temPartidasGeradas) {
+        setGlobalLoadingMessage("Gerando partidas...");
+        await teamsService.gerarPartidasConfronto(etapaId, confronto.id);
+
+        // Limpar cache e recarregar dados para atualizar o confronto
+        setPartidasConfronto((prev) => {
+          const novo = new Map(prev);
+          novo.delete(confronto.id);
+          return novo;
+        });
+        await carregarDados(true);
+
+        // Buscar o confronto atualizado
+        const confrontosAtualizados = await teamsService.buscarConfrontos(etapaId);
+        const confrontoAtualizado = confrontosAtualizados.find((c) => c.id === confronto.id);
+        if (confrontoAtualizado) {
+          confronto = confrontoAtualizado;
+        }
+      }
+
       setGlobalLoadingMessage("Carregando partidas...");
 
       let partidas = partidasConfronto.get(confronto.id);
@@ -1171,7 +1197,6 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
     const isExpanded = confrontoExpandido === confronto.id;
     const isEquipe1Winner = confronto.vencedoraId === confronto.equipe1Id;
     const isEquipe2Winner = confronto.vencedoraId === confronto.equipe2Id;
-    const temPartidasGeradas = confronto.partidas && confronto.partidas.length > 0;
     const equipesDefinidas = !!confronto.equipe1Id && !!confronto.equipe2Id;
     const precisaDecider =
       varianteTeams === VarianteTeams.TEAMS_4 &&
@@ -1203,19 +1228,12 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
             {!etapaFinalizada && equipesDefinidas && (
               <>
-                {!temPartidasGeradas && confronto.status !== StatusConfronto.FINALIZADO && (
-                  <ActionButton $variant="primary" onClick={() => handleGerarPartidas(confronto.id)}>
-                    Gerar Partidas
-                  </ActionButton>
-                )}
-                {temPartidasGeradas && (
-                  <ActionButton
-                    $variant={confronto.status === StatusConfronto.FINALIZADO ? "secondary" : "primary"}
-                    onClick={() => handleAbrirModalResultados(confronto)}
-                  >
-                    {confronto.status === StatusConfronto.FINALIZADO ? "Editar" : "Resultados"}
-                  </ActionButton>
-                )}
+                <ActionButton
+                  $variant={confronto.status === StatusConfronto.FINALIZADO ? "secondary" : "primary"}
+                  onClick={() => handleAbrirModalResultados(confronto)}
+                >
+                  {confronto.status === StatusConfronto.FINALIZADO ? "Editar" : "Resultados"}
+                </ActionButton>
                 {precisaDecider && (
                   <ActionButton $variant="warning" onClick={() => handleGerarDecider(confronto.id)}>
                     Gerar Decider
@@ -1224,8 +1242,8 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
               </>
             )}
 
-            {temPartidasGeradas && (
-              <ActionButton onClick={() => handleExpandirConfronto(confronto.id)}>
+            {equipesDefinidas && (
+              <ActionButton onClick={() => handleExpandirConfronto(confronto.id, confronto)}>
                 {isExpanded ? "Ocultar" : "Ver Partidas"}
               </ActionButton>
             )}

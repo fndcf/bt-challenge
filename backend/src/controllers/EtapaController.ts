@@ -1667,17 +1667,17 @@ class EtapaController extends BaseController {
 
       logger.info("Gerando partidas do confronto TEAMS", { confrontoId });
 
-      const etapa = await etapaService.buscarPorId(id, arenaId);
+      // ✅ OTIMIZAÇÃO: Buscar etapa e confronto em paralelo
+      const { db } = await import("../config/firebase");
+      const [etapa, confrontoDoc] = await Promise.all([
+        etapaService.buscarPorId(id, arenaId),
+        db.collection("confrontos_equipe").doc(confrontoId).get(),
+      ]);
+
       if (!etapa) {
         ResponseHelper.notFound(res, "Etapa não encontrada");
         return;
       }
-
-      const { db } = await import("../config/firebase");
-      const confrontoDoc = await db
-        .collection("confrontos_equipe")
-        .doc(confrontoId)
-        .get();
 
       if (!confrontoDoc.exists) {
         ResponseHelper.notFound(res, "Confronto não encontrado");
