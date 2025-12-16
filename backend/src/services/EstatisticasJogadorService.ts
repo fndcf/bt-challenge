@@ -1214,6 +1214,57 @@ export class EstatisticasJogadorService {
   }
 
   /**
+   * Marcar múltiplos jogadores como classificados em lote (otimizado)
+   */
+  async marcarComoClassificadoEmLote(
+    jogadores: Array<{ jogadorId: string; etapaId: string }>,
+    classificado: boolean
+  ): Promise<void> {
+    if (jogadores.length === 0) return;
+
+    try {
+      // Buscar todas as estatísticas em paralelo
+      const estatisticasPromises = jogadores.map((j) =>
+        this.buscarPorJogadorEtapa(j.jogadorId, j.etapaId)
+      );
+      const estatisticas = await Promise.all(estatisticasPromises);
+
+      // Filtrar estatísticas válidas
+      const estatisticasValidas = estatisticas.filter(
+        (e): e is EstatisticasJogador => e !== null
+      );
+
+      if (estatisticasValidas.length === 0) {
+        logger.warn("Nenhuma estatística encontrada para marcar classificados", {
+          total: jogadores.length,
+        });
+        return;
+      }
+
+      // Atualizar todas em paralelo
+      const updatePromises = estatisticasValidas.map((e) =>
+        db.collection(this.collection).doc(e.id).update({
+          classificado,
+          atualizadoEm: Timestamp.now(),
+        })
+      );
+      await Promise.all(updatePromises);
+
+      logger.info("Jogadores marcados como classificados em lote", {
+        total: estatisticasValidas.length,
+        classificado,
+      });
+    } catch (error) {
+      logger.error(
+        "Erro ao marcar classificados em lote",
+        { total: jogadores.length },
+        error as Error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Buscar histórico de um jogador (todas as etapas)
    */
   async buscarHistoricoJogador(

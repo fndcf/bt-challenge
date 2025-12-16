@@ -515,58 +515,6 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * Atualizar estatísticas dos 4 jogadores após resultado
-   */
-  private async atualizarEstatisticasJogadores(
-    partida: PartidaReiDaPraia,
-    vencedoresIds: string[],
-    setsDupla1: number,
-    setsDupla2: number,
-    gamesDupla1: number,
-    gamesDupla2: number
-  ): Promise<void> {
-    const jogadoresIds = [
-      partida.jogador1AId,
-      partida.jogador1BId,
-      partida.jogador2AId,
-      partida.jogador2BId,
-    ];
-
-    for (const jogadorId of jogadoresIds) {
-      const venceu = vencedoresIds.includes(jogadorId);
-      const naDupla1 = [partida.jogador1AId, partida.jogador1BId].includes(
-        jogadorId
-      );
-
-      if (partida.fase === FaseEtapa.GRUPOS) {
-        await estatisticasJogadorService.atualizarAposPartidaGrupo(
-          jogadorId,
-          partida.etapaId,
-          {
-            venceu,
-            setsVencidos: naDupla1 ? setsDupla1 : setsDupla2,
-            setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
-            gamesVencidos: naDupla1 ? gamesDupla1 : gamesDupla2,
-            gamesPerdidos: naDupla1 ? gamesDupla2 : gamesDupla1,
-          }
-        );
-      } else {
-        await estatisticasJogadorService.atualizarAposPartida(
-          jogadorId,
-          partida.etapaId,
-          {
-            venceu,
-            setsVencidos: naDupla1 ? setsDupla1 : setsDupla2,
-            setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
-            gamesVencidos: naDupla1 ? gamesDupla1 : gamesDupla2,
-            gamesPerdidos: naDupla1 ? gamesDupla2 : gamesDupla1,
-          }
-        );
-      }
-    }
-  }
-
-  /**
    * Registrar múltiplos resultados de partidas Rei da Praia em lote
    */
   async registrarResultadosEmLote(
@@ -596,13 +544,28 @@ export class ReiDaPraiaService {
       const partidas = await Promise.all(partidasPromises);
       tempos["1_buscarPartidas"] = Date.now() - inicio;
 
-      // 2. Verificar se eliminatória já foi gerada
+      // 2. Coletar todos os jogadorIds únicos e buscar estatísticas
       inicio = Date.now();
-      const confrontos = await this.confrontoRepository.buscarPorEtapa(etapaId, arenaId);
-      const eliminatoriaGerada = confrontos.length > 0;
-      tempos["2_verificarEliminatoria"] = Date.now() - inicio;
+      const jogadorIdsSet = new Set<string>();
+      for (const partida of partidas) {
+        if (partida) {
+          jogadorIdsSet.add(partida.jogador1AId);
+          jogadorIdsSet.add(partida.jogador1BId);
+          jogadorIdsSet.add(partida.jogador2AId);
+          jogadorIdsSet.add(partida.jogador2BId);
+        }
+      }
+      const jogadorIds = Array.from(jogadorIdsSet);
 
-      // 3. Processar cada resultado - OTIMIZADO: paralelo
+      // Buscar estatísticas e verificar eliminatória em paralelo
+      const [estatisticasMap, confrontos] = await Promise.all([
+        estatisticasJogadorService.buscarPorJogadoresEtapa(jogadorIds, etapaId),
+        this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
+      ]);
+      const eliminatoriaGerada = confrontos.length > 0;
+      tempos["2_buscarEstatisticasEVerificar"] = Date.now() - inicio;
+
+      // 3. Processar cada resultado - OTIMIZADO com FieldValue.increment
       inicio = Date.now();
       const gruposParaRecalcular = new Set<string>();
 
@@ -644,16 +607,16 @@ export class ReiDaPraiaService {
         }
       }
 
-      // 3.2 Reverter estatísticas de edições em paralelo
+      // 3.2 Reverter estatísticas de edições usando increment negativo
       const reversoes = resultadosValidos
         .filter(r => r.isEdicao && r.partida.placar && r.partida.placar.length > 0)
-        .map(r => this.reverterEstatisticasJogadores(r.partida));
+        .map(r => this.reverterEstatisticasComMap(r.partida, estatisticasMap));
 
       if (reversoes.length > 0) {
         await Promise.all(reversoes);
       }
 
-      // 3.3 Aplicar novos resultados em paralelo
+      // 3.3 Aplicar novos resultados em PARALELO usando FieldValue.increment (atômico)
       const aplicacoes = resultadosValidos.map(async ({ resultado, partida }) => {
         try {
           const set = resultado.placar[0];
@@ -670,6 +633,27 @@ export class ReiDaPraiaService {
             ? `${partida.jogador1ANome} & ${partida.jogador1BNome}`
             : `${partida.jogador2ANome} & ${partida.jogador2BNome}`;
 
+          // Preparar atualizações de estatísticas com increment atômico
+          const atualizacoes = [
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
+              dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+            },
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
+              dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+            },
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
+              dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+            },
+            {
+              estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
+              dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+            },
+          ].filter(a => a.estatisticaId);
+
+          // Registrar resultado e atualizar estatísticas em paralelo
           await Promise.all([
             this.partidaReiDaPraiaRepository.registrarResultado(resultado.partidaId, {
               setsDupla1,
@@ -680,14 +664,7 @@ export class ReiDaPraiaService {
               vencedoresNomes,
               vencedorDupla: vencedorDupla as 1 | 2,
             }),
-            this.atualizarEstatisticasJogadores(
-              partida,
-              vencedores,
-              setsDupla1,
-              setsDupla2,
-              set.gamesDupla1,
-              set.gamesDupla2
-            ),
+            estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(atualizacoes),
           ]);
 
           return { success: true, partidaId: resultado.partidaId };
@@ -750,10 +727,12 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * Reverter estatísticas dos 4 jogadores (usado em edição de resultado)
+   * Reverter estatísticas usando map de estatísticas já carregado (otimizado)
+   * Usa FieldValue.increment negativo para atomicidade
    */
-  private async reverterEstatisticasJogadores(
-    partida: PartidaReiDaPraia
+  private async reverterEstatisticasComMap(
+    partida: PartidaReiDaPraia,
+    estatisticasMap: Map<string, { id: string }>
   ): Promise<void> {
     if (!partida.vencedores || !partida.placar || partida.placar.length === 0) {
       return;
@@ -764,44 +743,55 @@ export class ReiDaPraiaService {
     const setsDupla1 = dupla1Venceu ? 1 : 0;
     const setsDupla2 = dupla1Venceu ? 0 : 1;
 
-    const jogadoresIds = [
-      partida.jogador1AId,
-      partida.jogador1BId,
-      partida.jogador2AId,
-      partida.jogador2BId,
-    ];
+    // Preparar reversões para todos os 4 jogadores
+    const reversoes = [
+      {
+        jogadorId: partida.jogador1AId,
+        venceu: dupla1Venceu,
+        setsVencidos: setsDupla1,
+        setsPerdidos: setsDupla2,
+        gamesVencidos: set.gamesDupla1,
+        gamesPerdidos: set.gamesDupla2,
+      },
+      {
+        jogadorId: partida.jogador1BId,
+        venceu: dupla1Venceu,
+        setsVencidos: setsDupla1,
+        setsPerdidos: setsDupla2,
+        gamesVencidos: set.gamesDupla1,
+        gamesPerdidos: set.gamesDupla2,
+      },
+      {
+        jogadorId: partida.jogador2AId,
+        venceu: !dupla1Venceu,
+        setsVencidos: setsDupla2,
+        setsPerdidos: setsDupla1,
+        gamesVencidos: set.gamesDupla2,
+        gamesPerdidos: set.gamesDupla1,
+      },
+      {
+        jogadorId: partida.jogador2BId,
+        venceu: !dupla1Venceu,
+        setsVencidos: setsDupla2,
+        setsPerdidos: setsDupla1,
+        gamesVencidos: set.gamesDupla2,
+        gamesPerdidos: set.gamesDupla1,
+      },
+    ]
+      .map((r) => ({
+        estatisticaId: estatisticasMap.get(r.jogadorId)?.id || "",
+        dto: {
+          venceu: r.venceu,
+          setsVencidos: r.setsVencidos,
+          setsPerdidos: r.setsPerdidos,
+          gamesVencidos: r.gamesVencidos,
+          gamesPerdidos: r.gamesPerdidos,
+        },
+      }))
+      .filter((r) => r.estatisticaId);
 
-    for (const jogadorId of jogadoresIds) {
-      const venceu = partida.vencedores.includes(jogadorId);
-      const naDupla1 = [partida.jogador1AId, partida.jogador1BId].includes(
-        jogadorId
-      );
-
-      if (partida.fase === FaseEtapa.GRUPOS) {
-        await estatisticasJogadorService.reverterAposPartidaGrupo(
-          jogadorId,
-          partida.etapaId,
-          {
-            venceu,
-            setsVencidos: naDupla1 ? setsDupla1 : setsDupla2,
-            setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
-            gamesVencidos: naDupla1 ? set.gamesDupla1 : set.gamesDupla2,
-            gamesPerdidos: naDupla1 ? set.gamesDupla2 : set.gamesDupla1,
-          }
-        );
-      } else {
-        await estatisticasJogadorService.reverterAposPartida(
-          jogadorId,
-          partida.etapaId,
-          {
-            venceu,
-            setsVencidos: naDupla1 ? setsDupla1 : setsDupla2,
-            setsPerdidos: naDupla1 ? setsDupla2 : setsDupla1,
-            gamesVencidos: naDupla1 ? set.gamesDupla1 : set.gamesDupla2,
-            gamesPerdidos: naDupla1 ? set.gamesDupla2 : set.gamesDupla1,
-          }
-        );
-      }
+    if (reversoes.length > 0) {
+      await estatisticasJogadorService.reverterAposPartidaComIncrement(reversoes);
     }
   }
 
@@ -895,12 +885,17 @@ export class ReiDaPraiaService {
     duplas: Dupla[];
     confrontos: ConfrontoEliminatorio[];
   }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
     try {
-      // Buscar grupos completos via repository
+      // 1. Buscar grupos completos via repository
       const grupos = await this.grupoRepository.buscarCompletos(
         etapaId,
         arenaId
       );
+      tempos["1_buscarGruposCompletos"] = Date.now() - inicio;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo completo encontrado");
@@ -912,6 +907,8 @@ export class ReiDaPraiaService {
         );
       }
 
+      // 2. Buscar classificados de cada grupo
+      inicio = Date.now();
       const todosClassificados: EstatisticasJogador[] = [];
 
       for (const grupo of grupos) {
@@ -932,17 +929,22 @@ export class ReiDaPraiaService {
           ...(classificados as unknown as EstatisticasJogador[])
         );
       }
+      tempos["2_buscarClassificados"] = Date.now() - inicio;
 
-      // Marcar jogadores como classificados
-      for (const jogador of todosClassificados) {
-        await estatisticasJogadorService.marcarComoClassificado(
-          jogador.jogadorId,
-          etapaId,
-          true
-        );
-      }
+      // 3. Marcar jogadores como classificados (em lote - otimizado)
+      inicio = Date.now();
+      const jogadoresParaMarcar = todosClassificados.map((j) => ({
+        jogadorId: j.jogadorId,
+        etapaId,
+      }));
+      await estatisticasJogadorService.marcarComoClassificadoEmLote(
+        jogadoresParaMarcar,
+        true
+      );
+      tempos["3_marcarClassificados"] = Date.now() - inicio;
 
-      // Formar duplas fixas baseado no tipo de chaveamento
+      // 4. Formar duplas fixas baseado no tipo de chaveamento
+      inicio = Date.now();
       let duplas: Dupla[];
 
       switch (tipoChaveamento) {
@@ -977,28 +979,34 @@ export class ReiDaPraiaService {
         default:
           throw new Error(`Tipo de chaveamento inválido: ${tipoChaveamento}`);
       }
+      tempos["4_formarDuplas"] = Date.now() - inicio;
 
-      // Gerar confrontos eliminatórios
+      // 5. Gerar confrontos eliminatórios
+      inicio = Date.now();
       const confrontos = await this.gerarConfrontosEliminatorios(
         etapaId,
         arenaId,
         duplas
       );
+      tempos["5_gerarConfrontos"] = Date.now() - inicio;
 
-      // Atualizar status da etapa via repository
+      // 6. Atualizar status da etapa via repository
+      inicio = Date.now();
       await this.etapaRepository.atualizarStatus(
         etapaId,
         StatusEtapa.FASE_ELIMINATORIA
       );
+      tempos["6_atualizarStatusEtapa"] = Date.now() - inicio;
 
-      logger.info("Fase eliminatória Rei da Praia gerada", {
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS gerarFaseEliminatoria (Rei da Praia)", {
         etapaId,
-        arenaId,
-        tipoChaveamento,
         totalGrupos: grupos.length,
         totalClassificados: todosClassificados.length,
         totalDuplas: duplas.length,
         totalConfrontos: confrontos.length,
+        tempos,
       });
 
       return { duplas, confrontos };
@@ -1060,7 +1068,13 @@ export class ReiDaPraiaService {
     primeiros.sort(ordenar);
     segundos.sort(ordenar);
 
-    const duplas: Dupla[] = [];
+    // Coletar todos os pares primeiro (sem criar no banco)
+    const paresParaCriar: Array<{
+      jogador1: EstatisticasJogador;
+      jogador2: EstatisticasJogador;
+      ordem: number;
+    }> = [];
+
     const primeirosUsados = new Set<number>();
     const segundosUsados = new Set<number>();
 
@@ -1068,17 +1082,11 @@ export class ReiDaPraiaService {
     const numParesFortes = Math.floor(totalGrupos / 2);
 
     for (let i = 0; i < numParesFortes * 2; i += 2) {
-      const jogador1 = primeiros[i];
-      const jogador2 = primeiros[i + 1];
-
-      const dupla = await this.criarDupla(
-        etapaId,
-        arenaId,
-        jogador1,
-        jogador2,
-        duplas.length + 1
-      );
-      duplas.push(dupla);
+      paresParaCriar.push({
+        jogador1: primeiros[i],
+        jogador2: primeiros[i + 1],
+        ordem: paresParaCriar.length + 1,
+      });
       primeirosUsados.add(i);
       primeirosUsados.add(i + 1);
     }
@@ -1097,14 +1105,11 @@ export class ReiDaPraiaService {
       const jogador1 = primeirosRestantes[i];
       const jogador2 = segundosRestantes[i];
 
-      const dupla = await this.criarDupla(
-        etapaId,
-        arenaId,
+      paresParaCriar.push({
         jogador1,
         jogador2,
-        duplas.length + 1
-      );
-      duplas.push(dupla);
+        ordem: paresParaCriar.length + 1,
+      });
 
       const index1 = primeiros.findIndex(
         (p) => p.jogadorId === jogador1.jogadorId
@@ -1123,25 +1128,26 @@ export class ReiDaPraiaService {
 
     for (let i = 0; i < segundosRestantes2.length; i += 2) {
       if (i + 1 < segundosRestantes2.length) {
-        const jogador1 = segundosRestantes2[i];
-        const jogador2 = segundosRestantes2[i + 1];
-
-        const dupla = await this.criarDupla(
-          etapaId,
-          arenaId,
-          jogador1,
-          jogador2,
-          duplas.length + 1
-        );
-        duplas.push(dupla);
+        paresParaCriar.push({
+          jogador1: segundosRestantes2[i],
+          jogador2: segundosRestantes2[i + 1],
+          ordem: paresParaCriar.length + 1,
+        });
       }
     }
 
-    if (duplas.length !== totalGrupos) {
+    if (paresParaCriar.length !== totalGrupos) {
       throw new Error(
-        `Erro: formou ${duplas.length} duplas para ${totalGrupos} grupos!`
+        `Erro: formou ${paresParaCriar.length} duplas para ${totalGrupos} grupos!`
       );
     }
+
+    // Criar todas as duplas em paralelo (otimizado)
+    const duplas = await Promise.all(
+      paresParaCriar.map((par) =>
+        this.criarDupla(etapaId, arenaId, par.jogador1, par.jogador2, par.ordem)
+      )
+    );
 
     return duplas;
   }
@@ -1206,22 +1212,22 @@ export class ReiDaPraiaService {
     primeiros.sort(ordenar);
     segundos.sort(ordenar);
 
-    const duplas: Dupla[] = [];
-
+    // Coletar todos os pares primeiro
+    const paresParaCriar = [];
     for (let i = 0; i < totalGrupos; i++) {
-      const jogador1 = primeiros[i];
-      const jogador2 = segundos[i];
-
-      const dupla = await this.criarDupla(
-        etapaId,
-        arenaId,
-        jogador1,
-        jogador2,
-        i + 1
-      );
-
-      duplas.push(dupla);
+      paresParaCriar.push({
+        jogador1: primeiros[i],
+        jogador2: segundos[i],
+        ordem: i + 1,
+      });
     }
+
+    // Criar todas as duplas em paralelo (otimizado)
+    const duplas = await Promise.all(
+      paresParaCriar.map((par) =>
+        this.criarDupla(etapaId, arenaId, par.jogador1, par.jogador2, par.ordem)
+      )
+    );
 
     return duplas;
   }
@@ -1235,11 +1241,16 @@ export class ReiDaPraiaService {
     classificados: EstatisticasJogador[]
   ): Promise<Dupla[]> {
     const jogadoresDisponiveis = embaralhar([...classificados]);
-    const duplas: Dupla[] = [];
+    const paresParaCriar: Array<{
+      jogador1: EstatisticasJogador;
+      jogador2: EstatisticasJogador;
+      ordem: number;
+    }> = [];
     const usados = new Set<string>();
 
     let tentativas = 0;
     const maxTentativas = 1000;
+    let ordemAtual = 1;
 
     while (jogadoresDisponiveis.length > 0 && tentativas < maxTentativas) {
       tentativas++;
@@ -1272,15 +1283,12 @@ export class ReiDaPraiaService {
 
       const jogador2 = jogadoresDisponiveis[jogador2Index];
 
-      const dupla = await this.criarDupla(
-        etapaId,
-        arenaId,
+      // Coletar par para criar depois
+      paresParaCriar.push({
         jogador1,
         jogador2,
-        duplas.length + 1
-      );
-
-      duplas.push(dupla);
+        ordem: ordemAtual++,
+      });
 
       usados.add(jogador1.jogadorId);
       usados.add(jogador2.jogadorId);
@@ -1292,6 +1300,13 @@ export class ReiDaPraiaService {
     if (tentativas >= maxTentativas) {
       throw new Error("Não foi possível formar duplas sem repetir grupos");
     }
+
+    // Criar todas as duplas em paralelo (otimizado)
+    const duplas = await Promise.all(
+      paresParaCriar.map((par) =>
+        this.criarDupla(etapaId, arenaId, par.jogador1, par.jogador2, par.ordem)
+      )
+    );
 
     return duplas;
   }
@@ -1332,15 +1347,13 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * Gerar confrontos eliminatórios via repository
+   * Gerar confrontos eliminatórios via repository (otimizado com Promise.all)
    */
   private async gerarConfrontosEliminatorios(
     etapaId: string,
     arenaId: string,
     duplas: Dupla[]
   ): Promise<ConfrontoEliminatorio[]> {
-    const confrontos: ConfrontoEliminatorio[] = [];
-
     const totalDuplas = duplas.length;
     const proximaPotencia = Math.pow(2, Math.ceil(Math.log2(totalDuplas)));
     const byes = proximaPotencia - totalDuplas;
@@ -1361,6 +1374,17 @@ export class ReiDaPraiaService {
      * - FINAL: Forte vs Forte ✅
      */
 
+    // FASE 1: Coletar dados de todos os confrontos a criar
+    type ConfrontoParaCriar = {
+      tipo: "bye" | "jogo";
+      ordem: number;
+      dupla1: Dupla;
+      dupla1Index: number;
+      dupla2?: Dupla;
+      dupla2Index?: number;
+    };
+
+    const confrontosParaCriar: ConfrontoParaCriar[] = [];
     let ordem = 1;
     let byeIndex = 0;
     let jogoIndex = 0;
@@ -1371,40 +1395,16 @@ export class ReiDaPraiaService {
       const posicaoImpar = i % 2 === 0; // Q1, Q3, Q5, Q7 (0, 2, 4, 6)
 
       if (posicaoImpar && byeIndex < byes) {
-        // Posição ímpar + ainda tem BYE → Criar BYE para dupla forte
-        const dupla = duplas[byeIndex];
-
-        const confronto = await this.confrontoRepository.criar({
-          etapaId,
-          arenaId,
-          fase: determinarTipoFase(totalDuplas),
+        // BYE para dupla forte
+        confrontosParaCriar.push({
+          tipo: "bye",
           ordem: ordem++,
-          dupla1Id: dupla.id,
-          dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-          dupla1Origem: `Dupla ${byeIndex + 1}`,
+          dupla1: duplas[byeIndex],
+          dupla1Index: byeIndex,
         });
-
-        // Registrar como BYE (dupla passa direto)
-        await this.confrontoRepository.registrarResultado(confronto.id, {
-          status: StatusConfrontoEliminatorio.BYE,
-          vencedoraId: dupla.id,
-          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        });
-
-        confrontos.push({
-          ...confronto,
-          status: StatusConfrontoEliminatorio.BYE,
-          vencedoraId: dupla.id,
-          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        });
-
         byeIndex++;
       } else if (jogoIndex < confrontosReais) {
-        // Posição par OU não tem mais BYE → Criar jogo real
-
-        // Estratégia de pareamento:
-        // - Pegar duplas das extremidades do array restante (após os BYEs)
-        // - Isso coloca duplas mais fracas jogando entre si
+        // Jogo real
         const duplasRestantes = totalDuplas - byes;
         const metadeRestantes = Math.floor(duplasRestantes / 2);
 
@@ -1412,75 +1412,105 @@ export class ReiDaPraiaService {
         let seed2Index: number;
 
         if (jogoIndex < metadeRestantes) {
-          // Primeira metade dos jogos: pegar das extremidades (mais fracas)
           seed1Index = byes + jogoIndex;
           seed2Index = totalDuplas - 1 - jogoIndex;
         } else {
-          // Segunda metade: pegar do meio (médias)
           const offsetMeio = jogoIndex - metadeRestantes;
           seed1Index = byes + metadeRestantes + offsetMeio;
           seed2Index = byes + duplasRestantes - 1 - metadeRestantes - offsetMeio;
         }
 
-        const dupla1 = duplas[seed1Index];
-        const dupla2 = duplas[seed2Index];
-
-        const confronto = await this.confrontoRepository.criar({
-          etapaId,
-          arenaId,
-          fase: determinarTipoFase(totalDuplas),
+        confrontosParaCriar.push({
+          tipo: "jogo",
           ordem: ordem++,
-          dupla1Id: dupla1.id,
-          dupla1Nome: `${dupla1.jogador1Nome} & ${dupla1.jogador2Nome}`,
-          dupla1Origem: `Dupla ${seed1Index + 1}`,
-          dupla2Id: dupla2.id,
-          dupla2Nome: `${dupla2.jogador1Nome} & ${dupla2.jogador2Nome}`,
-          dupla2Origem: `Dupla ${seed2Index + 1}`,
+          dupla1: duplas[seed1Index],
+          dupla1Index: seed1Index,
+          dupla2: duplas[seed2Index],
+          dupla2Index: seed2Index,
         });
-
-        confrontos.push(confronto);
         jogoIndex++;
       } else if (byeIndex < byes) {
-        // Sobrou BYE para criar (casos com 3 BYEs)
-        const dupla = duplas[byeIndex];
-
-        const confronto = await this.confrontoRepository.criar({
-          etapaId,
-          arenaId,
-          fase: determinarTipoFase(totalDuplas),
+        // BYE restante (casos com 3 BYEs)
+        confrontosParaCriar.push({
+          tipo: "bye",
           ordem: ordem++,
-          dupla1Id: dupla.id,
-          dupla1Nome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-          dupla1Origem: `Dupla ${byeIndex + 1}`,
+          dupla1: duplas[byeIndex],
+          dupla1Index: byeIndex,
         });
-
-        // Registrar como BYE (dupla passa direto)
-        await this.confrontoRepository.registrarResultado(confronto.id, {
-          status: StatusConfrontoEliminatorio.BYE,
-          vencedoraId: dupla.id,
-          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        });
-
-        confrontos.push({
-          ...confronto,
-          status: StatusConfrontoEliminatorio.BYE,
-          vencedoraId: dupla.id,
-          vencedoraNome: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        });
-
         byeIndex++;
       }
     }
+
+    // FASE 2: Criar todos os confrontos em paralelo
+    const confrontosCriados = await Promise.all(
+      confrontosParaCriar.map((c) => {
+        if (c.tipo === "bye") {
+          return this.confrontoRepository.criar({
+            etapaId,
+            arenaId,
+            fase: determinarTipoFase(totalDuplas),
+            ordem: c.ordem,
+            dupla1Id: c.dupla1.id,
+            dupla1Nome: `${c.dupla1.jogador1Nome} & ${c.dupla1.jogador2Nome}`,
+            dupla1Origem: `Dupla ${c.dupla1Index + 1}`,
+          });
+        } else {
+          return this.confrontoRepository.criar({
+            etapaId,
+            arenaId,
+            fase: determinarTipoFase(totalDuplas),
+            ordem: c.ordem,
+            dupla1Id: c.dupla1.id,
+            dupla1Nome: `${c.dupla1.jogador1Nome} & ${c.dupla1.jogador2Nome}`,
+            dupla1Origem: `Dupla ${c.dupla1Index + 1}`,
+            dupla2Id: c.dupla2!.id,
+            dupla2Nome: `${c.dupla2!.jogador1Nome} & ${c.dupla2!.jogador2Nome}`,
+            dupla2Origem: `Dupla ${c.dupla2Index! + 1}`,
+          });
+        }
+      })
+    );
+
+    // FASE 3: Registrar resultados dos BYEs em paralelo
+    const byePromises: Promise<ConfrontoEliminatorio>[] = [];
+    const confrontosFinais: ConfrontoEliminatorio[] = [];
+
+    for (let i = 0; i < confrontosParaCriar.length; i++) {
+      const config = confrontosParaCriar[i];
+      const confronto = confrontosCriados[i];
+
+      if (config.tipo === "bye") {
+        byePromises.push(
+          this.confrontoRepository.registrarResultado(confronto.id, {
+            status: StatusConfrontoEliminatorio.BYE,
+            vencedoraId: config.dupla1.id,
+            vencedoraNome: `${config.dupla1.jogador1Nome} & ${config.dupla1.jogador2Nome}`,
+          })
+        );
+
+        confrontosFinais.push({
+          ...confronto,
+          status: StatusConfrontoEliminatorio.BYE,
+          vencedoraId: config.dupla1.id,
+          vencedoraNome: `${config.dupla1.jogador1Nome} & ${config.dupla1.jogador2Nome}`,
+        });
+      } else {
+        confrontosFinais.push(confronto);
+      }
+    }
+
+    // Executar todos os registros de BYE em paralelo
+    await Promise.all(byePromises);
 
     logger.info("Confrontos eliminatórios gerados com distribuição inteligente", {
       etapaId,
       totalDuplas,
       totalByes: byes,
       totalJogos: confrontosReais,
-      totalConfrontos: confrontos.length,
+      totalConfrontos: confrontosFinais.length,
     });
 
-    return confrontos;
+    return confrontosFinais;
   }
 
   /**

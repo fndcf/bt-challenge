@@ -319,19 +319,24 @@ export class EliminatoriaService implements IEliminatoriaService {
   ) {}
 
   /**
-   * Gerar fase eliminatória no formato Copa do Mundo
+   * Gerar fase eliminatória no formato Copa do Mundo (otimizado)
    */
   async gerarFaseEliminatoria(
     etapaId: string,
     arenaId: string,
     classificadosPorGrupo: number = 2
   ): Promise<{ confrontos: ConfrontoEliminatorio[] }> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
     try {
-      // Buscar grupos ordenados
+      // 1. Buscar grupos ordenados
       const grupos = await this.grupoRepo.buscarPorEtapaOrdenado(
         etapaId,
         arenaId
       );
+      tempos["1_buscarGrupos"] = Date.now() - inicio;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo encontrado");
@@ -373,11 +378,13 @@ export class EliminatoriaService implements IEliminatoriaService {
         );
       }
 
-      // Coletar classificados de cada grupo
+      // 2. Coletar classificados de cada grupo
+      inicio = Date.now();
       const classificados = await this.coletarClassificados(
         grupos,
         classificadosPorGrupo
       );
+      tempos["2_coletarClassificados"] = Date.now() - inicio;
 
       if (classificados.length < 2) {
         throw new Error("Mínimo de 2 classificados necessário");
@@ -389,34 +396,48 @@ export class EliminatoriaService implements IEliminatoriaService {
         mapaClassificados.set(c.chave, c);
       }
 
-      // Criar confrontos com base no bracket pré-definido
+      // 3. Criar confrontos com base no bracket pré-definido (otimizado)
+      inicio = Date.now();
       const confrontos = await this.criarConfrontosPredefinidos(
         etapaId,
         arenaId,
         configBracket,
         mapaClassificados
       );
+      tempos["3_criarConfrontos"] = Date.now() - inicio;
 
-      // Marcar duplas como classificadas
-      for (const classificado of classificados) {
-        await this.duplaRepo.marcarClassificada(classificado.dupla.id, true);
+      // 4. Marcar duplas como classificadas (otimizado com Promise.all)
+      inicio = Date.now();
 
-        await estatisticasJogadorService.marcarComoClassificado(
-          classificado.dupla.jogador1Id,
-          etapaId,
-          true
-        );
+      // Marcar duplas em paralelo
+      await Promise.all(
+        classificados.map((c) => this.duplaRepo.marcarClassificada(c.dupla.id, true))
+      );
 
-        await estatisticasJogadorService.marcarComoClassificado(
-          classificado.dupla.jogador2Id,
-          etapaId,
-          true
-        );
-      }
+      // Marcar jogadores em lote
+      const jogadoresParaMarcar = classificados.flatMap((c) => [
+        { jogadorId: c.dupla.jogador1Id, etapaId },
+        { jogadorId: c.dupla.jogador2Id, etapaId },
+      ]);
+      await estatisticasJogadorService.marcarComoClassificadoEmLote(
+        jogadoresParaMarcar,
+        true
+      );
+      tempos["4_marcarClassificados"] = Date.now() - inicio;
 
       const byes = configBracket.pareamentos.filter(
         (p) => p.pos2 === "BYE"
       ).length;
+
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS gerarFaseEliminatoria (Dupla Fixa)", {
+        tempos,
+        etapaId,
+        totalGrupos: grupos.length,
+        totalClassificados: classificados.length,
+        totalConfrontos: confrontos.length,
+      });
 
       logger.info("Fase eliminatória gerada (formato Copa do Mundo)", {
         etapaId,
@@ -475,7 +496,7 @@ export class EliminatoriaService implements IEliminatoriaService {
   }
 
   /**
-   * Criar confrontos com base no bracket pré-definido
+   * Criar confrontos com base no bracket pré-definido (otimizado com Promise.all)
    */
   private async criarConfrontosPredefinidos(
     etapaId: string,
@@ -483,7 +504,15 @@ export class EliminatoriaService implements IEliminatoriaService {
     config: ConfiguracaoBracket,
     mapaClassificados: Map<string, ClassificadoBracket>
   ): Promise<ConfrontoEliminatorio[]> {
-    const confrontos: ConfrontoEliminatorio[] = [];
+    // FASE 1: Coletar dados de todos os confrontos a criar
+    type ConfrontoParaCriar = {
+      tipo: "bye" | "jogo";
+      ordem: number;
+      classificado1: ClassificadoBracket;
+      classificado2?: ClassificadoBracket;
+    };
+
+    const confrontosParaCriar: ConfrontoParaCriar[] = [];
 
     for (let i = 0; i < config.pareamentos.length; i++) {
       const pareamento = config.pareamentos[i];
@@ -497,38 +526,12 @@ export class EliminatoriaService implements IEliminatoriaService {
       }
 
       if (pareamento.pos2 === "BYE") {
-        // Confronto com BYE - dupla passa direto
-        const confronto = await this.confrontoRepo.criar({
-          etapaId,
-          arenaId,
-          fase: config.fase,
+        confrontosParaCriar.push({
+          tipo: "bye",
           ordem,
-          dupla1Id: classificado1.dupla.id,
-          dupla1Nome: `${classificado1.dupla.jogador1Nome} & ${classificado1.dupla.jogador2Nome}`,
-          dupla1Origem: `${classificado1.posicaoGrupo}º ${classificado1.grupoNome}`,
-          status: StatusConfrontoEliminatorio.BYE,
-        });
-
-        // Marcar vencedor automático do BYE
-        await this.confrontoRepo.registrarResultado(confronto.id, {
-          status: StatusConfrontoEliminatorio.BYE,
-          vencedoraId: classificado1.dupla.id,
-          vencedoraNome: `${classificado1.dupla.jogador1Nome} & ${classificado1.dupla.jogador2Nome}`,
-        });
-
-        confrontos.push({
-          ...confronto,
-          vencedoraId: classificado1.dupla.id,
-          vencedoraNome: `${classificado1.dupla.jogador1Nome} & ${classificado1.dupla.jogador2Nome}`,
-        });
-
-        logger.debug("Confronto BYE criado", {
-          ordem,
-          fase: config.fase,
-          dupla: `${classificado1.posicaoGrupo}º ${classificado1.grupoNome}`,
+          classificado1,
         });
       } else {
-        // Confronto normal
         const classificado2 = mapaClassificados.get(pareamento.pos2);
 
         if (!classificado2) {
@@ -536,32 +539,89 @@ export class EliminatoriaService implements IEliminatoriaService {
           continue;
         }
 
-        const confronto = await this.confrontoRepo.criar({
-          etapaId,
-          arenaId,
-          fase: config.fase,
+        confrontosParaCriar.push({
+          tipo: "jogo",
           ordem,
-          dupla1Id: classificado1.dupla.id,
-          dupla1Nome: `${classificado1.dupla.jogador1Nome} & ${classificado1.dupla.jogador2Nome}`,
-          dupla1Origem: `${classificado1.posicaoGrupo}º ${classificado1.grupoNome}`,
-          dupla2Id: classificado2.dupla.id,
-          dupla2Nome: `${classificado2.dupla.jogador1Nome} & ${classificado2.dupla.jogador2Nome}`,
-          dupla2Origem: `${classificado2.posicaoGrupo}º ${classificado2.grupoNome}`,
-          status: StatusConfrontoEliminatorio.AGENDADA,
-        });
-
-        confrontos.push(confronto);
-
-        logger.debug("Confronto criado", {
-          ordem,
-          fase: config.fase,
-          dupla1: `${classificado1.posicaoGrupo}º ${classificado1.grupoNome}`,
-          dupla2: `${classificado2.posicaoGrupo}º ${classificado2.grupoNome}`,
+          classificado1,
+          classificado2,
         });
       }
     }
 
-    return confrontos;
+    // FASE 2: Criar todos os confrontos em paralelo
+    const confrontosCriados = await Promise.all(
+      confrontosParaCriar.map((c) => {
+        if (c.tipo === "bye") {
+          return this.confrontoRepo.criar({
+            etapaId,
+            arenaId,
+            fase: config.fase,
+            ordem: c.ordem,
+            dupla1Id: c.classificado1.dupla.id,
+            dupla1Nome: `${c.classificado1.dupla.jogador1Nome} & ${c.classificado1.dupla.jogador2Nome}`,
+            dupla1Origem: `${c.classificado1.posicaoGrupo}º ${c.classificado1.grupoNome}`,
+            status: StatusConfrontoEliminatorio.BYE,
+          });
+        } else {
+          return this.confrontoRepo.criar({
+            etapaId,
+            arenaId,
+            fase: config.fase,
+            ordem: c.ordem,
+            dupla1Id: c.classificado1.dupla.id,
+            dupla1Nome: `${c.classificado1.dupla.jogador1Nome} & ${c.classificado1.dupla.jogador2Nome}`,
+            dupla1Origem: `${c.classificado1.posicaoGrupo}º ${c.classificado1.grupoNome}`,
+            dupla2Id: c.classificado2!.dupla.id,
+            dupla2Nome: `${c.classificado2!.dupla.jogador1Nome} & ${c.classificado2!.dupla.jogador2Nome}`,
+            dupla2Origem: `${c.classificado2!.posicaoGrupo}º ${c.classificado2!.grupoNome}`,
+            status: StatusConfrontoEliminatorio.AGENDADA,
+          });
+        }
+      })
+    );
+
+    // FASE 3: Registrar resultados dos BYEs em paralelo
+    const byePromises: Promise<ConfrontoEliminatorio>[] = [];
+    const confrontosFinais: ConfrontoEliminatorio[] = [];
+
+    for (let i = 0; i < confrontosParaCriar.length; i++) {
+      const config = confrontosParaCriar[i];
+      const confronto = confrontosCriados[i];
+
+      if (config.tipo === "bye") {
+        byePromises.push(
+          this.confrontoRepo.registrarResultado(confronto.id, {
+            status: StatusConfrontoEliminatorio.BYE,
+            vencedoraId: config.classificado1.dupla.id,
+            vencedoraNome: `${config.classificado1.dupla.jogador1Nome} & ${config.classificado1.dupla.jogador2Nome}`,
+          })
+        );
+
+        confrontosFinais.push({
+          ...confronto,
+          vencedoraId: config.classificado1.dupla.id,
+          vencedoraNome: `${config.classificado1.dupla.jogador1Nome} & ${config.classificado1.dupla.jogador2Nome}`,
+        });
+
+        logger.debug("Confronto BYE criado", {
+          ordem: config.ordem,
+          dupla: `${config.classificado1.posicaoGrupo}º ${config.classificado1.grupoNome}`,
+        });
+      } else {
+        confrontosFinais.push(confronto);
+
+        logger.debug("Confronto criado", {
+          ordem: config.ordem,
+          dupla1: `${config.classificado1.posicaoGrupo}º ${config.classificado1.grupoNome}`,
+          dupla2: `${config.classificado2!.posicaoGrupo}º ${config.classificado2!.grupoNome}`,
+        });
+      }
+    }
+
+    // Executar todos os registros de BYE em paralelo
+    await Promise.all(byePromises);
+
+    return confrontosFinais;
   }
 
   /**
