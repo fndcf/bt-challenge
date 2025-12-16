@@ -824,7 +824,7 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
                     {precisaDefinirJogadores ? (
                       <NeedsPlayersAlert>
                         <span>Jogadores não definidos</span>
-                        <DefinePlayersButton onClick={() => handleDefinirJogadores(partida)}>
+                        <DefinePlayersButton type="button" onClick={() => handleDefinirJogadores(partida)}>
                           Definir Jogadores
                         </DefinePlayersButton>
                       </NeedsPlayersAlert>

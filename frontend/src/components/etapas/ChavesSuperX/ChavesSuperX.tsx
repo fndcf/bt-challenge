@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { getSuperXService } from "@/services";
+import { getSuperXService, getEtapaService } from "@/services";
 import { Grupo } from "@/types/chave";
 import { EstatisticasJogador, PartidaReiDaPraia } from "@/types/reiDaPraia";
 import { VarianteSuperX } from "@/types/etapa";
 import { ModalLancamentoResultadosLoteSuperX } from "../ModalLancamentoResultadosLoteSuperX";
 import { LoadingOverlay } from "@/components/ui";
+import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
 interface ChavesSuperXProps {
   etapaId: string;
   arenaId?: string;
   varianteSuperX?: VarianteSuperX;
   etapaFinalizada?: boolean;
+  onAtualizar?: () => void;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -377,6 +380,54 @@ const InfoCard = styled.div`
   }
 `;
 
+const ActionsRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+`;
+
+const EncerrarEtapaButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const AlertBox = styled.div`
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #92400e;
+  font-size: 0.875rem;
+
+  svg {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`;
+
 // ============== HELPERS ==============
 
 const getNivelLabel = (nivel?: string): string => {
@@ -415,14 +466,17 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
   etapaId,
   varianteSuperX,
   etapaFinalizada = false,
+  onAtualizar,
 }) => {
   const superXService = getSuperXService();
+  const etapaService = getEtapaService();
   const [grupo, setGrupo] = useState<Grupo | null>(null);
   const [jogadores, setJogadores] = useState<EstatisticasJogador[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [partidas, setPartidas] = useState<PartidaReiDaPraia[]>([]);
   const [mostrarModalResultados, setMostrarModalResultados] = useState(false);
+  const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
 
   // Estado global de loading para operações críticas que bloqueiam toda a tela
   const [globalLoading, setGlobalLoading] = useState(false);
@@ -480,6 +534,24 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
     }
   };
 
+  const encerrarEtapa = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Encerrando etapa...");
+      await etapaService.encerrarEtapa(etapaId);
+      invalidateRankingCache();
+      setModalEncerrarAberto(false);
+      if (onAtualizar) {
+        await onAtualizar();
+      }
+    } catch (err: any) {
+      alert(err.message || "Erro ao encerrar etapa");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
   if (loading) {
     return (
       <LoadingContainer>
@@ -514,6 +586,24 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
 
   return (
     <Container>
+      {/* Botão de Encerrar Etapa no topo - só aparece quando todas as partidas estiverem finalizadas */}
+      {!etapaFinalizada && grupo && (grupo.partidasFinalizadas || 0) === totalPartidas && totalPartidas > 0 && (
+        <ActionsRow>
+          <EncerrarEtapaButton onClick={() => setModalEncerrarAberto(true)}>
+            Encerrar Etapa
+          </EncerrarEtapaButton>
+        </ActionsRow>
+      )}
+
+      {etapaFinalizada && (
+        <AlertBox>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Esta etapa foi encerrada. Os resultados não podem mais ser alterados.</span>
+        </AlertBox>
+      )}
+
       <Header>
         <Title>
           {varianteInfo.nome}
@@ -682,6 +772,16 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
 
       {/* Loading Overlay Global - Bloqueia toda a tela */}
       <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+
+      {/* Modal de Confirmação para Encerrar Etapa */}
+      <ConfirmacaoPerigosa
+        isOpen={modalEncerrarAberto}
+        titulo="Encerrar Etapa"
+        mensagem="Tem certeza que deseja encerrar esta etapa? Esta ação irá finalizar a etapa, calcular os pontos do ranking e não poderá ser desfeita."
+        textoBotaoConfirmar="Encerrar Etapa"
+        onConfirm={encerrarEtapa}
+        onClose={() => setModalEncerrarAberto(false)}
+      />
     </Container>
   );
 };

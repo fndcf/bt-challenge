@@ -304,6 +304,7 @@ const DetalhesEtapa: React.FC = () => {
                 <ChavesTeams
                   etapaId={etapa.id}
                   varianteTeams={etapa.varianteTeams}
+                  tipoFormacaoJogos={etapa.tipoFormacaoJogos}
                   etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
                   onAtualizar={carregarEtapa}
                 />
@@ -312,6 +313,7 @@ const DetalhesEtapa: React.FC = () => {
                   etapaId={etapa.id}
                   varianteSuperX={etapa.varianteSuperX}
                   etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                  onAtualizar={carregarEtapa}
                 />
               ) : isReiDaPraia ? (
                 <ChavesReiDaPraia

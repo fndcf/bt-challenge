@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { getTeamsService } from "@/services";
+import { getTeamsService, getEtapaService } from "@/services";
 import {
   Equipe,
   ConfrontoEquipe,
@@ -13,6 +13,8 @@ import { FaseEtapa } from "@/types/chave";
 import { LoadingOverlay } from "@/components/ui";
 import { ModalLancamentoResultadosLoteTeams } from "../ModalLancamentoResultadosLoteTeams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
+import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
 interface ChavesTeamsProps {
   etapaId: string;
@@ -658,6 +660,54 @@ const InfoCard = styled.div`
   }
 `;
 
+const ActionsRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+`;
+
+const EncerrarEtapaButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const AlertBox = styled.div`
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #92400e;
+  font-size: 0.875rem;
+
+  svg {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+`;
+
 // Styled component para fases eliminatórias
 const FaseSection = styled.section`
   margin-bottom: 2rem;
@@ -775,6 +825,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   onAtualizar,
 }) => {
   const teamsService = getTeamsService();
+  const etapaService = getEtapaService();
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [confrontos, setConfrontos] = useState<ConfrontoEquipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -784,6 +835,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   const [nomeEditando, setNomeEditando] = useState("");
   const [confrontoExpandido, setConfrontoExpandido] = useState<string | null>(null);
   const [partidasConfronto, setPartidasConfronto] = useState<Map<string, PartidaTeams[]>>(new Map());
+  const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
 
   // Estado global de loading para operações críticas
   const [globalLoading, setGlobalLoading] = useState(false);
@@ -837,13 +889,6 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       setError(err.message || "Erro ao carregar dados");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAtualizarComNotificacao = async () => {
-    await carregarDados(true);
-    if (onAtualizar) {
-      onAtualizar();
     }
   };
 
@@ -985,7 +1030,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   };
 
   const handleModalResultadosSuccess = async () => {
-    // Limpar cache do confronto e recarregar tudo
+    // Limpar cache do confronto e recarregar dados locais
     if (modalResultados) {
       setPartidasConfronto((prev) => {
         const novo = new Map(prev);
@@ -994,7 +1039,9 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       });
     }
     setModalResultados(null);
-    await handleAtualizarComNotificacao();
+    // Apenas recarrega dados locais, sem notificar o pai
+    // O onAtualizar só deve ser chamado quando encerrar a etapa
+    await carregarDados(true);
   };
 
   const handleDefinirJogadores = async (partida: PartidaTeams, confronto: ConfrontoEquipe) => {
@@ -1045,6 +1092,24 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
     }
     setModalDefinirJogadores(null);
     await carregarDados(true);
+  };
+
+  const encerrarEtapa = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Encerrando etapa...");
+      await etapaService.encerrarEtapa(etapaId);
+      invalidateRankingCache();
+      setModalEncerrarAberto(false);
+      if (onAtualizar) {
+        onAtualizar();
+      }
+    } catch (err: any) {
+      alert(err.message || "Erro ao encerrar etapa");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
   };
 
   if (loading) {
@@ -1347,6 +1412,24 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
   return (
     <Container>
+      {/* Botão de Encerrar Etapa no topo - só aparece quando todos os confrontos estiverem finalizados */}
+      {!etapaFinalizada && confrontos.length > 0 && confrontosFinalizados === confrontos.length && (
+        <ActionsRow>
+          <EncerrarEtapaButton onClick={() => setModalEncerrarAberto(true)}>
+            Encerrar Etapa
+          </EncerrarEtapaButton>
+        </ActionsRow>
+      )}
+
+      {etapaFinalizada && (
+        <AlertBox>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Esta etapa foi encerrada. Os resultados não podem mais ser alterados.</span>
+        </AlertBox>
+      )}
+
       <Header>
         <Title>
           {varianteInfo.nome}
@@ -1500,6 +1583,16 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           onConfirm={handleConfirmDefinirJogadores}
         />
       )}
+
+      {/* Modal de Confirmação para Encerrar Etapa */}
+      <ConfirmacaoPerigosa
+        isOpen={modalEncerrarAberto}
+        titulo="Encerrar Etapa"
+        mensagem="Tem certeza que deseja encerrar esta etapa? Esta ação irá finalizar a etapa, calcular os pontos do ranking e não poderá ser desfeita."
+        textoBotaoConfirmar="Encerrar Etapa"
+        onConfirm={encerrarEtapa}
+        onClose={() => setModalEncerrarAberto(false)}
+      />
     </Container>
   );
 };
