@@ -16,6 +16,7 @@ interface ModalLancamentoResultadosLoteTeamsProps {
   partidas: PartidaTeams[];
   equipes: Equipe[];
   tipoFormacaoManual?: boolean;
+  etapaFinalizada?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -498,7 +499,7 @@ const getDuplaLabel = (partida: PartidaTeams, lado: 1 | 2): string => {
 
 export const ModalLancamentoResultadosLoteTeams: React.FC<
   ModalLancamentoResultadosLoteTeamsProps
-> = ({ etapaId, confronto, partidas, equipes, tipoFormacaoManual = false, onClose, onSuccess }) => {
+> = ({ etapaId, confronto, partidas, equipes, tipoFormacaoManual = false, etapaFinalizada = false, onClose, onSuccess }) => {
   const teamsService = getTeamsService();
   const [resultados, setResultados] = useState<Map<string, ResultadoPartida>>(new Map());
   const [erros, setErros] = useState<Map<string, string>>(new Map());
@@ -885,8 +886,8 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
               <Button type="button" $variant="secondary" onClick={onClose} disabled={loading}>
                 Cancelar
               </Button>
-              <Button type="submit" $variant="primary" disabled={loading}>
-                {loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
+              <Button type="submit" $variant="primary" disabled={loading || etapaFinalizada}>
+                {etapaFinalizada ? "Etapa Finalizada" : loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
               </Button>
             </ButtonsRow>
           </Form>

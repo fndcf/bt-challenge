@@ -9,6 +9,7 @@ import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResult
 interface ChavesEtapaProps {
   etapaId: string;
   arenaId?: string;
+  etapaFinalizada?: boolean;
 }
 
 type AbaAtiva = "grupos" | "eliminatoria";
@@ -427,6 +428,7 @@ const InfoCard = styled.div`
 export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   etapaId,
   arenaId,
+  etapaFinalizada = false,
 }) => {
   const chaveService = getChaveService();
   const etapaService = getEtapaService();
@@ -731,6 +733,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
         <ModalLancamentoResultadosLoteDuplaFixa
           partidas={partidasModal}
           grupoNome={grupoModalAberto.nome}
+          etapaFinalizada={etapaFinalizada}
           onClose={() => setGrupoModalAberto(null)}
           onSuccess={handleResultadosSalvos}
         />

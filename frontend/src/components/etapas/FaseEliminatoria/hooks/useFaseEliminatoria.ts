@@ -6,6 +6,7 @@ import {
   Grupo,
 } from "@/types/chave";
 import { getChaveService, getEtapaService } from "@/services";
+import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
 export interface UseFaseEliminatoriaProps {
   etapaId: string;
@@ -174,6 +175,8 @@ export const useFaseEliminatoria = ({
       setGlobalLoading(true);
       setGlobalLoadingMessage("Encerrando etapa e atribuindo pontos...");
       await etapaService.encerrarEtapa(etapaId);
+      // Invalidar cache do ranking pois os pontos foram atualizados
+      invalidateRankingCache();
       alert("Etapa encerrada com sucesso!");
       window.location.reload();
     } catch (err: any) {

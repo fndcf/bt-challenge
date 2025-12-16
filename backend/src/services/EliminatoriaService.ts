@@ -632,11 +632,17 @@ export class EliminatoriaService implements IEliminatoriaService {
     arenaId: string,
     placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
   ): Promise<void> {
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
+
     try {
+      let start = Date.now();
       const confronto = await this.confrontoRepo.buscarPorIdEArena(
         confrontoId,
         arenaId
       );
+      timings["1_buscarConfronto"] = Date.now() - start;
+
       if (!confronto) {
         throw new Error("Confronto não encontrado");
       }
@@ -658,12 +664,15 @@ export class EliminatoriaService implements IEliminatoriaService {
 
       // Reverter estatísticas se for edição
       if (confronto.status === StatusConfrontoEliminatorio.FINALIZADA) {
+        start = Date.now();
         await this.reverterEstatisticasConfronto(confronto);
+        timings["2_reverterEstatisticas"] = Date.now() - start;
       }
 
       // Criar ou atualizar partida
       let partidaId = confronto.partidaId;
 
+      start = Date.now();
       if (!partidaId) {
         const partida = await this.partidaRepo.criar({
           etapaId: confronto.etapaId,
@@ -676,7 +685,9 @@ export class EliminatoriaService implements IEliminatoriaService {
           dupla2Nome: confronto.dupla2Nome!,
         });
         partidaId = partida.id;
+        timings["3a_criarPartida"] = Date.now() - start;
 
+        start = Date.now();
         await this.partidaRepo.registrarResultado(partidaId, {
           status: StatusPartida.FINALIZADA,
           setsDupla1: set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
@@ -685,6 +696,7 @@ export class EliminatoriaService implements IEliminatoriaService {
           vencedoraId,
           vencedoraNome,
         });
+        timings["3b_registrarResultadoPartida"] = Date.now() - start;
       } else {
         await this.partidaRepo.atualizar(partidaId, {
           setsDupla1: set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
@@ -693,12 +705,16 @@ export class EliminatoriaService implements IEliminatoriaService {
           vencedoraId,
           vencedoraNome,
         });
+        timings["3_atualizarPartida"] = Date.now() - start;
       }
 
       // Atualizar estatísticas dos jogadores
+      start = Date.now();
       await this.atualizarEstatisticasJogadores(confronto, set, vencedoraId);
+      timings["4_atualizarEstatisticas"] = Date.now() - start;
 
       // Atualizar confronto
+      start = Date.now();
       await this.confrontoRepo.registrarResultado(confrontoId, {
         partidaId,
         status: StatusConfrontoEliminatorio.FINALIZADA,
@@ -706,9 +722,15 @@ export class EliminatoriaService implements IEliminatoriaService {
         vencedoraNome,
         placar: `${set.gamesDupla1}-${set.gamesDupla2}`,
       });
+      timings["5_atualizarConfronto"] = Date.now() - start;
 
       // Avançar vencedor para próxima fase
+      start = Date.now();
       await this.avancarVencedor(confronto, vencedoraId, vencedoraNome);
+      timings["6_avancarVencedor"] = Date.now() - start;
+
+      timings["TOTAL"] = Date.now() - startTotal;
+      logger.info("⏱️ TIMING registrarResultadoEliminatorio", { timings, confrontoId });
 
       logger.info("Resultado eliminatório registrado", {
         confrontoId,
@@ -729,72 +751,77 @@ export class EliminatoriaService implements IEliminatoriaService {
 
   /**
    * Atualizar estatísticas dos jogadores
+   * OTIMIZADO: busca duplas em paralelo + atualiza 4 jogadores em paralelo
    */
   private async atualizarEstatisticasJogadores(
     confronto: ConfrontoEliminatorio,
     set: { gamesDupla1: number; gamesDupla2: number },
     vencedoraId: string
   ): Promise<void> {
-    const dupla1 = await this.duplaRepo.buscarPorId(confronto.dupla1Id!);
-    const dupla2 = await this.duplaRepo.buscarPorId(confronto.dupla2Id!);
+    // Buscar ambas as duplas em paralelo
+    const [dupla1, dupla2] = await Promise.all([
+      this.duplaRepo.buscarPorId(confronto.dupla1Id!),
+      this.duplaRepo.buscarPorId(confronto.dupla2Id!),
+    ]);
 
     if (!dupla1 || !dupla2) return;
 
     const dupla1Venceu = vencedoraId === confronto.dupla1Id;
 
-    // Jogadores da dupla 1
-    await estatisticasJogadorService.atualizarAposPartidaEliminatoria(
-      dupla1.jogador1Id,
-      confronto.etapaId,
-      {
-        venceu: dupla1Venceu,
-        setsVencidos: dupla1Venceu ? 1 : 0,
-        setsPerdidos: dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla1,
-        gamesPerdidos: set.gamesDupla2,
-      }
-    );
-
-    await estatisticasJogadorService.atualizarAposPartidaEliminatoria(
-      dupla1.jogador2Id,
-      confronto.etapaId,
-      {
-        venceu: dupla1Venceu,
-        setsVencidos: dupla1Venceu ? 1 : 0,
-        setsPerdidos: dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla1,
-        gamesPerdidos: set.gamesDupla2,
-      }
-    );
-
-    // Jogadores da dupla 2
-    await estatisticasJogadorService.atualizarAposPartidaEliminatoria(
-      dupla2.jogador1Id,
-      confronto.etapaId,
-      {
-        venceu: !dupla1Venceu,
-        setsVencidos: !dupla1Venceu ? 1 : 0,
-        setsPerdidos: !dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla2,
-        gamesPerdidos: set.gamesDupla1,
-      }
-    );
-
-    await estatisticasJogadorService.atualizarAposPartidaEliminatoria(
-      dupla2.jogador2Id,
-      confronto.etapaId,
-      {
-        venceu: !dupla1Venceu,
-        setsVencidos: !dupla1Venceu ? 1 : 0,
-        setsPerdidos: !dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla2,
-        gamesPerdidos: set.gamesDupla1,
-      }
-    );
+    // Atualizar estatísticas de todos os 4 jogadores em paralelo
+    await Promise.all([
+      // Jogadores da dupla 1
+      estatisticasJogadorService.atualizarAposPartidaEliminatoria(
+        dupla1.jogador1Id,
+        confronto.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: dupla1Venceu ? 1 : 0,
+          setsPerdidos: dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        }
+      ),
+      estatisticasJogadorService.atualizarAposPartidaEliminatoria(
+        dupla1.jogador2Id,
+        confronto.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: dupla1Venceu ? 1 : 0,
+          setsPerdidos: dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        }
+      ),
+      // Jogadores da dupla 2
+      estatisticasJogadorService.atualizarAposPartidaEliminatoria(
+        dupla2.jogador1Id,
+        confronto.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: !dupla1Venceu ? 1 : 0,
+          setsPerdidos: !dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        }
+      ),
+      estatisticasJogadorService.atualizarAposPartidaEliminatoria(
+        dupla2.jogador2Id,
+        confronto.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: !dupla1Venceu ? 1 : 0,
+          setsPerdidos: !dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        }
+      ),
+    ]);
   }
 
   /**
    * Reverter estatísticas de confronto (para edição)
+   * OTIMIZADO: busca duplas em paralelo + reverte 4 jogadores em paralelo
    */
   private async reverterEstatisticasConfronto(
     confronto: ConfrontoEliminatorio
@@ -804,67 +831,71 @@ export class EliminatoriaService implements IEliminatoriaService {
     const partida = await this.partidaRepo.buscarPorId(confronto.partidaId);
     if (!partida || !partida.placar || partida.placar.length === 0) return;
 
-    const dupla1 = await this.duplaRepo.buscarPorId(confronto.dupla1Id!);
-    const dupla2 = await this.duplaRepo.buscarPorId(confronto.dupla2Id!);
+    // Buscar ambas as duplas em paralelo
+    const [dupla1, dupla2] = await Promise.all([
+      this.duplaRepo.buscarPorId(confronto.dupla1Id!),
+      this.duplaRepo.buscarPorId(confronto.dupla2Id!),
+    ]);
 
     if (!dupla1 || !dupla2) return;
 
     const set = partida.placar[0];
     const dupla1Venceu = partida.vencedoraId === confronto.dupla1Id;
 
-    // Reverter jogadores da dupla 1
-    await estatisticasJogadorService.reverterAposPartidaEliminatoria(
-      dupla1.jogador1Id,
-      confronto.etapaId,
-      {
-        venceu: dupla1Venceu,
-        setsVencidos: dupla1Venceu ? 1 : 0,
-        setsPerdidos: dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla1,
-        gamesPerdidos: set.gamesDupla2,
-      }
-    );
-
-    await estatisticasJogadorService.reverterAposPartidaEliminatoria(
-      dupla1.jogador2Id,
-      confronto.etapaId,
-      {
-        venceu: dupla1Venceu,
-        setsVencidos: dupla1Venceu ? 1 : 0,
-        setsPerdidos: dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla1,
-        gamesPerdidos: set.gamesDupla2,
-      }
-    );
-
-    // Reverter jogadores da dupla 2
-    await estatisticasJogadorService.reverterAposPartidaEliminatoria(
-      dupla2.jogador1Id,
-      confronto.etapaId,
-      {
-        venceu: !dupla1Venceu,
-        setsVencidos: !dupla1Venceu ? 1 : 0,
-        setsPerdidos: !dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla2,
-        gamesPerdidos: set.gamesDupla1,
-      }
-    );
-
-    await estatisticasJogadorService.reverterAposPartidaEliminatoria(
-      dupla2.jogador2Id,
-      confronto.etapaId,
-      {
-        venceu: !dupla1Venceu,
-        setsVencidos: !dupla1Venceu ? 1 : 0,
-        setsPerdidos: !dupla1Venceu ? 0 : 1,
-        gamesVencidos: set.gamesDupla2,
-        gamesPerdidos: set.gamesDupla1,
-      }
-    );
+    // Reverter estatísticas de todos os 4 jogadores em paralelo
+    await Promise.all([
+      // Jogadores da dupla 1
+      estatisticasJogadorService.reverterAposPartidaEliminatoria(
+        dupla1.jogador1Id,
+        confronto.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: dupla1Venceu ? 1 : 0,
+          setsPerdidos: dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        }
+      ),
+      estatisticasJogadorService.reverterAposPartidaEliminatoria(
+        dupla1.jogador2Id,
+        confronto.etapaId,
+        {
+          venceu: dupla1Venceu,
+          setsVencidos: dupla1Venceu ? 1 : 0,
+          setsPerdidos: dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        }
+      ),
+      // Jogadores da dupla 2
+      estatisticasJogadorService.reverterAposPartidaEliminatoria(
+        dupla2.jogador1Id,
+        confronto.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: !dupla1Venceu ? 1 : 0,
+          setsPerdidos: !dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        }
+      ),
+      estatisticasJogadorService.reverterAposPartidaEliminatoria(
+        dupla2.jogador2Id,
+        confronto.etapaId,
+        {
+          venceu: !dupla1Venceu,
+          setsVencidos: !dupla1Venceu ? 1 : 0,
+          setsPerdidos: !dupla1Venceu ? 0 : 1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        }
+      ),
+    ]);
   }
 
   /**
    * Avançar vencedor para próxima fase
+   * OTIMIZADO: busca confrontos da fase, grupos e próxima fase em paralelo
    */
   private async avancarVencedor(
     confronto: ConfrontoEliminatorio,
@@ -877,12 +908,23 @@ export class EliminatoriaService implements IEliminatoriaService {
       return; // Era a final
     }
 
-    // Verificar se todos confrontos da fase atual estão finalizados
-    const confrontosFase = await this.confrontoRepo.buscarPorFaseOrdenado(
-      confronto.etapaId,
-      confronto.arenaId,
-      confronto.fase
-    );
+    // Buscar todos os dados em paralelo
+    const [confrontosFase, grupos, confrontosProximaFase] = await Promise.all([
+      this.confrontoRepo.buscarPorFaseOrdenado(
+        confronto.etapaId,
+        confronto.arenaId,
+        confronto.fase
+      ),
+      this.grupoRepo.buscarPorEtapaOrdenado(
+        confronto.etapaId,
+        confronto.arenaId
+      ),
+      this.confrontoRepo.buscarPorFase(
+        confronto.etapaId,
+        confronto.arenaId,
+        proximaFase
+      ),
+    ]);
 
     const finalizados = confrontosFase.filter(
       (c) =>
@@ -899,19 +941,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         ordem: c.ordem,
       }));
 
-      // Buscar número de grupos para usar mapeamento correto
-      const grupos = await this.grupoRepo.buscarPorEtapaOrdenado(
-        confronto.etapaId,
-        confronto.arenaId
-      );
       const numGrupos = grupos.length;
-
-      // Verificar se já existe próxima fase
-      const confrontosProximaFase = await this.confrontoRepo.buscarPorFase(
-        confronto.etapaId,
-        confronto.arenaId,
-        proximaFase
-      );
 
       if (confrontosProximaFase.length > 0) {
         // Atualizar confrontos existentes
@@ -1126,18 +1156,24 @@ export class EliminatoriaService implements IEliminatoriaService {
     etapaId: string,
     arenaId: string
   ): Promise<void> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
     try {
-      // Buscar confrontos
+      // 1. Buscar confrontos
       const confrontos = await this.confrontoRepo.buscarPorEtapa(
         etapaId,
         arenaId
       );
+      tempos["1_buscarConfrontos"] = Date.now() - inicio;
 
       if (confrontos.length === 0) {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
       }
 
-      // Reverter estatísticas de partidas finalizadas
+      // 2. Reverter estatísticas de partidas finalizadas
+      inicio = Date.now();
       let partidasRevertidas = 0;
       for (const confronto of confrontos) {
         if (confronto.status === StatusConfrontoEliminatorio.FINALIZADA) {
@@ -1145,55 +1181,71 @@ export class EliminatoriaService implements IEliminatoriaService {
           partidasRevertidas++;
         }
       }
+      tempos["2_reverterEstatisticas"] = Date.now() - inicio;
 
-      // Deletar partidas eliminatórias
+      // 3. Buscar e deletar partidas eliminatórias
+      inicio = Date.now();
       const partidasEliminatorias = await this.partidaRepo.buscarPorTipo(
         etapaId,
         arenaId,
         "eliminatoria"
       );
+      tempos["3a_buscarPartidas"] = Date.now() - inicio;
+
+      inicio = Date.now();
       if (partidasEliminatorias.length > 0) {
         await this.partidaRepo.deletarEmLote(
           partidasEliminatorias.map((p) => p.id)
         );
       }
+      tempos["3b_deletarPartidas"] = Date.now() - inicio;
 
-      // Deletar confrontos
+      // 4. Deletar confrontos
+      inicio = Date.now();
       await this.confrontoRepo.deletarPorEtapa(etapaId, arenaId);
+      tempos["4_deletarConfrontos"] = Date.now() - inicio;
 
-      // Desmarcar duplas como classificadas
+      // 5. Buscar duplas classificadas
+      inicio = Date.now();
       const duplasClassificadas = await this.duplaRepo.buscarClassificadas(
         etapaId,
         arenaId
       );
-      for (const dupla of duplasClassificadas) {
-        await this.duplaRepo.marcarClassificada(dupla.id, false);
+      tempos["5a_buscarDuplasClassificadas"] = Date.now() - inicio;
 
-        await estatisticasJogadorService.marcarComoClassificado(
+      // 6. Desmarcar duplas como classificadas - OTIMIZADO: paralelo
+      inicio = Date.now();
+      const desmarcarPromises = duplasClassificadas.flatMap((dupla) => [
+        this.duplaRepo.marcarClassificada(dupla.id, false),
+        estatisticasJogadorService.marcarComoClassificado(
           dupla.jogador1Id,
           etapaId,
           false
-        );
-
-        await estatisticasJogadorService.marcarComoClassificado(
+        ),
+        estatisticasJogadorService.marcarComoClassificado(
           dupla.jogador2Id,
           etapaId,
           false
-        );
-      }
+        ),
+      ]);
+      await Promise.all(desmarcarPromises);
+      tempos["5b_desmarcarClassificadas"] = Date.now() - inicio;
 
-      logger.info("Fase eliminatória cancelada", {
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS cancelarFaseEliminatoria", {
         etapaId,
-        arenaId,
-        confrontosRemovidos: confrontos.length,
+        confrontos: confrontos.length,
         partidasRemovidas: partidasEliminatorias.length,
         partidasRevertidas,
         duplasAtualizadas: duplasClassificadas.length,
+        tempos,
       });
     } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao cancelar fase eliminatória",
-        { etapaId, arenaId },
+        { etapaId, arenaId, tempos },
         error
       );
       throw error;

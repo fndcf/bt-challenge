@@ -317,9 +317,13 @@ const DetalhesEtapa: React.FC = () => {
                 <ChavesReiDaPraia
                   etapaId={etapa.id}
                   tipoChaveamento={etapa.tipoChaveamento}
+                  etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
                 />
               ) : (
-                <ChavesEtapa etapaId={etapa.id} />
+                <ChavesEtapa
+                  etapaId={etapa.id}
+                  etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                />
               )}
             </>
           )}

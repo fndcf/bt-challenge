@@ -744,65 +744,93 @@ export class SuperXService {
    * Cancelar chaves Super X (resetar tudo)
    */
   async cancelarChaves(etapaId: string, arenaId: string): Promise<void> {
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
+
     try {
+      let start = Date.now();
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
       );
+      timings["buscarEtapa"] = Date.now() - start;
+
       if (!etapa) throw new Error("Etapa não encontrada");
 
       if (!etapa.chavesGeradas) {
         throw new Error("Chaves ainda não foram geradas");
       }
 
-      // Buscar grupos
-      const grupos = await this.grupoRepository.buscarPorEtapa(etapaId, arenaId);
+      // Executar todas as deleções em paralelo usando deletarPorEtapa (batch writes)
+      const startParalelo = Date.now();
+      const [gruposResult, partidasResult, estatisticasResult] =
+        await Promise.all([
+          (async () => {
+            const s = Date.now();
+            const count = await this.grupoRepository.deletarPorEtapa(
+              etapaId,
+              arenaId
+            );
+            return { time: Date.now() - s, count };
+          })(),
+          (async () => {
+            const s = Date.now();
+            const count =
+              await this.partidaReiDaPraiaRepository.deletarPorEtapa(
+                etapaId,
+                arenaId
+              );
+            return { time: Date.now() - s, count };
+          })(),
+          (async () => {
+            const s = Date.now();
+            const count =
+              await this.estatisticasJogadorRepository.deletarPorEtapa(
+                etapaId,
+                arenaId
+              );
+            return { time: Date.now() - s, count };
+          })(),
+        ]);
 
-      // Deletar partidas de cada grupo
-      for (const grupo of grupos) {
-        const partidas =
-          await this.partidaReiDaPraiaRepository.buscarPorGrupo(grupo.id);
-        for (const partida of partidas) {
-          await this.partidaReiDaPraiaRepository.deletar(partida.id);
-        }
-      }
+      timings["deletarGrupos"] = gruposResult.time;
+      timings["deletarPartidas"] = partidasResult.time;
+      timings["deletarEstatisticas"] = estatisticasResult.time;
+      timings["deletarTodos_PARALELO"] = Date.now() - startParalelo;
 
-      // Deletar estatísticas dos jogadores
-      const estatisticas =
-        await this.estatisticasJogadorRepository.buscarPorEtapa(
+      // Atualizar etapa (sequencial pois depende das deleções)
+      start = Date.now();
+      await Promise.all([
+        this.etapaRepository.marcarChavesGeradas(etapaId, false),
+        this.etapaRepository.atualizarStatus(
           etapaId,
-          arenaId
-        );
-      for (const est of estatisticas) {
-        await this.estatisticasJogadorRepository.deletar(est.id);
-      }
+          StatusEtapa.INSCRICOES_ENCERRADAS
+        ),
+      ]);
+      timings["atualizarEtapa"] = Date.now() - start;
 
-      // Deletar grupos
-      for (const grupo of grupos) {
-        await this.grupoRepository.deletar(grupo.id);
-      }
-
-      // Desmarcar chaves como geradas
-      await this.etapaRepository.marcarChavesGeradas(etapaId, false);
-
-      // Voltar status para inscrições encerradas
-      await this.etapaRepository.atualizarStatus(
+      timings["TOTAL"] = Date.now() - startTotal;
+      logger.info("⏱️ TIMING cancelarChaves SuperX", {
+        timings,
         etapaId,
-        StatusEtapa.INSCRICOES_ENCERRADAS
-      );
+        arenaId,
+      });
 
       logger.info("Chaves Super X canceladas", {
         etapaId,
         arenaId,
-        gruposRemovidos: grupos.length,
-        jogadoresRemovidos: estatisticas.length,
+        gruposRemovidos: gruposResult.count,
+        partidasRemovidas: partidasResult.count,
+        estatisticasRemovidas: estatisticasResult.count,
       });
     } catch (error: any) {
+      timings["TOTAL"] = Date.now() - startTotal;
       logger.error(
         "Erro ao cancelar chaves Super X",
         {
           etapaId,
           arenaId,
+          timings,
         },
         error
       );

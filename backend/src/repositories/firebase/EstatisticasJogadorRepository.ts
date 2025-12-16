@@ -10,6 +10,7 @@ import {
   CriarEstatisticasJogadorDTO,
   AtualizarEstatisticasPartidaDTO,
   AtualizarPontuacaoDTO,
+  AtualizarPontuacaoEmLoteDTO,
 } from "../interfaces/IEstatisticasJogadorRepository";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
@@ -475,6 +476,34 @@ export class EstatisticasJogadorRepository
     logger.info("Estatísticas deletadas em lote", { quantidade: ids.length });
 
     return ids.length;
+  }
+
+  /**
+   * Atualizar pontuação em lote (batch write)
+   * Otimização: atualiza múltiplas estatísticas em uma única operação
+   */
+  async atualizarPontuacaoEmLote(
+    items: AtualizarPontuacaoEmLoteDTO[]
+  ): Promise<void> {
+    if (items.length === 0) {
+      return;
+    }
+
+    const batch = db.batch();
+    const now = Timestamp.now();
+
+    for (const item of items) {
+      const docRef = this.collection.doc(item.estatisticaId);
+      batch.update(docRef, {
+        pontos: item.pontos,
+        colocacao: item.colocacao,
+        atualizadoEm: now,
+      });
+    }
+
+    await batch.commit();
+
+    logger.info("Pontuações atualizadas em lote", { quantidade: items.length });
   }
 }
 

@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { Etapa } from "@/types/etapa";
 import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
+import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
 export interface UseEtapaInscricoesParams {
   etapa: Etapa | null;
@@ -103,6 +104,9 @@ export const useEtapaInscricoes = ({
     try {
       const etapaService = getEtapaService();
       await etapaService.encerrarEtapa(etapa.id);
+
+      // Invalidar cache do ranking pois os pontos foram atualizados
+      invalidateRankingCache();
 
       if (onSuccess) await onSuccess();
 

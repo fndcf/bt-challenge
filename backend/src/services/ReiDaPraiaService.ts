@@ -1520,11 +1520,18 @@ export class ReiDaPraiaService {
     etapaId: string,
     arenaId: string
   ): Promise<void> {
+    const tempos: Record<string, number> = {};
+    const inicioTotal = Date.now();
+    let inicio = Date.now();
+
     try {
+      // 1. Buscar etapa
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
       );
+      tempos["1_buscarEtapa"] = Date.now() - inicio;
+
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
@@ -1533,38 +1540,53 @@ export class ReiDaPraiaService {
         throw new Error("Esta etapa não é do formato Rei da Praia");
       }
 
-      // Buscar confrontos via repository
-      const confrontos = await this.confrontoRepository.buscarPorEtapa(
-        etapaId,
-        arenaId
-      );
+      // 2. Buscar confrontos e partidas em paralelo
+      inicio = Date.now();
+      const [confrontos, partidasEliminatorias] = await Promise.all([
+        this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
+        this.partidaRepository.buscarPorTipo(etapaId, arenaId, "eliminatoria"),
+      ]);
+      tempos["2_buscarConfrontosEPartidas"] = Date.now() - inicio;
 
       if (confrontos.length === 0) {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
       }
 
-      // Buscar partidas eliminatórias via repository
-      const partidasEliminatorias = await this.partidaRepository.buscarPorTipo(
-        etapaId,
-        arenaId,
-        "eliminatoria"
-      );
-
+      // 3. Reverter estatísticas de partidas finalizadas
+      inicio = Date.now();
       let partidasRevertidas = 0;
 
       if (partidasEliminatorias.length > 0) {
+        // Buscar todas as duplas necessárias em paralelo
+        const duplaIds = new Set<string>();
+        for (const partida of partidasEliminatorias) {
+          if (partida.status === StatusPartida.FINALIZADA && partida.placar && partida.placar.length > 0) {
+            duplaIds.add(partida.dupla1Id);
+            duplaIds.add(partida.dupla2Id);
+          }
+        }
+
+        const duplasPromises = Array.from(duplaIds).map((id) =>
+          this.duplaRepository.buscarPorId(id)
+        );
+        const duplasArray = await Promise.all(duplasPromises);
+        const duplasMap = new Map(
+          duplasArray.filter(Boolean).map((d) => [d!.id, d!])
+        );
+        tempos["3a_buscarDuplas"] = Date.now() - inicio;
+
+        // Reverter estatísticas em paralelo
+        inicio = Date.now();
+        const reversaoPromises: Promise<void>[] = [];
+
         for (const partida of partidasEliminatorias) {
           if (
             partida.status === StatusPartida.FINALIZADA &&
             partida.placar &&
             partida.placar.length > 0
           ) {
-            const dupla1 = await this.duplaRepository.buscarPorId(
-              partida.dupla1Id
-            );
-            const dupla2 = await this.duplaRepository.buscarPorId(
-              partida.dupla2Id
-            );
+            const dupla1 = duplasMap.get(partida.dupla1Id);
+            const dupla2 = duplasMap.get(partida.dupla2Id);
 
             if (dupla1 && dupla2) {
               let setsDupla1 = 0;
@@ -1588,52 +1610,51 @@ export class ReiDaPraiaService {
 
               const dupla1Venceu = partida.vencedoraId === dupla1.id;
 
-              await estatisticasJogadorService.reverterAposPartida(
-                dupla1.jogador1Id,
-                etapaId,
-                {
-                  venceu: dupla1Venceu,
-                  setsVencidos: setsDupla1,
-                  setsPerdidos: setsDupla2,
-                  gamesVencidos: gamesVencidosDupla1,
-                  gamesPerdidos: gamesPerdidosDupla1,
-                }
-              );
-
-              await estatisticasJogadorService.reverterAposPartida(
-                dupla1.jogador2Id,
-                etapaId,
-                {
-                  venceu: dupla1Venceu,
-                  setsVencidos: setsDupla1,
-                  setsPerdidos: setsDupla2,
-                  gamesVencidos: gamesVencidosDupla1,
-                  gamesPerdidos: gamesPerdidosDupla1,
-                }
-              );
-
-              await estatisticasJogadorService.reverterAposPartida(
-                dupla2.jogador1Id,
-                etapaId,
-                {
-                  venceu: !dupla1Venceu,
-                  setsVencidos: setsDupla2,
-                  setsPerdidos: setsDupla1,
-                  gamesVencidos: gamesVencidosDupla2,
-                  gamesPerdidos: gamesPerdidosDupla2,
-                }
-              );
-
-              await estatisticasJogadorService.reverterAposPartida(
-                dupla2.jogador2Id,
-                etapaId,
-                {
-                  venceu: !dupla1Venceu,
-                  setsVencidos: setsDupla2,
-                  setsPerdidos: setsDupla1,
-                  gamesVencidos: gamesVencidosDupla2,
-                  gamesPerdidos: gamesPerdidosDupla2,
-                }
+              reversaoPromises.push(
+                estatisticasJogadorService.reverterAposPartida(
+                  dupla1.jogador1Id,
+                  etapaId,
+                  {
+                    venceu: dupla1Venceu,
+                    setsVencidos: setsDupla1,
+                    setsPerdidos: setsDupla2,
+                    gamesVencidos: gamesVencidosDupla1,
+                    gamesPerdidos: gamesPerdidosDupla1,
+                  }
+                ),
+                estatisticasJogadorService.reverterAposPartida(
+                  dupla1.jogador2Id,
+                  etapaId,
+                  {
+                    venceu: dupla1Venceu,
+                    setsVencidos: setsDupla1,
+                    setsPerdidos: setsDupla2,
+                    gamesVencidos: gamesVencidosDupla1,
+                    gamesPerdidos: gamesPerdidosDupla1,
+                  }
+                ),
+                estatisticasJogadorService.reverterAposPartida(
+                  dupla2.jogador1Id,
+                  etapaId,
+                  {
+                    venceu: !dupla1Venceu,
+                    setsVencidos: setsDupla2,
+                    setsPerdidos: setsDupla1,
+                    gamesVencidos: gamesVencidosDupla2,
+                    gamesPerdidos: gamesPerdidosDupla2,
+                  }
+                ),
+                estatisticasJogadorService.reverterAposPartida(
+                  dupla2.jogador2Id,
+                  etapaId,
+                  {
+                    venceu: !dupla1Venceu,
+                    setsVencidos: setsDupla2,
+                    setsPerdidos: setsDupla1,
+                    gamesVencidos: gamesVencidosDupla2,
+                    gamesPerdidos: gamesPerdidosDupla2,
+                  }
+                )
               );
 
               partidasRevertidas++;
@@ -1641,57 +1662,68 @@ export class ReiDaPraiaService {
           }
         }
 
-        // Excluir partidas eliminatórias via repository
+        await Promise.all(reversaoPromises);
+        tempos["3b_reverterEstatisticas"] = Date.now() - inicio;
+
+        // 4. Excluir partidas eliminatórias
+        inicio = Date.now();
         await this.partidaRepository.deletarEliminatoriasPorEtapa(
           etapaId,
           arenaId
         );
+        tempos["4_deletarPartidas"] = Date.now() - inicio;
       }
 
-      // Excluir confrontos via repository
-      const confrontosRemovidos =
-        await this.confrontoRepository.deletarPorEtapa(etapaId, arenaId);
+      // 5. Excluir confrontos e duplas em paralelo
+      inicio = Date.now();
+      const [confrontosRemovidos, duplasRemovidas] = await Promise.all([
+        this.confrontoRepository.deletarPorEtapa(etapaId, arenaId),
+        this.duplaRepository.deletarPorEtapa(etapaId, arenaId),
+      ]);
+      tempos["5_deletarConfrontosEDuplas"] = Date.now() - inicio;
 
-      // Excluir duplas via repository
-      const duplasRemovidas = await this.duplaRepository.deletarPorEtapa(
-        etapaId,
-        arenaId
-      );
-
-      // Desmarcar jogadores como classificados via repository
+      // 6. Buscar e desmarcar jogadores classificados
+      inicio = Date.now();
       const estatisticas =
         await this.estatisticasJogadorRepository.buscarPorEtapa(
           etapaId,
           arenaId
         );
-      for (const est of estatisticas) {
-        await this.estatisticasJogadorRepository.atualizar(est.id, {
-          posicaoGrupo: undefined,
-        });
-      }
+      tempos["6a_buscarEstatisticas"] = Date.now() - inicio;
 
-      // Voltar status da etapa via repository
+      inicio = Date.now();
+      const desmarcarPromises = estatisticas.map((est) =>
+        this.estatisticasJogadorRepository.atualizar(est.id, {
+          posicaoGrupo: undefined,
+        })
+      );
+      await Promise.all(desmarcarPromises);
+      tempos["6b_desmarcarClassificados"] = Date.now() - inicio;
+
+      // 7. Voltar status da etapa
+      inicio = Date.now();
       await this.etapaRepository.atualizarStatus(
         etapaId,
         StatusEtapa.CHAVES_GERADAS
       );
+      tempos["7_atualizarStatusEtapa"] = Date.now() - inicio;
 
-      logger.info("Fase eliminatória Rei da Praia cancelada", {
+      tempos["TOTAL"] = Date.now() - inicioTotal;
+
+      logger.info("⏱️ TEMPOS cancelarFaseEliminatoria (Rei da Praia)", {
         etapaId,
-        arenaId,
         confrontosRemovidos,
         partidasRemovidas: partidasEliminatorias.length,
         partidasRevertidas,
         duplasRemovidas,
         jogadoresDesmarcados: estatisticas.length,
+        tempos,
       });
     } catch (error: any) {
+      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao cancelar fase eliminatória",
-        {
-          etapaId,
-          arenaId,
-        },
+        { etapaId, arenaId, tempos },
         error
       );
       throw error;

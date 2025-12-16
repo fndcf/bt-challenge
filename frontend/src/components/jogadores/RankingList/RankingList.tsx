@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import { getArenaPublicService } from "@/services";
 import { JogadorPublico } from "@/services/arenaPublicService";
+import { useRankingCache } from "./useRankingCache";
 
 // ============== TIPOS ==============
 
@@ -403,6 +403,11 @@ interface RankingPorGeneroProps {
   limitPorNivel?: number;
   showPagination?: boolean;
   itensPorPagina?: number;
+  // Props do cache compartilhado
+  getRanking: (genero: GeneroJogador, nivel: NivelJogador) => JogadorPublico[];
+  getContador: (genero: GeneroJogador, nivel: NivelJogador) => number;
+  loading: boolean;
+  error: string | null;
 }
 
 const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
@@ -411,85 +416,45 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
   limitPorNivel = 10,
   showPagination = false,
   itensPorPagina = 20,
+  getRanking,
+  getContador,
+  loading,
+  error,
 }) => {
-  const arenaPublicService = getArenaPublicService();
   const [nivelAtivo, setNivelAtivo] = useState<NivelJogador>(
     NivelJogador.INTERMEDIARIO
   );
-  const [ranking, setRanking] = useState<JogadorPublico[]>([]);
-  const [rankingCompleto, setRankingCompleto] = useState<JogadorPublico[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [offset, setOffset] = useState(0);
-  const [contadores, setContadores] = useState<Record<NivelJogador, number>>({
-    [NivelJogador.INICIANTE]: 0,
-    [NivelJogador.INTERMEDIARIO]: 0,
-    [NivelJogador.AVANCADO]: 0,
-  });
 
-  useEffect(() => {
-    setOffset(0); // Reset offset ao trocar de nível
-    carregarRanking();
-  }, [arenaSlug, genero, nivelAtivo]);
+  // Obter ranking do cache
+  const rankingCompleto = useMemo(
+    () => getRanking(genero, nivelAtivo),
+    [getRanking, genero, nivelAtivo]
+  );
 
-  const carregarRanking = async () => {
-    if (!arenaSlug) {
-      setLoading(false);
-      return;
+  // Calcular ranking paginado/limitado
+  const ranking = useMemo(() => {
+    if (showPagination) {
+      return rankingCompleto.slice(offset, offset + itensPorPagina);
     }
+    return rankingCompleto.slice(0, limitPorNivel);
+  }, [rankingCompleto, showPagination, offset, itensPorPagina, limitPorNivel]);
 
-    try {
-      setLoading(true);
-      setError("");
+  // Contadores do cache
+  const contadores = useMemo(
+    () => ({
+      [NivelJogador.INICIANTE]: getContador(genero, NivelJogador.INICIANTE),
+      [NivelJogador.INTERMEDIARIO]: getContador(genero, NivelJogador.INTERMEDIARIO),
+      [NivelJogador.AVANCADO]: getContador(genero, NivelJogador.AVANCADO),
+    }),
+    [getContador, genero]
+  );
 
-      // Buscar ranking completo filtrado por gênero e nível
-      const rankingData = await arenaPublicService.buscarRanking(
-        arenaSlug,
-        999, // Buscar todos
-        genero,
-        nivelAtivo
-      );
-
-      setRankingCompleto(rankingData);
-
-      // Se tem paginação, mostra slice; senão mostra limit
-      if (showPagination) {
-        setRanking(rankingData.slice(offset, offset + itensPorPagina));
-      } else {
-        setRanking(rankingData.slice(0, limitPorNivel));
-      }
-
-      // Buscar contadores para os badges
-      const contadoresTemp: Record<NivelJogador, number> = {
-        [NivelJogador.INICIANTE]: 0,
-        [NivelJogador.INTERMEDIARIO]: 0,
-        [NivelJogador.AVANCADO]: 0,
-      };
-
-      for (const nivel of Object.values(NivelJogador)) {
-        const rankingNivel = await arenaPublicService.buscarRanking(
-          arenaSlug,
-          999,
-          genero,
-          nivel
-        );
-        contadoresTemp[nivel] = rankingNivel.length;
-      }
-
-      setContadores(contadoresTemp);
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar ranking");
-    } finally {
-      setLoading(false);
-    }
+  // Reset offset ao trocar de nível
+  const handleNivelChange = (nivel: NivelJogador) => {
+    setOffset(0);
+    setNivelAtivo(nivel);
   };
-
-  // Atualizar slice quando offset muda
-  useEffect(() => {
-    if (showPagination && rankingCompleto.length > 0) {
-      setRanking(rankingCompleto.slice(offset, offset + itensPorPagina));
-    }
-  }, [offset, rankingCompleto, showPagination, itensPorPagina]);
 
   const getNivelLabel = (nivel: NivelJogador) => {
     const labels = {
@@ -541,7 +506,7 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
               key={nivel}
               $active={nivelAtivo === nivel}
               $genero={genero}
-              onClick={() => setNivelAtivo(nivel)}
+              onClick={() => handleNivelChange(nivel)}
             >
               <span>{getNivelLabel(nivel)}</span>
               <TabBadge $genero={genero}>{contadores[nivel]}</TabBadge>
@@ -678,6 +643,11 @@ const RankingListComponent: React.FC<RankingListProps> = ({
   itensPorPagina = 20,
   className,
 }) => {
+  // Hook de cache compartilhado - carrega todos os dados de uma vez
+  const { getRanking, getContador, loading, error } = useRankingCache({
+    arenaSlug,
+  });
+
   return (
     <Container className={className}>
       {/* Ranking Masculino */}
@@ -687,6 +657,10 @@ const RankingListComponent: React.FC<RankingListProps> = ({
         limitPorNivel={limitPorNivel}
         showPagination={showPagination}
         itensPorPagina={itensPorPagina}
+        getRanking={getRanking}
+        getContador={getContador}
+        loading={loading}
+        error={error}
       />
 
       {/* Ranking Feminino */}
@@ -696,6 +670,10 @@ const RankingListComponent: React.FC<RankingListProps> = ({
         limitPorNivel={limitPorNivel}
         showPagination={showPagination}
         itensPorPagina={itensPorPagina}
+        getRanking={getRanking}
+        getContador={getContador}
+        loading={loading}
+        error={error}
       />
     </Container>
   );

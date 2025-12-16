@@ -10,6 +10,7 @@ import { getSuperXService } from "@/services";
 
 interface ModalLancamentoResultadosLoteSuperXProps {
   partidas: PartidaReiDaPraia[];
+  etapaFinalizada?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -397,7 +398,7 @@ const agruparPorRodada = (
 
 export const ModalLancamentoResultadosLoteSuperX: React.FC<
   ModalLancamentoResultadosLoteSuperXProps
-> = ({ partidas, onClose, onSuccess }) => {
+> = ({ partidas, etapaFinalizada = false, onClose, onSuccess }) => {
   const superXService = getSuperXService();
   const [resultados, setResultados] = useState<Map<string, ResultadoPartida>>(
     new Map()
@@ -828,9 +829,11 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
                 type="submit"
                 form="form-resultados-lote"
                 $variant="primary"
-                disabled={loading || resultadosASeremSalvos === 0}
+                disabled={loading || resultadosASeremSalvos === 0 || etapaFinalizada}
               >
-                {loading ? (
+                {etapaFinalizada ? (
+                  "Etapa Finalizada"
+                ) : loading ? (
                   <>
                     <Spinner />
                     <span>Salvando...</span>

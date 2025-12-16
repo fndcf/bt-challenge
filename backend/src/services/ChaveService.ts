@@ -239,8 +239,14 @@ export class ChaveService implements IChaveService {
    * Excluir todas as chaves da etapa
    */
   async excluirChaves(etapaId: string, arenaId: string): Promise<void> {
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
+
     try {
+      let start = Date.now();
       const etapa = await etapaService.buscarPorId(etapaId, arenaId);
+      timings["buscarEtapa"] = Date.now() - start;
+
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
@@ -249,42 +255,82 @@ export class ChaveService implements IChaveService {
         throw new Error("Esta etapa não possui chaves geradas");
       }
 
-      // Cancelar fase eliminatória se existir
+      // Cancelar fase eliminatória se existir (precisa rodar primeiro)
       try {
+        start = Date.now();
         await this.eliminatoria.cancelarFaseEliminatoria(etapaId, arenaId);
+        timings["cancelarFaseEliminatoria"] = Date.now() - start;
       } catch {
+        timings["cancelarFaseEliminatoria"] = Date.now() - start;
         // Ignorar se não existir fase eliminatória
       }
 
-      // Deletar partidas de grupos
-      await this.deletarPartidasGrupos(etapaId, arenaId);
+      // Executar todas as deleções em paralelo (são independentes)
+      const startParalelo = Date.now();
+      const [
+        partidasGruposResult,
+        gruposResult,
+        duplasResult,
+        partidasReiResult,
+        estatisticasResult,
+        historicoResult,
+      ] = await Promise.all([
+        (async () => {
+          const s = Date.now();
+          await this.deletarPartidasGrupos(etapaId, arenaId);
+          return Date.now() - s;
+        })(),
+        (async () => {
+          const s = Date.now();
+          await this.grupos.deletarPorEtapa(etapaId, arenaId);
+          return Date.now() - s;
+        })(),
+        (async () => {
+          const s = Date.now();
+          await this.duplas.deletarPorEtapa(etapaId, arenaId);
+          return Date.now() - s;
+        })(),
+        (async () => {
+          const s = Date.now();
+          await this.deletarPartidasReiDaPraia(etapaId, arenaId);
+          return Date.now() - s;
+        })(),
+        (async () => {
+          const s = Date.now();
+          await this.deletarEstatisticas(etapaId, arenaId);
+          return Date.now() - s;
+        })(),
+        (async () => {
+          const s = Date.now();
+          await historicoDuplaService.limparDaEtapa(arenaId, etapaId);
+          return Date.now() - s;
+        })(),
+      ]);
 
-      // Deletar grupos
-      await this.grupos.deletarPorEtapa(etapaId, arenaId);
-
-      // Deletar duplas
-      await this.duplas.deletarPorEtapa(etapaId, arenaId);
-
-      // Deletar partidas Rei da Praia (se existirem)
-      await this.deletarPartidasReiDaPraia(etapaId, arenaId);
-
-      // Deletar estatísticas
-      await this.deletarEstatisticas(etapaId, arenaId);
-
-      // Limpar histórico de duplas da etapa
-      await historicoDuplaService.limparDaEtapa(arenaId, etapaId);
+      timings["deletarPartidasGrupos"] = partidasGruposResult;
+      timings["deletarGrupos"] = gruposResult;
+      timings["deletarDuplas"] = duplasResult;
+      timings["deletarPartidasReiDaPraia"] = partidasReiResult;
+      timings["deletarEstatisticas"] = estatisticasResult;
+      timings["limparHistoricoDuplas"] = historicoResult;
+      timings["deletarTodos_PARALELO"] = Date.now() - startParalelo;
 
       // Atualizar etapa
+      start = Date.now();
       await db.collection("etapas").doc(etapaId).update({
         chavesGeradas: false,
         dataGeracaoChaves: null,
         status: StatusEtapa.INSCRICOES_ENCERRADAS,
         atualizadoEm: Timestamp.now(),
       });
+      timings["atualizarEtapa"] = Date.now() - start;
 
+      timings["TOTAL"] = Date.now() - startTotal;
+      logger.info("⏱️ TIMING excluirChaves", { timings, etapaId, arenaId });
       logger.info("Chaves excluídas", { etapaId, arenaId });
     } catch (error: any) {
-      logger.error("Erro ao excluir chaves", { etapaId, arenaId }, error);
+      timings["TOTAL"] = Date.now() - startTotal;
+      logger.error("Erro ao excluir chaves", { etapaId, arenaId, timings }, error);
       throw error;
     }
   }

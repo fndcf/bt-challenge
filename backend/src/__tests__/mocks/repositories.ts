@@ -308,6 +308,7 @@ export function createMockEstatisticasRepository(): MockedEstatisticasRepository
     deletarPorEtapa: jest.fn(),
     recalcularSaldos: jest.fn(),
     zerarEstatisticas: jest.fn(),
+    atualizarPontuacaoEmLote: jest.fn(),
   };
 }
 

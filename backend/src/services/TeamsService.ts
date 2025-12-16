@@ -2380,7 +2380,13 @@ export class TeamsService {
     dupla1JogadorIds: [string, string],
     dupla2JogadorIds: [string, string]
   ): Promise<PartidaTeams> {
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
+
+    let start = Date.now();
     const partida = await this.partidaRepository.buscarPorId(partidaId);
+    timings["1_buscarPartida"] = Date.now() - start;
+
     if (!partida) {
       throw new NotFoundError("Partida não encontrada");
     }
@@ -2403,9 +2409,12 @@ export class TeamsService {
       logger.warn("Partida sem IDs das equipes, buscando do confronto", {
         partidaId,
       });
+      start = Date.now();
       const confronto = await this.confrontoRepository.buscarPorId(
         partida.confrontoId
       );
+      timings["2a_buscarConfronto"] = Date.now() - start;
+
       if (!confronto) {
         throw new NotFoundError("Confronto não encontrado");
       }
@@ -2413,17 +2422,23 @@ export class TeamsService {
       equipe2Id = confronto.equipe2Id;
 
       // Atualizar a partida com os IDs das equipes
+      start = Date.now();
       await this.partidaRepository.atualizar(partidaId, {
         equipe1Id,
         equipe1Nome: confronto.equipe1Nome,
         equipe2Id,
         equipe2Nome: confronto.equipe2Nome,
       });
+      timings["2b_atualizarPartidaIds"] = Date.now() - start;
     }
 
-    // Buscar equipes
-    const equipe1 = await this.equipeRepository.buscarPorId(equipe1Id);
-    const equipe2 = await this.equipeRepository.buscarPorId(equipe2Id);
+    // Buscar equipes em paralelo
+    start = Date.now();
+    const [equipe1, equipe2] = await Promise.all([
+      this.equipeRepository.buscarPorId(equipe1Id),
+      this.equipeRepository.buscarPorId(equipe2Id),
+    ]);
+    timings["3_buscarEquipes"] = Date.now() - start;
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -2451,25 +2466,35 @@ export class TeamsService {
       return j;
     });
 
-    // Verificar se não há repetição de dupla no mesmo confronto
-    await this.validarDuplasUnicas(
-      partida.confrontoId,
-      partidaId,
-      dupla1Jogadores,
-      dupla2Jogadores
-    );
-
-    // Verificar se jogadores já participaram do confronto (exceto no decider)
-    if (partida.tipoJogo !== TipoJogoTeams.DECIDER) {
-      await this.validarJogadoresNaoRepetidos(
-        partida.confrontoId,
-        partidaId,
-        dupla1Jogadores,
-        dupla2Jogadores
-      );
+    // Buscar confronto e partidas UMA VEZ (usado por ambas validações)
+    start = Date.now();
+    const confronto = await this.confrontoRepository.buscarPorId(partida.confrontoId);
+    if (!confronto) {
+      throw new NotFoundError("Confronto não encontrado");
     }
+    timings["4a_buscarConfronto"] = Date.now() - start;
+
+    // Buscar todas as partidas do confronto em paralelo (exceto a atual)
+    start = Date.now();
+    const partidasIds = confronto.partidas.filter((id) => id !== partidaId);
+    const partidasPromises = partidasIds.map((id) => this.partidaRepository.buscarPorId(id));
+    const partidasDoConfronto = (await Promise.all(partidasPromises)).filter(
+      (p) => p !== null
+    ) as PartidaTeams[];
+    timings["4b_buscarPartidasConfronto"] = Date.now() - start;
+
+    // Executar validações em paralelo (usando dados já carregados)
+    start = Date.now();
+    await Promise.all([
+      this.validarDuplasUnicasComDados(partidasDoConfronto, dupla1Jogadores, dupla2Jogadores),
+      partida.tipoJogo !== TipoJogoTeams.DECIDER
+        ? this.validarJogadoresNaoRepetidosComDados(partidasDoConfronto, dupla1Jogadores, dupla2Jogadores)
+        : Promise.resolve(),
+    ]);
+    timings["4c_validacoes"] = Date.now() - start;
 
     // Atualizar partida com os jogadores
+    start = Date.now();
     await this.partidaRepository.atualizar(partidaId, {
       dupla1: dupla1Jogadores.map((j) => ({
         id: j.id,
@@ -2484,36 +2509,29 @@ export class TeamsService {
         genero: j.genero,
       })),
     });
+    timings["6_atualizarPartidaJogadores"] = Date.now() - start;
 
-    return this.partidaRepository.buscarPorId(
+    start = Date.now();
+    const partidaAtualizada = await this.partidaRepository.buscarPorId(
       partidaId
-    ) as Promise<PartidaTeams>;
+    ) as PartidaTeams;
+    timings["7_buscarPartidaFinal"] = Date.now() - start;
+
+    timings["TOTAL"] = Date.now() - startTotal;
+    logger.info("⏱️ TIMING definirJogadoresPartida", { timings, partidaId });
+
+    return partidaAtualizada;
   }
 
   /**
-   * Valida que as duplas não se repetem no mesmo confronto
+   * Valida duplas únicas usando dados já carregados (otimizado)
+   * Evita queries duplicadas quando chamado junto com validarJogadoresNaoRepetidosComDados
    */
-  private async validarDuplasUnicas(
-    confrontoId: string,
-    partidaAtualId: string,
+  private validarDuplasUnicasComDados(
+    partidas: PartidaTeams[],
     dupla1Jogadores: JogadorEquipe[],
     dupla2Jogadores: JogadorEquipe[]
-  ): Promise<void> {
-    // Buscar todas as partidas do confronto
-    const confronto = await this.confrontoRepository.buscarPorId(confrontoId);
-    if (!confronto) {
-      throw new NotFoundError("Confronto não encontrado");
-    }
-
-    // Buscar todas as partidas já definidas
-    const partidasPromises = confronto.partidas
-      .filter((id) => id !== partidaAtualId)
-      .map((id) => this.partidaRepository.buscarPorId(id));
-
-    const partidas = (await Promise.all(partidasPromises)).filter(
-      (p) => p !== null
-    ) as PartidaTeams[];
-
+  ): void {
     // Criar conjunto de duplas já usadas
     const duplasUsadas = new Set<string>();
     for (const p of partidas) {
@@ -2551,30 +2569,14 @@ export class TeamsService {
   }
 
   /**
-   * Valida que jogadores não se repetem em partidas diferentes do mesmo confronto
-   * (exceto no decider, onde jogadores podem repetir)
+   * Valida jogadores não repetidos usando dados já carregados (otimizado)
+   * Evita queries duplicadas quando chamado junto com validarDuplasUnicasComDados
    */
-  private async validarJogadoresNaoRepetidos(
-    confrontoId: string,
-    partidaAtualId: string,
+  private validarJogadoresNaoRepetidosComDados(
+    partidas: PartidaTeams[],
     dupla1Jogadores: JogadorEquipe[],
     dupla2Jogadores: JogadorEquipe[]
-  ): Promise<void> {
-    // Buscar todas as partidas do confronto
-    const confronto = await this.confrontoRepository.buscarPorId(confrontoId);
-    if (!confronto) {
-      throw new NotFoundError("Confronto não encontrado");
-    }
-
-    // Buscar todas as partidas já definidas (exceto deciders)
-    const partidasPromises = confronto.partidas
-      .filter((id) => id !== partidaAtualId)
-      .map((id) => this.partidaRepository.buscarPorId(id));
-
-    const partidas = (await Promise.all(partidasPromises)).filter(
-      (p) => p !== null
-    ) as PartidaTeams[];
-
+  ): void {
     // Criar conjunto de jogadores já usados (excluindo deciders)
     const jogadoresUsados = new Set<string>();
     for (const p of partidas) {
@@ -3344,25 +3346,32 @@ export class TeamsService {
     confronto: ConfrontoEquipe,
     etapa: Etapa
   ): Promise<PartidaTeams> {
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
+
     const variante = etapa.varianteTeams!;
 
     if (variante !== VarianteTeams.TEAMS_4) {
       throw new ValidationError("Decider só é permitido para TEAMS_4");
     }
 
+    let start = Date.now();
     const existeDecider = await this.partidaRepository.existeDecider(
       confronto.id
     );
+    timings["1_verificarExisteDecider"] = Date.now() - start;
+
     if (existeDecider) {
       throw new ValidationError("Decider já existe para este confronto");
     }
 
-    const equipe1 = await this.equipeRepository.buscarPorId(
-      confronto.equipe1Id
-    );
-    const equipe2 = await this.equipeRepository.buscarPorId(
-      confronto.equipe2Id
-    );
+    // Buscar equipes em paralelo
+    start = Date.now();
+    const [equipe1, equipe2] = await Promise.all([
+      this.equipeRepository.buscarPorId(confronto.equipe1Id),
+      this.equipeRepository.buscarPorId(confronto.equipe2Id),
+    ]);
+    timings["2_buscarEquipes"] = Date.now() - start;
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -3418,9 +3427,20 @@ export class TeamsService {
       dupla2Jogadores
     );
 
+    start = Date.now();
     const partida = await this.partidaRepository.criar(partidaDTO);
+    timings["3_criarPartida"] = Date.now() - start;
+
+    start = Date.now();
     await this.confrontoRepository.adicionarPartida(confronto.id, partida.id);
+    timings["4_adicionarPartidaConfronto"] = Date.now() - start;
+
+    start = Date.now();
     await this.confrontoRepository.marcarTemDecider(confronto.id, true);
+    timings["5_marcarTemDecider"] = Date.now() - start;
+
+    timings["TOTAL"] = Date.now() - startTotal;
+    logger.info("⏱️ TIMING gerarDecider", { timings, confrontoId: confronto.id });
 
     return partida;
   }
@@ -3589,20 +3609,47 @@ export class TeamsService {
   }
 
   async cancelarChaves(etapaId: string, arenaId: string): Promise<void> {
-    // Deletar partidas
-    await this.partidaRepository.deletarPorEtapa(etapaId, arenaId);
-    // Deletar confrontos
-    await this.confrontoRepository.deletarPorEtapa(etapaId, arenaId);
-    // Deletar equipes
-    await this.equipeRepository.deletarPorEtapa(etapaId, arenaId);
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
 
-    // Deletar estatísticas de jogadores desta etapa
+    // Import necessário para estatísticas
     const { estatisticasJogadorRepository } = await import(
       "../repositories/firebase/EstatisticasJogadorRepository"
     );
-    await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
+
+    // Executar todas as deleções em paralelo (são independentes)
+    const startParalelo = Date.now();
+    const [partidasResult, confrontosResult, equipesResult, estatisticasResult] = await Promise.all([
+      (async () => {
+        const start = Date.now();
+        await this.partidaRepository.deletarPorEtapa(etapaId, arenaId);
+        return Date.now() - start;
+      })(),
+      (async () => {
+        const start = Date.now();
+        await this.confrontoRepository.deletarPorEtapa(etapaId, arenaId);
+        return Date.now() - start;
+      })(),
+      (async () => {
+        const start = Date.now();
+        await this.equipeRepository.deletarPorEtapa(etapaId, arenaId);
+        return Date.now() - start;
+      })(),
+      (async () => {
+        const start = Date.now();
+        await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
+        return Date.now() - start;
+      })(),
+    ]);
+
+    timings["deletarPartidas"] = partidasResult;
+    timings["deletarConfrontos"] = confrontosResult;
+    timings["deletarEquipes"] = equipesResult;
+    timings["deletarEstatisticas"] = estatisticasResult;
+    timings["deletarTodos_PARALELO"] = Date.now() - startParalelo;
 
     // Atualizar etapa para refletir que chaves foram canceladas
+    const start = Date.now();
     const { db } = await import("../config/firebase");
     const { Timestamp } = await import("firebase-admin/firestore");
     await db.collection("etapas").doc(etapaId).update({
@@ -3610,7 +3657,10 @@ export class TeamsService {
       status: StatusEtapa.INSCRICOES_ENCERRADAS,
       atualizadoEm: Timestamp.now(),
     });
+    timings["atualizarEtapa"] = Date.now() - start;
 
+    timings["TOTAL"] = Date.now() - startTotal;
+    logger.info("⏱️ TIMING cancelarChaves TEAMS", { timings, etapaId, arenaId });
     logger.info("Chaves TEAMS canceladas", { etapaId, arenaId });
   }
 

@@ -77,6 +77,15 @@ export interface AtualizarPontuacaoDTO {
 }
 
 /**
+ * DTO para atualizar pontuação em lote
+ */
+export interface AtualizarPontuacaoEmLoteDTO {
+  estatisticaId: string;
+  pontos: number;
+  colocacao: string;
+}
+
+/**
  * Interface do repository de EstatisticasJogador
  */
 export interface IEstatisticasJogadorRepository
@@ -159,4 +168,9 @@ export interface IEstatisticasJogadorRepository
    * Zerar estatísticas (para recálculo)
    */
   zerarEstatisticas(id: string): Promise<void>;
+
+  /**
+   * Atualizar pontuação em lote (batch write)
+   */
+  atualizarPontuacaoEmLote(items: AtualizarPontuacaoEmLoteDTO[]): Promise<void>;
 }

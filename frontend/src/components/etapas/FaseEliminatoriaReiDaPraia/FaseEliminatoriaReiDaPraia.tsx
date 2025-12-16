@@ -14,6 +14,7 @@ import {
 } from "../FaseEliminatoria/utils/faseHelpers";
 import { EmptyState } from "../FaseEliminatoria/components/EmptyState";
 import { StatusBadge } from "../FaseEliminatoria/components/StatusBadge";
+import { LoadingOverlay } from "@/components/ui";
 import {
   Container,
   Header,
@@ -74,6 +75,8 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
     confrontoSelecionado,
     faseAtual,
     etapaFinalizada,
+    globalLoading,
+    globalLoadingMessage,
 
     // Dados computados
     todosGruposCompletos,
@@ -118,16 +121,19 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
   // Empty state (sem confrontos)
   if (!confrontos || confrontos.length === 0) {
     return (
-      <EmptyState
-        isGrupoUnico={isGrupoUnico}
-        grupoUnicoCompleto={grupoUnicoCompleto}
-        etapaFinalizada={etapaFinalizada}
-        todosGruposCompletos={todosGruposCompletos}
-        partidasPendentes={partidasPendentes}
-        loading={loading}
-        onGerarEliminatoria={gerarEliminatoria}
-        onEncerrarEtapa={encerrarEtapa}
-      />
+      <>
+        <EmptyState
+          isGrupoUnico={isGrupoUnico}
+          grupoUnicoCompleto={grupoUnicoCompleto}
+          etapaFinalizada={etapaFinalizada}
+          todosGruposCompletos={todosGruposCompletos}
+          partidasPendentes={partidasPendentes}
+          loading={loading}
+          onGerarEliminatoria={gerarEliminatoria}
+          onEncerrarEtapa={encerrarEtapa}
+        />
+        <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+      </>
     );
   }
 
@@ -255,6 +261,8 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
           onClose={() => setModalEncerrarAberto(false)}
         />
       )}
+
+      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
     </Container>
   );
 };

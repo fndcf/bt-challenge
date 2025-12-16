@@ -674,6 +674,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       {mostrarModalResultados && (
         <ModalLancamentoResultadosLoteSuperX
           partidas={partidas}
+          etapaFinalizada={etapaFinalizada}
           onClose={() => setMostrarModalResultados(false)}
           onSuccess={handleResultadosSalvos}
         />

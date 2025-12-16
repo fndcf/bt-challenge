@@ -29,7 +29,10 @@ import { IInscricaoRepository } from "../repositories/interfaces/IInscricaoRepos
 import { IJogadorRepository } from "../repositories/interfaces/IJogadorRepository";
 import { IConfigRepository } from "../repositories/interfaces/IConfigRepository";
 import { ICabecaDeChaveRepository } from "../repositories/interfaces/ICabecaDeChaveRepository";
-import { IEstatisticasJogadorRepository } from "../repositories/interfaces/IEstatisticasJogadorRepository";
+import {
+  IEstatisticasJogadorRepository,
+  AtualizarPontuacaoEmLoteDTO,
+} from "../repositories/interfaces/IEstatisticasJogadorRepository";
 import { IGrupoRepository } from "../repositories/interfaces/IGrupoRepository";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { IConfrontoEliminatorioRepository } from "../repositories/interfaces/IConfrontoEliminatorioRepository";
@@ -914,8 +917,15 @@ export class EtapaService {
    * Encerrar etapa e atribuir pontos
    */
   async encerrarEtapa(id: string, arenaId: string): Promise<void> {
+    const timings: Record<string, number> = {};
+    const startTotal = Date.now();
+
     try {
+      // 1. Buscar etapa
+      const start1 = Date.now();
       const etapa = await this.buscarPorId(id, arenaId);
+      timings["1_buscarEtapa"] = Date.now() - start1;
+
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
@@ -930,18 +940,23 @@ export class EtapaService {
       logger.info("Encerrando etapa", {
         etapaId: id,
         contaPontosRanking,
+        formato: etapa.formato,
       });
 
-      // Buscar pontuação via repository
+      // 2. Buscar pontuação via repository
+      const start2 = Date.now();
       const pontuacao = await this.configRepository.buscarPontuacao();
+      timings["2_buscarPontuacao"] = Date.now() - start2;
 
       // CENÁRIO 0: TEAMS (equipes)
       if (etapa.formato === FormatoEtapa.TEAMS) {
-        // Verificar se todos os confrontos estão finalizados
+        // 3. Buscar confrontos TEAMS
+        const start3 = Date.now();
         const confrontos = await this.confrontoEquipeRepository.buscarPorEtapa(
           id,
           arenaId
         );
+        timings["3_buscarConfrontosTeams"] = Date.now() - start3;
 
         if (confrontos.length === 0) {
           throw new Error("Nenhum confronto encontrado para esta etapa");
@@ -957,11 +972,13 @@ export class EtapaService {
           );
         }
 
-        // Buscar equipes ordenadas por classificação
+        // 4. Buscar equipes ordenadas por classificação
+        const start4 = Date.now();
         const equipes = await this.equipeRepository.buscarPorClassificacao(
           id,
           arenaId
         );
+        timings["4_buscarEquipes"] = Date.now() - start4;
 
         if (equipes.length === 0) {
           throw new Error("Nenhuma equipe encontrada para esta etapa");
@@ -979,22 +996,27 @@ export class EtapaService {
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
+          // 5. BATCH OTIMIZADO - Coletar todos jogadores e suas colocações
+          const start5 = Date.now();
+
+          // Coletar todos os jogadorIds com suas colocações
+          const jogadorColocacoes: Array<{
+            jogadorId: string;
+            jogadorNome: string;
+            equipeNome: string;
+            posicao: number;
+            colocacao: string;
+            pontos: number;
+          }> = [];
+
           for (let i = 0; i < equipes.length; i++) {
             const equipe = equipes[i];
             const { colocacao, pontos } =
               tabelaColocacoes[i] ||
               tabelaColocacoes[tabelaColocacoes.length - 1];
 
-            // Atribuir pontos a cada jogador da equipe
             for (const jogador of equipe.jogadores) {
-              await this.atribuirPontosParaJogador(
-                jogador.id,
-                id,
-                pontos,
-                colocacao
-              );
-
-              logger.info("Pontos atribuídos ao jogador TEAMS", {
+              jogadorColocacoes.push({
                 jogadorId: jogador.id,
                 jogadorNome: jogador.nome,
                 equipeNome: equipe.nome,
@@ -1003,10 +1025,67 @@ export class EtapaService {
                 pontos,
               });
             }
-
-            // Atualizar posição da equipe
-            await this.equipeRepository.atualizarPosicao(equipe.id, i + 1);
           }
+          timings["5a_coletarJogadores"] = Date.now() - start5;
+
+          // 5b. Buscar estatísticas de todos os jogadores em paralelo
+          const start5b = Date.now();
+          const estatisticasPromises = jogadorColocacoes.map((j) =>
+            this.estatisticasJogadorRepository
+              .buscarPorJogadorEEtapa(j.jogadorId, id)
+              .then((est) => ({ ...j, estatistica: est }))
+          );
+          const jogadoresComEstatisticas = await Promise.all(
+            estatisticasPromises
+          );
+          timings["5b_buscarEstatisticas"] = Date.now() - start5b;
+
+          // 5c. Preparar batch de atualizações
+          const start5c = Date.now();
+          const pontuacoesBatch: AtualizarPontuacaoEmLoteDTO[] = [];
+
+          for (const jogador of jogadoresComEstatisticas) {
+            if (jogador.estatistica) {
+              pontuacoesBatch.push({
+                estatisticaId: jogador.estatistica.id,
+                pontos: jogador.pontos,
+                colocacao: jogador.colocacao,
+              });
+
+              logger.info("Pontos atribuídos ao jogador TEAMS", {
+                jogadorId: jogador.jogadorId,
+                jogadorNome: jogador.jogadorNome,
+                equipeNome: jogador.equipeNome,
+                posicao: jogador.posicao,
+                colocacao: jogador.colocacao,
+                pontos: jogador.pontos,
+              });
+            } else {
+              logger.warn("Estatísticas não encontradas para jogador TEAMS", {
+                jogadorId: jogador.jogadorId,
+                etapaId: id,
+              });
+            }
+          }
+
+          // 5d. Atualizar todas as pontuações em batch
+          if (pontuacoesBatch.length > 0) {
+            await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(
+              pontuacoesBatch
+            );
+          }
+          timings["5c_batchPontuacoes"] = Date.now() - start5c;
+
+          // 5e. Atualizar posições das equipes em paralelo
+          const start5e = Date.now();
+          await Promise.all(
+            equipes.map((equipe, i) =>
+              this.equipeRepository.atualizarPosicao(equipe.id, i + 1)
+            )
+          );
+          timings["5d_atualizarPosicoes"] = Date.now() - start5e;
+
+          timings["5_TOTAL_atribuirPontosTeams"] = Date.now() - start5;
         } else {
           logger.info(
             "Etapa TEAMS não conta pontos no ranking - pulando atribuição",
@@ -1021,7 +1100,13 @@ export class EtapaService {
           throw new Error("Nenhuma equipe campeã encontrada");
         }
 
+        // 6. Definir campeão
+        const start6 = Date.now();
         await this.etapaRepository.definirCampeao(id, campeao.id, campeao.nome);
+        timings["6_definirCampeao"] = Date.now() - start6;
+
+        timings["TOTAL"] = Date.now() - startTotal;
+        logger.info("⏱️ TIMING encerrarEtapa TEAMS", { timings, etapaId: id });
 
         logger.info("Etapa TEAMS encerrada", {
           etapaId: id,
@@ -1034,8 +1119,10 @@ export class EtapaService {
         return;
       }
 
-      // Buscar grupos via repository (para outros formatos)
+      // 3. Buscar grupos via repository (para outros formatos)
+      const start3 = Date.now();
       const grupos = await this.grupoRepository.buscarPorEtapa(id, arenaId);
+      timings["3_buscarGrupos"] = Date.now() - start3;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo encontrado para esta etapa");
@@ -1051,11 +1138,13 @@ export class EtapaService {
           );
         }
 
-        // Buscar jogadores ordenados por posição via repository
+        // 4. Buscar jogadores ordenados por posição via repository
+        const start4 = Date.now();
         const jogadores =
           await this.estatisticasJogadorRepository.buscarPorGrupoOrdenado(
             grupo.id
           );
+        timings["4_buscarJogadoresSuperX"] = Date.now() - start4;
 
         if (jogadores.length === 0) {
           throw new Error("Nenhum jogador encontrado no grupo");
@@ -1073,18 +1162,31 @@ export class EtapaService {
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
-          for (let i = 0; i < jogadores.length; i++) {
-            const jogador = jogadores[i];
+          // 5. Atribuir pontos aos jogadores Super X (BATCH OTIMIZADO)
+          const start5 = Date.now();
+
+          // Preparar dados para batch
+          const pontuacoesBatch = jogadores.map((jogador, i) => {
+            const { colocacao, pontos: pts } =
+              tabelaColocacoes[i] ||
+              tabelaColocacoes[tabelaColocacoes.length - 1];
+            return {
+              estatisticaId: jogador.id,
+              pontos: pts,
+              colocacao,
+            };
+          });
+
+          // Executar batch write
+          await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(
+            pontuacoesBatch
+          );
+
+          // Log individual para debug (opcional)
+          jogadores.forEach((jogador, i) => {
             const { colocacao, pontos } =
               tabelaColocacoes[i] ||
               tabelaColocacoes[tabelaColocacoes.length - 1];
-
-            // Atribuir pontos ao jogador individual
-            await this.estatisticasJogadorRepository.atualizar(jogador.id, {
-              pontos,
-              colocacao,
-            });
-
             logger.info("Pontos atribuídos ao jogador Super X", {
               jogadorId: jogador.jogadorId,
               jogadorNome: jogador.jogadorNome,
@@ -1092,7 +1194,8 @@ export class EtapaService {
               colocacao,
               pontos,
             });
-          }
+          });
+          timings["5_atribuirPontosSuperX"] = Date.now() - start5;
         } else {
           logger.info(
             "Etapa Super X não conta pontos no ranking - pulando atribuição",
@@ -1107,11 +1210,17 @@ export class EtapaService {
           throw new Error("Nenhum campeão encontrado");
         }
 
+        // 6. Definir campeão
+        const start6 = Date.now();
         await this.etapaRepository.definirCampeao(
           id,
           campeao.jogadorId,
           campeao.jogadorNome
         );
+        timings["6_definirCampeao"] = Date.now() - start6;
+
+        timings["TOTAL"] = Date.now() - startTotal;
+        logger.info("⏱️ TIMING encerrarEtapa SUPER_X", { timings, etapaId: id });
 
         logger.info("Etapa Super X encerrada", {
           etapaId: id,
@@ -1134,10 +1243,12 @@ export class EtapaService {
           );
         }
 
-        // Buscar duplas ordenadas por posição via repository
+        // 4. Buscar duplas ordenadas por posição via repository
+        const start4 = Date.now();
         const duplas = await this.duplaRepository.buscarPorGrupoOrdenado(
           grupo.id
         );
+        timings["4_buscarDuplasGrupoUnico"] = Date.now() - start4;
 
         if (duplas.length === 0) {
           throw new Error("Nenhuma dupla encontrada no grupo");
@@ -1153,14 +1264,67 @@ export class EtapaService {
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
+          // 5. Atribuir pontos às duplas (grupo único) - BATCH OTIMIZADO
+          const start5 = Date.now();
+
+          // 5a. Coletar todos os jogadorIds das duplas
+          const jogadorIds: string[] = [];
+          const jogadorColocacoes: Map<
+            string,
+            { pontos: number; colocacao: string }
+          > = new Map();
+
           for (let i = 0; i < duplas.length; i++) {
             const dupla = duplas[i];
-            const { colocacao, pontos } =
+            const { colocacao, pontos: pts } =
               tabelaColocacoes[i] ||
               tabelaColocacoes[tabelaColocacoes.length - 1];
 
-            await this.atribuirPontosParaDupla(dupla.id, id, pontos, colocacao);
+            jogadorIds.push(dupla.jogador1Id, dupla.jogador2Id);
+            jogadorColocacoes.set(dupla.jogador1Id, { pontos: pts, colocacao });
+            jogadorColocacoes.set(dupla.jogador2Id, { pontos: pts, colocacao });
           }
+
+          // 5b. Buscar todas as estatísticas em paralelo
+          const estatisticasPromises = jogadorIds.map((jogadorId) =>
+            this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
+              jogadorId,
+              id
+            )
+          );
+          const estatisticas = await Promise.all(estatisticasPromises);
+
+          // 5c. Preparar batch de atualizações
+          const pontuacoesBatch = estatisticas
+            .filter((est) => est !== null)
+            .map((est) => {
+              const colocacaoInfo = jogadorColocacoes.get(est!.jogadorId);
+              return {
+                estatisticaId: est!.id,
+                pontos: colocacaoInfo?.pontos || 0,
+                colocacao: colocacaoInfo?.colocacao || "participacao",
+              };
+            });
+
+          // 5d. Executar batch write
+          await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(
+            pontuacoesBatch
+          );
+
+          // Log para debug
+          duplas.forEach((dupla, i) => {
+            const { colocacao, pontos } =
+              tabelaColocacoes[i] ||
+              tabelaColocacoes[tabelaColocacoes.length - 1];
+            logger.info("Pontos atribuídos para dupla", {
+              duplaId: dupla.id,
+              etapaId: id,
+              jogadores: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+              pontos,
+              colocacao,
+            });
+          });
+          timings["5_atribuirPontosGrupoUnico"] = Date.now() - start5;
         } else {
           logger.info(
             "Etapa não conta pontos no ranking - pulando atribuição",
@@ -1175,11 +1339,17 @@ export class EtapaService {
           throw new Error("Nenhum campeão encontrado");
         }
 
+        // 6. Definir campeão
+        const start6 = Date.now();
         await this.etapaRepository.definirCampeao(
           id,
           campeao.id,
           `${campeao.jogador1Nome} & ${campeao.jogador2Nome}`
         );
+        timings["6_definirCampeao"] = Date.now() - start6;
+
+        timings["TOTAL"] = Date.now() - startTotal;
+        logger.info("⏱️ TIMING encerrarEtapa GRUPO_UNICO", { timings, etapaId: id });
 
         logger.info("Etapa encerrada (grupo único)", {
           etapaId: id,
@@ -1192,13 +1362,15 @@ export class EtapaService {
         return;
       }
 
-      // CENÁRIO 2: COM ELIMINATÓRIA
-      // Buscar confronto da final via repository
+      // CENÁRIO 3: COM ELIMINATÓRIA (múltiplos grupos)
+      // 4. Buscar confronto da final via repository
+      const start4 = Date.now();
       const confrontosFinais = await this.confrontoRepository.buscarPorFase(
         id,
         arenaId,
         TipoFase.FINAL
       );
+      timings["4_buscarConfrontoFinal"] = Date.now() - start4;
 
       if (confrontosFinais.length === 0) {
         throw new Error("Não há fase eliminatória para esta etapa");
@@ -1212,15 +1384,26 @@ export class EtapaService {
 
       // Só atribuir pontos se a etapa conta para o ranking
       if (contaPontosRanking) {
+        // 5. BATCH OTIMIZADO - Buscar todos os confrontos em paralelo
+        const start5 = Date.now();
+
+        const [confrontosSemi, confrontosQuartas, confrontosOitavas, todasDuplas] =
+          await Promise.all([
+            this.confrontoRepository.buscarFinalizadosPorFase(id, arenaId, TipoFase.SEMIFINAL),
+            this.confrontoRepository.buscarFinalizadosPorFase(id, arenaId, TipoFase.QUARTAS),
+            this.confrontoRepository.buscarFinalizadosPorFase(id, arenaId, TipoFase.OITAVAS),
+            this.duplaRepository.buscarPorEtapa(id, arenaId),
+          ]);
+        timings["5_buscarConfrontosParalelo"] = Date.now() - start5;
+
+        // 6. Coletar todas as duplas e suas colocações
+        const start6 = Date.now();
+        const duplaColocacoes: Map<string, { pontos: number; colocacao: string }> = new Map();
+
         // Campeão
         const campeaoDuplaId = confrontoFinal.vencedoraId;
         if (campeaoDuplaId) {
-          await this.atribuirPontosParaDupla(
-            campeaoDuplaId,
-            id,
-            pontuacao.campeao,
-            "campeao"
-          );
+          duplaColocacoes.set(campeaoDuplaId, { pontos: pontuacao.campeao, colocacao: "campeao" });
         }
 
         // Vice
@@ -1229,100 +1412,108 @@ export class EtapaService {
             ? confrontoFinal.dupla2Id
             : confrontoFinal.dupla1Id;
         if (viceDuplaId) {
-          await this.atribuirPontosParaDupla(
-            viceDuplaId,
-            id,
-            pontuacao.vice,
-            "vice"
-          );
+          duplaColocacoes.set(viceDuplaId, { pontos: pontuacao.vice, colocacao: "vice" });
         }
 
-        // Semifinalistas - buscar confrontos finalizados via repository
-        const confrontosSemi =
-          await this.confrontoRepository.buscarFinalizadosPorFase(
-            id,
-            arenaId,
-            TipoFase.SEMIFINAL
-          );
-
+        // Semifinalistas (perdedores da semi)
         for (const confronto of confrontosSemi) {
           const perdedorId =
             confronto.vencedoraId === confronto.dupla1Id
               ? confronto.dupla2Id
               : confronto.dupla1Id;
-          if (perdedorId) {
-            await this.atribuirPontosParaDupla(
-              perdedorId,
-              id,
-              pontuacao.semifinalista,
-              "semifinalista"
-            );
+          if (perdedorId && !duplaColocacoes.has(perdedorId)) {
+            duplaColocacoes.set(perdedorId, { pontos: pontuacao.semifinalista, colocacao: "semifinalista" });
           }
         }
 
-        // Quartas - buscar confrontos finalizados via repository
-        const confrontosQuartas =
-          await this.confrontoRepository.buscarFinalizadosPorFase(
-            id,
-            arenaId,
-            TipoFase.QUARTAS
-          );
-
+        // Quartas (perdedores das quartas)
         for (const confronto of confrontosQuartas) {
           const perdedorId =
             confronto.vencedoraId === confronto.dupla1Id
               ? confronto.dupla2Id
               : confronto.dupla1Id;
-          if (perdedorId) {
-            await this.atribuirPontosParaDupla(
-              perdedorId,
-              id,
-              pontuacao.quartas,
-              "quartas"
-            );
+          if (perdedorId && !duplaColocacoes.has(perdedorId)) {
+            duplaColocacoes.set(perdedorId, { pontos: pontuacao.quartas, colocacao: "quartas" });
           }
         }
 
-        // Oitavas - buscar confrontos finalizados via repository
-        const confrontosOitavas =
-          await this.confrontoRepository.buscarFinalizadosPorFase(
-            id,
-            arenaId,
-            TipoFase.OITAVAS
-          );
-
+        // Oitavas (perdedores das oitavas)
         for (const confronto of confrontosOitavas) {
           const perdedorId =
             confronto.vencedoraId === confronto.dupla1Id
               ? confronto.dupla2Id
               : confronto.dupla1Id;
-          if (perdedorId) {
-            await this.atribuirPontosParaDupla(
-              perdedorId,
-              id,
-              pontuacao.oitavas,
-              "oitavas"
-            );
+          if (perdedorId && !duplaColocacoes.has(perdedorId)) {
+            duplaColocacoes.set(perdedorId, { pontos: pontuacao.oitavas, colocacao: "oitavas" });
           }
         }
 
-        // Participação - duplas não classificadas via repository
-        const todasDuplas = await this.duplaRepository.buscarPorEtapa(
-          id,
-          arenaId
-        );
-        const duplasNaoClassificadas = todasDuplas.filter(
-          (d) => !d.classificada
-        );
-
+        // Participação (duplas não classificadas)
+        const duplasNaoClassificadas = todasDuplas.filter((d) => !d.classificada);
         for (const dupla of duplasNaoClassificadas) {
-          await this.atribuirPontosParaDupla(
-            dupla.id,
-            id,
-            pontuacao.participacao,
-            "participacao"
-          );
+          if (!duplaColocacoes.has(dupla.id)) {
+            duplaColocacoes.set(dupla.id, { pontos: pontuacao.participacao, colocacao: "participacao" });
+          }
         }
+        timings["6_coletarColocacoes"] = Date.now() - start6;
+
+        // 7. Buscar todas as duplas em paralelo para obter jogadorIds
+        const start7 = Date.now();
+        const duplaIds = Array.from(duplaColocacoes.keys());
+        const duplasPromises = duplaIds.map((duplaId) =>
+          this.duplaRepository.buscarPorId(duplaId)
+        );
+        const duplasResolvidas = await Promise.all(duplasPromises);
+        timings["7_buscarDuplasParalelo"] = Date.now() - start7;
+
+        // 8. Coletar jogadorIds e suas colocações
+        const start8 = Date.now();
+        const jogadorColocacoes: Map<string, { pontos: number; colocacao: string }> = new Map();
+        const jogadorIds: string[] = [];
+
+        for (const dupla of duplasResolvidas) {
+          if (!dupla) continue;
+          const colocacaoInfo = duplaColocacoes.get(dupla.id);
+          if (!colocacaoInfo) continue;
+
+          jogadorIds.push(dupla.jogador1Id, dupla.jogador2Id);
+          jogadorColocacoes.set(dupla.jogador1Id, colocacaoInfo);
+          jogadorColocacoes.set(dupla.jogador2Id, colocacaoInfo);
+
+          // Log para debug
+          logger.info("Pontos atribuídos para dupla", {
+            duplaId: dupla.id,
+            etapaId: id,
+            jogadores: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+            pontos: colocacaoInfo.pontos,
+            colocacao: colocacaoInfo.colocacao,
+          });
+        }
+        timings["8_coletarJogadores"] = Date.now() - start8;
+
+        // 9. Buscar todas as estatísticas em paralelo
+        const start9 = Date.now();
+        const estatisticasPromises = jogadorIds.map((jogadorId) =>
+          this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(jogadorId, id)
+        );
+        const estatisticas = await Promise.all(estatisticasPromises);
+        timings["9_buscarEstatisticasParalelo"] = Date.now() - start9;
+
+        // 10. Preparar e executar batch write
+        const start10 = Date.now();
+        const pontuacoesBatch = estatisticas
+          .filter((est) => est !== null)
+          .map((est) => {
+            const colocacaoInfo = jogadorColocacoes.get(est!.jogadorId);
+            return {
+              estatisticaId: est!.id,
+              pontos: colocacaoInfo?.pontos || 0,
+              colocacao: colocacaoInfo?.colocacao || "participacao",
+            };
+          });
+
+        await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(pontuacoesBatch);
+        timings["10_batchWritePontuacoes"] = Date.now() - start10;
       } else {
         logger.info(
           "Etapa não conta pontos no ranking - pulando atribuição (eliminatória)",
@@ -1332,6 +1523,8 @@ export class EtapaService {
         );
       }
 
+      // 11. Definir campeão
+      const start11 = Date.now();
       if (confrontoFinal.vencedoraId) {
         await this.etapaRepository.definirCampeao(
           id,
@@ -1339,6 +1532,10 @@ export class EtapaService {
           confrontoFinal.vencedoraNome || "Campeão"
         );
       }
+      timings["11_definirCampeao"] = Date.now() - start11;
+
+      timings["TOTAL"] = Date.now() - startTotal;
+      logger.info("⏱️ TIMING encerrarEtapa COM_ELIMINATORIA", { timings, etapaId: id });
 
       logger.info("Etapa encerrada (com eliminatória)", {
         etapaId: id,
@@ -1360,104 +1557,6 @@ export class EtapaService {
     }
   }
 
-  /**
-   * Atribuir pontos de colocação para os 2 jogadores de uma dupla
-   */
-  private async atribuirPontosParaDupla(
-    duplaId: string,
-    etapaId: string,
-    pontos: number,
-    colocacao: string
-  ): Promise<void> {
-    try {
-      // Buscar dupla via repository
-      const dupla = await this.duplaRepository.buscarPorId(duplaId);
-
-      if (!dupla) {
-        logger.warn("Dupla não encontrada para atribuir pontos", {
-          duplaId,
-          etapaId,
-        });
-        return;
-      }
-
-      await this.atribuirPontosParaJogador(
-        dupla.jogador1Id,
-        etapaId,
-        pontos,
-        colocacao
-      );
-
-      await this.atribuirPontosParaJogador(
-        dupla.jogador2Id,
-        etapaId,
-        pontos,
-        colocacao
-      );
-
-      logger.info("Pontos atribuídos para dupla", {
-        duplaId,
-        etapaId,
-        jogadores: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
-        pontos,
-        colocacao,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao atribuir pontos para dupla",
-        {
-          duplaId,
-          etapaId,
-        },
-        error as Error
-      );
-    }
-  }
-
-  /**
-   * Atribuir pontos de colocação para um jogador individual
-   */
-  private async atribuirPontosParaJogador(
-    jogadorId: string,
-    etapaId: string,
-    pontos: number,
-    colocacao: string
-  ): Promise<void> {
-    try {
-      // Buscar estatísticas via repository
-      const estatisticas =
-        await this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
-          jogadorId,
-          etapaId
-        );
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para atribuir pontos", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      // Atualizar pontuação via repository
-      await this.estatisticasJogadorRepository.atualizarPontuacao(
-        estatisticas.id,
-        {
-          pontos,
-          colocacao,
-        }
-      );
-    } catch (error) {
-      logger.error(
-        "Erro ao atribuir pontos para jogador",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-    }
-  }
 }
 
 // Instância default com repositories Firebase

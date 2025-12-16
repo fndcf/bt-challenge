@@ -6,6 +6,7 @@ import { getPartidaService } from "@/services";
 interface ModalLancamentoResultadosLoteDuplaFixaProps {
   partidas: Partida[];
   grupoNome: string;
+  etapaFinalizada?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -379,7 +380,7 @@ const getStatusLabel = (status: string): string => {
 
 export const ModalLancamentoResultadosLoteDuplaFixa: React.FC<
   ModalLancamentoResultadosLoteDuplaFixaProps
-> = ({ partidas, grupoNome, onClose, onSuccess }) => {
+> = ({ partidas, grupoNome, etapaFinalizada = false, onClose, onSuccess }) => {
   const partidaService = getPartidaService();
   const [resultados, setResultados] = useState<Map<string, ResultadoPartida>>(
     new Map()
@@ -714,8 +715,8 @@ export const ModalLancamentoResultadosLoteDuplaFixa: React.FC<
               >
                 Cancelar
               </Button>
-              <Button type="submit" $variant="primary" disabled={loading}>
-                {loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
+              <Button type="submit" $variant="primary" disabled={loading || etapaFinalizada}>
+                {etapaFinalizada ? "Etapa Finalizada" : loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
               </Button>
             </ButtonsRow>
           </Form>

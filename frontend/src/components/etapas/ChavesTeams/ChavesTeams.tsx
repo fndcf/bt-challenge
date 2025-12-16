@@ -1462,6 +1462,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           partidas={modalResultados.partidas}
           equipes={equipes}
           tipoFormacaoManual={isFormacaoManual}
+          etapaFinalizada={etapaFinalizada}
           onClose={() => setModalResultados(null)}
           onSuccess={handleModalResultadosSuccess}
         />

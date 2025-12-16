@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { getReiDaPraiaService, getEtapaService } from "@/services";
+import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
 export interface ConfrontoEliminatorioReiDaPraia {
   id: string;
@@ -34,6 +35,8 @@ export interface UseFaseEliminatoriaReiDaPraiaReturn {
   confrontoSelecionado: ConfrontoEliminatorioReiDaPraia | null;
   faseAtual: TipoFase | "todas";
   etapaFinalizada: boolean;
+  globalLoading: boolean;
+  globalLoadingMessage: string;
 
   // Dados computados
   todosGruposCompletos: boolean;
@@ -72,6 +75,8 @@ export const useFaseEliminatoriaReiDaPraia = ({
     useState<ConfrontoEliminatorioReiDaPraia | null>(null);
   const [faseAtual, setFaseAtual] = useState<TipoFase | "todas">("todas");
   const [etapaFinalizada, setEtapaFinalizada] = useState(false);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   // Tipo de chaveamento formatado
   const tipoChaveamento = useMemo(() => {
@@ -163,7 +168,8 @@ export const useFaseEliminatoriaReiDaPraia = ({
    */
   const gerarEliminatoria = async () => {
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Gerando fase eliminatória...");
 
       // Calcular quantos classificam por grupo (padrão: metade do grupo = 2 de cada grupo de 4)
       const classificadosPorGrupo = 2;
@@ -183,7 +189,8 @@ export const useFaseEliminatoriaReiDaPraia = ({
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -192,14 +199,16 @@ export const useFaseEliminatoriaReiDaPraia = ({
    */
   const cancelarEliminatoria = async () => {
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Cancelando eliminatória...");
       await reiDaPraiaService.cancelarEliminatoria(etapaId);
       alert("Fase eliminatória cancelada!");
       await carregarConfrontos();
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -208,14 +217,18 @@ export const useFaseEliminatoriaReiDaPraia = ({
    */
   const encerrarEtapa = async () => {
     try {
-      setLoading(true);
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Encerrando etapa e atribuindo pontos...");
       await etapaService.encerrarEtapa(etapaId);
+      // Invalidar cache do ranking pois os pontos foram atualizados
+      invalidateRankingCache();
       alert("Etapa Rei da Praia encerrada com sucesso!");
       window.location.reload();
     } catch (err: any) {
       alert(`Erro: ${err.message}`);
     } finally {
-      setLoading(false);
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
     }
   };
 
@@ -227,6 +240,8 @@ export const useFaseEliminatoriaReiDaPraia = ({
     confrontoSelecionado,
     faseAtual,
     etapaFinalizada,
+    globalLoading,
+    globalLoadingMessage,
 
     // Dados computados
     todosGruposCompletos,

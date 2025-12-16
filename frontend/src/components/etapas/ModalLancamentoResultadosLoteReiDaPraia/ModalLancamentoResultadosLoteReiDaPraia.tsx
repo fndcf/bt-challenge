@@ -9,6 +9,7 @@ import { getReiDaPraiaService } from "@/services";
 interface ModalLancamentoResultadosLoteReiDaPraiaProps {
   partidas: PartidaReiDaPraia[];
   grupoNome: string;
+  etapaFinalizada?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -382,7 +383,7 @@ const getStatusLabel = (status: string): string => {
 
 export const ModalLancamentoResultadosLoteReiDaPraia: React.FC<
   ModalLancamentoResultadosLoteReiDaPraiaProps
-> = ({ partidas, grupoNome, onClose, onSuccess }) => {
+> = ({ partidas, grupoNome, etapaFinalizada = false, onClose, onSuccess }) => {
   const reiDaPraiaService = getReiDaPraiaService();
   const [resultados, setResultados] = useState<Map<string, ResultadoPartida>>(
     new Map()
@@ -726,8 +727,8 @@ export const ModalLancamentoResultadosLoteReiDaPraia: React.FC<
               >
                 Cancelar
               </Button>
-              <Button type="submit" $variant="primary" disabled={loading}>
-                {loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
+              <Button type="submit" $variant="primary" disabled={loading || etapaFinalizada}>
+                {etapaFinalizada ? "Etapa Finalizada" : loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
               </Button>
             </ButtonsRow>
           </Form>
