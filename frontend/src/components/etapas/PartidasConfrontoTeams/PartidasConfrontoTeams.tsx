@@ -311,9 +311,8 @@ export const PartidasConfrontoTeams: React.FC<PartidasConfrontoTeamsProps> = ({
 
       setPartidaSelecionada(null);
       await carregarPartidas();
-      if (onAtualizar) {
-        await onAtualizar();
-      }
+      // Chamar onAtualizar de forma síncrona para garantir que seja a versão mais recente
+      onAtualizar?.();
     } finally {
       if (setGlobalLoading && setGlobalLoadingMessage) {
         setGlobalLoading(false);

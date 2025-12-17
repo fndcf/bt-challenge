@@ -105,6 +105,8 @@ interface Confronto {
   id: string;
   fase?: string;
   rodada?: number;
+  grupoId?: string;
+  grupoNome?: string;
   equipe1Id?: string;
   equipe2Id?: string;
   equipe1Nome?: string;
@@ -730,24 +732,6 @@ const EmptyText = styled.p`
   margin: 0;
 `;
 
-// Subtítulo para rodadas
-const RodadaTitle = styled.h5`
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 16px 0 8px 0;
-  padding: 6px 12px;
-  background: #f3f4f6;
-  border-radius: 6px;
-  display: inline-block;
-
-  &:first-child {
-    margin-top: 0;
-  }
-`;
-
 // Partidas dentro do confronto TEAMS
 const PartidasTeamsContainer = styled.div`
   margin-top: 12px;
@@ -837,12 +821,6 @@ const DuplaScore = styled.span<{ $winner?: boolean }>`
   margin-left: 8px;
 `;
 
-const PlacarSets = styled.span`
-  font-size: 11px;
-  color: #6b7280;
-  margin-left: 8px;
-`;
-
 // Seção de Equipes com Jogadores
 const EquipesGrid = styled.div`
   display: grid;
@@ -913,6 +891,23 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
   const isReiDaPraia = formato === "rei_da_praia";
   const isSuperX = formato === "super_x";
   const isTeams = formato === "teams";
+
+  // Ordenar grupos: fase de grupos primeiro, depois eliminatórias (semifinal, final)
+  // O backend já envia ordem correta (1, 2, 3 para grupos e 100+ para eliminatórias)
+  // Mas vamos garantir a ordenação correta pelo tipo também
+  const gruposOrdenados = [...grupos].sort((a, b) => {
+    // Prioridade por tipo: grupos primeiro, eliminatória depois
+    // O backend define tipo: "grupos" ou tipo: "eliminatoria"
+    const tipoA = a.tipo === "eliminatoria" ? 1000 : 0;
+    const tipoB = b.tipo === "eliminatoria" ? 1000 : 0;
+
+    if (tipoA !== tipoB) return tipoA - tipoB;
+
+    // Dentro do mesmo tipo, ordenar por ordem (se existir)
+    const ordemA = a.ordem ?? 0;
+    const ordemB = b.ordem ?? 0;
+    return ordemA - ordemB;
+  });
   // Super X e Rei da Praia usam jogadores individuais
   const isJogadoresIndividuais = isReiDaPraia || isSuperX;
 
@@ -979,7 +974,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
         </CollapsedSummary>
 
       <GroupsGrid $visible={isExpanded}>
-          {grupos.map((group) => (
+          {gruposOrdenados.map((group) => (
             <GroupCard key={group.id}>
               <GroupHeader $formato={formato} $tipo={group.tipo}>
                 <GroupName>{group.nome}</GroupName>
@@ -1151,14 +1146,14 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                   </>
                 )}
 
-                {/*  CLASSIFICAÇÃO TEAMS */}
-                {isTeams && group.equipes && group.equipes.length > 0 && (
+                {/*  CLASSIFICAÇÃO TEAMS - só mostra se houver estatísticas */}
+                {isTeams && group.equipes && group.equipes.length > 0 &&
+                 group.equipes.some(e => (e.pontos || 0) > 0 || (e.vitorias || 0) > 0) && (
                   <>
                     <SectionTitle>Classificação</SectionTitle>
                     <TableWrapper>
                       <Table>
                         <colgroup>
-                          <col style={{ width: "40px" }} />
                           <col style={{ width: "auto" }} />
                           <col style={{ width: "25px" }} />
                           <col style={{ width: "25px" }} />
@@ -1167,7 +1162,6 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                         </colgroup>
                         <THead>
                           <tr>
-                            <Th>#</Th>
                             <Th>Equipe</Th>
                             <Th>V</Th>
                             <Th>D</Th>
@@ -1176,13 +1170,8 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                           </tr>
                         </THead>
                         <TBody>
-                          {group.equipes.map((equipe, index) => (
+                          {group.equipes.map((equipe) => (
                             <Tr key={equipe.id} $qualified={equipe.classificada}>
-                              <Td>
-                                <Position $qualified={equipe.classificada}>
-                                  {equipe.posicaoGrupo || index + 1}
-                                </Position>
-                              </Td>
                               <Td>
                                 <TeamName>{equipe.nome}</TeamName>
                               </Td>
@@ -1219,7 +1208,11 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                     {/* Não mostrar título "Confrontos" para fases eliminatórias - já está no header */}
                     {group.tipo !== "eliminatoria" && <SectionTitle>Confrontos</SectionTitle>}
                     <MatchesList>
-                      {(() => {
+                      {group.confrontos.map((confronto) => {
+                        const finished = confronto.status?.toUpperCase() === "FINALIZADO";
+                        const winner1 = confronto.vencedoraId === confronto.equipe1Id;
+                        const winner2 = confronto.vencedoraId === confronto.equipe2Id;
+
                         // Helper para formatar tipo de jogo
                         const getTipoJogoLabel = (tipo: string) => {
                           switch (tipo) {
@@ -1231,43 +1224,34 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                           }
                         };
 
-                        // Helper para formatar placar dos sets
-                        const formatPlacar = (placar?: Array<{ numero: number; gamesDupla1: number; gamesDupla2: number }>) => {
-                          if (!placar || placar.length === 0) return "";
-                          return placar.map(s => `${s.gamesDupla1}-${s.gamesDupla2}`).join(" ");
+                        // Helper para extrair nomes das duplas
+                        const getDuplaNomes = (dupla: any): string => {
+                          if (!dupla) return "A definir";
+                          // Estrutura DuplaPartidaTeams (objeto com jogador1Nome, jogador2Nome)
+                          if (dupla.jogador1Nome && dupla.jogador2Nome) {
+                            return `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`;
+                          }
+                          // Estrutura array de JogadorEquipe
+                          if (Array.isArray(dupla) && dupla.length >= 2) {
+                            return `${dupla[0]?.nome} & ${dupla[1]?.nome}`;
+                          }
+                          // Fallback para equipeNome
+                          return dupla.equipeNome || "A definir";
                         };
 
-                        // Agrupar confrontos por rodada
-                        let lastRodada: number | undefined;
+                        return (
+                          <MatchCard key={confronto.id} $finished={finished}>
+                            <MatchHeader>
+                              <Status $status={confronto.status || "agendado"}>
+                                {finished
+                                  ? "Finalizado"
+                                  : confronto.status?.toUpperCase() === "EM_ANDAMENTO"
+                                  ? "Ao vivo"
+                                  : "Agendado"}
+                              </Status>
+                            </MatchHeader>
 
-                        return group.confrontos.map((confronto) => {
-                          const finished = confronto.status?.toUpperCase() === "FINALIZADO";
-                          const winner1 = confronto.vencedoraId === confronto.equipe1Id;
-                          const winner2 = confronto.vencedoraId === confronto.equipe2Id;
-
-                          // Verificar se precisa mostrar título da rodada
-                          const showRodadaTitle = confronto.rodada !== undefined &&
-                                                  confronto.rodada !== lastRodada &&
-                                                  group.tipo !== "eliminatoria";
-                          lastRodada = confronto.rodada;
-
-                          return (
-                            <React.Fragment key={confronto.id}>
-                              {showRodadaTitle && (
-                                <RodadaTitle>Rodada {confronto.rodada}</RodadaTitle>
-                              )}
-                              <MatchCard $finished={finished}>
-                                <MatchHeader>
-                                  <Status $status={confronto.status || "agendado"}>
-                                    {finished
-                                      ? "Finalizado"
-                                      : confronto.status?.toUpperCase() === "EM_ANDAMENTO"
-                                      ? "Ao vivo"
-                                      : "Agendado"}
-                                  </Status>
-                                </MatchHeader>
-
-                              <MatchBody>
+                            <MatchBody>
                               <TeamRow $winner={winner1} $finished={finished}>
                                 <TeamNameInMatch>
                                   {confronto.equipe1Nome || "A definir"}
@@ -1296,6 +1280,9 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                                     const dupla1Winner = partida.vencedoraEquipeId === partida.dupla1?.equipeId;
                                     const dupla2Winner = partida.vencedoraEquipeId === partida.dupla2?.equipeId;
 
+                                    const dupla1Nomes = getDuplaNomes(partida.dupla1);
+                                    const dupla2Nomes = getDuplaNomes(partida.dupla2);
+
                                     return (
                                       <PartidaTeamsCard key={partida.id} $finished={partidaFinished}>
                                         <PartidaTeamsHeader>
@@ -1309,26 +1296,20 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
 
                                         <PartidaTeamsBody>
                                           <DuplaRow $winner={dupla1Winner}>
-                                            <DuplaNames>
-                                              {partida.dupla1?.jogador1Nome} & {partida.dupla1?.jogador2Nome}
-                                            </DuplaNames>
-                                            <DuplaScore $winner={dupla1Winner}>
-                                              {partida.setsDupla1 || 0}
-                                            </DuplaScore>
-                                            {partidaFinished && partida.placar && (
-                                              <PlacarSets>({formatPlacar(partida.placar)})</PlacarSets>
+                                            <DuplaNames>{dupla1Nomes}</DuplaNames>
+                                            {partidaFinished && partida.placar && partida.placar.length > 0 && (
+                                              <DuplaScore $winner={dupla1Winner}>
+                                                {partida.placar.map(s => s.gamesDupla1).join("-")}
+                                              </DuplaScore>
                                             )}
                                           </DuplaRow>
 
                                           <DuplaRow $winner={dupla2Winner}>
-                                            <DuplaNames>
-                                              {partida.dupla2?.jogador1Nome} & {partida.dupla2?.jogador2Nome}
-                                            </DuplaNames>
-                                            <DuplaScore $winner={dupla2Winner}>
-                                              {partida.setsDupla2 || 0}
-                                            </DuplaScore>
-                                            {partidaFinished && partida.placar && (
-                                              <PlacarSets>({formatPlacar(partida.placar)})</PlacarSets>
+                                            <DuplaNames>{dupla2Nomes}</DuplaNames>
+                                            {partidaFinished && partida.placar && partida.placar.length > 0 && (
+                                              <DuplaScore $winner={dupla2Winner}>
+                                                {partida.placar.map(s => s.gamesDupla2).join("-")}
+                                              </DuplaScore>
                                             )}
                                           </DuplaRow>
                                         </PartidaTeamsBody>
@@ -1337,12 +1318,10 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                                   })}
                                 </PartidasTeamsContainer>
                               )}
-                              </MatchBody>
-                              </MatchCard>
-                            </React.Fragment>
-                          );
-                        });
-                      })()}
+                            </MatchBody>
+                          </MatchCard>
+                        );
+                      })}
                     </MatchesList>
                   </>
                 )}

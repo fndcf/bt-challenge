@@ -69,14 +69,14 @@ export const ConfiguracoesJogadoresEdit: React.FC<
             type="number"
             required
             min={minimoJogadores}
-            max={isReiDaPraia ? 64 : 52}
-            step={isReiDaPraia ? 4 : 2}
-            disabled={chavesGeradas || isSuperX || isTeams}
+            max={isTeams ? 144 : isReiDaPraia ? 64 : 52}
+            step={isTeams ? 4 : isReiDaPraia ? 4 : 2}
+            disabled={chavesGeradas || isSuperX}
             value={maxJogadores || ""}
             onChange={handleInputChange}
             onBlur={handleBlur}
             placeholder={
-              isReiDaPraia ? "Ex: 8, 12, 16, 20..." : "Ex: 16, 20, 24..."
+              isTeams ? "Ex: 8, 12, 16, 24..." : isReiDaPraia ? "Ex: 8, 12, 16, 20..." : "Ex: 16, 20, 24..."
             }
           />
 
@@ -87,7 +87,9 @@ export const ConfiguracoesJogadoresEdit: React.FC<
             </S.HelperText>
           ) : isTeams ? (
             <S.HelperText>
-              TEAMS tem número fixo baseado na variante - não pode ser alterado
+              {temInscritos
+                ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - múltiplo de 4`
+                : "Múltiplo de 4 (TEAMS 4: máx 96, TEAMS 6: máx 144)"}
             </S.HelperText>
           ) : isReiDaPraia ? (
             <S.HelperText>

@@ -490,6 +490,12 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
     );
   };
 
+  // Handler para fechar o painel e atualizar dados após salvar resultados
+  const handleAtualizarEFechar = () => {
+    setConfrontoExpandido(null);
+    if (onAtualizar) onAtualizar();
+  };
+
   if (confrontos.length === 0) {
     return <EmptyState>Nenhum confronto encontrado</EmptyState>;
   }
@@ -632,7 +638,7 @@ export const ConfrontosTeams: React.FC<ConfrontosTeamsProps> = ({
                   confrontoId={confronto.id}
                   totalPartidas={confronto.partidas?.length || 0}
                   etapaFinalizada={etapaFinalizada}
-                  onAtualizar={onAtualizar}
+                  onAtualizar={handleAtualizarEFechar}
                   setGlobalLoading={setGlobalLoading}
                   setGlobalLoadingMessage={setGlobalLoadingMessage}
                 />

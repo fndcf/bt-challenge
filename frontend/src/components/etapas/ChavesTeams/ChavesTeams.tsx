@@ -1039,6 +1039,8 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       });
     }
     setModalResultados(null);
+    // Fechar o painel expandido após salvar os resultados
+    setConfrontoExpandido(null);
     // Apenas recarrega dados locais, sem notificar o pai
     // O onAtualizar só deve ser chamado quando encerrar a etapa
     await carregarDados(true);
@@ -1564,7 +1566,18 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           equipes={equipes}
           tipoFormacaoManual={isFormacaoManual}
           etapaFinalizada={etapaFinalizada}
-          onClose={() => setModalResultados(null)}
+          onClose={() => {
+            // Limpar cache do confronto para garantir dados atualizados
+            // (caso jogadores tenham sido definidos e o usuário cancelou)
+            setPartidasConfronto((prev) => {
+              const novo = new Map(prev);
+              novo.delete(modalResultados.confronto.id);
+              return novo;
+            });
+            setModalResultados(null);
+            // Fechar o painel expandido ao fechar o modal
+            setConfrontoExpandido(null);
+          }}
           onSuccess={handleModalResultadosSuccess}
         />
       )}

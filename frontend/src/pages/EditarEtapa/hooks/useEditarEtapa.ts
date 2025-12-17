@@ -23,6 +23,7 @@ export interface UseEditarEtapaReturn {
   // Info Computada
   isReiDaPraia: boolean;
   isSuperX: boolean;
+  isTeams: boolean;
   temInscritos: boolean;
   chavesGeradas: boolean;
 
@@ -64,6 +65,7 @@ export const useEditarEtapa = (
 
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = etapa?.formato === FormatoEtapa.SUPER_X;
+  const isTeams = etapa?.formato === FormatoEtapa.TEAMS;
   const temInscritos = (etapa?.totalInscritos || 0) > 0;
   const chavesGeradas = etapa?.chavesGeradas || false;
 
@@ -125,6 +127,16 @@ export const useEditarEtapa = (
       return etapa.varianteSuperX || 8;
     }
 
+    // TEAMS: mínimo baseado na variante (4 ou 6) * 2 equipes
+    if (isTeams) {
+      const variante = etapa.varianteTeams || 4;
+      const minimoFormato = variante * 2;
+      const minimoInscritos = etapa.totalInscritos || 0;
+      const minimo = Math.max(minimoFormato, minimoInscritos);
+      // Arredondar para múltiplo da variante
+      return Math.ceil(minimo / variante) * variante;
+    }
+
     const minimoFormato = isReiDaPraia ? 8 : 6;
     const minimoInscritos = etapa.totalInscritos || 0;
     const minimo = Math.max(minimoFormato, minimoInscritos);
@@ -136,7 +148,7 @@ export const useEditarEtapa = (
       // Arredondar para cima para número par
       return minimo % 2 === 0 ? minimo : minimo + 1;
     }
-  }, [etapa, isReiDaPraia, isSuperX]);
+  }, [etapa, isReiDaPraia, isSuperX, isTeams]);
 
   const ajustarValorJogadores = useCallback(
     (valor: number): number => {
@@ -151,6 +163,12 @@ export const useEditarEtapa = (
         return minimo;
       }
 
+      // TEAMS: arredondar para múltiplo da variante
+      if (isTeams && etapa) {
+        const variante = etapa.varianteTeams || 4;
+        return Math.ceil(valor / variante) * variante;
+      }
+
       if (isReiDaPraia) {
         // Arredondar para múltiplo de 4
         return Math.ceil(valor / 4) * 4;
@@ -159,7 +177,7 @@ export const useEditarEtapa = (
         return valor % 2 === 0 ? valor : valor + 1;
       }
     },
-    [calcularMinimoJogadores, isReiDaPraia, isSuperX]
+    [calcularMinimoJogadores, etapa, isReiDaPraia, isSuperX, isTeams]
   );
 
   // ============== HANDLERS ==============
@@ -220,7 +238,34 @@ export const useEditarEtapa = (
             setSalvando(false);
             return;
           }
+        } else if (isTeams) {
+          // TEAMS: validação baseada na variante (4 ou 6 jogadores por equipe)
+          const variante = etapa.varianteTeams || 4;
+          const minimo = variante * 2; // Mínimo de 2 equipes
+          // Máximo: 24 equipes (8 grupos × 3 equipes) = 96 jogadores (TEAMS_4) ou 144 jogadores (TEAMS_6)
+          const maximo = variante === 4 ? 96 : 144;
+
+          if (formData.maxJogadores < minimo) {
+            setError(`TEAMS ${variante}: mínimo de ${minimo} jogadores (2 equipes)`);
+            setSalvando(false);
+            return;
+          }
+
+          if (formData.maxJogadores > maximo) {
+            setError(`TEAMS ${variante}: máximo de ${maximo} jogadores (24 equipes)`);
+            setSalvando(false);
+            return;
+          }
+
+          if (formData.maxJogadores % variante !== 0) {
+            setError(
+              `TEAMS ${variante}: número de jogadores deve ser múltiplo de ${variante}`
+            );
+            setSalvando(false);
+            return;
+          }
         } else {
+          // Dupla Fixa
           if (formData.maxJogadores < 6) {
             setError("Dupla Fixa: mínimo de 6 jogadores");
             setSalvando(false);
@@ -282,7 +327,7 @@ export const useEditarEtapa = (
         setGlobalLoadingMessage("");
       }
     },
-    [id, etapa, formData, isReiDaPraia, isSuperX, navigate]
+    [id, etapa, formData, isReiDaPraia, isSuperX, isTeams, navigate]
   );
 
   return {
@@ -300,6 +345,7 @@ export const useEditarEtapa = (
     // Info Computada
     isReiDaPraia,
     isSuperX,
+    isTeams,
     temInscritos,
     chavesGeradas,
 

@@ -292,8 +292,9 @@ router.get(
           .sort((a, b) => a.ordem - b.ordem); // Ordenar em JavaScript
 
         // Separar confrontos de grupos dos confrontos eliminatórios
-        const confrontosGrupos = confrontos.filter(c => c.fase === "GRUPOS");
-        const confrontosEliminatorios = confrontos.filter(c => c.fase !== "GRUPOS");
+        // IMPORTANTE: FaseEtapa.GRUPOS = "grupos" (minúsculo), não "GRUPOS"
+        const confrontosGrupos = confrontos.filter(c => c.fase === "grupos" || c.fase === "GRUPOS");
+        const confrontosEliminatorios = confrontos.filter(c => c.fase !== "grupos" && c.fase !== "GRUPOS");
 
         // Agrupar confrontos de grupos por grupoId
         const gruposMap = new Map<string, { equipes: any[]; confrontos: any[] }>();

@@ -301,8 +301,13 @@ const VerPartidasButton = styled.button`
   font-size: 0.875rem;
   transition: background 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #6d28d9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   @media (min-width: 768px) {
