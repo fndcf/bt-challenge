@@ -238,31 +238,6 @@ export const Input = styled.input`
   }
 `;
 
-export const Textarea = styled.textarea`
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    ring: 2px;
-    ring-color: #3b82f6;
-  }
-
-  &:disabled {
-    background: #f3f4f6;
-    cursor: not-allowed;
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
 export const Select = styled.select`
   width: 100%;
   border: 1px solid #d1d5db;
@@ -313,17 +288,6 @@ export const CheckboxLabel = styled.label`
   font-weight: 500;
   color: #374151;
   cursor: pointer;
-`;
-
-export const GridContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  overflow: hidden; /* Previne overflow de inputs de data no iOS */
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
 `;
 
 export const GridContainer2 = styled.div`

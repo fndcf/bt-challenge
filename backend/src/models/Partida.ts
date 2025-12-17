@@ -73,15 +73,11 @@ export const RegistrarResultadoSchema = z.object({
   placar: z.array(z.string()).min(1), // Ex: ["6-4", "7-5"]
 });
 
-export type RegistrarResultadoDTO = z.infer<typeof RegistrarResultadoSchema>;
-
 // Agendar Partida
 export const AgendarPartidaSchema = z.object({
   dataHora: z.string().datetime().or(z.date()),
   quadra: z.string().max(50).optional(),
 });
-
-export type AgendarPartidaDTO = z.infer<typeof AgendarPartidaSchema>;
 
 // ============================================
 // DTOs para registro em lote
@@ -102,13 +98,6 @@ export interface SetPlacarDTO {
 export interface ResultadoPartidaLoteDTO {
   partidaId: string;
   placar: SetPlacarDTO[];
-}
-
-/**
- * DTO para registrar múltiplos resultados em lote
- */
-export interface RegistrarResultadosEmLoteDTO {
-  resultados: ResultadoPartidaLoteDTO[];
 }
 
 /**

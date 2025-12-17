@@ -175,62 +175,6 @@ export const Badge = styled.span<{ $variant: string }>`
   }
 `;
 
-export const NivelBadge = styled.span<{ $nivel: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: capitalize;
-
-  ${(props) => {
-    switch (props.$nivel) {
-      case "iniciante":
-        return `background: #dcfce7; color: #166534;`;
-      case "intermediario":
-        return `background: #dbeafe; color: #1e40af;`;
-      case "avancado":
-        return `background: #fed7aa; color: #9a3412;`;
-      default:
-        return `background: #f3f4f6; color: #6b7280;`;
-    }
-  }}
-
-  @media (min-width: 768px) {
-    font-size: 12px;
-    padding: 5px 12px;
-  }
-`;
-
-export const GeneroBadge = styled.span<{ $genero: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: capitalize;
-
-  ${(props) => {
-    switch (props.$genero) {
-      case "masculino":
-        return `background: #dbeafe; color: #1e40af;`;
-      case "feminino":
-        return `background: #fce7f3; color: #9f1239;`;
-      default:
-        return `background: #f3f4f6; color: #6b7280;`;
-    }
-  }}
-
-  @media (min-width: 768px) {
-    font-size: 12px;
-    padding: 5px 12px;
-  }
-`;
-
 export const BackButton = styled.button`
   background: #f3f4f6;
   color: #374151;
@@ -559,25 +503,3 @@ export const PaginationButton = styled.button<{ $active?: boolean }>`
   }
 `;
 
-export const ShowMoreButton = styled.button`
-  width: 100%;
-  padding: 12px;
-  margin-top: 16px;
-  background: #f3f4f6;
-  color: #374151;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #e5e7eb;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 15px;
-    padding: 14px;
-  }
-`;

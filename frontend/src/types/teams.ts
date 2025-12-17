@@ -235,25 +235,11 @@ export interface DefinirPartidasManualDTO {
 }
 
 /**
- * DTO para registrar resultado de uma partida
- */
-export interface RegistrarResultadoTeamsDTO {
-  placar: SetPlacarTeams[];
-}
-
-/**
  * DTO para resultado de uma partida em lote
  */
 export interface ResultadoPartidaLoteDTO {
   partidaId: string;
   placar: SetPlacarTeams[];
-}
-
-/**
- * DTO para registrar múltiplos resultados em lote
- */
-export interface RegistrarResultadosEmLoteDTO {
-  resultados: ResultadoPartidaLoteDTO[];
 }
 
 // ==================== Respostas ====================

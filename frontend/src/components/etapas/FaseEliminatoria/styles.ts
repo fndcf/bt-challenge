@@ -125,33 +125,6 @@ export const Controls = styled.div`
   }
 `;
 
-export const ToggleGroup = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-export const ToggleButton = styled.button<{ $active: boolean }>`
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  ${(props) =>
-    props.$active
-      ? `
-    background: #2563eb;
-    color: white;
-  `
-      : `
-    background: #f3f4f6;
-    color: #374151;
-    &:hover { background: #e5e7eb; }
-  `}
-`;
-
 export const Select = styled.select`
   padding: 0.5rem 1rem;
   border: 1px solid #d1d5db;
@@ -212,14 +185,32 @@ export const EmptyStateContent = styled.div`
 `;
 
 export const EmptyTitle = styled.h3`
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #111827;
   margin: 0 0 1rem 0;
+`;
 
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
+export const InfoBox = styled.div`
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+`;
+
+export const InfoText = styled.p`
+  font-size: 0.8125rem;
+  margin: 0;
+
+  & + & {
+    margin-top: 0.25rem;
   }
+`;
+
+export const HintText = styled.p`
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 1.5rem 0 0 0;
 `;
 
 export const AlertBox = styled.div<{ $variant: "success" | "warning" }>`
@@ -261,37 +252,12 @@ export const AlertBox = styled.div<{ $variant: "success" | "warning" }>`
   }
 `;
 
-export const InfoBox = styled.div`
-  background: white;
-  border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
-  padding: 1rem;
-  margin-top: 0.75rem;
-`;
-
-export const InfoText = styled.p`
-  font-size: 0.8125rem;
-  color: #374151;
-  margin: 0 0 0.5rem 0;
-
-  strong {
-    color: #166534;
-    font-weight: 600;
-  }
-`;
-
 export const ButtonGroup = styled.div`
   display: flex;
   gap: 0.75rem;
   justify-content: center;
   margin-top: 1.5rem;
   flex-wrap: wrap;
-`;
-
-export const HintText = styled.p`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin: 1rem 0 0 0;
 `;
 
 // ============== FASE CARDS ==============
@@ -476,24 +442,6 @@ export const VsSeparator = styled.div`
   }
 `;
 
-export const PlacarDetalhado = styled.div`
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f3f4f6;
-`;
-
-export const PlacarInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-
-  span:first-child {
-    font-weight: 600;
-  }
-`;
-
 export const ActionSection = styled.div`
   margin-top: 1rem;
 `;
@@ -549,146 +497,3 @@ export const ActionButton = styled.button<{
   }
 `;
 
-// ============== BRACKET ==============
-
-export const BracketContainer = styled.div`
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  overflow-x: auto;
-`;
-
-export const BracketContent = styled.div`
-  display: flex;
-  gap: 2rem;
-  min-width: max-content;
-`;
-
-export const BracketColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 250px;
-`;
-
-export const BracketTitle = styled.div`
-  text-align: center;
-  font-weight: 700;
-  color: #111827;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #2563eb;
-  font-size: 0.875rem;
-
-  @media (min-width: 768px) {
-    font-size: 1rem;
-  }
-`;
-
-export const BracketMatches = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  flex: 1;
-  gap: 1rem;
-`;
-
-export const BracketMatch = styled.div`
-  border: 2px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  background: #f9fafb;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-export const BracketStatus = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 0.5rem;
-`;
-
-export const BracketBye = styled.div`
-  text-align: center;
-`;
-
-export const BracketTeam = styled.div<{ $isWinner?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0;
-  font-size: 0.875rem;
-
-  span:first-child {
-    ${(props) =>
-      props.$isWinner &&
-      `
-      font-weight: 700;
-      color: #16a34a;
-    `}
-  }
-
-  span:last-child {
-    font-weight: 700;
-  }
-`;
-
-export const BracketDivider = styled.div`
-  border-top: 1px solid #d1d5db;
-  margin: 0.25rem 0;
-`;
-
-export const ChampionBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 250px;
-`;
-
-export const ChampionTitle = styled.div`
-  text-align: center;
-  font-weight: 700;
-  color: #111827;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #f59e0b;
-  font-size: 0.875rem;
-
-  @media (min-width: 768px) {
-    font-size: 1rem;
-  }
-`;
-
-export const ChampionCard = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-`;
-
-export const ChampionContent = styled.div`
-  width: 100%;
-  border: 4px solid #f59e0b;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  text-align: center;
-`;
-
-export const ChampionName = styled.div`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #92400e;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-export const ChampionScore = styled.div`
-  font-size: 0.875rem;
-  color: #b45309;
-  margin-top: 0.5rem;
-`;

@@ -40,23 +40,3 @@ export interface Inscricao {
   atualizadoEm: Timestamp | string;
   canceladoEm?: Timestamp | string;
 }
-
-/**
- * Histórico de Parceiros
- * Para implementar a regra de não repetição
- */
-export interface HistoricoParceiro {
-  id: string;
-  arenaId: string;
-  jogadorId: string;
-
-  // Lista de parceiros que já jogou
-  parceiros: {
-    parceiroId: string;
-    parceiroNome: string;
-    etapasJuntos: string[]; // IDs das etapas
-    ultimaVez: Timestamp | string;
-  }[];
-
-  atualizadoEm: Timestamp | string;
-}

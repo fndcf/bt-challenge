@@ -45,14 +45,3 @@ export interface Dupla {
   criadoEm: Timestamp | string;
   atualizadoEm: Timestamp | string;
 }
-
-/**
- * Resultado de uma partida (para atualização)
- */
-export interface ResultadoPartida {
-  duplaVencedoraId: string;
-  duplaPerdedoraId: string;
-  setsVencedor: number;
-  setsPerdedor: number;
-  placar: string[]; // Ex: ["6-4", "7-5", "6-3"]
-}

@@ -127,25 +127,6 @@ export const StatCard = styled.div<{ $color: string }>`
   }
 `;
 
-export const StatIcon = styled.div<{ $color: string }>`
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.75rem;
-  flex-shrink: 0;
-  background: ${(props) => props.$color}15;
-  color: ${(props) => props.$color};
-
-  @media (max-width: 768px) {
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
-  }
-`;
-
 export const StatContent = styled.div`
   flex: 1;
 

@@ -108,18 +108,6 @@ export interface Equipe {
 }
 
 /**
- * Dupla que joga uma partida dentro do confronto
- */
-export interface DuplaPartidaTeams {
-  jogador1Id: string;
-  jogador1Nome: string;
-  jogador2Id: string;
-  jogador2Nome: string;
-  equipeId: string;
-  equipeNome: string;
-}
-
-/**
  * Confronto entre duas equipes
  */
 export interface ConfrontoEquipe {
@@ -280,24 +268,6 @@ export interface RegistrarResultadoTeamsDTO {
 export interface ResultadoPartidaLoteDTO {
   partidaId: string;
   placar: SetPlacarTeams[];
-}
-
-/**
- * DTO para registrar múltiplos resultados em lote
- */
-export interface RegistrarResultadosEmLoteDTO {
-  resultados: ResultadoPartidaLoteDTO[];
-}
-
-/**
- * Resultado de processamento de um item do lote
- */
-export interface ResultadoItemLote {
-  partidaId: string;
-  sucesso: boolean;
-  erro?: string;
-  precisaDecider?: boolean;
-  confrontoFinalizado?: boolean;
 }
 
 /**
