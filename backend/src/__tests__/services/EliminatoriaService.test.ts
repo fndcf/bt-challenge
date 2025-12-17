@@ -42,6 +42,7 @@ jest.mock("../../services/EstatisticasJogadorService", () => ({
   __esModule: true,
   default: {
     marcarComoClassificado: jest.fn(),
+    marcarComoClassificadoEmLote: jest.fn(),
     atualizarAposPartidaEliminatoria: jest.fn(),
     reverterAposPartidaEliminatoria: jest.fn(),
   },

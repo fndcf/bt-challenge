@@ -1296,11 +1296,11 @@ export class EtapaService {
 
           // 5c. Preparar batch de atualizações
           const pontuacoesBatch = estatisticas
-            .filter((est) => est !== null)
+            .filter((est): est is NonNullable<typeof est> => est != null)
             .map((est) => {
-              const colocacaoInfo = jogadorColocacoes.get(est!.jogadorId);
+              const colocacaoInfo = jogadorColocacoes.get(est.jogadorId);
               return {
-                estatisticaId: est!.id,
+                estatisticaId: est.id,
                 pontos: colocacaoInfo?.pontos || 0,
                 colocacao: colocacaoInfo?.colocacao || "participacao",
               };

@@ -14,6 +14,11 @@ jest.mock("../../utils/logger", () => ({
 }));
 
 // Mock recursivo para where chain
+const mockBatch = {
+  delete: jest.fn(),
+  commit: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockWhereChain: any = {
   where: jest.fn(() => mockWhereChain),
   get: jest.fn(() => Promise.resolve({ empty: true, docs: [] })),
@@ -27,10 +32,7 @@ jest.mock("../../config/firebase", () => ({
       })),
       where: jest.fn(() => mockWhereChain),
     })),
-    batch: jest.fn(() => ({
-      delete: jest.fn(),
-      commit: jest.fn(),
-    })),
+    batch: jest.fn(() => mockBatch),
   },
   auth: { verifyIdToken: jest.fn() },
 }));
@@ -52,6 +54,7 @@ const mockPartidaGrupoService = {
   gerarPartidas: jest.fn(),
   buscarPorEtapa: jest.fn(),
   registrarResultado: jest.fn(),
+  registrarResultadosEmLote: jest.fn(),
 };
 
 const mockEliminatoriaService = {
@@ -73,6 +76,9 @@ jest.mock("../../services/EstatisticasJogadorService", () => ({
   __esModule: true,
   default: {
     criar: jest.fn(),
+    criarEmLote: jest.fn(),
+    marcarComoClassificado: jest.fn(),
+    marcarComoClassificadoEmLote: jest.fn(),
   },
 }));
 
@@ -375,7 +381,7 @@ describe("ChaveService", () => {
       expect(mockDuplaService.formarDuplasComCabecasDeChave).toHaveBeenCalled();
       expect(mockGrupoService.criarGrupos).toHaveBeenCalled();
       expect(mockPartidaGrupoService.gerarPartidas).toHaveBeenCalled();
-      expect(estatisticasJogadorService.criar).toHaveBeenCalledTimes(8); // 4 duplas x 2 jogadores
+      expect(estatisticasJogadorService.criarEmLote).toHaveBeenCalledTimes(1); // Usa criarEmLote agora
     });
   });
 
@@ -426,6 +432,67 @@ describe("ChaveService", () => {
         TEST_ARENA_ID,
         TEST_ETAPA_ID
       );
+    });
+
+    it("deve excluir chaves e deletar documentos existentes", async () => {
+      const etapa = createEtapaFixture({
+        chavesGeradas: true,
+      });
+      (etapaService.buscarPorId as jest.Mock).mockResolvedValue(etapa);
+
+      // Simular documentos existentes para deletar
+      const mockDocs = [
+        { ref: { id: "doc1" } },
+        { ref: { id: "doc2" } },
+      ];
+      mockWhereChain.get.mockResolvedValue({
+        empty: false,
+        docs: mockDocs,
+      });
+
+      mockEliminatoriaService.cancelarFaseEliminatoria.mockResolvedValue(undefined);
+      mockGrupoService.deletarPorEtapa.mockResolvedValue(2);
+      mockDuplaService.deletarPorEtapa.mockResolvedValue(4);
+      (historicoDuplaService.limparDaEtapa as jest.Mock).mockResolvedValue(undefined);
+
+      await chaveService.excluirChaves(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      // Verifica que batch.delete foi chamado para cada documento
+      expect(mockBatch.delete).toHaveBeenCalled();
+      expect(mockBatch.commit).toHaveBeenCalled();
+    });
+  });
+
+  describe("registrarResultadosEmLote", () => {
+    it("deve delegar para partidaGrupoService", async () => {
+      const mockResponse = {
+        processados: 2,
+        erros: [],
+        gruposRecalculados: ["grupo-1"],
+      };
+      mockPartidaGrupoService.registrarResultadosEmLote.mockResolvedValue(mockResponse);
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+        {
+          partidaId: "partida-2",
+          placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }],
+        },
+      ];
+
+      const result = await chaveService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(mockPartidaGrupoService.registrarResultadosEmLote).toHaveBeenCalledWith(
+        TEST_ARENA_ID,
+        resultados
+      );
+      expect(result).toEqual(mockResponse);
     });
   });
 });

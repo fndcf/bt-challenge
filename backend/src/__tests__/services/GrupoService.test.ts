@@ -304,16 +304,18 @@ describe("GrupoService", () => {
       // Sem cabeças de chave
       (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
 
-      // Mock criar grupo
-      mockGrupoRepository.criar
-        .mockResolvedValueOnce(
-          createGrupoFixture({ id: "grupo-1", nome: "Grupo A" })
+      // Mock criarEmLote - retorna array de grupos
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
         )
-        .mockResolvedValueOnce(
-          createGrupoFixture({ id: "grupo-2", nome: "Grupo B" })
-        );
+      );
 
-      mockDuplaRepository.atribuirGrupo.mockResolvedValue(undefined);
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       const result = await grupoService.criarGrupos(
         TEST_ETAPA_ID,
@@ -326,8 +328,8 @@ describe("GrupoService", () => {
         TEST_ARENA_ID,
         TEST_ETAPA_ID
       );
-      expect(mockGrupoRepository.criar).toHaveBeenCalledTimes(2);
-      expect(mockDuplaRepository.atribuirGrupo).toHaveBeenCalledTimes(6);
+      expect(mockGrupoRepository.criarEmLote).toHaveBeenCalledTimes(1);
+      expect(mockDuplaRepository.atualizarEmLote).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(2);
     });
 
@@ -347,15 +349,18 @@ describe("GrupoService", () => {
         "cabeca-2",
       ]);
 
-      mockGrupoRepository.criar
-        .mockResolvedValueOnce(
-          createGrupoFixture({ id: "grupo-1", nome: "Grupo A" })
+      // Mock criarEmLote - retorna array de grupos
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
         )
-        .mockResolvedValueOnce(
-          createGrupoFixture({ id: "grupo-2", nome: "Grupo B" })
-        );
+      );
 
-      mockDuplaRepository.atribuirGrupo.mockResolvedValue(undefined);
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       const result = await grupoService.criarGrupos(
         TEST_ETAPA_ID,
@@ -366,14 +371,16 @@ describe("GrupoService", () => {
 
       expect(result).toHaveLength(2);
 
-      // Verificar que os grupos foram criados com a estrutura correta
-      expect(mockGrupoRepository.criar).toHaveBeenCalledWith(
-        expect.objectContaining({
-          etapaId: TEST_ETAPA_ID,
-          arenaId: TEST_ARENA_ID,
-          nome: "Grupo A",
-          ordem: 1,
-        })
+      // Verificar que criarEmLote foi chamado com a estrutura correta
+      expect(mockGrupoRepository.criarEmLote).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            etapaId: TEST_ETAPA_ID,
+            arenaId: TEST_ARENA_ID,
+            nome: "Grupo A",
+            ordem: 1,
+          })
+        ])
       );
     });
 

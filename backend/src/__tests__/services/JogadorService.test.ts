@@ -373,4 +373,147 @@ describe("JogadorService", () => {
       expect(result).toHaveLength(2);
     });
   });
+
+  describe("contar", () => {
+    it("deve retornar contagem de jogadores", async () => {
+      mockJogadorRepository.contar.mockResolvedValue(10);
+
+      const result = await jogadorService.contar(TEST_ARENA_ID);
+
+      expect(result).toBe(10);
+    });
+
+    it("deve retornar 0 em caso de erro", async () => {
+      mockJogadorRepository.contar.mockRejectedValue(new Error("Erro de conexão"));
+
+      const result = await jogadorService.contar(TEST_ARENA_ID);
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe("buscarPorIds", () => {
+    it("deve buscar jogadores por IDs", async () => {
+      const jogadores = createJogadoresFixture(3);
+      const ids = jogadores.map((j) => j.id);
+
+      mockJogadorRepository.buscarPorIds.mockResolvedValue(jogadores);
+
+      const result = await jogadorService.buscarPorIds(ids, TEST_ARENA_ID);
+
+      expect(mockJogadorRepository.buscarPorIds).toHaveBeenCalledWith(
+        ids,
+        TEST_ARENA_ID
+      );
+      expect(result).toHaveLength(3);
+    });
+  });
+
+  describe("atualizarEstatisticas", () => {
+    it("deve atualizar estatísticas do jogador", async () => {
+      mockJogadorRepository.atualizarEstatisticas.mockResolvedValue(undefined);
+
+      await jogadorService.atualizarEstatisticas(TEST_JOGADOR_ID, {
+        vitorias: 5,
+        derrotas: 2,
+        pontos: 15,
+      });
+
+      expect(mockJogadorRepository.atualizarEstatisticas).toHaveBeenCalledWith(
+        TEST_JOGADOR_ID,
+        { vitorias: 5, derrotas: 2, pontos: 15 }
+      );
+    });
+  });
+
+  describe("incrementarVitorias", () => {
+    it("deve incrementar vitórias do jogador", async () => {
+      mockJogadorRepository.incrementarVitorias.mockResolvedValue(undefined);
+
+      await jogadorService.incrementarVitorias(TEST_JOGADOR_ID);
+
+      expect(mockJogadorRepository.incrementarVitorias).toHaveBeenCalledWith(
+        TEST_JOGADOR_ID
+      );
+    });
+  });
+
+  describe("incrementarDerrotas", () => {
+    it("deve incrementar derrotas do jogador", async () => {
+      mockJogadorRepository.incrementarDerrotas.mockResolvedValue(undefined);
+
+      await jogadorService.incrementarDerrotas(TEST_JOGADOR_ID);
+
+      expect(mockJogadorRepository.incrementarDerrotas).toHaveBeenCalledWith(
+        TEST_JOGADOR_ID
+      );
+    });
+  });
+
+  describe("criar - erros", () => {
+    it("deve lançar erro genérico em caso de falha inesperada", async () => {
+      const dadosCriacao = {
+        nome: "João Silva",
+        genero: GeneroJogador.MASCULINO,
+        nivel: NivelJogador.INTERMEDIARIO,
+        status: StatusJogador.ATIVO,
+      };
+
+      mockJogadorRepository.nomeExiste.mockResolvedValue(false);
+      mockJogadorRepository.criar.mockRejectedValue(new Error("Erro de banco"));
+
+      await expect(
+        jogadorService.criar(TEST_ARENA_ID, TEST_ADMIN_ID, dadosCriacao)
+      ).rejects.toThrow("Falha ao criar jogador");
+    });
+  });
+
+  describe("deletar - erros", () => {
+    it("deve lançar erro genérico em caso de falha inesperada", async () => {
+      const jogador = createJogadorFixture({ id: TEST_JOGADOR_ID });
+
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogador);
+      mockInscricaoRepository.buscarAtivasPorJogador.mockResolvedValue([]);
+      mockJogadorRepository.deletar.mockRejectedValue(new Error("Erro de banco"));
+
+      await expect(
+        jogadorService.deletar(TEST_JOGADOR_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Falha ao deletar jogador");
+    });
+  });
+
+  describe("atualizar - erros", () => {
+    it("deve lançar erro quando nome já existe para outro jogador", async () => {
+      const jogadorOriginal = createJogadorFixture({
+        id: TEST_JOGADOR_ID,
+        nome: "Nome Original",
+      });
+
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogadorOriginal);
+      mockJogadorRepository.nomeExiste.mockResolvedValue(true);
+
+      await expect(
+        jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, {
+          nome: "Nome Já Existente",
+        })
+      ).rejects.toThrow();
+    });
+
+    it("deve lançar erro genérico em caso de falha inesperada", async () => {
+      const jogadorOriginal = createJogadorFixture({
+        id: TEST_JOGADOR_ID,
+        nome: "Nome Original",
+      });
+
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogadorOriginal);
+      mockJogadorRepository.nomeExiste.mockResolvedValue(false);
+      mockJogadorRepository.atualizar.mockRejectedValue(new Error("Erro de banco"));
+
+      await expect(
+        jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, {
+          nome: "Novo Nome",
+        })
+      ).rejects.toThrow("Falha ao atualizar jogador");
+    });
+  });
 });

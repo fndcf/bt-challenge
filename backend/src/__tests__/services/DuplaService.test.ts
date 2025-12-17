@@ -35,6 +35,7 @@ jest.mock("../../services/HistoricoDuplaService", () => ({
   default: {
     calcularEstatisticas: jest.fn(),
     registrar: jest.fn(),
+    registrarEmLote: jest.fn(),
   },
 }));
 
@@ -246,24 +247,17 @@ describe("DuplaService", () => {
         combinacoesRealizadas: 0,
       });
 
-      (historicoDuplaService.registrar as jest.Mock).mockResolvedValue(undefined);
+      (historicoDuplaService.registrarEmLote as jest.Mock).mockResolvedValue(undefined);
 
-      // Mock criar dupla - retorna uma dupla para cada chamada
-      mockDuplaRepository.criar
-        .mockResolvedValueOnce(
+      // Mock criarEmLote - retorna array de duplas
+      mockDuplaRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
           createDuplaFixture({
-            id: "dupla-1",
-            jogador1Id: "jogador-1",
-            jogador1Nome: "Jogador 1",
+            id: `dupla-${idx + 1}`,
+            ...dto,
           })
         )
-        .mockResolvedValueOnce(
-          createDuplaFixture({
-            id: "dupla-2",
-            jogador1Id: "jogador-3",
-            jogador1Nome: "Jogador 3",
-          })
-        );
+      );
 
       const result = await duplaService.formarDuplasComCabecasDeChave(
         TEST_ETAPA_ID,
@@ -277,7 +271,7 @@ describe("DuplaService", () => {
         TEST_ETAPA_ID
       );
       expect(historicoDuplaService.calcularEstatisticas).toHaveBeenCalled();
-      expect(mockDuplaRepository.criar).toHaveBeenCalledTimes(2);
+      expect(mockDuplaRepository.criarEmLote).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(2);
     });
 
@@ -351,11 +345,16 @@ describe("DuplaService", () => {
         combinacoesRealizadas: 1,
       });
 
-      (historicoDuplaService.registrar as jest.Mock).mockResolvedValue(undefined);
+      (historicoDuplaService.registrarEmLote as jest.Mock).mockResolvedValue(undefined);
 
-      mockDuplaRepository.criar
-        .mockResolvedValueOnce(createDuplaFixture({ id: "dupla-1" }))
-        .mockResolvedValueOnce(createDuplaFixture({ id: "dupla-2" }));
+      mockDuplaRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createDuplaFixture({
+            id: `dupla-${idx + 1}`,
+            ...dto,
+          })
+        )
+      );
 
       const result = await duplaService.formarDuplasComCabecasDeChave(
         TEST_ETAPA_ID,
@@ -365,7 +364,7 @@ describe("DuplaService", () => {
       );
 
       expect(result).toHaveLength(2);
-      expect(mockDuplaRepository.criar).toHaveBeenCalledTimes(2);
+      expect(mockDuplaRepository.criarEmLote).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -13,8 +13,12 @@ jest.mock("../../utils/logger", () => ({
   },
 }));
 
+const mockUpdate = jest.fn().mockResolvedValue(undefined);
+const mockDoc = jest.fn(() => ({ update: mockUpdate }));
+const mockCollection = jest.fn(() => ({ doc: mockDoc }));
+
 jest.mock("../../config/firebase", () => ({
-  db: { collection: jest.fn() },
+  db: { collection: mockCollection },
   auth: { verifyIdToken: jest.fn() },
 }));
 
@@ -58,6 +62,8 @@ import {
   createMockGrupoRepository,
   createMockDuplaRepository,
   createMockConfrontoRepository,
+  createMockEquipeRepository,
+  createMockConfrontoEquipeRepository,
 } from "../mocks/repositories";
 import {
   createEtapaFixture,
@@ -74,6 +80,8 @@ import {
   StatusEtapa,
   TipoFase,
 } from "../fixtures";
+import { FormatoEtapa } from "../../models/Etapa";
+import { StatusConfronto } from "../../models/Teams";
 
 describe("EtapaService", () => {
   let mockEtapaRepository: ReturnType<typeof createMockEtapaRepository>;
@@ -85,6 +93,8 @@ describe("EtapaService", () => {
   let mockGrupoRepository: ReturnType<typeof createMockGrupoRepository>;
   let mockDuplaRepository: ReturnType<typeof createMockDuplaRepository>;
   let mockConfrontoRepository: ReturnType<typeof createMockConfrontoRepository>;
+  let mockEquipeRepository: ReturnType<typeof createMockEquipeRepository>;
+  let mockConfrontoEquipeRepository: ReturnType<typeof createMockConfrontoEquipeRepository>;
   let etapaService: EtapaService;
 
   const TEST_ARENA_ID = TEST_IDS.arena;
@@ -103,6 +113,8 @@ describe("EtapaService", () => {
     mockGrupoRepository = createMockGrupoRepository();
     mockDuplaRepository = createMockDuplaRepository();
     mockConfrontoRepository = createMockConfrontoRepository();
+    mockEquipeRepository = createMockEquipeRepository();
+    mockConfrontoEquipeRepository = createMockConfrontoEquipeRepository();
 
     etapaService = new EtapaService(
       mockEtapaRepository,
@@ -113,7 +125,9 @@ describe("EtapaService", () => {
       mockEstatisticasRepository,
       mockGrupoRepository,
       mockDuplaRepository,
-      mockConfrontoRepository
+      mockConfrontoRepository,
+      mockEquipeRepository,
+      mockConfrontoEquipeRepository
     );
   });
 
@@ -1166,6 +1180,8 @@ describe("EtapaService", () => {
         mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
         mockDuplaRepository.buscarPorGrupoOrdenado.mockResolvedValue(duplas);
         mockDuplaRepository.buscarPorId.mockResolvedValue(null); // Dupla não encontrada
+        mockEstatisticasRepository.buscarPorJogadorEEtapa.mockResolvedValue(null);
+        mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
         mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
 
         // Não deve lançar erro, apenas logar warning
@@ -1225,6 +1241,742 @@ describe("EtapaService", () => {
       await expect(
         etapaService.reabrirInscricoes(TEST_ETAPA_ID, TEST_ARENA_ID)
       ).rejects.toThrow("Etapa não encontrada");
+    });
+  });
+
+  describe("inscreverJogador - TEAMS misto", () => {
+    it("deve lançar erro se limite de masculinos atingido em TEAMS misto", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        formato: FormatoEtapa.TEAMS,
+        genero: GeneroJogador.MISTO,
+        maxJogadores: 8, // 4 de cada gênero
+        totalInscritos: 4,
+      });
+      const jogador = createJogadorFixture({
+        genero: GeneroJogador.MASCULINO,
+        nivel: NivelJogador.INTERMEDIARIO,
+      });
+
+      // 4 masculinos já inscritos
+      const inscricoesExistentes = Array.from({ length: 4 }, (_, i) =>
+        createInscricaoFixture({
+          id: `inscricao-${i}`,
+          jogadorId: `jogador-${i}`,
+          jogadorGenero: GeneroJogador.MASCULINO,
+        })
+      );
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogador);
+      mockInscricaoRepository.jogadorInscrito.mockResolvedValue(false);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue(inscricoesExistentes);
+
+      await expect(
+        etapaService.inscreverJogador(TEST_ETAPA_ID, TEST_ARENA_ID, {
+          jogadorId: TEST_IDS.jogador1,
+        })
+      ).rejects.toThrow("Limite de jogadores masculinos atingido");
+    });
+
+    it("deve lançar erro se limite de femininas atingido em TEAMS misto", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        formato: FormatoEtapa.TEAMS,
+        genero: GeneroJogador.MISTO,
+        maxJogadores: 8, // 4 de cada gênero
+        totalInscritos: 4,
+      });
+      const jogador = createJogadorFixture({
+        genero: GeneroJogador.FEMININO,
+        nivel: NivelJogador.INTERMEDIARIO,
+      });
+
+      // 4 femininas já inscritas
+      const inscricoesExistentes = Array.from({ length: 4 }, (_, i) =>
+        createInscricaoFixture({
+          id: `inscricao-${i}`,
+          jogadorId: `jogador-${i}`,
+          jogadorGenero: GeneroJogador.FEMININO,
+        })
+      );
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogador);
+      mockInscricaoRepository.jogadorInscrito.mockResolvedValue(false);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue(inscricoesExistentes);
+
+      await expect(
+        etapaService.inscreverJogador(TEST_ETAPA_ID, TEST_ARENA_ID, {
+          jogadorId: TEST_IDS.jogador1,
+        })
+      ).rejects.toThrow("Limite de jogadoras femininas atingido");
+    });
+  });
+
+  describe("inscreverJogadoresEmLote", () => {
+    it("deve inscrever múltiplos jogadores com sucesso", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        totalInscritos: 0,
+        maxJogadores: 16,
+      });
+
+      const jogador1 = createJogadorFixture({ id: "j1", nome: "Jogador 1" });
+      const jogador2 = createJogadorFixture({ id: "j2", nome: "Jogador 2" });
+      const inscricoes = [
+        createInscricaoFixture({ id: "i1", jogadorId: "j1" }),
+        createInscricaoFixture({ id: "i2", jogadorId: "j2" }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue([]);
+      mockJogadorRepository.buscarPorIdEArena
+        .mockResolvedValueOnce(jogador1)
+        .mockResolvedValueOnce(jogador2);
+      mockInscricaoRepository.criarEmLote.mockResolvedValue(inscricoes);
+
+      const result = await etapaService.inscreverJogadoresEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        ["j1", "j2"]
+      );
+
+      expect(result.inscricoes).toHaveLength(2);
+      expect(result.erros).toHaveLength(0);
+    });
+
+    it("deve retornar erros para jogadores não encontrados", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        totalInscritos: 0,
+        maxJogadores: 16,
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue([]);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(null);
+
+      const result = await etapaService.inscreverJogadoresEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        ["j-inexistente"]
+      );
+
+      expect(result.inscricoes).toHaveLength(0);
+      expect(result.erros).toHaveLength(1);
+      expect(result.erros[0].erro).toBe("Jogador não encontrado");
+    });
+
+    it("deve lançar erro se etapa não encontrada", async () => {
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(null);
+
+      await expect(
+        etapaService.inscreverJogadoresEmLote(TEST_ETAPA_ID, TEST_ARENA_ID, ["j1"])
+      ).rejects.toThrow("Etapa não encontrada");
+    });
+
+    it("deve lançar erro se inscrições não estão abertas", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ENCERRADAS,
+      });
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+
+      await expect(
+        etapaService.inscreverJogadoresEmLote(TEST_ETAPA_ID, TEST_ARENA_ID, ["j1"])
+      ).rejects.toThrow("Inscrições não estão abertas para esta etapa");
+    });
+
+    it("deve lançar erro se não há vagas suficientes", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        totalInscritos: 15,
+        maxJogadores: 16,
+      });
+      const inscricoesExistentes = Array.from({ length: 15 }, (_, i) =>
+        createInscricaoFixture({ id: `i${i}`, jogadorId: `j${i}` })
+      );
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue(inscricoesExistentes);
+
+      await expect(
+        etapaService.inscreverJogadoresEmLote(TEST_ETAPA_ID, TEST_ARENA_ID, ["j1", "j2"])
+      ).rejects.toThrow("Apenas 1 vagas disponíveis");
+    });
+
+    it("deve retornar erro para jogador já inscrito", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        totalInscritos: 1,
+        maxJogadores: 16,
+      });
+
+      const jogador = createJogadorFixture({ id: "j1" });
+      const inscricoesExistentes = [createInscricaoFixture({ jogadorId: "j1" })];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue(inscricoesExistentes);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogador);
+
+      const result = await etapaService.inscreverJogadoresEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        ["j1"]
+      );
+
+      expect(result.erros).toHaveLength(1);
+      expect(result.erros[0].erro).toBe("Jogador já está inscrito");
+    });
+
+    it("deve retornar erro para nível incompatível", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        nivel: NivelJogador.AVANCADO,
+      });
+      const jogador = createJogadorFixture({
+        id: "j1",
+        nivel: NivelJogador.INICIANTE,
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue([]);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogador);
+
+      const result = await etapaService.inscreverJogadoresEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        ["j1"]
+      );
+
+      expect(result.erros).toHaveLength(1);
+      expect(result.erros[0].erro).toContain("Nível incompatível");
+    });
+
+    it("deve retornar erro para gênero incompatível", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        genero: GeneroJogador.FEMININO,
+      });
+      const jogador = createJogadorFixture({
+        id: "j1",
+        genero: GeneroJogador.MASCULINO,
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue([]);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogador);
+
+      const result = await etapaService.inscreverJogadoresEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        ["j1"]
+      );
+
+      expect(result.erros).toHaveLength(1);
+      expect(result.erros[0].erro).toContain("Gênero incompatível");
+    });
+
+    it("deve verificar proporção de gênero em TEAMS misto", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+        formato: FormatoEtapa.TEAMS,
+        genero: GeneroJogador.MISTO,
+        maxJogadores: 8, // 4 masc + 4 fem
+      });
+
+      // 4 masculinos já inscritos
+      const inscricoesExistentes = Array.from({ length: 4 }, (_, i) =>
+        createInscricaoFixture({
+          jogadorId: `j-masc-${i}`,
+          jogadorGenero: GeneroJogador.MASCULINO,
+        })
+      );
+
+      const jogadorMasc = createJogadorFixture({
+        id: "j-novo-masc",
+        genero: GeneroJogador.MASCULINO,
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarConfirmadas.mockResolvedValue(inscricoesExistentes);
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogadorMasc);
+
+      const result = await etapaService.inscreverJogadoresEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        ["j-novo-masc"]
+      );
+
+      expect(result.erros).toHaveLength(1);
+      expect(result.erros[0].erro).toContain("Limite de jogadores masculinos");
+    });
+  });
+
+  describe("cancelarInscricoesEmLote", () => {
+    it("deve cancelar múltiplas inscrições com sucesso", async () => {
+      const etapa = createEtapaFixture({ chavesGeradas: false });
+      const inscricoes = [
+        createInscricaoFixture({ id: "i1", jogadorId: "j1" }),
+        createInscricaoFixture({ id: "i2", jogadorId: "j2" }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarPorIds.mockResolvedValue(inscricoes);
+      mockInscricaoRepository.cancelarEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.decrementarInscritosEmLote.mockResolvedValue(undefined);
+
+      const result = await etapaService.cancelarInscricoesEmLote(
+        ["i1", "i2"],
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID
+      );
+
+      expect(result.canceladas).toBe(2);
+      expect(result.jogadorIds).toEqual(["j1", "j2"]);
+    });
+
+    it("deve retornar erros para inscrições não encontradas", async () => {
+      const etapa = createEtapaFixture({ chavesGeradas: false });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockInscricaoRepository.buscarPorIds.mockResolvedValue([]);
+
+      const result = await etapaService.cancelarInscricoesEmLote(
+        ["i-inexistente"],
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID
+      );
+
+      expect(result.canceladas).toBe(0);
+      expect(result.erros).toHaveLength(1);
+      expect(result.erros[0]).toContain("não encontrada");
+    });
+
+    it("deve lançar erro se etapa não encontrada", async () => {
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(null);
+
+      await expect(
+        etapaService.cancelarInscricoesEmLote(["i1"], TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Etapa não encontrada");
+    });
+
+    it("deve lançar erro se chaves já foram geradas", async () => {
+      const etapa = createEtapaFixture({ chavesGeradas: true });
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+
+      await expect(
+        etapaService.cancelarInscricoesEmLote(["i1"], TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Não é possível cancelar inscrições após geração de chaves");
+    });
+  });
+
+  describe("encerrarEtapa - formato TEAMS", () => {
+    it("deve encerrar etapa TEAMS com sucesso", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.TEAMS,
+        contaPontosRanking: true,
+      });
+
+      const equipes = [
+        {
+          id: "eq1",
+          nome: "Equipe Campeã",
+          jogadores: [
+            { id: "j1", nome: "Jogador 1" },
+            { id: "j2", nome: "Jogador 2" },
+          ],
+        },
+        {
+          id: "eq2",
+          nome: "Equipe Vice",
+          jogadores: [
+            { id: "j3", nome: "Jogador 3" },
+            { id: "j4", nome: "Jogador 4" },
+          ],
+        },
+      ];
+
+      const confrontos = [
+        { id: "c1", status: StatusConfronto.FINALIZADO },
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockConfrontoEquipeRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+      mockEquipeRepository.buscarPorClassificacao.mockResolvedValue(equipes);
+      mockEstatisticasRepository.buscarPorJogadorEEtapa.mockResolvedValue(
+        createEstatisticasJogadorFixture()
+      );
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEquipeRepository.atualizarPosicao.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        "eq1",
+        "Equipe Campeã"
+      );
+    });
+
+    it("deve lançar erro se não há confrontos TEAMS", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.TEAMS,
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockConfrontoEquipeRepository.buscarPorEtapa.mockResolvedValue([]);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Nenhum confronto encontrado para esta etapa");
+    });
+
+    it("deve lançar erro se há confrontos pendentes TEAMS", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.TEAMS,
+      });
+
+      const confrontos = [
+        { id: "c1", status: StatusConfronto.AGENDADO },
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockConfrontoEquipeRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Ainda há 1 confronto(s) pendente(s)");
+    });
+
+    it("deve lançar erro se não há equipes TEAMS", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.TEAMS,
+      });
+
+      const confrontos = [{ id: "c1", status: StatusConfronto.FINALIZADO }];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockConfrontoEquipeRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+      mockEquipeRepository.buscarPorClassificacao.mockResolvedValue([]);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Nenhuma equipe encontrada para esta etapa");
+    });
+
+    it("deve pular atribuição de pontos se etapa não conta no ranking", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.TEAMS,
+        contaPontosRanking: false,
+      });
+
+      const equipes = [
+        {
+          id: "eq1",
+          nome: "Equipe Campeã",
+          jogadores: [{ id: "j1", nome: "Jogador 1" }],
+        },
+      ];
+
+      const confrontos = [{ id: "c1", status: StatusConfronto.FINALIZADO }];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockConfrontoEquipeRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+      mockEquipeRepository.buscarPorClassificacao.mockResolvedValue(equipes);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).not.toHaveBeenCalled();
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalled();
+    });
+  });
+
+  describe("encerrarEtapa - formato SUPER_X", () => {
+    it("deve encerrar etapa SUPER_X com sucesso", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.SUPER_X,
+        contaPontosRanking: true,
+      });
+
+      const grupo = createGrupoFixture({ completo: true });
+      const jogadores = [
+        createEstatisticasJogadorFixture({
+          id: "e1",
+          jogadorId: "j1",
+          jogadorNome: "Campeão",
+          posicaoGrupo: 1,
+        }),
+        createEstatisticasJogadorFixture({
+          id: "e2",
+          jogadorId: "j2",
+          jogadorNome: "Vice",
+          posicaoGrupo: 2,
+        }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+      mockEstatisticasRepository.buscarPorGrupoOrdenado.mockResolvedValue(jogadores);
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        "j1",
+        "Campeão"
+      );
+    });
+
+    it("deve lançar erro se grupo SUPER_X não está completo", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.SUPER_X,
+      });
+
+      const grupo = createGrupoFixture({ completo: false });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("O grupo ainda possui partidas pendentes");
+    });
+
+    it("deve lançar erro se não há jogadores no grupo SUPER_X", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.SUPER_X,
+      });
+
+      const grupo = createGrupoFixture({ completo: true });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+      mockEstatisticasRepository.buscarPorGrupoOrdenado.mockResolvedValue([]);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Nenhum jogador encontrado no grupo");
+    });
+
+    it("deve pular atribuição de pontos se SUPER_X não conta no ranking", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.SUPER_X,
+        contaPontosRanking: false,
+      });
+
+      const grupo = createGrupoFixture({ completo: true });
+      const jogadores = [
+        createEstatisticasJogadorFixture({
+          id: "e1",
+          jogadorId: "j1",
+          jogadorNome: "Campeão",
+        }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+      mockEstatisticasRepository.buscarPorGrupoOrdenado.mockResolvedValue(jogadores);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).not.toHaveBeenCalled();
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalled();
+    });
+  });
+
+  describe("encerrarEtapa - grupo único sem pontos ranking", () => {
+    it("deve pular atribuição de pontos se grupo único não conta no ranking", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.DUPLA_FIXA,
+        contaPontosRanking: false,
+      });
+
+      const grupo = createGrupoFixture({ completo: true });
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          jogador1Id: "j1",
+          jogador1Nome: "J1",
+          jogador2Id: "j2",
+          jogador2Nome: "J2",
+        }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+      mockDuplaRepository.buscarPorGrupoOrdenado.mockResolvedValue(duplas);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.buscarPorJogadorEEtapa).not.toHaveBeenCalled();
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalled();
+    });
+  });
+
+  describe("encerrarEtapa - eliminatória sem pontos ranking", () => {
+    it("deve pular atribuição de pontos se eliminatória não conta no ranking", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        contaPontosRanking: false,
+      });
+
+      const grupos = [
+        createGrupoFixture({ id: "g1" }),
+        createGrupoFixture({ id: "g2" }),
+      ];
+
+      const confrontoFinal = createConfrontoFixture({
+        fase: TipoFase.FINAL,
+        status: "finalizada" as any,
+        vencedoraId: "dupla-campeao",
+        vencedoraNome: "Dupla Campeã",
+        dupla1Id: "dupla-campeao",
+        dupla2Id: "dupla-vice",
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([confrontoFinal]);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockConfrontoRepository.buscarFinalizadosPorFase).not.toHaveBeenCalled();
+      expect(mockDuplaRepository.buscarPorEtapa).not.toHaveBeenCalled();
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalled();
+    });
+  });
+
+  describe("atualizar - recalcular grupos", () => {
+    it("deve recalcular grupos corretamente ao aumentar para mais de 5 duplas", async () => {
+      const etapa = createEtapaFixture({
+        chavesGeradas: false,
+        totalInscritos: 0,
+        maxJogadores: 8, // 4 duplas
+      });
+      const etapaAtualizada = createEtapaFixture({
+        maxJogadores: 12, // 6 duplas -> precisa de 2 grupos
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockEtapaRepository.atualizar.mockResolvedValue(etapaAtualizada);
+
+      await etapaService.atualizar(TEST_ETAPA_ID, TEST_ARENA_ID, {
+        maxJogadores: 12,
+      });
+
+      expect(mockEtapaRepository.atualizar).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        expect.objectContaining({
+          maxJogadores: 12,
+          qtdGrupos: expect.any(Number),
+        })
+      );
     });
   });
 });

@@ -16,6 +16,8 @@ import { IEstatisticasJogadorRepository } from "../../repositories/interfaces/IE
 import { IPartidaReiDaPraiaRepository } from "../../repositories/interfaces/IPartidaReiDaPraiaRepository";
 import { ICabecaDeChaveRepository } from "../../repositories/interfaces/ICabecaDeChaveRepository";
 import { IConfigRepository } from "../../repositories/interfaces/IConfigRepository";
+import { IEquipeRepository } from "../../repositories/interfaces/IEquipeRepository";
+import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfrontoEquipeRepository";
 
 // ========== MOCK JOGADOR REPOSITORY ==========
 
@@ -395,6 +397,68 @@ export function createMockConfigRepository(): MockedConfigRepository {
     atualizarConfig: jest.fn(),
     atualizarPontuacao: jest.fn(),
     definirValor: jest.fn(),
+  };
+}
+
+// ========== MOCK EQUIPE REPOSITORY ==========
+
+type MockedEquipeRepository = {
+  [K in keyof IEquipeRepository]: jest.Mock;
+};
+
+export function createMockEquipeRepository(): MockedEquipeRepository {
+  return {
+    criar: jest.fn(),
+    criarEmLote: jest.fn(),
+    buscarPorId: jest.fn(),
+    buscarPorEtapa: jest.fn(),
+    atualizar: jest.fn(),
+    deletar: jest.fn(),
+    deletarPorEtapa: jest.fn(),
+    atualizarEstatisticas: jest.fn(),
+    incrementarEstatisticas: jest.fn(),
+    incrementarEstatisticasEmLote: jest.fn(),
+    buscarPorIds: jest.fn(),
+    atualizarEmLote: jest.fn(),
+    atualizarPosicao: jest.fn(),
+    atualizarPosicoesEmLote: jest.fn(),
+    marcarClassificada: jest.fn(),
+    buscarClassificadas: jest.fn(),
+    buscarPorEtapaOrdenadas: jest.fn(),
+    buscarPorClassificacao: jest.fn(),
+  };
+}
+
+// ========== MOCK CONFRONTO EQUIPE REPOSITORY ==========
+
+type MockedConfrontoEquipeRepository = {
+  [K in keyof IConfrontoEquipeRepository]: jest.Mock;
+};
+
+export function createMockConfrontoEquipeRepository(): MockedConfrontoEquipeRepository {
+  return {
+    criar: jest.fn(),
+    criarEmLote: jest.fn(),
+    buscarPorId: jest.fn(),
+    buscarPorEtapa: jest.fn(),
+    atualizar: jest.fn(),
+    deletar: jest.fn(),
+    deletarPorEtapa: jest.fn(),
+    buscarPorFase: jest.fn(),
+    buscarPorRodada: jest.fn(),
+    buscarPorEquipe: jest.fn(),
+    registrarResultado: jest.fn(),
+    atualizarStatus: jest.fn(),
+    adicionarPartida: jest.fn(),
+    adicionarPartidasEmLote: jest.fn(),
+    incrementarPartidasFinalizadas: jest.fn(),
+    atualizarContadorJogos: jest.fn(),
+    marcarTemDecider: jest.fn(),
+    buscarPorEtapaOrdenados: jest.fn(),
+    contarFinalizados: jest.fn(),
+    contarPorFase: jest.fn(),
+    todosFinalizadosPorFase: jest.fn(),
+    resetarConfronto: jest.fn(),
   };
 }
 

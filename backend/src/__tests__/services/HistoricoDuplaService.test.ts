@@ -35,9 +35,13 @@ const mockWhere: jest.Mock<MockWhereResult> = jest.fn(() => ({
   get: mockGet,
 }));
 
+const mockDoc = jest.fn(() => ({ id: `doc-${Date.now()}` }));
+const mockBatchSet = jest.fn();
+
 const mockCollection = jest.fn(() => ({
   add: mockAdd,
   where: mockWhere,
+  doc: mockDoc,
 }));
 
 jest.mock("../../config/firebase", () => ({
@@ -46,6 +50,7 @@ jest.mock("../../config/firebase", () => ({
     batch: () => ({
       delete: mockBatchDelete,
       commit: mockBatchCommit,
+      set: mockBatchSet,
     }),
   },
 }));
@@ -413,6 +418,106 @@ describe("HistoricoDuplaService", () => {
       await expect(
         historicoDuplaService.limparEtapa(TEST_ARENA_ID, TEST_ETAPA_ID)
       ).rejects.toThrow("Erro de conexão");
+    });
+  });
+
+  describe("registrar - erros", () => {
+    it("deve propagar erro em caso de falha ao adicionar", async () => {
+      mockGet.mockResolvedValueOnce({ empty: true });
+      mockAdd.mockRejectedValue(new Error("Erro de conexão"));
+
+      const dto = {
+        arenaId: TEST_ARENA_ID,
+        etapaId: TEST_ETAPA_ID,
+        etapaNome: "Etapa Teste",
+        jogador1Id: "jogador-a",
+        jogador1Nome: "Jogador A",
+        jogador2Id: "jogador-b",
+        jogador2Nome: "Jogador B",
+        ambosForamCabecas: true,
+      };
+
+      await expect(historicoDuplaService.registrar(dto)).rejects.toThrow(
+        "Erro de conexão"
+      );
+    });
+  });
+
+  describe("registrarEmLote", () => {
+    it("deve registrar múltiplas duplas em lote", async () => {
+      mockBatchCommit.mockResolvedValue(undefined);
+
+      const dtos = [
+        {
+          arenaId: TEST_ARENA_ID,
+          etapaId: TEST_ETAPA_ID,
+          etapaNome: "Etapa Teste",
+          jogador1Id: "jogador-a",
+          jogador1Nome: "Jogador A",
+          jogador2Id: "jogador-b",
+          jogador2Nome: "Jogador B",
+          ambosForamCabecas: true,
+        },
+        {
+          arenaId: TEST_ARENA_ID,
+          etapaId: TEST_ETAPA_ID,
+          etapaNome: "Etapa Teste",
+          jogador1Id: "jogador-c",
+          jogador1Nome: "Jogador C",
+          jogador2Id: "jogador-d",
+          jogador2Nome: "Jogador D",
+          ambosForamCabecas: false,
+        },
+      ];
+
+      const result = await historicoDuplaService.registrarEmLote(dtos);
+
+      expect(result).toHaveLength(2);
+      expect(mockBatchSet).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar array vazio se lista vazia", async () => {
+      const result = await historicoDuplaService.registrarEmLote([]);
+
+      expect(result).toHaveLength(0);
+      expect(mockBatchSet).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro em caso de falha no batch commit", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const dtos = [
+        {
+          arenaId: TEST_ARENA_ID,
+          etapaId: TEST_ETAPA_ID,
+          etapaNome: "Etapa Teste",
+          jogador1Id: "jogador-a",
+          jogador1Nome: "Jogador A",
+          jogador2Id: "jogador-b",
+          jogador2Nome: "Jogador B",
+          ambosForamCabecas: true,
+        },
+      ];
+
+      await expect(historicoDuplaService.registrarEmLote(dtos)).rejects.toThrow(
+        "Erro de batch"
+      );
+    });
+  });
+
+  describe("limparDaEtapa - erros", () => {
+    it("deve propagar erro em caso de falha", async () => {
+      mockGet.mockResolvedValue({
+        empty: false,
+        size: 1,
+        docs: [{ ref: { id: "h1" } }],
+      });
+      mockBatchCommit.mockRejectedValue(new Error("Erro ao limpar"));
+
+      await expect(
+        historicoDuplaService.limparDaEtapa(TEST_ARENA_ID, TEST_ETAPA_ID)
+      ).rejects.toThrow("Erro ao limpar");
     });
   });
 });

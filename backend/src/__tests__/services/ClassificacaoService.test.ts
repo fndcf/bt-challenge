@@ -329,5 +329,265 @@ describe("ClassificacaoService", () => {
         classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1)
       ).rejects.toThrow("Erro de conexão");
     });
+
+    it("deve desempatar por saldo de games quando pontos iguais", async () => {
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          pontos: 6,
+          saldoGames: 3, // Menor saldo
+          jogador1Id: "j1",
+          jogador2Id: "j2",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          pontos: 6, // Mesmos pontos
+          saldoGames: 8, // Maior saldo - deve ficar primeiro
+          jogador1Id: "j3",
+          jogador2Id: "j4",
+          etapaId: TEST_IDS.etapa,
+        }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue([]);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      // Dupla-2 deve ser primeiro (posição 1) por ter maior saldo de games
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(
+        1,
+        "dupla-2",
+        1
+      );
+    });
+
+    it("deve usar confronto direto quando 2 duplas empatadas em pontos e saldo", async () => {
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j1",
+          jogador2Id: "j2",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          pontos: 6, // Mesmos pontos
+          saldoGames: 5, // Mesmo saldo de games
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j3",
+          jogador2Id: "j4",
+          etapaId: TEST_IDS.etapa,
+        }),
+      ];
+
+      const partidas = [
+        createPartidaFinalizadaFixture({
+          id: "partida-1",
+          dupla1Id: "dupla-1",
+          dupla2Id: "dupla-2",
+          vencedoraId: "dupla-1", // Dupla 1 venceu confronto direto
+        }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue(partidas);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      // Dupla-1 deve ser primeiro por vencer confronto direto
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(
+        1,
+        "dupla-1",
+        1
+      );
+    });
+
+    it("deve desempatar por saldo de sets quando confronto direto não existe", async () => {
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 1, // Menor saldo de sets
+          gamesVencidos: 20,
+          jogador1Id: "j1",
+          jogador2Id: "j2",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 3, // Maior saldo de sets - deve ficar primeiro
+          gamesVencidos: 20,
+          jogador1Id: "j3",
+          jogador2Id: "j4",
+          etapaId: TEST_IDS.etapa,
+        }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue([]); // Sem partidas
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      // Dupla-2 deve ser primeiro por maior saldo de sets
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(
+        1,
+        "dupla-2",
+        1
+      );
+    });
+
+    it("deve desempatar por games vencidos quando saldo de sets igual", async () => {
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 18, // Menos games vencidos
+          jogador1Id: "j1",
+          jogador2Id: "j2",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 25, // Mais games vencidos - deve ficar primeiro
+          jogador1Id: "j3",
+          jogador2Id: "j4",
+          etapaId: TEST_IDS.etapa,
+        }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue([]);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      // Dupla-2 deve ser primeiro por mais games vencidos
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(
+        1,
+        "dupla-2",
+        1
+      );
+    });
+
+    it("deve usar sorteio para 3+ duplas empatadas em todos critérios", async () => {
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j1",
+          jogador2Id: "j2",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j3",
+          jogador2Id: "j4",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-3",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j5",
+          jogador2Id: "j6",
+          etapaId: TEST_IDS.etapa,
+        }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue([]);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      // Todas as duplas devem receber posições (o sorteio é aleatório, mas todas serão posicionadas)
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledTimes(3);
+    });
+
+    it("deve priorizar vencedora do confronto direto (dupla B)", async () => {
+      const duplas = [
+        createDuplaFixture({
+          id: "dupla-1",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j1",
+          jogador2Id: "j2",
+          etapaId: TEST_IDS.etapa,
+        }),
+        createDuplaFixture({
+          id: "dupla-2",
+          pontos: 6,
+          saldoGames: 5,
+          saldoSets: 2,
+          gamesVencidos: 20,
+          jogador1Id: "j3",
+          jogador2Id: "j4",
+          etapaId: TEST_IDS.etapa,
+        }),
+      ];
+
+      const partidas = [
+        createPartidaFinalizadaFixture({
+          id: "partida-1",
+          dupla1Id: "dupla-1",
+          dupla2Id: "dupla-2",
+          vencedoraId: "dupla-2", // Dupla 2 venceu confronto direto
+        }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue(partidas);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      // Dupla-2 deve ser primeiro por vencer confronto direto
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(
+        1,
+        "dupla-2",
+        1
+      );
+    });
   });
 });

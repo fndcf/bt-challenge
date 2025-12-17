@@ -17,8 +17,17 @@ jest.mock("../../utils/logger", () => ({
 const mockAdd = jest.fn();
 const mockUpdate = jest.fn();
 const mockGet = jest.fn();
+const mockBatchSet = jest.fn();
+const mockBatchUpdate = jest.fn();
+const mockBatchCommit = jest.fn();
+const mockBatch = jest.fn(() => ({
+  set: mockBatchSet,
+  update: mockBatchUpdate,
+  commit: mockBatchCommit,
+}));
 const mockDoc = jest.fn(() => ({
   update: mockUpdate,
+  id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
 }));
 const mockLimit = jest.fn(() => ({ get: mockGet }));
 const mockOrderBy = jest.fn(() => ({ get: mockGet, limit: mockLimit }));
@@ -46,6 +55,7 @@ const mockCollection = jest.fn(() => ({
 jest.mock("../../config/firebase", () => ({
   db: {
     collection: mockCollection,
+    batch: mockBatch,
   },
 }));
 
@@ -62,6 +72,7 @@ describe("EstatisticasJogadorService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockBatchCommit.mockResolvedValue(undefined);
     service = new EstatisticasJogadorService();
   });
 
@@ -1824,6 +1835,662 @@ describe("EstatisticasJogadorService", () => {
       expect(result).toHaveLength(2);
       expect(result[0].jogadorNome).toBe("Jogador 2"); // Mais vitórias
       expect(result[1].jogadorNome).toBe("Jogador 1");
+    });
+  });
+
+  describe("criarEmLote", () => {
+    it("deve criar múltiplas estatísticas em lote", async () => {
+      const dtos = [
+        {
+          etapaId: TEST_ETAPA_ID,
+          arenaId: TEST_ARENA_ID,
+          jogadorId: "j1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.MASCULINO,
+          grupoId: TEST_GRUPO_ID,
+          grupoNome: "Grupo A",
+        },
+        {
+          etapaId: TEST_ETAPA_ID,
+          arenaId: TEST_ARENA_ID,
+          jogadorId: "j2",
+          jogadorNome: "Jogador 2",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.FEMININO,
+          grupoId: TEST_GRUPO_ID,
+          grupoNome: "Grupo A",
+        },
+      ];
+
+      const result = await service.criarEmLote(dtos);
+
+      expect(result).toHaveLength(2);
+      expect(mockBatchSet).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalled();
+      expect(result[0].jogadorNome).toBe("Jogador 1");
+      expect(result[1].jogadorNome).toBe("Jogador 2");
+      expect(result[0].jogos).toBe(0);
+      expect(result[0].vitorias).toBe(0);
+    });
+
+    it("deve propagar erro ao criar em lote", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const dtos = [
+        {
+          etapaId: TEST_ETAPA_ID,
+          arenaId: TEST_ARENA_ID,
+          jogadorId: "j1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.INICIANTE,
+          jogadorGenero: GeneroJogador.MASCULINO,
+          grupoId: TEST_GRUPO_ID,
+          grupoNome: "Grupo A",
+        },
+      ];
+
+      await expect(service.criarEmLote(dtos)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("buscarPorJogadoresEtapa", () => {
+    it("deve retornar Map vazio para lista vazia de jogadores", async () => {
+      const result = await service.buscarPorJogadoresEtapa([], TEST_ETAPA_ID);
+      expect(result.size).toBe(0);
+    });
+
+    it("deve retornar Map com estatísticas por jogadorId", async () => {
+      const estatisticas = [
+        { jogadorId: "j1", jogadorNome: "Jogador 1", jogos: 3 },
+        { jogadorId: "j2", jogadorNome: "Jogador 2", jogos: 4 },
+      ];
+
+      mockGet.mockResolvedValue({
+        docs: estatisticas.map((e, i) => ({
+          id: `estat-${i}`,
+          data: () => e,
+        })),
+      });
+
+      const result = await service.buscarPorJogadoresEtapa(["j1", "j2"], TEST_ETAPA_ID);
+
+      expect(result.size).toBe(2);
+      expect(result.get("j1")?.jogadorNome).toBe("Jogador 1");
+      expect(result.get("j2")?.jogadorNome).toBe("Jogador 2");
+    });
+  });
+
+  describe("atualizarGrupoEmLotePorId", () => {
+    it("deve atualizar grupos em lote por ID", async () => {
+      const atualizacoes = [
+        { estatisticaId: "est-1", grupoId: "grupo-novo-1", grupoNome: "Grupo 1" },
+        { estatisticaId: "est-2", grupoId: "grupo-novo-2", grupoNome: "Grupo 2" },
+      ];
+
+      await service.atualizarGrupoEmLotePorId(atualizacoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.atualizarGrupoEmLotePorId([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao atualizar grupos em lote", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const atualizacoes = [
+        { estatisticaId: "est-1", grupoId: "grupo-novo", grupoNome: "Grupo Novo" },
+      ];
+
+      await expect(service.atualizarGrupoEmLotePorId(atualizacoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("atualizarGrupoEmLote", () => {
+    it("deve atualizar grupos em lote buscando por jogadorId", async () => {
+      const estatistica1 = { id: "est-1", jogadorId: "j1", etapaId: TEST_ETAPA_ID };
+      const estatistica2 = { id: "est-2", jogadorId: "j2", etapaId: TEST_ETAPA_ID };
+
+      mockGet
+        .mockResolvedValueOnce({
+          empty: false,
+          docs: [{ id: estatistica1.id, data: () => estatistica1 }],
+        })
+        .mockResolvedValueOnce({
+          empty: false,
+          docs: [{ id: estatistica2.id, data: () => estatistica2 }],
+        });
+
+      const atualizacoes = [
+        { jogadorId: "j1", etapaId: TEST_ETAPA_ID, grupoId: "g1", grupoNome: "Grupo 1" },
+        { jogadorId: "j2", etapaId: TEST_ETAPA_ID, grupoId: "g2", grupoNome: "Grupo 2" },
+      ];
+
+      await service.atualizarGrupoEmLote(atualizacoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.atualizarGrupoEmLote([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve pular jogadores sem estatísticas", async () => {
+      mockGet.mockResolvedValue({ empty: true, docs: [] });
+
+      const atualizacoes = [
+        { jogadorId: "j-inexistente", etapaId: TEST_ETAPA_ID, grupoId: "g1", grupoNome: "Grupo 1" },
+      ];
+
+      await service.atualizarGrupoEmLote(atualizacoes);
+
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao atualizar em lote", async () => {
+      const estatistica = { id: "est-1", jogadorId: "j1", etapaId: TEST_ETAPA_ID };
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{ id: estatistica.id, data: () => estatistica }],
+      });
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const atualizacoes = [
+        { jogadorId: "j1", etapaId: TEST_ETAPA_ID, grupoId: "g1", grupoNome: "Grupo 1" },
+      ];
+
+      await expect(service.atualizarGrupoEmLote(atualizacoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("atualizarAposPartidaGrupoEmLote", () => {
+    it("deve atualizar estatísticas de grupo em lote", async () => {
+      const estatistica1 = {
+        id: "est-1",
+        jogadorId: "j1",
+        etapaId: TEST_ETAPA_ID,
+        jogosGrupo: 0,
+        vitoriasGrupo: 0,
+        derrotasGrupo: 0,
+        pontosGrupo: 0,
+        setsVencidosGrupo: 0,
+        setsPerdidosGrupo: 0,
+        saldoSetsGrupo: 0,
+        gamesVencidosGrupo: 0,
+        gamesPerdidosGrupo: 0,
+        saldoGamesGrupo: 0,
+        jogos: 0,
+        vitorias: 0,
+        derrotas: 0,
+        setsVencidos: 0,
+        setsPerdidos: 0,
+        saldoSets: 0,
+        gamesVencidos: 0,
+        gamesPerdidos: 0,
+        saldoGames: 0,
+      };
+
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{ id: estatistica1.id, data: () => estatistica1 }],
+      });
+
+      const atualizacoes = [
+        {
+          jogadorId: "j1",
+          etapaId: TEST_ETAPA_ID,
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 0, gamesVencidos: 12, gamesPerdidos: 6 },
+        },
+      ];
+
+      await service.atualizarAposPartidaGrupoEmLote(atualizacoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalled();
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.atualizarAposPartidaGrupoEmLote([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao atualizar em lote", async () => {
+      const estatistica = {
+        id: "est-1",
+        jogadorId: "j1",
+        etapaId: TEST_ETAPA_ID,
+        jogosGrupo: 0,
+        vitoriasGrupo: 0,
+        derrotasGrupo: 0,
+        pontosGrupo: 0,
+        setsVencidosGrupo: 0,
+        setsPerdidosGrupo: 0,
+        saldoSetsGrupo: 0,
+        gamesVencidosGrupo: 0,
+        gamesPerdidosGrupo: 0,
+        saldoGamesGrupo: 0,
+        jogos: 0,
+        vitorias: 0,
+        derrotas: 0,
+        setsVencidos: 0,
+        setsPerdidos: 0,
+        saldoSets: 0,
+        gamesVencidos: 0,
+        gamesPerdidos: 0,
+        saldoGames: 0,
+      };
+
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{ id: estatistica.id, data: () => estatistica }],
+      });
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const atualizacoes = [
+        {
+          jogadorId: "j1",
+          etapaId: TEST_ETAPA_ID,
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 0, gamesVencidos: 12, gamesPerdidos: 6 },
+        },
+      ];
+
+      await expect(service.atualizarAposPartidaGrupoEmLote(atualizacoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("reverterAposPartidaEmLote", () => {
+    it("deve reverter estatísticas em lote", async () => {
+      const estatistica = {
+        id: "est-1",
+        jogadorId: "j1",
+        etapaId: TEST_ETAPA_ID,
+        jogosGrupo: 1,
+        vitoriasGrupo: 1,
+        derrotasGrupo: 0,
+        pontosGrupo: 3,
+        setsVencidosGrupo: 2,
+        setsPerdidosGrupo: 0,
+        saldoSetsGrupo: 2,
+        gamesVencidosGrupo: 12,
+        gamesPerdidosGrupo: 6,
+        saldoGamesGrupo: 6,
+        jogos: 1,
+        vitorias: 1,
+        derrotas: 0,
+        setsVencidos: 2,
+        setsPerdidos: 0,
+        saldoSets: 2,
+        gamesVencidos: 12,
+        gamesPerdidos: 6,
+        saldoGames: 6,
+      };
+
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{ id: estatistica.id, data: () => estatistica }],
+      });
+
+      const reversoes = [
+        {
+          jogadorId: "j1",
+          etapaId: TEST_ETAPA_ID,
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 0, gamesVencidos: 12, gamesPerdidos: 6 },
+        },
+      ];
+
+      await service.reverterAposPartidaEmLote(reversoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalled();
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.reverterAposPartidaEmLote([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao reverter em lote", async () => {
+      const estatistica = {
+        id: "est-1",
+        jogadorId: "j1",
+        etapaId: TEST_ETAPA_ID,
+        jogosGrupo: 1,
+        vitoriasGrupo: 1,
+        derrotasGrupo: 0,
+        pontosGrupo: 3,
+        setsVencidosGrupo: 2,
+        setsPerdidosGrupo: 0,
+        saldoSetsGrupo: 2,
+        gamesVencidosGrupo: 12,
+        gamesPerdidosGrupo: 6,
+        saldoGamesGrupo: 6,
+        jogos: 1,
+        vitorias: 1,
+        derrotas: 0,
+        setsVencidos: 2,
+        setsPerdidos: 0,
+        saldoSets: 2,
+        gamesVencidos: 12,
+        gamesPerdidos: 6,
+        saldoGames: 6,
+      };
+
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{ id: estatistica.id, data: () => estatistica }],
+      });
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const reversoes = [
+        {
+          jogadorId: "j1",
+          etapaId: TEST_ETAPA_ID,
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 0, gamesVencidos: 12, gamesPerdidos: 6 },
+        },
+      ];
+
+      await expect(service.reverterAposPartidaEmLote(reversoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("atualizarPosicoesGrupoEmLote", () => {
+    it("deve atualizar posições em lote", async () => {
+      const atualizacoes = [
+        { estatisticaId: "est-1", posicaoGrupo: 1 },
+        { estatisticaId: "est-2", posicaoGrupo: 2 },
+      ];
+
+      await service.atualizarPosicoesGrupoEmLote(atualizacoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.atualizarPosicoesGrupoEmLote([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao atualizar posições em lote", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const atualizacoes = [{ estatisticaId: "est-1", posicaoGrupo: 1 }];
+
+      await expect(service.atualizarPosicoesGrupoEmLote(atualizacoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("atualizarAposPartidaComIncrement", () => {
+    it("deve atualizar com increment atômico (TEAMS)", async () => {
+      const atualizacoes = [
+        {
+          estatisticaId: "est-1",
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 0, gamesVencidos: 12, gamesPerdidos: 6 },
+        },
+        {
+          estatisticaId: "est-2",
+          dto: { venceu: false, setsVencidos: 0, setsPerdidos: 2, gamesVencidos: 6, gamesPerdidos: 12 },
+        },
+      ];
+
+      await service.atualizarAposPartidaComIncrement(atualizacoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.atualizarAposPartidaComIncrement([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao atualizar com increment", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const atualizacoes = [
+        {
+          estatisticaId: "est-1",
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 0, gamesVencidos: 12, gamesPerdidos: 6 },
+        },
+      ];
+
+      await expect(service.atualizarAposPartidaComIncrement(atualizacoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("atualizarAposPartidaGrupoComIncrement", () => {
+    it("deve atualizar grupo com increment atômico", async () => {
+      const atualizacoes = [
+        {
+          estatisticaId: "est-1",
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 1, gamesVencidos: 13, gamesPerdidos: 10 },
+        },
+      ];
+
+      await service.atualizarAposPartidaGrupoComIncrement(atualizacoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalled();
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.atualizarAposPartidaGrupoComIncrement([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao atualizar grupo com increment", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const atualizacoes = [
+        {
+          estatisticaId: "est-1",
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 1, gamesVencidos: 13, gamesPerdidos: 10 },
+        },
+      ];
+
+      await expect(service.atualizarAposPartidaGrupoComIncrement(atualizacoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("reverterAposPartidaComIncrement", () => {
+    it("deve reverter com increment negativo", async () => {
+      const reversoes = [
+        {
+          estatisticaId: "est-1",
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 1, gamesVencidos: 13, gamesPerdidos: 10 },
+        },
+      ];
+
+      await service.reverterAposPartidaComIncrement(reversoes);
+
+      expect(mockBatchUpdate).toHaveBeenCalled();
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.reverterAposPartidaComIncrement([]);
+      expect(mockBatchUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao reverter com increment", async () => {
+      mockBatchCommit.mockRejectedValue(new Error("Erro de batch"));
+
+      const reversoes = [
+        {
+          estatisticaId: "est-1",
+          dto: { venceu: true, setsVencidos: 2, setsPerdidos: 1, gamesVencidos: 13, gamesPerdidos: 10 },
+        },
+      ];
+
+      await expect(service.reverterAposPartidaComIncrement(reversoes)).rejects.toThrow("Erro de batch");
+    });
+  });
+
+  describe("marcarComoClassificadoEmLote", () => {
+    it("deve marcar múltiplos jogadores como classificados", async () => {
+      const estatisticas = [
+        { id: "est-1", jogadorId: "j1", etapaId: TEST_ETAPA_ID, classificado: false },
+        { id: "est-2", jogadorId: "j2", etapaId: TEST_ETAPA_ID, classificado: false },
+      ];
+
+      mockGet
+        .mockResolvedValueOnce({
+          empty: false,
+          docs: [{ id: estatisticas[0].id, data: () => estatisticas[0] }],
+        })
+        .mockResolvedValueOnce({
+          empty: false,
+          docs: [{ id: estatisticas[1].id, data: () => estatisticas[1] }],
+        });
+
+      mockUpdate.mockResolvedValue(undefined);
+
+      const jogadores = [
+        { jogadorId: "j1", etapaId: TEST_ETAPA_ID },
+        { jogadorId: "j2", etapaId: TEST_ETAPA_ID },
+      ];
+
+      await service.marcarComoClassificadoEmLote(jogadores, true);
+
+      expect(mockUpdate).toHaveBeenCalledTimes(2);
+    });
+
+    it("deve retornar imediatamente para lista vazia", async () => {
+      await service.marcarComoClassificadoEmLote([], true);
+      expect(mockGet).not.toHaveBeenCalled();
+    });
+
+    it("deve pular jogadores sem estatísticas encontradas", async () => {
+      mockGet.mockResolvedValue({ empty: true, docs: [] });
+
+      const jogadores = [
+        { jogadorId: "j-inexistente", etapaId: TEST_ETAPA_ID },
+      ];
+
+      await service.marcarComoClassificadoEmLote(jogadores, true);
+
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+
+    it("deve propagar erro ao marcar classificados em lote", async () => {
+      const estatistica = { id: "est-1", jogadorId: "j1", etapaId: TEST_ETAPA_ID, classificado: false };
+
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{ id: estatistica.id, data: () => estatistica }],
+      });
+      mockUpdate.mockRejectedValue(new Error("Erro ao atualizar"));
+
+      const jogadores = [{ jogadorId: "j1", etapaId: TEST_ETAPA_ID }];
+
+      await expect(service.marcarComoClassificadoEmLote(jogadores, true)).rejects.toThrow("Erro ao atualizar");
+    });
+  });
+
+  describe("buscarEtapasQueContamPontos - retrocompatibilidade", () => {
+    it("deve considerar etapas sem campo contaPontosRanking como contando pontos", async () => {
+      // Primeira query: etapas com contaPontosRanking = true
+      mockGet.mockResolvedValueOnce({
+        docs: [{ id: "etapa-nova", data: () => ({ contaPontosRanking: true }) }],
+      });
+
+      // Segunda query: todas as etapas (para verificar retrocompatibilidade)
+      mockGet.mockResolvedValueOnce({
+        docs: [
+          { id: "etapa-nova", data: () => ({ contaPontosRanking: true }) },
+          { id: "etapa-antiga", data: () => ({}) }, // Sem o campo - retrocompatibilidade
+        ],
+      });
+
+      // Query final para buscar estatísticas
+      mockGet.mockResolvedValueOnce({
+        docs: [
+          {
+            id: "est-1",
+            data: () => ({
+              etapaId: "etapa-antiga",
+              jogadorId: "j1",
+              jogadorNome: "Jogador 1",
+              jogadorNivel: NivelJogador.INICIANTE,
+              jogos: 3,
+              vitorias: 2,
+              derrotas: 1,
+              pontos: 6,
+              setsVencidos: 5,
+              setsPerdidos: 2,
+              gamesVencidos: 30,
+              gamesPerdidos: 18,
+              saldoSets: 3,
+              saldoGames: 12,
+            }),
+          },
+        ],
+      });
+
+      const result = await service.buscarRankingPorNivel(
+        TEST_ARENA_ID,
+        NivelJogador.INICIANTE,
+        10
+      );
+
+      expect(result).toHaveLength(1);
+      // Os pontos devem ser contados porque a etapa antiga (sem o campo) conta para o ranking
+      expect(result[0].pontos).toBe(6);
+    });
+  });
+
+  describe("buscarRankingGlobalAgregado - desempates avançados", () => {
+    it("deve ordenar corretamente todos critérios de desempate", async () => {
+      const estatisticas = [
+        {
+          jogadorId: "j1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.AVANCADO,
+          pontos: 10,
+          saldoGames: 20,
+          gamesVencidos: 50,
+          vitorias: 4,
+          jogos: 5,
+          derrotas: 1,
+          setsVencidos: 8,
+          setsPerdidos: 3,
+          saldoSets: 5,
+          gamesPerdidos: 30,
+        },
+        {
+          jogadorId: "j2",
+          jogadorNome: "Jogador 2",
+          jogadorNivel: NivelJogador.AVANCADO,
+          pontos: 10, // Mesmo pontos
+          saldoGames: 20, // Mesmo saldoGames
+          gamesVencidos: 50, // Mesmo gamesVencidos
+          vitorias: 4, // Mesmo vitorias - desempate final
+          jogos: 5,
+          derrotas: 1,
+          setsVencidos: 8,
+          setsPerdidos: 3,
+          saldoSets: 5,
+          gamesPerdidos: 30,
+        },
+      ];
+
+      mockGet.mockResolvedValue({
+        docs: estatisticas.map((e, i) => ({
+          id: `estat-${i}`,
+          data: () => e,
+        })),
+      });
+
+      const result = await service.buscarRankingGlobalAgregado(TEST_ARENA_ID, 10);
+
+      // Com todos critérios iguais, a ordem é preservada
+      expect(result).toHaveLength(2);
     });
   });
 });

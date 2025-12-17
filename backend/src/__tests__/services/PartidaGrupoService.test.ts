@@ -42,6 +42,9 @@ jest.mock("../../services/EstatisticasJogadorService", () => {
       atualizarAposPartida: jest.fn().mockResolvedValue(undefined),
       reverterAposPartida: jest.fn().mockResolvedValue(undefined),
       buscarPorJogadorEtapa: jest.fn().mockResolvedValue(null),
+      buscarPorJogadoresEtapa: jest.fn().mockResolvedValue(new Map()),
+      reverterAposPartidaComIncrement: jest.fn().mockResolvedValue(undefined),
+      atualizarAposPartidaGrupoComIncrement: jest.fn().mockResolvedValue(undefined),
     },
   };
 });
@@ -131,11 +134,10 @@ describe("PartidaGrupoService", () => {
       ];
 
       mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
-      mockPartidaRepository.criar.mockImplementation(async (data) =>
-        createPartidaFixture({ ...data, id: `partida-${Date.now()}` })
+      mockPartidaRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((data, idx) => createPartidaFixture({ ...data, id: `partida-${idx}` }))
       );
-      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
-      mockGrupoRepository.adicionarPartida.mockResolvedValue(undefined);
+      mockGrupoRepository.adicionarPartidasEmLote.mockResolvedValue(undefined);
 
       const result = await partidaGrupoService.gerarPartidas(
         TEST_ETAPA_ID,
@@ -145,10 +147,11 @@ describe("PartidaGrupoService", () => {
 
       // 3 duplas = 3 partidas (combinação 3 escolhe 2)
       expect(result).toHaveLength(3);
-      expect(mockPartidaRepository.criar).toHaveBeenCalledTimes(3);
-      expect(mockGrupoRepository.atualizarContadores).toHaveBeenCalledWith(
+      expect(mockPartidaRepository.criarEmLote).toHaveBeenCalledTimes(1);
+      // Verifica que adicionou partidas ao grupo
+      expect(mockGrupoRepository.adicionarPartidasEmLote).toHaveBeenCalledWith(
         "grupo-1",
-        { totalPartidas: 3 }
+        expect.any(Array)
       );
     });
 
@@ -163,11 +166,10 @@ describe("PartidaGrupoService", () => {
       ];
 
       mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
-      mockPartidaRepository.criar.mockImplementation(async (data) =>
-        createPartidaFixture({ ...data, id: `partida-${Date.now()}` })
+      mockPartidaRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((data, idx) => createPartidaFixture({ ...data, id: `partida-${idx}` }))
       );
-      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
-      mockGrupoRepository.adicionarPartida.mockResolvedValue(undefined);
+      mockGrupoRepository.adicionarPartidasEmLote.mockResolvedValue(undefined);
 
       const result = await partidaGrupoService.gerarPartidas(
         TEST_ETAPA_ID,
@@ -471,6 +473,464 @@ describe("PartidaGrupoService", () => {
 
       expect(mockPartidaRepository.deletarEmLote).not.toHaveBeenCalled();
       expect(count).toBe(0);
+    });
+  });
+
+  describe("gerarPartidas - cenários de erro", () => {
+    it("deve lançar erro quando busca de duplas falha", async () => {
+      const grupos = [createGrupoFixture({ id: "grupo-1" })];
+
+      mockDuplaRepository.buscarPorGrupo.mockRejectedValue(new Error("Erro de banco"));
+
+      await expect(
+        partidaGrupoService.gerarPartidas(TEST_ETAPA_ID, TEST_ARENA_ID, grupos)
+      ).rejects.toThrow("Falha ao gerar partidas");
+    });
+
+    it("deve lançar erro quando criação de partidas falha", async () => {
+      const grupos = [createGrupoFixture({ id: "grupo-1" })];
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1" }),
+        createDuplaFixture({ id: "dupla-2" }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.criarEmLote.mockRejectedValue(new Error("Erro ao criar"));
+
+      await expect(
+        partidaGrupoService.gerarPartidas(TEST_ETAPA_ID, TEST_ARENA_ID, grupos)
+      ).rejects.toThrow("Falha ao gerar partidas");
+    });
+  });
+
+  describe("registrarResultado - cenários adicionais", () => {
+    it("deve lançar erro ao editar resultado quando eliminatória já foi gerada", async () => {
+      const partidaFinalizada = createPartidaFinalizadaFixture({
+        id: TEST_PARTIDA_ID,
+        status: StatusPartida.FINALIZADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: TEST_IDS.dupla1 });
+      const dupla2 = createDuplaFixture({ id: TEST_IDS.dupla2 });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partidaFinalizada);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      // Retorna confrontos - eliminatória já gerada
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        { id: "confronto-1" },
+      ]);
+
+      await expect(
+        partidaGrupoService.registrarResultado(
+          TEST_PARTIDA_ID,
+          TEST_ARENA_ID,
+          [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }]
+        )
+      ).rejects.toThrow(
+        "Não é possível editar resultados após gerar a fase eliminatória"
+      );
+    });
+
+    it("deve lançar erro quando duplas não encontradas após reversão", async () => {
+      const partidaFinalizada = createPartidaFinalizadaFixture({
+        id: TEST_PARTIDA_ID,
+        status: StatusPartida.FINALIZADA,
+        placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+      });
+
+      const dupla1 = createDuplaFixture({ id: TEST_IDS.dupla1 });
+      const dupla2 = createDuplaFixture({ id: TEST_IDS.dupla2 });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partidaFinalizada);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1) // Busca inicial
+        .mockResolvedValueOnce(dupla2) // Busca inicial
+        .mockResolvedValueOnce(dupla1) // reverterEstatisticasDupla
+        .mockResolvedValueOnce(dupla2) // reverterEstatisticasDupla
+        .mockResolvedValueOnce(null); // Re-busca após reversão - retorna null
+
+      mockDuplaRepository.atualizarEstatisticas.mockResolvedValue(undefined);
+
+      await expect(
+        partidaGrupoService.registrarResultado(
+          TEST_PARTIDA_ID,
+          TEST_ARENA_ID,
+          [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }]
+        )
+      ).rejects.toThrow("Duplas não encontradas após reversão");
+    });
+
+    it("deve processar placar onde dupla2 vence o set", async () => {
+      const partida = createPartidaFixture({
+        id: TEST_PARTIDA_ID,
+        status: StatusPartida.AGENDADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: TEST_IDS.dupla1 });
+      const dupla2 = createDuplaFixture({ id: TEST_IDS.dupla2 });
+
+      // Dupla 2 vence todos os sets
+      const placar = [
+        { numero: 1, gamesDupla1: 2, gamesDupla2: 6 },
+        { numero: 2, gamesDupla1: 3, gamesDupla2: 6 },
+      ];
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partida);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);
+      mockDuplaRepository.atualizarEstatisticas.mockResolvedValue(undefined);
+
+      await partidaGrupoService.registrarResultado(
+        TEST_PARTIDA_ID,
+        TEST_ARENA_ID,
+        placar
+      );
+
+      expect(mockPartidaRepository.registrarResultado).toHaveBeenCalledWith(
+        TEST_PARTIDA_ID,
+        expect.objectContaining({
+          vencedoraId: TEST_IDS.dupla2,
+          setsDupla1: 0,
+          setsDupla2: 2,
+        })
+      );
+    });
+
+    it("deve recalcular classificação do grupo após registrar resultado", async () => {
+      const partida = createPartidaFixture({
+        id: TEST_PARTIDA_ID,
+        grupoId: "grupo-com-classificacao",
+        status: StatusPartida.AGENDADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: TEST_IDS.dupla1 });
+      const dupla2 = createDuplaFixture({ id: TEST_IDS.dupla2 });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partida);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);
+      mockDuplaRepository.atualizarEstatisticas.mockResolvedValue(undefined);
+
+      const classificacaoService = require("../../services/ClassificacaoService").default;
+
+      await partidaGrupoService.registrarResultado(
+        TEST_PARTIDA_ID,
+        TEST_ARENA_ID,
+        [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }]
+      );
+
+      expect(classificacaoService.recalcularClassificacaoGrupo).toHaveBeenCalledWith(
+        "grupo-com-classificacao"
+      );
+    });
+  });
+
+  describe("registrarResultadosEmLote", () => {
+    beforeEach(() => {
+      mockDuplaRepository.atualizarEstatisticasComIncrement = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it("deve registrar múltiplos resultados em lote com sucesso", async () => {
+      const partida1 = createPartidaFixture({
+        id: "partida-1",
+        dupla1Id: "dupla-1",
+        dupla2Id: "dupla-2",
+        grupoId: "grupo-1",
+        status: StatusPartida.AGENDADA,
+      });
+      const partida2 = createPartidaFixture({
+        id: "partida-2",
+        dupla1Id: "dupla-3",
+        dupla2Id: "dupla-4",
+        grupoId: "grupo-1",
+        status: StatusPartida.AGENDADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: "dupla-1", jogador1Id: "j1", jogador2Id: "j2" });
+      const dupla2 = createDuplaFixture({ id: "dupla-2", jogador1Id: "j3", jogador2Id: "j4" });
+      const dupla3 = createDuplaFixture({ id: "dupla-3", jogador1Id: "j5", jogador2Id: "j6" });
+      const dupla4 = createDuplaFixture({ id: "dupla-4", jogador1Id: "j7", jogador2Id: "j8" });
+
+      mockPartidaRepository.buscarPorIdEArena
+        .mockResolvedValueOnce(partida1)
+        .mockResolvedValueOnce(partida2);
+
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2)
+        .mockResolvedValueOnce(dupla3)
+        .mockResolvedValueOnce(dupla4);
+
+      mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+        {
+          partidaId: "partida-2",
+          placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(2);
+      expect(response.erros).toHaveLength(0);
+      expect(response.gruposRecalculados).toContain("grupo-1");
+    });
+
+    it("deve retornar erro quando partida não encontrada", async () => {
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(null);
+
+      const resultados = [
+        {
+          partidaId: "partida-inexistente",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(0);
+      expect(response.erros).toHaveLength(1);
+      expect(response.erros[0].erro).toBe("Partida não encontrada");
+    });
+
+    it("deve retornar erro quando duplas não encontradas", async () => {
+      const partida = createPartidaFixture({
+        id: "partida-1",
+        status: StatusPartida.AGENDADA,
+      });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partida);
+      mockDuplaRepository.buscarPorId.mockResolvedValue(null);
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(0);
+      expect(response.erros).toHaveLength(1);
+      expect(response.erros[0].erro).toBe("Duplas não encontradas");
+    });
+
+    it("deve impedir edição em lote quando eliminatória já gerada", async () => {
+      const partidaFinalizada = createPartidaFinalizadaFixture({
+        id: "partida-1",
+        status: StatusPartida.FINALIZADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: TEST_IDS.dupla1 });
+      const dupla2 = createDuplaFixture({ id: TEST_IDS.dupla2 });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partidaFinalizada);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([{ id: "conf-1" }]);
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(0);
+      expect(response.erros).toHaveLength(1);
+      expect(response.erros[0].erro).toBe("Não é possível editar após gerar eliminatória");
+    });
+
+    it("deve reverter estatísticas ao editar resultados em lote", async () => {
+      const partidaFinalizada = createPartidaFinalizadaFixture({
+        id: "partida-1",
+        status: StatusPartida.FINALIZADA,
+        placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        grupoId: "grupo-1",
+      });
+
+      const dupla1 = createDuplaFixture({ id: TEST_IDS.dupla1, jogador1Id: "j1", jogador2Id: "j2" });
+      const dupla2 = createDuplaFixture({ id: TEST_IDS.dupla2, jogador1Id: "j3", jogador2Id: "j4" });
+
+      const estatisticasMap = new Map([
+        ["j1", { id: "est-j1" }],
+        ["j2", { id: "est-j2" }],
+        ["j3", { id: "est-j3" }],
+        ["j4", { id: "est-j4" }],
+      ]);
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partidaFinalizada);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
+      mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);
+
+      const estatisticasService = require("../../services/EstatisticasJogadorService").default;
+      estatisticasService.buscarPorJogadoresEtapa.mockResolvedValue(estatisticasMap);
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(1);
+      expect(estatisticasService.reverterAposPartidaComIncrement).toHaveBeenCalled();
+      expect(estatisticasService.atualizarAposPartidaGrupoComIncrement).toHaveBeenCalled();
+    });
+
+    it("deve processar alguns resultados e retornar erros de outros", async () => {
+      const partida1 = createPartidaFixture({
+        id: "partida-1",
+        dupla1Id: "dupla-1",
+        dupla2Id: "dupla-2",
+        grupoId: "grupo-1",
+        status: StatusPartida.AGENDADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: "dupla-1", jogador1Id: "j1", jogador2Id: "j2" });
+      const dupla2 = createDuplaFixture({ id: "dupla-2", jogador1Id: "j3", jogador2Id: "j4" });
+
+      mockPartidaRepository.buscarPorIdEArena
+        .mockResolvedValueOnce(partida1)
+        .mockResolvedValueOnce(null); // Segunda partida não existe
+
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+
+      mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+        {
+          partidaId: "partida-inexistente",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(1);
+      expect(response.erros).toHaveLength(1);
+      expect(response.erros[0].partidaId).toBe("partida-inexistente");
+    });
+
+    it("deve lidar com erro ao registrar resultado individual em lote", async () => {
+      const partida1 = createPartidaFixture({
+        id: "partida-1",
+        dupla1Id: "dupla-1",
+        dupla2Id: "dupla-2",
+        grupoId: "grupo-1",
+        status: StatusPartida.AGENDADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: "dupla-1", jogador1Id: "j1", jogador2Id: "j2" });
+      const dupla2 = createDuplaFixture({ id: "dupla-2", jogador1Id: "j3", jogador2Id: "j4" });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partida1);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      mockPartidaRepository.registrarResultado.mockRejectedValue(
+        new Error("Erro ao salvar")
+      );
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      expect(response.processados).toBe(0);
+      expect(response.erros).toHaveLength(1);
+      expect(response.erros[0].erro).toContain("Erro ao salvar");
+    });
+
+    it("deve continuar processando mesmo com erro ao recalcular classificação", async () => {
+      const partida1 = createPartidaFixture({
+        id: "partida-1",
+        dupla1Id: "dupla-1",
+        dupla2Id: "dupla-2",
+        grupoId: "grupo-1",
+        status: StatusPartida.AGENDADA,
+      });
+
+      const dupla1 = createDuplaFixture({ id: "dupla-1", jogador1Id: "j1", jogador2Id: "j2" });
+      const dupla2 = createDuplaFixture({ id: "dupla-2", jogador1Id: "j3", jogador2Id: "j4" });
+
+      mockPartidaRepository.buscarPorIdEArena.mockResolvedValue(partida1);
+      mockDuplaRepository.buscarPorId
+        .mockResolvedValueOnce(dupla1)
+        .mockResolvedValueOnce(dupla2);
+      mockPartidaRepository.registrarResultado.mockResolvedValue(undefined);
+
+      const classificacaoService = require("../../services/ClassificacaoService").default;
+      classificacaoService.recalcularClassificacaoGrupo.mockRejectedValueOnce(
+        new Error("Erro ao recalcular")
+      );
+
+      const resultados = [
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+      ];
+
+      const response = await partidaGrupoService.registrarResultadosEmLote(
+        TEST_ARENA_ID,
+        resultados
+      );
+
+      // Resultado foi processado, mesmo com erro na classificação
+      expect(response.processados).toBe(1);
     });
   });
 });
