@@ -59,12 +59,7 @@ export interface IGrupoRepository
   removerDupla(id: string, duplaId: string): Promise<void>;
 
   /**
-   * Adicionar partida ao grupo
-   */
-  adicionarPartida(id: string, partidaId: string): Promise<void>;
-
-  /**
-   * Adicionar múltiplas partidas ao grupo em batch
+   * Adicionar partidas ao grupo em lote (funciona para 1 ou mais)
    */
   adicionarPartidasEmLote(id: string, partidasIds: string[]): Promise<void>;
 

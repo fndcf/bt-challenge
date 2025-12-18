@@ -274,10 +274,10 @@ export class GrupoService implements IGrupoService {
   }
 
   /**
-   * Adicionar partida ao grupo
+   * Adicionar partidas ao grupo em lote (funciona para 1 ou mais)
    */
-  async adicionarPartida(grupoId: string, partidaId: string): Promise<void> {
-    await this.grupoRepo.adicionarPartida(grupoId, partidaId);
+  async adicionarPartidasEmLote(grupoId: string, partidaIds: string[]): Promise<void> {
+    await this.grupoRepo.adicionarPartidasEmLote(grupoId, partidaIds);
   }
 
   /**

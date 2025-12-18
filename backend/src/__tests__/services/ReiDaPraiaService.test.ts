@@ -83,7 +83,7 @@ describe("ReiDaPraiaService", () => {
   };
 
   const mockConfrontoRepository = {
-    criar: jest.fn(),
+    criarEmLote: jest.fn(),
     registrarResultado: jest.fn(),
     buscarPorEtapa: jest.fn(),
     deletarPorEtapa: jest.fn(),
@@ -355,13 +355,15 @@ describe("ReiDaPraiaService", () => {
         })
       );
 
-      // Mock criação de confrontos
-      mockConfrontoRepository.criar.mockImplementation((dto: any) =>
-        Promise.resolve({
-          id: `confronto-${dto.ordem}`,
-          ...dto,
-          status: StatusConfrontoEliminatorio.AGENDADA,
-        })
+      // Mock criação de confrontos em lote
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) =>
+        Promise.resolve(
+          dtos.map((dto: any) => ({
+            id: `confronto-${dto.ordem}`,
+            ...dto,
+            status: StatusConfrontoEliminatorio.AGENDADA,
+          }))
+        )
       );
 
       const result = await service.gerarFaseEliminatoria(
@@ -723,12 +725,14 @@ describe("ReiDaPraiaService", () => {
         })
       );
 
-      mockConfrontoRepository.criar.mockImplementation((dto: any) =>
-        Promise.resolve({
-          id: `confronto-${dto.ordem}`,
-          ...dto,
-          status: StatusConfrontoEliminatorio.AGENDADA,
-        })
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) =>
+        Promise.resolve(
+          dtos.map((dto: any) => ({
+            id: `confronto-${dto.ordem}`,
+            ...dto,
+            status: StatusConfrontoEliminatorio.AGENDADA,
+          }))
+        )
       );
 
       const result = await service.gerarFaseEliminatoria(
@@ -768,12 +772,14 @@ describe("ReiDaPraiaService", () => {
         })
       );
 
-      mockConfrontoRepository.criar.mockImplementation((dto: any) =>
-        Promise.resolve({
-          id: `confronto-${dto.ordem}`,
-          ...dto,
-          status: StatusConfrontoEliminatorio.AGENDADA,
-        })
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) =>
+        Promise.resolve(
+          dtos.map((dto: any) => ({
+            id: `confronto-${dto.ordem}`,
+            ...dto,
+            status: StatusConfrontoEliminatorio.AGENDADA,
+          }))
+        )
       );
 
       const result = await service.gerarFaseEliminatoria(
@@ -840,12 +846,14 @@ describe("ReiDaPraiaService", () => {
         })
       );
 
-      mockConfrontoRepository.criar.mockImplementation((dto: any) =>
-        Promise.resolve({
-          id: `confronto-${dto.ordem}`,
-          ...dto,
-          status: StatusConfrontoEliminatorio.AGENDADA,
-        })
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) =>
+        Promise.resolve(
+          dtos.map((dto: any) => ({
+            id: `confronto-${dto.ordem}`,
+            ...dto,
+            status: StatusConfrontoEliminatorio.AGENDADA,
+          }))
+        )
       );
 
       const result = await service.gerarFaseEliminatoria(
@@ -1309,12 +1317,14 @@ describe("ReiDaPraiaService", () => {
         })
       );
 
-      mockConfrontoRepository.criar.mockImplementation((dto: any) =>
-        Promise.resolve({
-          id: `confronto-${dto.ordem}`,
-          ...dto,
-          status: StatusConfrontoEliminatorio.AGENDADA,
-        })
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) =>
+        Promise.resolve(
+          dtos.map((dto: any) => ({
+            id: `confronto-${dto.ordem}`,
+            ...dto,
+            status: StatusConfrontoEliminatorio.AGENDADA,
+          }))
+        )
       );
 
       const result = await service.gerarFaseEliminatoria(

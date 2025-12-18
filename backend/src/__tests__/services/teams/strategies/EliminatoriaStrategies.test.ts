@@ -8,11 +8,17 @@
  * - Final
  */
 
+import { Eliminatoria2GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria2GruposStrategy";
+import { Eliminatoria3GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria3GruposStrategy";
+import { Eliminatoria4GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria4GruposStrategy";
 import { Eliminatoria5GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria5GruposStrategy";
 import { Eliminatoria6GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria6GruposStrategy";
 import { Eliminatoria7GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria7GruposStrategy";
 import { Eliminatoria8GruposStrategy } from "../../../../services/teams/strategies/Eliminatoria8GruposStrategy";
-import { EliminatoriaContext } from "../../../../services/teams/strategies/IEliminatoriaStrategy";
+import {
+  EliminatoriaContext,
+  BaseEliminatoriaStrategy,
+} from "../../../../services/teams/strategies/IEliminatoriaStrategy";
 import { createMockConfrontoEquipeRepository } from "../../../mocks/repositories";
 import { Etapa, FaseEtapa, FormatoEtapa, StatusEtapa } from "../../../../models/Etapa";
 import { TipoFormacaoJogos, ConfrontoEquipe, StatusConfronto } from "../../../../models/Teams";
@@ -80,14 +86,218 @@ describe("EliminatoriaStrategies", () => {
     confrontoIdCounter = 0;
     mockConfrontoRepository = createMockConfrontoEquipeRepository();
 
-    // Mock criar para retornar confronto com ID
-    mockConfrontoRepository.criar.mockImplementation(async (dto) => {
-      return criarConfrontoMock(dto);
+    // Mock criarEmLote para retornar array de confrontos (funciona para 1 ou mais)
+    mockConfrontoRepository.criarEmLote.mockImplementation(async (dtos: any[]) => {
+      return dtos.map((dto: any) => criarConfrontoMock(dto));
+    });
+  });
+
+  describe("Eliminatoria2GruposStrategy", () => {
+    let strategy: Eliminatoria2GruposStrategy;
+
+    beforeEach(() => {
+      strategy = new Eliminatoria2GruposStrategy();
     });
 
-    // Mock criarEmLote para retornar array de confrontos
-    mockConfrontoRepository.criarEmLote.mockImplementation(async (dtos) => {
-      return dtos.map((dto: any) => criarConfrontoMock(dto));
+    it("deve ter numGrupos = 2", () => {
+      expect(strategy.numGrupos).toBe(2);
+    });
+
+    it("deve gerar estrutura completa (semis + final)", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      const confrontos = await strategy.gerar(context);
+
+      // 2 semis + 1 final = 3
+      expect(confrontos.length).toBe(3);
+    });
+
+    it("deve criar semifinais com 1A x 2B e 1B x 2A", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await strategy.gerar(context);
+
+      // Verificar chamadas - [0]=final, [1]=semis
+      const semisCall = mockConfrontoRepository.criarEmLote.mock.calls[1];
+      const semis = semisCall[0];
+
+      expect(semis.length).toBe(2);
+
+      // 1A x 2B
+      const semi1 = semis.find(
+        (c: any) => c.equipe1Origem === "1º Grupo A" && c.equipe2Origem === "2º Grupo B"
+      );
+      expect(semi1).toBeDefined();
+
+      // 1B x 2A
+      const semi2 = semis.find(
+        (c: any) => c.equipe1Origem === "1º Grupo B" && c.equipe2Origem === "2º Grupo A"
+      );
+      expect(semi2).toBeDefined();
+    });
+
+    it("deve conectar semifinais à final", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      const confrontos = await strategy.gerar(context);
+
+      const final = confrontos.find((c) => c.fase === FaseEtapa.FINAL);
+      const semis = confrontos.filter((c) => c.fase === FaseEtapa.SEMIFINAL);
+
+      semis.forEach((semi) => {
+        expect(semi.proximoConfrontoId).toBe(final?.id);
+      });
+    });
+  });
+
+  describe("Eliminatoria3GruposStrategy", () => {
+    let strategy: Eliminatoria3GruposStrategy;
+
+    beforeEach(() => {
+      strategy = new Eliminatoria3GruposStrategy();
+    });
+
+    it("deve ter numGrupos = 3", () => {
+      expect(strategy.numGrupos).toBe(3);
+    });
+
+    it("deve gerar estrutura completa (quartas + semis + final)", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B", "C"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      const confrontos = await strategy.gerar(context);
+
+      // 4 quartas + 2 semis + 1 final = 7
+      expect(confrontos.length).toBe(7);
+    });
+
+    it("deve criar quartas com BYEs para 1A e 1B", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B", "C"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await strategy.gerar(context);
+
+      // [0]=final, [1]=semis, [2]=quartas
+      const quartasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const quartas = quartasCall[0];
+
+      expect(quartas.length).toBe(4);
+
+      // BYEs para 1A e 1B
+      const byes = quartas.filter((c: any) => c.isBye === true);
+      expect(byes.length).toBe(2);
+
+      const origensComBye = byes.map((c: any) => c.equipe1Origem);
+      expect(origensComBye).toContain("1º Grupo A");
+      expect(origensComBye).toContain("1º Grupo B");
+    });
+  });
+
+  describe("Eliminatoria4GruposStrategy", () => {
+    let strategy: Eliminatoria4GruposStrategy;
+
+    beforeEach(() => {
+      strategy = new Eliminatoria4GruposStrategy();
+    });
+
+    it("deve ter numGrupos = 4", () => {
+      expect(strategy.numGrupos).toBe(4);
+    });
+
+    it("deve gerar estrutura completa (quartas + semis + final)", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B", "C", "D"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      const confrontos = await strategy.gerar(context);
+
+      // 4 quartas + 2 semis + 1 final = 7
+      expect(confrontos.length).toBe(7);
+    });
+
+    it("deve criar 4 quartas sem BYEs", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B", "C", "D"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await strategy.gerar(context);
+
+      // [0]=final, [1]=semis, [2]=quartas
+      const quartasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const quartas = quartasCall[0];
+
+      expect(quartas.length).toBe(4);
+
+      // Nenhum BYE para 4 grupos
+      const byes = quartas.filter((c: any) => c.isBye === true);
+      expect(byes.length).toBe(0);
+    });
+
+    it("deve criar confrontos 1º vs 2º cruzados", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B", "C", "D"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await strategy.gerar(context);
+
+      const quartasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const quartas = quartasCall[0];
+
+      // 1A x 2B
+      const confronto1Avs2B = quartas.find(
+        (c: any) => c.equipe1Origem === "1º Grupo A" && c.equipe2Origem === "2º Grupo B"
+      );
+      expect(confronto1Avs2B).toBeDefined();
+
+      // 1B x 2A
+      const confronto1Bvs2A = quartas.find(
+        (c: any) => c.equipe1Origem === "1º Grupo B" && c.equipe2Origem === "2º Grupo A"
+      );
+      expect(confronto1Bvs2A).toBeDefined();
+
+      // 1C x 2D
+      const confronto1Cvs2D = quartas.find(
+        (c: any) => c.equipe1Origem === "1º Grupo C" && c.equipe2Origem === "2º Grupo D"
+      );
+      expect(confronto1Cvs2D).toBeDefined();
+
+      // 1D x 2C
+      const confronto1Dvs2C = quartas.find(
+        (c: any) => c.equipe1Origem === "1º Grupo D" && c.equipe2Origem === "2º Grupo C"
+      );
+      expect(confronto1Dvs2C).toBeDefined();
     });
   });
 
@@ -115,11 +325,8 @@ describe("EliminatoriaStrategies", () => {
       // 8 oitavas + 4 quartas + 2 semis + 1 final = 15
       expect(confrontos.length).toBe(15);
 
-      // Verificar que criar foi chamado para a final
-      expect(mockConfrontoRepository.criar).toHaveBeenCalledTimes(1);
-
-      // Verificar que criarEmLote foi chamado 3 vezes (semis, quartas, oitavas)
-      expect(mockConfrontoRepository.criarEmLote).toHaveBeenCalledTimes(3);
+      // Verificar que criarEmLote foi chamado 4 vezes (final, semis, quartas, oitavas)
+      expect(mockConfrontoRepository.criarEmLote).toHaveBeenCalledTimes(4);
     });
 
     it("deve criar oitavas com BYEs para 1º colocados", async () => {
@@ -133,7 +340,8 @@ describe("EliminatoriaStrategies", () => {
       await strategy.gerar(context);
 
       // Verificar chamadas do criarEmLote para oitavas
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2]; // Terceira chamada
+      // Ordem: [0]=final, [1]=semis, [2]=quartas, [3]=oitavas
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // Verificar BYEs
@@ -160,7 +368,8 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      // Ordem: [0]=final, [1]=semis, [2]=quartas, [3]=oitavas
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // Verificar confrontos sem BYE (2º vs 2º)
@@ -205,9 +414,9 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      // Verificar que todos os DTOs usam MANUAL
-      const criarCall = mockConfrontoRepository.criar.mock.calls[0][0];
-      expect(criarCall.tipoFormacaoJogos).toBe(TipoFormacaoJogos.MANUAL);
+      // Verificar que todos os DTOs usam MANUAL (primeiro criarEmLote é a final)
+      const finalCall = mockConfrontoRepository.criarEmLote.mock.calls[0][0][0];
+      expect(finalCall.tipoFormacaoJogos).toBe(TipoFormacaoJogos.MANUAL);
     });
   });
 
@@ -245,7 +454,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       const byes = oitavas.filter((c: any) => c.isBye === true);
@@ -268,7 +477,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // 1E x 2F
@@ -296,7 +505,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // 2B x 2C
@@ -336,7 +545,7 @@ describe("EliminatoriaStrategies", () => {
 
       expect(confrontos.length).toBe(15);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       const byes = oitavas.filter((c: any) => c.isBye === true);
@@ -353,7 +562,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       const byes = oitavas.filter((c: any) => c.isBye === true);
@@ -372,7 +581,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       const semBye = oitavas.filter((c: any) => !c.isBye);
@@ -389,7 +598,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // Verificar que há confrontos envolvendo grupo G
@@ -424,7 +633,7 @@ describe("EliminatoriaStrategies", () => {
 
       expect(confrontos.length).toBe(15);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // Nenhum BYE para 8 grupos
@@ -442,7 +651,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       expect(oitavas.length).toBe(8);
@@ -464,7 +673,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // 1A x 2B
@@ -496,7 +705,7 @@ describe("EliminatoriaStrategies", () => {
 
       await strategy.gerar(context);
 
-      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[2];
+      const oitavasCall = mockConfrontoRepository.criarEmLote.mock.calls[3];
       const oitavas = oitavasCall[0];
 
       // Cada grupo deve aparecer como 1º e como 2º uma vez
@@ -630,12 +839,147 @@ describe("EliminatoriaStrategies", () => {
 
           await strategy.gerar(context);
 
-          // Verificar o DTO da final
-          const criarCall = mockConfrontoRepository.criar.mock.calls[0][0];
-          expect(criarCall.etapaId).toBe(etapa.id);
-          expect(criarCall.arenaId).toBe(etapa.arenaId);
+          // Verificar o DTO da final (primeiro criarEmLote é a final)
+          const finalCall = mockConfrontoRepository.criarEmLote.mock.calls[0][0][0];
+          expect(finalCall.etapaId).toBe(etapa.id);
+          expect(finalCall.arenaId).toBe(etapa.arenaId);
         });
       });
+    });
+  });
+
+  describe("BaseEliminatoriaStrategy - criarSemifinais", () => {
+    // Classe concreta de teste para acessar métodos protegidos
+    class TestStrategy extends BaseEliminatoriaStrategy {
+      readonly numGrupos = 2;
+
+      async gerar(context: EliminatoriaContext): Promise<ConfrontoEquipe[]> {
+        // Usa criarFinal e criarSemifinais da classe base
+        const final = await this.criarFinal(context, 3);
+        const semis = await this.criarSemifinais(context, 1, 2, final.id);
+        return [...semis, final];
+      }
+
+      // Expor métodos para testes
+      public async testCriarSemifinais(
+        context: EliminatoriaContext,
+        ordem1: number,
+        ordem2: number,
+        finalId: string
+      ): Promise<ConfrontoEquipe[]> {
+        return this.criarSemifinais(context, ordem1, ordem2, finalId);
+      }
+    }
+
+    let testStrategy: TestStrategy;
+
+    beforeEach(() => {
+      testStrategy = new TestStrategy();
+    });
+
+    it("deve criar 2 semifinais com origens de quartas", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      const semis = await testStrategy.testCriarSemifinais(
+        context,
+        1,
+        2,
+        "final-id"
+      );
+
+      expect(semis.length).toBe(2);
+    });
+
+    it("deve conectar semifinais à final via proximoConfrontoId", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await testStrategy.testCriarSemifinais(context, 1, 2, "final-id-123");
+
+      // Verificar DTOs passados ao criarEmLote
+      const semisCall = mockConfrontoRepository.criarEmLote.mock.calls[0][0];
+      expect(semisCall[0].proximoConfrontoId).toBe("final-id-123");
+      expect(semisCall[1].proximoConfrontoId).toBe("final-id-123");
+    });
+
+    it("deve usar ordens corretas para cada semifinal", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await testStrategy.testCriarSemifinais(context, 5, 6, "final-id");
+
+      const semisCall = mockConfrontoRepository.criarEmLote.mock.calls[0][0];
+      expect(semisCall[0].ordem).toBe(5);
+      expect(semisCall[1].ordem).toBe(6);
+    });
+
+    it("deve definir origens como vencedores das quartas", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await testStrategy.testCriarSemifinais(context, 1, 2, "final-id");
+
+      const semisCall = mockConfrontoRepository.criarEmLote.mock.calls[0][0];
+
+      // Semi 1: Vencedor Quartas 1 x Vencedor Quartas 2
+      expect(semisCall[0].equipe1Origem).toBe("Vencedor Quartas 1");
+      expect(semisCall[0].equipe2Origem).toBe("Vencedor Quartas 2");
+
+      // Semi 2: Vencedor Quartas 3 x Vencedor Quartas 4
+      expect(semisCall[1].equipe1Origem).toBe("Vencedor Quartas 3");
+      expect(semisCall[1].equipe2Origem).toBe("Vencedor Quartas 4");
+    });
+
+    it("deve usar fase SEMIFINAL", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      await testStrategy.testCriarSemifinais(context, 1, 2, "final-id");
+
+      const semisCall = mockConfrontoRepository.criarEmLote.mock.calls[0][0];
+      expect(semisCall[0].fase).toBe(FaseEtapa.SEMIFINAL);
+      expect(semisCall[1].fase).toBe(FaseEtapa.SEMIFINAL);
+    });
+
+    it("deve funcionar via gerar() que usa criarFinal e criarSemifinais", async () => {
+      const context: EliminatoriaContext = {
+        etapa: criarEtapaMock(),
+        grupos: ["A", "B"],
+        tipoFormacaoJogos: TipoFormacaoJogos.SORTEIO,
+        confrontoRepository: mockConfrontoRepository,
+      };
+
+      const confrontos = await testStrategy.gerar(context);
+
+      // 2 semis + 1 final
+      expect(confrontos.length).toBe(3);
+
+      const final = confrontos.find((c) => c.fase === FaseEtapa.FINAL);
+      const semis = confrontos.filter((c) => c.fase === FaseEtapa.SEMIFINAL);
+
+      expect(final).toBeDefined();
+      expect(semis.length).toBe(2);
     });
   });
 });

@@ -6,12 +6,10 @@ import {
   Equipe,
   ConfrontoEquipe,
   PartidaTeams,
-  SetPlacarTeams,
   GerarEquipesDTO,
   FormarEquipesManualDTO,
   DefinirPartidasManualDTO,
   GerarEquipesResponse,
-  RegistrarResultadoResponse,
   RegistrarResultadosEmLoteResponse,
   ResultadoPartidaLoteDTO,
   GerarPartidasResponse,
@@ -91,15 +89,6 @@ export interface ITeamsService {
   // ============================================
   // RESULTADO
   // ============================================
-
-  /**
-   * Registrar resultado de uma partida
-   */
-  registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: SetPlacarTeams[]
-  ): Promise<RegistrarResultadoResponse>;
 
   /**
    * Registrar múltiplos resultados de partidas em lote

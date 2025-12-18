@@ -9,12 +9,10 @@ import {
   Equipe,
   ConfrontoEquipe,
   PartidaTeams,
-  SetPlacarTeams,
   GerarEquipesDTO,
   FormarEquipesManualDTO,
   DefinirPartidasManualDTO,
   GerarEquipesResponse,
-  RegistrarResultadoResponse,
   RegistrarResultadosEmLoteResponse,
   ResultadoPartidaLoteDTO,
   GerarPartidasResponse,
@@ -51,12 +49,6 @@ export interface ITeamsService {
   ): Promise<PartidaTeams>;
 
   // Resultado
-  registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: SetPlacarTeams[]
-  ): Promise<RegistrarResultadoResponse>;
-
   registrarResultadosEmLote(
     etapaId: string,
     resultados: ResultadoPartidaLoteDTO[]
@@ -315,36 +307,6 @@ class TeamsService implements ITeamsService {
   // ============================================
   // RESULTADO
   // ============================================
-
-  /**
-   * Registrar resultado de uma partida
-   *
-   * POST /api/etapas/:etapaId/teams/partidas/:partidaId/resultado
-   */
-  async registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: SetPlacarTeams[]
-  ): Promise<RegistrarResultadoResponse> {
-    try {
-      const response = await apiClient.post<RegistrarResultadoResponse>(
-        `${this.basePath}/${etapaId}${this.teamsPath}/partidas/${partidaId}/resultado`,
-        { placar }
-      );
-
-      logger.info("Resultado TEAMS registrado", {
-        etapaId,
-        partidaId,
-        precisaDecider: response.precisaDecider,
-        confrontoFinalizado: response.confrontoFinalizado,
-      });
-
-      return response;
-    } catch (error) {
-      const appError = handleError(error, "TeamsService.registrarResultado");
-      throw new Error(appError.message);
-    }
-  }
 
   /**
    * Registrar múltiplos resultados de partidas em lote

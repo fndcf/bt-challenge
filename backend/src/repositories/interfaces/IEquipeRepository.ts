@@ -9,11 +9,12 @@ import {
  */
 export interface IEquipeRepository {
   // CRUD básico
-  criar(dto: CriarEquipeDTO): Promise<Equipe>;
+  /**
+   * Criar equipes em lote (funciona para 1 ou mais)
+   */
   criarEmLote(dtos: CriarEquipeDTO[]): Promise<Equipe[]>;
   buscarPorId(id: string): Promise<Equipe | null>;
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<Equipe[]>;
-  atualizar(id: string, dados: Partial<Equipe>): Promise<void>;
   deletar(id: string): Promise<void>;
   deletarPorEtapa(etapaId: string, arenaId: string): Promise<void>;
 
@@ -21,10 +22,6 @@ export interface IEquipeRepository {
   atualizarEstatisticas(
     id: string,
     estatisticas: AtualizarEstatisticasEquipeDTO
-  ): Promise<void>;
-  incrementarEstatisticas(
-    id: string,
-    incrementos: Partial<AtualizarEstatisticasEquipeDTO>
   ): Promise<void>;
   incrementarEstatisticasEmLote(
     atualizacoes: Array<{
@@ -36,13 +33,14 @@ export interface IEquipeRepository {
   // Busca por IDs
   buscarPorIds(ids: string[]): Promise<Equipe[]>;
 
-  // Atualização em lote
+  /**
+   * Atualizar equipes em lote (funciona para 1 ou mais)
+   */
   atualizarEmLote(
     atualizacoes: Array<{ id: string; dados: Partial<Equipe> }>
   ): Promise<void>;
 
   // Classificação
-  atualizarPosicao(id: string, posicao: number): Promise<void>;
   atualizarPosicoesEmLote(
     atualizacoes: Array<{ id: string; posicao: number }>
   ): Promise<void>;

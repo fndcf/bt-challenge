@@ -1,7 +1,5 @@
 /**
  * Estrutura de Coleções do Firestore
- *
- * Este arquivo define todas as coleções e subcoleções
  */
 
 export const COLLECTIONS = {

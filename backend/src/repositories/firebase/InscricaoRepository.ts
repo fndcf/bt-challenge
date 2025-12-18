@@ -261,10 +261,6 @@ export class InscricaoRepository implements IInscricaoRepository {
     await this.collection.doc(id).update(updateData);
   }
 
-  /**
-   * Buscar múltiplas inscrições por IDs em uma única query
-   * ✅ OTIMIZAÇÃO: Usa getAll() do Firestore para buscar múltiplos docs de uma vez
-   */
   async buscarPorIds(
     ids: string[],
     etapaId: string,
@@ -290,14 +286,7 @@ export class InscricaoRepository implements IInscricaoRepository {
   }
 
   /**
-   * Cancelar inscrição
-   */
-  async cancelar(id: string): Promise<void> {
-    await this.atualizarStatus(id, StatusInscricao.CANCELADA);
-  }
-
-  /**
-   * Cancelar múltiplas inscrições em lote
+   * Cancelar inscrições em lote (funciona para 1 ou mais)
    */
   async cancelarEmLote(ids: string[]): Promise<void> {
     if (ids.length === 0) return;

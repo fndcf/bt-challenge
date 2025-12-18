@@ -522,11 +522,11 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     );
 
     start = Date.now();
-    const partida = await this.partidaRepository.criar(partidaDTO);
+    const [partida] = await this.partidaRepository.criarEmLote([partidaDTO]);
     timings["3_criarPartida"] = Date.now() - start;
 
     start = Date.now();
-    await this.confrontoRepository.adicionarPartida(confronto.id, partida.id);
+    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, [partida.id]);
     timings["4_adicionarPartidaConfronto"] = Date.now() - start;
 
     start = Date.now();
@@ -870,9 +870,9 @@ export class TeamsPartidaService implements ITeamsPartidaService {
 
     const partidas = await this.partidaRepository.criarEmLote(partidaDTOs);
 
-    for (const partida of partidas) {
-      await this.confrontoRepository.adicionarPartida(confronto.id, partida.id);
-    }
+    // Adiciona todas as partidas de uma vez (otimização)
+    const partidaIds = partidas.map((p) => p.id);
+    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, partidaIds);
 
     return partidas;
   }

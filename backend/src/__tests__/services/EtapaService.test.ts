@@ -35,8 +35,13 @@ jest.mock("../../repositories/firebase/JogadorRepository", () => ({
 jest.mock("../../repositories/firebase/ConfigRepository", () => ({
   ConfigRepository: jest.fn(),
 }));
-jest.mock("../../repositories/firebase/CabecaDeChaveRepository", () => ({
-  CabecaDeChaveRepository: jest.fn(),
+// Mock do CabecaDeChaveService
+const mockCabecaDeChaveService = {
+  deletarPorEtapa: jest.fn().mockResolvedValue(0),
+};
+jest.mock("../../services/CabecaDeChaveService", () => ({
+  __esModule: true,
+  default: mockCabecaDeChaveService,
 }));
 jest.mock("../../repositories/firebase/EstatisticasJogadorRepository", () => ({
   EstatisticasJogadorRepository: jest.fn(),
@@ -57,7 +62,6 @@ import {
   createMockInscricaoRepository,
   createMockJogadorRepository,
   createMockConfigRepository,
-  createMockCabecaDeChaveRepository,
   createMockEstatisticasRepository,
   createMockGrupoRepository,
   createMockDuplaRepository,
@@ -88,7 +92,6 @@ describe("EtapaService", () => {
   let mockInscricaoRepository: ReturnType<typeof createMockInscricaoRepository>;
   let mockJogadorRepository: ReturnType<typeof createMockJogadorRepository>;
   let mockConfigRepository: ReturnType<typeof createMockConfigRepository>;
-  let mockCabecaDeChaveRepository: ReturnType<typeof createMockCabecaDeChaveRepository>;
   let mockEstatisticasRepository: ReturnType<typeof createMockEstatisticasRepository>;
   let mockGrupoRepository: ReturnType<typeof createMockGrupoRepository>;
   let mockDuplaRepository: ReturnType<typeof createMockDuplaRepository>;
@@ -108,7 +111,6 @@ describe("EtapaService", () => {
     mockInscricaoRepository = createMockInscricaoRepository();
     mockJogadorRepository = createMockJogadorRepository();
     mockConfigRepository = createMockConfigRepository();
-    mockCabecaDeChaveRepository = createMockCabecaDeChaveRepository();
     mockEstatisticasRepository = createMockEstatisticasRepository();
     mockGrupoRepository = createMockGrupoRepository();
     mockDuplaRepository = createMockDuplaRepository();
@@ -121,7 +123,6 @@ describe("EtapaService", () => {
       mockInscricaoRepository,
       mockJogadorRepository,
       mockConfigRepository,
-      mockCabecaDeChaveRepository,
       mockEstatisticasRepository,
       mockGrupoRepository,
       mockDuplaRepository,
@@ -335,54 +336,6 @@ describe("EtapaService", () => {
     });
   });
 
-  describe("cancelarInscricao", () => {
-    it("deve cancelar inscrição com sucesso", async () => {
-      const inscricao = createInscricaoFixture();
-      const etapa = createEtapaFixture({ chavesGeradas: false });
-
-      mockInscricaoRepository.buscarPorIdEtapaArena.mockResolvedValue(inscricao);
-      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
-      mockInscricaoRepository.cancelar.mockResolvedValue(undefined);
-      mockEtapaRepository.decrementarInscritos.mockResolvedValue(undefined);
-
-      await etapaService.cancelarInscricao(
-        inscricao.id,
-        TEST_ETAPA_ID,
-        TEST_ARENA_ID
-      );
-
-      expect(mockInscricaoRepository.cancelar).toHaveBeenCalledWith(inscricao.id);
-      expect(mockEtapaRepository.decrementarInscritos).toHaveBeenCalledWith(
-        TEST_ETAPA_ID,
-        inscricao.jogadorId
-      );
-    });
-
-    it("deve lançar erro se inscrição não encontrada", async () => {
-      mockInscricaoRepository.buscarPorIdEtapaArena.mockResolvedValue(null);
-
-      await expect(
-        etapaService.cancelarInscricao(
-          "inscricao-inexistente",
-          TEST_ETAPA_ID,
-          TEST_ARENA_ID
-        )
-      ).rejects.toThrow("Inscrição não encontrada");
-    });
-
-    it("deve lançar erro se chaves já foram geradas", async () => {
-      const inscricao = createInscricaoFixture();
-      const etapa = createEtapaFixture({ chavesGeradas: true });
-
-      mockInscricaoRepository.buscarPorIdEtapaArena.mockResolvedValue(inscricao);
-      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
-
-      await expect(
-        etapaService.cancelarInscricao(inscricao.id, TEST_ETAPA_ID, TEST_ARENA_ID)
-      ).rejects.toThrow("Não é possível cancelar inscrição após geração de chaves");
-    });
-  });
-
   describe("listar", () => {
     it("deve listar etapas com filtros", async () => {
       const etapas = [createEtapaFixture()];
@@ -479,7 +432,7 @@ describe("EtapaService", () => {
       });
 
       mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
-      mockCabecaDeChaveRepository.deletarPorEtapa.mockResolvedValue(0);
+      mockCabecaDeChaveService.deletarPorEtapa.mockResolvedValue(0);
       mockEtapaRepository.deletar.mockResolvedValue(undefined);
 
       await etapaService.deletar(TEST_ETAPA_ID, TEST_ARENA_ID);
@@ -782,7 +735,7 @@ describe("EtapaService", () => {
         chavesGeradas: false,
       });
       mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
-      mockCabecaDeChaveRepository.deletarPorEtapa.mockResolvedValue(0);
+      mockCabecaDeChaveService.deletarPorEtapa.mockResolvedValue(0);
       mockEtapaRepository.deletar.mockRejectedValue(new Error("Erro de conexão"));
 
       await expect(
@@ -810,18 +763,6 @@ describe("EtapaService", () => {
           jogadorId: TEST_IDS.jogador1,
         })
       ).rejects.toThrow("Este jogador não pode se inscrever nesta etapa");
-    });
-  });
-
-  describe("cancelarInscricao - etapa não encontrada", () => {
-    it("deve lançar erro se etapa não encontrada", async () => {
-      const inscricao = createInscricaoFixture();
-      mockInscricaoRepository.buscarPorIdEtapaArena.mockResolvedValue(inscricao);
-      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(null);
-
-      await expect(
-        etapaService.cancelarInscricao(inscricao.id, TEST_ETAPA_ID, TEST_ARENA_ID)
-      ).rejects.toThrow("Etapa não encontrada");
     });
   });
 
@@ -1617,7 +1558,7 @@ describe("EtapaService", () => {
         createEstatisticasJogadorFixture()
       );
       mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
-      mockEquipeRepository.atualizarPosicao.mockResolvedValue(undefined);
+      mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
       mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
 
       await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);

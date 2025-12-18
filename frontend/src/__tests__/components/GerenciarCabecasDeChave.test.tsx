@@ -20,7 +20,7 @@ jest.mock("@/services", () => ({
   }),
 }));
 
-// Mock do Pagination
+// Mock do Pagination e LoadingOverlay
 jest.mock("@/components/ui", () => ({
   Pagination: ({
     currentPage,
@@ -38,6 +38,9 @@ jest.mock("@/components/ui", () => ({
       <button onClick={() => onPageChange(currentPage + 1)}>Próxima</button>
     </div>
   ),
+  // Componente usa isLoading ao invés de show
+  LoadingOverlay: ({ isLoading, message }: { isLoading: boolean; message?: string }) =>
+    isLoading ? <div data-testid="loading-overlay">{message || "Carregando..."}</div> : null,
 }));
 
 import { GerenciarCabecasDeChave } from "@/components/etapas/GerenciarCabecasDeChave/GerenciarCabecasDeChave";
@@ -229,18 +232,22 @@ describe("GerenciarCabecasDeChave", () => {
       });
     });
 
-    it("deve mostrar checkboxes para seleção", async () => {
+    it("deve mostrar cards clicáveis para seleção", async () => {
       render(<GerenciarCabecasDeChave {...defaultProps} />);
 
       await waitFor(() => {
-        const checkboxes = screen.getAllByRole("checkbox");
-        expect(checkboxes.length).toBe(4);
+        // O componente mostra cards clicáveis (não checkboxes)
+        // Cada jogador tem um card que pode ser clicado
+        expect(screen.getByText("João Silva")).toBeInTheDocument();
+        expect(screen.getByText("Maria Santos")).toBeInTheDocument();
+        expect(screen.getByText("Pedro Oliveira")).toBeInTheDocument();
+        expect(screen.getByText("Ana Costa")).toBeInTheDocument();
       });
     });
   });
 
   describe("seleção de cabeças de chave", () => {
-    it("deve selecionar jogador como cabeça ao clicar", async () => {
+    it("deve selecionar jogador e adicionar como cabeça ao clicar no botão", async () => {
       const onUpdate = jest.fn();
       mockCriar.mockResolvedValue({
         id: "cab-novo",
@@ -257,7 +264,17 @@ describe("GerenciarCabecasDeChave", () => {
         expect(screen.getByText("João Silva")).toBeInTheDocument();
       });
 
+      // Primeiro clique seleciona o jogador
       fireEvent.click(screen.getByText("João Silva"));
+
+      // Deve aparecer barra de ações com botão "Adicionar Selecionados"
+      await waitFor(() => {
+        expect(screen.getByText("1 jogador(es) selecionado(s)")).toBeInTheDocument();
+        expect(screen.getByText("Adicionar Selecionados")).toBeInTheDocument();
+      });
+
+      // Clica no botão para adicionar
+      fireEvent.click(screen.getByText("Adicionar Selecionados"));
 
       await waitFor(() => {
         expect(mockCriar).toHaveBeenCalledWith({
@@ -271,7 +288,7 @@ describe("GerenciarCabecasDeChave", () => {
       });
     });
 
-    it("deve remover jogador ao clicar novamente", async () => {
+    it("deve remover jogador ao clicar no X na lista de cabeças", async () => {
       mockListarAtivas.mockResolvedValue([mockCabecas[0]]);
       const onUpdate = jest.fn();
       mockRemover.mockResolvedValue(undefined);
@@ -285,9 +302,8 @@ describe("GerenciarCabecasDeChave", () => {
         expect(screen.getAllByText("João Silva").length).toBeGreaterThan(0);
       });
 
-      // Clica no primeiro João Silva (na lista de jogadores para seleção)
-      const joaoElements = screen.getAllByText("João Silva");
-      fireEvent.click(joaoElements[joaoElements.length - 1]);
+      // Clica no botão de remover (X) na lista de cabeças
+      fireEvent.click(screen.getByTitle("Remover"));
 
       await waitFor(() => {
         expect(mockRemover).toHaveBeenCalledWith("arena-1", "etapa-1", "jog-1");
@@ -463,7 +479,7 @@ describe("GerenciarCabecasDeChave", () => {
   });
 
   describe("limite de cabeças", () => {
-    it("deve mostrar alerta quando limite é atingido", async () => {
+    it("deve mostrar alerta quando limite é atingido ao adicionar", async () => {
       const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
       // Já tem 8 cabeças (limite para 4 grupos)
@@ -499,7 +515,16 @@ describe("GerenciarCabecasDeChave", () => {
         expect(screen.getByText("Jogador Extra")).toBeInTheDocument();
       });
 
+      // Seleciona o jogador extra
       fireEvent.click(screen.getByText("Jogador Extra"));
+
+      // Deve aparecer o botão de adicionar
+      await waitFor(() => {
+        expect(screen.getByText("Adicionar Selecionados")).toBeInTheDocument();
+      });
+
+      // Tenta adicionar - deve mostrar alerta de limite
+      fireEvent.click(screen.getByText("Adicionar Selecionados"));
 
       await waitFor(() => {
         expect(alertMock).toHaveBeenCalledWith(
@@ -551,7 +576,16 @@ describe("GerenciarCabecasDeChave", () => {
         expect(screen.getByText("João Silva")).toBeInTheDocument();
       });
 
+      // Seleciona o jogador
       fireEvent.click(screen.getByText("João Silva"));
+
+      // Aguarda botão aparecer
+      await waitFor(() => {
+        expect(screen.getByText("Adicionar Selecionados")).toBeInTheDocument();
+      });
+
+      // Tenta adicionar - deve dar erro
+      fireEvent.click(screen.getByText("Adicionar Selecionados"));
 
       await waitFor(() => {
         expect(alertMock).toHaveBeenCalledWith("Erro ao criar");

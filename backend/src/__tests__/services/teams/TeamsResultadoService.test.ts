@@ -1,9 +1,8 @@
 /**
  * Testes para TeamsResultadoService
- * Foco em cobrir linhas não cobertas: 140-142, 237-250, 267-271, 398-399, 566-574, 622, 634, 654, 658-662, 688-723, 726-743
+ *
  */
 
-// Mocks dos repositórios Firebase - DEVEM SER DECLARADOS ANTES DOS IMPORTS
 jest.mock("../../../repositories/firebase/PartidaTeamsRepository", () => ({
   __esModule: true,
   default: {
@@ -62,7 +61,6 @@ jest.mock("../../../services/EstatisticasJogadorService", () => ({
   })),
 }));
 
-// Agora importamos após os mocks
 import { TeamsResultadoService } from "../../../services/teams/TeamsResultadoService";
 import { StatusPartida } from "../../../models/Partida";
 import { FaseEtapa } from "../../../models/Etapa";
@@ -72,9 +70,15 @@ import ConfrontoEquipeRepository from "../../../repositories/firebase/ConfrontoE
 import EquipeRepository from "../../../repositories/firebase/EquipeRepository";
 
 // Tipagem dos mocks
-const mockPartidaRepository = PartidaTeamsRepository as jest.Mocked<typeof PartidaTeamsRepository>;
-const mockConfrontoRepository = ConfrontoEquipeRepository as jest.Mocked<typeof ConfrontoEquipeRepository>;
-const mockEquipeRepository = EquipeRepository as jest.Mocked<typeof EquipeRepository>;
+const mockPartidaRepository = PartidaTeamsRepository as jest.Mocked<
+  typeof PartidaTeamsRepository
+>;
+const mockConfrontoRepository = ConfrontoEquipeRepository as jest.Mocked<
+  typeof ConfrontoEquipeRepository
+>;
+const mockEquipeRepository = EquipeRepository as jest.Mocked<
+  typeof EquipeRepository
+>;
 
 describe("TeamsResultadoService", () => {
   let service: TeamsResultadoService;
@@ -130,11 +134,9 @@ describe("TeamsResultadoService", () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(null);
 
       await expect(
-        service.registrarResultadoPartida(
-          "partida-inexistente",
-          "arena-1",
-          { placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] }
-        )
+        service.registrarResultadoPartida("partida-inexistente", "arena-1", {
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        })
       ).rejects.toThrow("Partida não encontrada");
     });
 
@@ -144,11 +146,9 @@ describe("TeamsResultadoService", () => {
       mockConfrontoRepository.buscarPorId.mockResolvedValue(null);
 
       await expect(
-        service.registrarResultadoPartida(
-          "partida-1",
-          "arena-1",
-          { placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] }
-        )
+        service.registrarResultadoPartida("partida-1", "arena-1", {
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        })
       ).rejects.toThrow("Confronto não encontrado");
     });
 
@@ -163,10 +163,18 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida,
+      ] as any);
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -186,7 +194,10 @@ describe("TeamsResultadoService", () => {
         placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
         vencedorDupla: 1,
       });
-      const confronto = criarConfrontoMock({ jogosEquipe1: 1, partidasFinalizadas: 1 });
+      const confronto = criarConfrontoMock({
+        jogosEquipe1: 1,
+        partidasFinalizadas: 1,
+      });
 
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida as any);
       mockConfrontoRepository.buscarPorId.mockResolvedValue(confronto as any);
@@ -195,9 +206,15 @@ describe("TeamsResultadoService", () => {
         placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }],
         vencedorDupla: 2,
       } as any);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida] as any);
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida,
+      ] as any);
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -210,7 +227,10 @@ describe("TeamsResultadoService", () => {
     });
 
     it("deve gerar decider automaticamente quando empate 1-1", async () => {
-      const partida = criarPartidaMock({ tipoJogo: TipoJogoTeams.MASCULINO, ordem: 2 });
+      const partida = criarPartidaMock({
+        tipoJogo: TipoJogoTeams.MASCULINO,
+        ordem: 2,
+      });
       const partida2 = criarPartidaMock({
         id: "partida-2",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -233,10 +253,19 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida2, partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida2,
+        partida,
+      ] as any);
       mockConfrontoRepository.marcarTemDecider.mockResolvedValue(undefined);
 
       // Mock do partidaService para gerar decider
@@ -263,7 +292,10 @@ describe("TeamsResultadoService", () => {
     });
 
     it("deve logar erro quando falha ao gerar decider", async () => {
-      const partida = criarPartidaMock({ tipoJogo: TipoJogoTeams.MASCULINO, ordem: 2 });
+      const partida = criarPartidaMock({
+        tipoJogo: TipoJogoTeams.MASCULINO,
+        ordem: 2,
+      });
       const partida2 = criarPartidaMock({
         id: "partida-2",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -286,15 +318,26 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida2, partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida2,
+        partida,
+      ] as any);
       mockConfrontoRepository.marcarTemDecider.mockResolvedValue(undefined);
 
       // Mock do partidaService que falha
       const mockPartidaService = {
-        gerarDecider: jest.fn().mockRejectedValue(new Error("Erro ao gerar decider")),
+        gerarDecider: jest
+          .fn()
+          .mockRejectedValue(new Error("Erro ao gerar decider")),
       };
       service.setPartidaService(mockPartidaService);
 
@@ -316,7 +359,10 @@ describe("TeamsResultadoService", () => {
     });
 
     it("deve finalizar confronto quando tem 2 vitórias", async () => {
-      const partida = criarPartidaMock({ tipoJogo: TipoJogoTeams.MASCULINO, ordem: 2 });
+      const partida = criarPartidaMock({
+        tipoJogo: TipoJogoTeams.MASCULINO,
+        ordem: 2,
+      });
       const partida1 = criarPartidaMock({
         id: "partida-1",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -334,23 +380,37 @@ describe("TeamsResultadoService", () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida as any);
       mockConfrontoRepository.buscarPorId
         .mockResolvedValueOnce(confronto as any)
-        .mockResolvedValue({ ...confronto, status: StatusConfronto.FINALIZADO } as any);
+        .mockResolvedValue({
+          ...confronto,
+          status: StatusConfronto.FINALIZADO,
+        } as any);
       mockPartidaRepository.registrarResultado.mockResolvedValue({
         ...partida,
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1, partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+        partida,
+      ] as any);
       mockConfrontoRepository.registrarResultado.mockResolvedValue(undefined);
       mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       // Mock do classificacaoService
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);
@@ -363,7 +423,9 @@ describe("TeamsResultadoService", () => {
 
       expect(resultado.confrontoFinalizado).toBe(true);
       expect(mockConfrontoRepository.registrarResultado).toHaveBeenCalled();
-      expect(mockClassificacaoService.recalcularClassificacao).toHaveBeenCalled();
+      expect(
+        mockClassificacaoService.recalcularClassificacao
+      ).toHaveBeenCalled();
     });
 
     it("deve pular atualização de equipes quando IDs não definidos", async () => {
@@ -383,9 +445,15 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida,
+      ] as any);
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -394,12 +462,17 @@ describe("TeamsResultadoService", () => {
       );
 
       // Não deve chamar incrementarEstatisticasEmLote
-      expect(mockEquipeRepository.incrementarEstatisticasEmLote).not.toHaveBeenCalled();
+      expect(
+        mockEquipeRepository.incrementarEstatisticasEmLote
+      ).not.toHaveBeenCalled();
       expect(resultado).toBeDefined();
     });
 
     it("deve finalizar confronto de semifinal e preencher próximo", async () => {
-      const partida = criarPartidaMock({ tipoJogo: TipoJogoTeams.MASCULINO, ordem: 2 });
+      const partida = criarPartidaMock({
+        tipoJogo: TipoJogoTeams.MASCULINO,
+        ordem: 2,
+      });
       const partida1 = criarPartidaMock({
         id: "partida-1",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -418,22 +491,36 @@ describe("TeamsResultadoService", () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida as any);
       mockConfrontoRepository.buscarPorId
         .mockResolvedValueOnce(confronto as any)
-        .mockResolvedValue({ ...confronto, status: StatusConfronto.FINALIZADO } as any);
+        .mockResolvedValue({
+          ...confronto,
+          status: StatusConfronto.FINALIZADO,
+        } as any);
       mockPartidaRepository.registrarResultado.mockResolvedValue({
         ...partida,
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1, partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+        partida,
+      ] as any);
       mockConfrontoRepository.registrarResultado.mockResolvedValue(undefined);
       mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);
@@ -445,11 +532,16 @@ describe("TeamsResultadoService", () => {
       );
 
       expect(resultado.confrontoFinalizado).toBe(true);
-      expect(mockClassificacaoService.preencherProximoConfronto).toHaveBeenCalled();
+      expect(
+        mockClassificacaoService.preencherProximoConfronto
+      ).toHaveBeenCalled();
     });
 
     it("deve finalizar confronto de FINAL e definir campeão", async () => {
-      const partida = criarPartidaMock({ tipoJogo: TipoJogoTeams.MASCULINO, ordem: 2 });
+      const partida = criarPartidaMock({
+        tipoJogo: TipoJogoTeams.MASCULINO,
+        ordem: 2,
+      });
       const partida1 = criarPartidaMock({
         id: "partida-1",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -467,16 +559,28 @@ describe("TeamsResultadoService", () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida as any);
       mockConfrontoRepository.buscarPorId
         .mockResolvedValueOnce(confronto as any)
-        .mockResolvedValue({ ...confronto, status: StatusConfronto.FINALIZADO } as any);
+        .mockResolvedValue({
+          ...confronto,
+          status: StatusConfronto.FINALIZADO,
+        } as any);
       mockPartidaRepository.registrarResultado.mockResolvedValue({
         ...partida,
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1, partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+        partida,
+      ] as any);
       mockConfrontoRepository.registrarResultado.mockResolvedValue(undefined);
       mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
 
@@ -489,7 +593,9 @@ describe("TeamsResultadoService", () => {
 
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);
@@ -502,7 +608,9 @@ describe("TeamsResultadoService", () => {
 
       expect(resultado.confrontoFinalizado).toBe(true);
       // Não deve recalcular classificação para FINAL
-      expect(mockClassificacaoService.recalcularClassificacao).not.toHaveBeenCalled();
+      expect(
+        mockClassificacaoService.recalcularClassificacao
+      ).not.toHaveBeenCalled();
     });
 
     it("deve finalizar confronto com decider", async () => {
@@ -536,22 +644,37 @@ describe("TeamsResultadoService", () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(decider as any);
       mockConfrontoRepository.buscarPorId
         .mockResolvedValueOnce(confronto as any)
-        .mockResolvedValue({ ...confronto, status: StatusConfronto.FINALIZADO } as any);
+        .mockResolvedValue({
+          ...confronto,
+          status: StatusConfronto.FINALIZADO,
+        } as any);
       mockPartidaRepository.registrarResultado.mockResolvedValue({
         ...decider,
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1, partida2, decider] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+        partida2,
+        decider,
+      ] as any);
       mockConfrontoRepository.registrarResultado.mockResolvedValue(undefined);
       mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);
@@ -568,7 +691,11 @@ describe("TeamsResultadoService", () => {
 
   describe("registrarResultadosEmLote", () => {
     it("deve retornar vazio quando não há resultados", async () => {
-      const resultado = await service.registrarResultadosEmLote("etapa-1", "arena-1", []);
+      const resultado = await service.registrarResultadosEmLote(
+        "etapa-1",
+        "arena-1",
+        []
+      );
 
       expect(resultado.processados).toBe(0);
       expect(resultado.erros).toHaveLength(0);
@@ -578,9 +705,16 @@ describe("TeamsResultadoService", () => {
     it("deve adicionar erro quando partida não encontrada", async () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(null);
 
-      const resultado = await service.registrarResultadosEmLote("etapa-1", "arena-1", [
-        { partidaId: "partida-inexistente", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] },
-      ]);
+      const resultado = await service.registrarResultadosEmLote(
+        "etapa-1",
+        "arena-1",
+        [
+          {
+            partidaId: "partida-inexistente",
+            placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+          },
+        ]
+      );
 
       expect(resultado.erros).toHaveLength(1);
       expect(resultado.erros[0].erro).toContain("não encontrada");
@@ -599,22 +733,42 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+      ] as any);
 
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);
 
-      const resultado = await service.registrarResultadosEmLote("etapa-1", "arena-1", [
-        { partidaId: "p1", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] },
-        { partidaId: "p2", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 3 }] },
-      ]);
+      const resultado = await service.registrarResultadosEmLote(
+        "etapa-1",
+        "arena-1",
+        [
+          {
+            partidaId: "p1",
+            placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+          },
+          {
+            partidaId: "p2",
+            placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 3 }],
+          },
+        ]
+      );
 
       expect(resultado.processados).toBe(2);
       expect(resultado.erros).toHaveLength(0);
@@ -626,11 +780,20 @@ describe("TeamsResultadoService", () => {
 
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida as any);
       mockConfrontoRepository.buscarPorId.mockResolvedValue(confronto as any);
-      mockPartidaRepository.registrarResultado.mockRejectedValue(new Error("Erro no banco"));
+      mockPartidaRepository.registrarResultado.mockRejectedValue(
+        new Error("Erro no banco")
+      );
 
-      const resultado = await service.registrarResultadosEmLote("etapa-1", "arena-1", [
-        { partidaId: "p1", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] },
-      ]);
+      const resultado = await service.registrarResultadosEmLote(
+        "etapa-1",
+        "arena-1",
+        [
+          {
+            partidaId: "p1",
+            placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+          },
+        ]
+      );
 
       expect(resultado.erros).toHaveLength(1);
       expect(resultado.erros[0].erro).toContain("Erro");
@@ -647,29 +810,47 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida,
+      ] as any);
 
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);
 
       await service.registrarResultadosEmLote("etapa-1", "arena-1", [
-        { partidaId: "p1", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] },
+        {
+          partidaId: "p1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
       ]);
 
-      expect(mockClassificacaoService.recalcularClassificacao).toHaveBeenCalledWith("etapa-1", "arena-1");
+      expect(
+        mockClassificacaoService.recalcularClassificacao
+      ).toHaveBeenCalledWith("etapa-1", "arena-1");
     });
   });
 
   describe("cenários de TEAMS_6 (3 partidas)", () => {
     it("não deve gerar decider para confrontos com 3 partidas", async () => {
-      const partida = criarPartidaMock({ tipoJogo: TipoJogoTeams.MASCULINO, ordem: 2 });
+      const partida = criarPartidaMock({
+        tipoJogo: TipoJogoTeams.MASCULINO,
+        ordem: 2,
+      });
       const partida1 = criarPartidaMock({
         id: "p1",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -691,10 +872,19 @@ describe("TeamsResultadoService", () => {
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1, partida] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+        partida,
+      ] as any);
 
       const mockPartidaService = {
         gerarDecider: jest.fn(),
@@ -712,7 +902,11 @@ describe("TeamsResultadoService", () => {
     });
 
     it("deve finalizar quando 3 partidas estão finalizadas (TEAMS_6)", async () => {
-      const partida3 = criarPartidaMock({ id: "p3", tipoJogo: TipoJogoTeams.MISTO, ordem: 3 });
+      const partida3 = criarPartidaMock({
+        id: "p3",
+        tipoJogo: TipoJogoTeams.MISTO,
+        ordem: 3,
+      });
       const partida1 = criarPartidaMock({
         id: "p1",
         tipoJogo: TipoJogoTeams.FEMININO,
@@ -737,22 +931,37 @@ describe("TeamsResultadoService", () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida3 as any);
       mockConfrontoRepository.buscarPorId
         .mockResolvedValueOnce(confronto as any)
-        .mockResolvedValue({ ...confronto, status: StatusConfronto.FINALIZADO } as any);
+        .mockResolvedValue({
+          ...confronto,
+          status: StatusConfronto.FINALIZADO,
+        } as any);
       mockPartidaRepository.registrarResultado.mockResolvedValue({
         ...partida3,
         status: StatusPartida.FINALIZADA,
         vencedorDupla: 1,
       } as any);
-      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(undefined);
-      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(undefined);
-      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
-      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([partida1, partida2, partida3] as any);
+      mockConfrontoRepository.incrementarPartidasFinalizadas.mockResolvedValue(
+        undefined
+      );
+      mockConfrontoRepository.atualizarContadorJogos.mockResolvedValue(
+        undefined
+      );
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(
+        undefined
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida1,
+        partida2,
+        partida3,
+      ] as any);
       mockConfrontoRepository.registrarResultado.mockResolvedValue(undefined);
       mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       const mockClassificacaoService = {
         recalcularClassificacao: jest.fn().mockResolvedValue([]),
-        verificarEPreencherFaseEliminatoria: jest.fn().mockResolvedValue(undefined),
+        verificarEPreencherFaseEliminatoria: jest
+          .fn()
+          .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
       service.setClassificacaoService(mockClassificacaoService);

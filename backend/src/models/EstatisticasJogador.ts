@@ -3,10 +3,6 @@ import { Timestamp } from "firebase-admin/firestore";
 /**
  * Estatísticas individuais de um jogador em uma etapa
  *
- * IMPORTANTE: Funciona para AMBOS os formatos de torneio:
- * - DUPLA FIXA: Cada jogador acumula estatísticas ao jogar em duplas fixas
- * - REI DA PRAIA: Cada jogador acumula estatísticas ao jogar em duplas rotativas
- *
  * Esta separação permite:
  * - Histórico completo do jogador
  * - Ranking global de jogadores

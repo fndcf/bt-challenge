@@ -13,42 +13,9 @@ const COLLECTION = "confrontos_equipe";
 export class ConfrontoEquipeRepository implements IConfrontoEquipeRepository {
   private collection = db.collection(COLLECTION);
 
-  async criar(dto: CriarConfrontoDTO): Promise<ConfrontoEquipe> {
-    const agora = Timestamp.now();
-    const docRef = this.collection.doc();
-
-    const confronto: Omit<ConfrontoEquipe, "id"> = {
-      etapaId: dto.etapaId,
-      arenaId: dto.arenaId,
-      fase: dto.fase,
-      rodada: dto.rodada,
-      ordem: dto.ordem,
-      grupoId: dto.grupoId,
-      equipe1Id: dto.equipe1Id,
-      equipe1Nome: dto.equipe1Nome,
-      equipe2Id: dto.equipe2Id,
-      equipe2Nome: dto.equipe2Nome,
-      equipe1Origem: dto.equipe1Origem,
-      equipe2Origem: dto.equipe2Origem,
-      proximoConfrontoId: dto.proximoConfrontoId,
-      isBye: dto.isBye,
-      status: StatusConfronto.AGENDADO,
-      jogosEquipe1: 0,
-      jogosEquipe2: 0,
-      partidas: [],
-      totalPartidas: 0,
-      partidasFinalizadas: 0,
-      temDecider: false,
-      tipoFormacaoJogos: dto.tipoFormacaoJogos,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
-
-    await docRef.set(confronto);
-
-    return { id: docRef.id, ...confronto };
-  }
-
+  /**
+   * Criar confrontos em lote (funciona para 1 ou mais)
+   */
   async criarEmLote(dtos: CriarConfrontoDTO[]): Promise<ConfrontoEquipe[]> {
     const batch = db.batch();
     const agora = Timestamp.now();
@@ -239,18 +206,13 @@ export class ConfrontoEquipeRepository implements IConfrontoEquipeRepository {
     });
   }
 
-  async adicionarPartida(confrontoId: string, partidaId: string): Promise<void> {
-    await this.collection.doc(confrontoId).update({
-      partidas: FieldValue.arrayUnion(partidaId),
-      totalPartidas: FieldValue.increment(1),
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
   /**
-   * ✅ OTIMIZAÇÃO: Adicionar múltiplas partidas de uma vez
+   * Adicionar partidas ao confronto (funciona para 1 ou mais)
    */
-  async adicionarPartidasEmLote(confrontoId: string, partidaIds: string[]): Promise<void> {
+  async adicionarPartidasEmLote(
+    confrontoId: string,
+    partidaIds: string[]
+  ): Promise<void> {
     if (partidaIds.length === 0) return;
 
     await this.collection.doc(confrontoId).update({

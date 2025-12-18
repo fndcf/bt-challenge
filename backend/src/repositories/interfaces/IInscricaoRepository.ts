@@ -80,11 +80,6 @@ export interface IInscricaoRepository
   atualizarStatus(id: string, status: StatusInscricao): Promise<void>;
 
   /**
-   * Cancelar inscrição
-   */
-  cancelar(id: string): Promise<void>;
-
-  /**
    * Buscar múltiplas inscrições por IDs em uma única query
    */
   buscarPorIds(

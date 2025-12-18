@@ -119,7 +119,7 @@ export const useEtapaInscricoes = ({
   }, [etapa, onSuccess]);
 
   /**
-   * Cancelar inscrição individual
+   * Cancelar inscrição individual (usa método em lote internamente)
    */
   const handleCancelarInscricao = useCallback(
     async (inscricaoId: string, jogadorNome: string) => {
@@ -133,7 +133,7 @@ export const useEtapaInscricoes = ({
 
       try {
         const etapaService = getEtapaService();
-        await etapaService.cancelarInscricao(etapa.id, inscricaoId);
+        await etapaService.cancelarInscricoesEmLote(etapa.id, [inscricaoId]);
 
         if (onSuccess) await onSuccess();
 

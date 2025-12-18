@@ -361,27 +361,7 @@ export class EtapaRepository implements IEtapaRepository {
   }
 
   /**
-   * Decrementar total de inscritos
-   */
-  async decrementarInscritos(id: string, jogadorId: string): Promise<void> {
-    const etapa = await this.buscarPorId(id);
-    if (!etapa) {
-      throw new NotFoundError("Etapa não encontrada");
-    }
-
-    const jogadoresInscritos = etapa.jogadoresInscritos.filter(
-      (j) => j !== jogadorId
-    );
-
-    await this.collection.doc(id).update({
-      jogadoresInscritos,
-      totalInscritos: jogadoresInscritos.length,
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
-  /**
-   * Decrementar múltiplos inscritos em lote
+   * Decrementar inscritos em lote (funciona para 1 ou mais)
    */
   async decrementarInscritosEmLote(
     id: string,

@@ -14,35 +14,9 @@ const COLLECTION = "partidas_teams";
 export class PartidaTeamsRepository implements IPartidaTeamsRepository {
   private collection = db.collection(COLLECTION);
 
-  async criar(dto: CriarPartidaTeamsDTO): Promise<PartidaTeams> {
-    const agora = Timestamp.now();
-    const docRef = this.collection.doc();
-
-    const partida: Omit<PartidaTeams, "id"> = {
-      etapaId: dto.etapaId,
-      arenaId: dto.arenaId,
-      confrontoId: dto.confrontoId,
-      ordem: dto.ordem,
-      tipoJogo: dto.tipoJogo,
-      dupla1: dto.dupla1,
-      dupla2: dto.dupla2,
-      equipe1Id: dto.equipe1Id,
-      equipe1Nome: dto.equipe1Nome,
-      equipe2Id: dto.equipe2Id,
-      equipe2Nome: dto.equipe2Nome,
-      status: StatusPartida.AGENDADA,
-      setsDupla1: 0,
-      setsDupla2: 0,
-      placar: [],
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
-
-    await docRef.set(partida);
-
-    return { id: docRef.id, ...partida };
-  }
-
+  /**
+   * Criar partidas em lote (funciona para 1 ou mais)
+   */
   async criarEmLote(dtos: CriarPartidaTeamsDTO[]): Promise<PartidaTeams[]> {
     const batch = db.batch();
     const agora = Timestamp.now();

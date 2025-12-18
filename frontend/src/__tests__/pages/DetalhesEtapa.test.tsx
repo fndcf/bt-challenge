@@ -63,13 +63,12 @@ jest.mock("@/pages/DetalhesEtapa/components/EtapaInfoCards", () => ({
 }));
 
 jest.mock("@/pages/DetalhesEtapa/components/ActionsSection", () => ({
-  ActionsSection: ({ onAbrirInscricoes, onEncerrarInscricoes, onGerarChaves, onApagarChaves, onFinalizarEtapa, onVerChaves }: any) => (
+  ActionsSection: ({ onAbrirInscricoes, onEncerrarInscricoes, onGerarChaves, onApagarChaves, onVerChaves }: any) => (
     <div data-testid="actions-section">
       <button onClick={onAbrirInscricoes} data-testid="btn-abrir-inscricoes">Abrir Inscrições</button>
       <button onClick={onEncerrarInscricoes} data-testid="btn-encerrar-inscricoes">Encerrar Inscrições</button>
       <button onClick={onGerarChaves} data-testid="btn-gerar-chaves">Gerar Chaves</button>
       <button onClick={onApagarChaves} data-testid="btn-apagar-chaves">Apagar Chaves</button>
-      <button onClick={onFinalizarEtapa} data-testid="btn-finalizar-etapa">Finalizar Etapa</button>
       <button onClick={onVerChaves} data-testid="btn-ver-chaves">Ver Chaves</button>
     </div>
   ),
@@ -556,19 +555,6 @@ describe("DetalhesEtapa - Renderização", () => {
       expect(mockSetModalConfirmacaoAberto).toHaveBeenCalledWith(true);
     });
 
-    it("deve chamar handleFinalizarEtapa", () => {
-      const mockHandleFinalizarEtapa = jest.fn();
-      mockUseDetalhesEtapa.mockReturnValue({
-        ...defaultMockReturn,
-        handleFinalizarEtapa: mockHandleFinalizarEtapa,
-      });
-
-      renderWithRouter(<DetalhesEtapa />);
-
-      fireEvent.click(screen.getByTestId("btn-finalizar-etapa"));
-
-      expect(mockHandleFinalizarEtapa).toHaveBeenCalled();
-    });
   });
 
   describe("Callbacks da InscricoesTab", () => {

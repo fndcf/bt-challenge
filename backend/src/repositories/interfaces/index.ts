@@ -17,5 +17,4 @@ export * from "./IConfrontoEliminatorioRepository";
 // Novos repositories (Fase 5)
 export * from "./IEstatisticasJogadorRepository";
 export * from "./IPartidaReiDaPraiaRepository";
-export * from "./ICabecaDeChaveRepository";
 export * from "./IConfigRepository";

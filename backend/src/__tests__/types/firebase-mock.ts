@@ -1,7 +1,5 @@
 /**
  * Tipos para mock do Firebase nos testes
- *
- * O Timestamp do Firebase tem métodos específicos que precisamos simular.
  * Este arquivo cria tipos compatíveis para uso em fixtures e mocks.
  */
 

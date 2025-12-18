@@ -514,4 +514,31 @@ describe("CabecaDeChaveService", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("deletarPorEtapa", () => {
+    it("deve retornar 0 quando não há cabeças para deletar", async () => {
+      mockGet.mockResolvedValue({
+        empty: true,
+        size: 0,
+        docs: [],
+      });
+
+      const result = await cabecaDeChaveService.deletarPorEtapa(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID
+      );
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe("atualizar - tratamento de erro", () => {
+    it("deve lançar erro quando atualização falha", async () => {
+      mockUpdate.mockRejectedValue(new Error("Erro de banco"));
+
+      await expect(
+        cabecaDeChaveService.atualizar("cabeca-123", { ordem: 5 })
+      ).rejects.toThrow("Erro de banco");
+    });
+  });
 });

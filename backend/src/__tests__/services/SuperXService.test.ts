@@ -2,7 +2,6 @@
  * Testes para SuperXService
  */
 
-// Mocks devem vir antes dos imports
 jest.mock("../../utils/logger", () => ({
   __esModule: true,
   default: {
@@ -340,9 +339,9 @@ describe("SuperXService", () => {
       (estatisticasJogadorService.criarEmLote as jest.Mock).mockResolvedValue(
         jogadoresEstatisticas
       );
-      (estatisticasJogadorService.atualizarGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.atualizarGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.criar.mockResolvedValue(grupo);
       mockPartidaReiDaPraiaRepository.criarEmLote.mockResolvedValue(partidas);
       mockGrupoRepository.adicionarPartidasEmLote.mockResolvedValue(undefined);
@@ -403,9 +402,9 @@ describe("SuperXService", () => {
       (estatisticasJogadorService.criarEmLote as jest.Mock).mockResolvedValue(
         jogadoresEstatisticas
       );
-      (estatisticasJogadorService.atualizarGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.atualizarGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.criar.mockResolvedValue(grupo);
       mockPartidaReiDaPraiaRepository.criarEmLote.mockResolvedValue(partidas);
       mockGrupoRepository.adicionarPartidasEmLote.mockResolvedValue(undefined);
@@ -476,7 +475,9 @@ describe("SuperXService", () => {
       (estatisticasJogadorService.criarEmLote as jest.Mock).mockResolvedValue(
         jogadoresEstatisticas
       );
-      mockGrupoRepository.criar.mockRejectedValue(new Error("Erro ao criar grupo"));
+      mockGrupoRepository.criar.mockRejectedValue(
+        new Error("Erro ao criar grupo")
+      );
 
       await expect(
         service.gerarChaves(TEST_ETAPA_ID, TEST_ARENA_ID)
@@ -527,10 +528,38 @@ describe("SuperXService", () => {
       ]);
 
       const jogadoresGrupo = [
-        { id: "stats-1", jogadorId: "jogador-1", pontosGrupo: 1, saldoGamesGrupo: 2, saldoSetsGrupo: 1, gamesVencidosGrupo: 6 },
-        { id: "stats-2", jogadorId: "jogador-2", pontosGrupo: 1, saldoGamesGrupo: 2, saldoSetsGrupo: 1, gamesVencidosGrupo: 6 },
-        { id: "stats-3", jogadorId: "jogador-3", pontosGrupo: 0, saldoGamesGrupo: -2, saldoSetsGrupo: -1, gamesVencidosGrupo: 4 },
-        { id: "stats-4", jogadorId: "jogador-4", pontosGrupo: 0, saldoGamesGrupo: -2, saldoSetsGrupo: -1, gamesVencidosGrupo: 4 },
+        {
+          id: "stats-1",
+          jogadorId: "jogador-1",
+          pontosGrupo: 1,
+          saldoGamesGrupo: 2,
+          saldoSetsGrupo: 1,
+          gamesVencidosGrupo: 6,
+        },
+        {
+          id: "stats-2",
+          jogadorId: "jogador-2",
+          pontosGrupo: 1,
+          saldoGamesGrupo: 2,
+          saldoSetsGrupo: 1,
+          gamesVencidosGrupo: 6,
+        },
+        {
+          id: "stats-3",
+          jogadorId: "jogador-3",
+          pontosGrupo: 0,
+          saldoGamesGrupo: -2,
+          saldoSetsGrupo: -1,
+          gamesVencidosGrupo: 4,
+        },
+        {
+          id: "stats-4",
+          jogadorId: "jogador-4",
+          pontosGrupo: 0,
+          saldoGamesGrupo: -2,
+          saldoSetsGrupo: -1,
+          gamesVencidosGrupo: 4,
+        },
       ];
 
       const partidasGrupo = [
@@ -538,24 +567,34 @@ describe("SuperXService", () => {
         { id: "partida-2", status: StatusPartida.AGENDADA },
       ];
 
-      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(partida);
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        estatisticasMap
+      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(
+        partida
       );
-      (estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(estatisticasMap);
+      (
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
       mockPartidaReiDaPraiaRepository.atualizar.mockResolvedValue(undefined);
-      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(jogadoresGrupo);
-      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(partidasGrupo);
-      (estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
+      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(
+        jogadoresGrupo
       );
+      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(
+        partidasGrupo
+      );
+      (
+        estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.atualizar.mockResolvedValue(undefined);
 
       const placar = [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }];
 
-      await service.registrarResultadoPartida("partida-1", TEST_ARENA_ID, placar);
+      await service.registrarResultadoPartida(
+        "partida-1",
+        TEST_ARENA_ID,
+        placar
+      );
 
       expect(mockPartidaReiDaPraiaRepository.atualizar).toHaveBeenCalledWith(
         "partida-1",
@@ -567,7 +606,9 @@ describe("SuperXService", () => {
           status: StatusPartida.FINALIZADA,
         })
       );
-      expect(estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement).toHaveBeenCalled();
+      expect(
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement
+      ).toHaveBeenCalled();
     });
 
     it("deve reverter estatisticas ao editar partida ja finalizada", async () => {
@@ -594,41 +635,83 @@ describe("SuperXService", () => {
       ]);
 
       const jogadoresGrupo = [
-        { id: "stats-1", jogadorId: "jogador-1", pontosGrupo: 0, saldoGamesGrupo: 0, saldoSetsGrupo: 0, gamesVencidosGrupo: 0 },
-        { id: "stats-2", jogadorId: "jogador-2", pontosGrupo: 0, saldoGamesGrupo: 0, saldoSetsGrupo: 0, gamesVencidosGrupo: 0 },
-        { id: "stats-3", jogadorId: "jogador-3", pontosGrupo: 1, saldoGamesGrupo: 2, saldoSetsGrupo: 1, gamesVencidosGrupo: 6 },
-        { id: "stats-4", jogadorId: "jogador-4", pontosGrupo: 1, saldoGamesGrupo: 2, saldoSetsGrupo: 1, gamesVencidosGrupo: 6 },
+        {
+          id: "stats-1",
+          jogadorId: "jogador-1",
+          pontosGrupo: 0,
+          saldoGamesGrupo: 0,
+          saldoSetsGrupo: 0,
+          gamesVencidosGrupo: 0,
+        },
+        {
+          id: "stats-2",
+          jogadorId: "jogador-2",
+          pontosGrupo: 0,
+          saldoGamesGrupo: 0,
+          saldoSetsGrupo: 0,
+          gamesVencidosGrupo: 0,
+        },
+        {
+          id: "stats-3",
+          jogadorId: "jogador-3",
+          pontosGrupo: 1,
+          saldoGamesGrupo: 2,
+          saldoSetsGrupo: 1,
+          gamesVencidosGrupo: 6,
+        },
+        {
+          id: "stats-4",
+          jogadorId: "jogador-4",
+          pontosGrupo: 1,
+          saldoGamesGrupo: 2,
+          saldoSetsGrupo: 1,
+          gamesVencidosGrupo: 6,
+        },
       ];
 
       const partidasGrupo = [
         { id: "partida-1", status: StatusPartida.FINALIZADA },
       ];
 
-      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(partida);
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        estatisticasMap
+      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(
+        partida
       );
-      (estatisticasJogadorService.reverterAposPartidaComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
-      (estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(estatisticasMap);
+      (
+        estatisticasJogadorService.reverterAposPartidaComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
+      (
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
       mockPartidaReiDaPraiaRepository.atualizar.mockResolvedValue(undefined);
-      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(jogadoresGrupo);
-      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(partidasGrupo);
-      (estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
+      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(
+        jogadoresGrupo
       );
+      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(
+        partidasGrupo
+      );
+      (
+        estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.atualizar.mockResolvedValue(undefined);
 
       const placar = [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }]; // Invertendo resultado
 
-      await service.registrarResultadoPartida("partida-1", TEST_ARENA_ID, placar);
+      await service.registrarResultadoPartida(
+        "partida-1",
+        TEST_ARENA_ID,
+        placar
+      );
 
       // Deve ter chamado reversao antes de aplicar novo resultado
-      expect(estatisticasJogadorService.reverterAposPartidaComIncrement).toHaveBeenCalled();
-      expect(estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement).toHaveBeenCalled();
+      expect(
+        estatisticasJogadorService.reverterAposPartidaComIncrement
+      ).toHaveBeenCalled();
+      expect(
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement
+      ).toHaveBeenCalled();
     });
 
     it("deve marcar grupo como completo quando todas partidas finalizadas", async () => {
@@ -652,10 +735,38 @@ describe("SuperXService", () => {
       ]);
 
       const jogadoresGrupo = [
-        { id: "stats-1", jogadorId: "jogador-1", pontosGrupo: 2, saldoGamesGrupo: 4, saldoSetsGrupo: 2, gamesVencidosGrupo: 12 },
-        { id: "stats-2", jogadorId: "jogador-2", pontosGrupo: 2, saldoGamesGrupo: 4, saldoSetsGrupo: 2, gamesVencidosGrupo: 12 },
-        { id: "stats-3", jogadorId: "jogador-3", pontosGrupo: 0, saldoGamesGrupo: -4, saldoSetsGrupo: -2, gamesVencidosGrupo: 8 },
-        { id: "stats-4", jogadorId: "jogador-4", pontosGrupo: 0, saldoGamesGrupo: -4, saldoSetsGrupo: -2, gamesVencidosGrupo: 8 },
+        {
+          id: "stats-1",
+          jogadorId: "jogador-1",
+          pontosGrupo: 2,
+          saldoGamesGrupo: 4,
+          saldoSetsGrupo: 2,
+          gamesVencidosGrupo: 12,
+        },
+        {
+          id: "stats-2",
+          jogadorId: "jogador-2",
+          pontosGrupo: 2,
+          saldoGamesGrupo: 4,
+          saldoSetsGrupo: 2,
+          gamesVencidosGrupo: 12,
+        },
+        {
+          id: "stats-3",
+          jogadorId: "jogador-3",
+          pontosGrupo: 0,
+          saldoGamesGrupo: -4,
+          saldoSetsGrupo: -2,
+          gamesVencidosGrupo: 8,
+        },
+        {
+          id: "stats-4",
+          jogadorId: "jogador-4",
+          pontosGrupo: 0,
+          saldoGamesGrupo: -4,
+          saldoSetsGrupo: -2,
+          gamesVencidosGrupo: 8,
+        },
       ];
 
       const partidasGrupo = [
@@ -663,24 +774,34 @@ describe("SuperXService", () => {
         { id: "partida-2", status: StatusPartida.AGENDADA }, // Esta sera finalizada
       ];
 
-      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(partida);
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        estatisticasMap
+      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(
+        partida
       );
-      (estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(estatisticasMap);
+      (
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
       mockPartidaReiDaPraiaRepository.atualizar.mockResolvedValue(undefined);
-      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(jogadoresGrupo);
-      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(partidasGrupo);
-      (estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
+      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(
+        jogadoresGrupo
       );
+      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(
+        partidasGrupo
+      );
+      (
+        estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.atualizar.mockResolvedValue(undefined);
 
       const placar = [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }];
 
-      await service.registrarResultadoPartida("partida-2", TEST_ARENA_ID, placar);
+      await service.registrarResultadoPartida(
+        "partida-2",
+        TEST_ARENA_ID,
+        placar
+      );
 
       // Grupo deve ser marcado como completo
       expect(mockGrupoRepository.atualizar).toHaveBeenCalledWith(
@@ -732,7 +853,14 @@ describe("SuperXService", () => {
       ]);
 
       const jogadoresGrupo = [
-        { id: "stats-1", jogadorId: "jogador-1", pontosGrupo: 1, saldoGamesGrupo: 2, saldoSetsGrupo: 1, gamesVencidosGrupo: 6 },
+        {
+          id: "stats-1",
+          jogadorId: "jogador-1",
+          pontosGrupo: 1,
+          saldoGamesGrupo: 2,
+          saldoSetsGrupo: 1,
+          gamesVencidosGrupo: 6,
+        },
       ];
 
       const partidasGrupo = [
@@ -744,23 +872,33 @@ describe("SuperXService", () => {
         .mockResolvedValueOnce(partidas[0])
         .mockResolvedValueOnce(partidas[1]);
 
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        estatisticasMap
-      );
-      (estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(estatisticasMap);
+      (
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
       mockPartidaReiDaPraiaRepository.atualizar.mockResolvedValue(undefined);
-      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(jogadoresGrupo);
-      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(partidasGrupo);
-      (estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
+      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(
+        jogadoresGrupo
       );
+      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(
+        partidasGrupo
+      );
+      (
+        estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.atualizar.mockResolvedValue(undefined);
 
       const resultados = [
-        { partidaId: "partida-1", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] },
-        { partidaId: "partida-2", placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }] },
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
+        {
+          partidaId: "partida-2",
+          placar: [{ numero: 1, gamesDupla1: 4, gamesDupla2: 6 }],
+        },
       ];
 
       const result = await service.registrarResultadosEmLote(
@@ -775,12 +913,15 @@ describe("SuperXService", () => {
 
     it("deve retornar erro quando partida nao encontrada", async () => {
       mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(null);
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        new Map()
-      );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(new Map());
 
       const resultados = [
-        { partidaId: "partida-inexistente", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] },
+        {
+          partidaId: "partida-inexistente",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+        },
       ];
 
       const result = await service.registrarResultadosEmLote(
@@ -807,10 +948,12 @@ describe("SuperXService", () => {
         placar: null,
       };
 
-      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(partida);
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        new Map()
+      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(
+        partida
       );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(new Map());
 
       const resultados = [
         {
@@ -857,31 +1000,49 @@ describe("SuperXService", () => {
       ]);
 
       const jogadoresGrupo = [
-        { id: "stats-1", jogadorId: "jogador-1", pontosGrupo: 0, saldoGamesGrupo: 0, saldoSetsGrupo: 0, gamesVencidosGrupo: 0 },
+        {
+          id: "stats-1",
+          jogadorId: "jogador-1",
+          pontosGrupo: 0,
+          saldoGamesGrupo: 0,
+          saldoSetsGrupo: 0,
+          gamesVencidosGrupo: 0,
+        },
       ];
 
-      const partidasGrupo = [{ id: "partida-1", status: StatusPartida.FINALIZADA }];
+      const partidasGrupo = [
+        { id: "partida-1", status: StatusPartida.FINALIZADA },
+      ];
 
-      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(partida);
-      (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(
-        estatisticasMap
+      mockPartidaReiDaPraiaRepository.buscarPorIdEArena.mockResolvedValue(
+        partida
       );
-      (estatisticasJogadorService.reverterAposPartidaComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
-      (estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock
+      ).mockResolvedValue(estatisticasMap);
+      (
+        estatisticasJogadorService.reverterAposPartidaComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
+      (
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock
+      ).mockResolvedValue(undefined);
       mockPartidaReiDaPraiaRepository.atualizar.mockResolvedValue(undefined);
-      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(jogadoresGrupo);
-      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(partidasGrupo);
-      (estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock).mockResolvedValue(
-        undefined
+      mockEstatisticasJogadorRepository.buscarPorGrupo.mockResolvedValue(
+        jogadoresGrupo
       );
+      mockPartidaReiDaPraiaRepository.buscarPorGrupo.mockResolvedValue(
+        partidasGrupo
+      );
+      (
+        estatisticasJogadorService.atualizarPosicoesGrupoEmLote as jest.Mock
+      ).mockResolvedValue(undefined);
       mockGrupoRepository.atualizar.mockResolvedValue(undefined);
 
       const resultados = [
-        { partidaId: "partida-1", placar: [{ numero: 1, gamesDupla1: 3, gamesDupla2: 6 }] },
+        {
+          partidaId: "partida-1",
+          placar: [{ numero: 1, gamesDupla1: 3, gamesDupla2: 6 }],
+        },
       ];
 
       const result = await service.registrarResultadosEmLote(
@@ -891,7 +1052,9 @@ describe("SuperXService", () => {
       );
 
       expect(result.processados).toBe(1);
-      expect(estatisticasJogadorService.reverterAposPartidaComIncrement).toHaveBeenCalled();
+      expect(
+        estatisticasJogadorService.reverterAposPartidaComIncrement
+      ).toHaveBeenCalled();
     });
   });
 
@@ -902,15 +1065,19 @@ describe("SuperXService", () => {
         { id: "stats-2", jogadorId: "jogador-2", jogadorNome: "Jogador 2" },
       ];
 
-      mockEstatisticasJogadorRepository.buscarPorEtapa.mockResolvedValue(jogadores);
+      mockEstatisticasJogadorRepository.buscarPorEtapa.mockResolvedValue(
+        jogadores
+      );
 
-      const result = await service.buscarJogadores(TEST_ETAPA_ID, TEST_ARENA_ID);
-
-      expect(result).toEqual(jogadores);
-      expect(mockEstatisticasJogadorRepository.buscarPorEtapa).toHaveBeenCalledWith(
+      const result = await service.buscarJogadores(
         TEST_ETAPA_ID,
         TEST_ARENA_ID
       );
+
+      expect(result).toEqual(jogadores);
+      expect(
+        mockEstatisticasJogadorRepository.buscarPorEtapa
+      ).toHaveBeenCalledWith(TEST_ETAPA_ID, TEST_ARENA_ID);
     });
   });
 
@@ -921,15 +1088,16 @@ describe("SuperXService", () => {
         { id: "partida-2", rodada: 1 },
       ];
 
-      mockPartidaReiDaPraiaRepository.buscarPorEtapa.mockResolvedValue(partidas);
+      mockPartidaReiDaPraiaRepository.buscarPorEtapa.mockResolvedValue(
+        partidas
+      );
 
       const result = await service.buscarPartidas(TEST_ETAPA_ID, TEST_ARENA_ID);
 
       expect(result).toEqual(partidas);
-      expect(mockPartidaReiDaPraiaRepository.buscarPorEtapa).toHaveBeenCalledWith(
-        TEST_ETAPA_ID,
-        TEST_ARENA_ID
-      );
+      expect(
+        mockPartidaReiDaPraiaRepository.buscarPorEtapa
+      ).toHaveBeenCalledWith(TEST_ETAPA_ID, TEST_ARENA_ID);
     });
   });
 
@@ -942,7 +1110,9 @@ describe("SuperXService", () => {
         { id: "partida-4", rodada: 2 },
       ];
 
-      mockPartidaReiDaPraiaRepository.buscarPorEtapa.mockResolvedValue(partidas);
+      mockPartidaReiDaPraiaRepository.buscarPorEtapa.mockResolvedValue(
+        partidas
+      );
 
       const result = await service.buscarPartidasPorRodada(
         TEST_ETAPA_ID,
@@ -1013,14 +1183,12 @@ describe("SuperXService", () => {
         TEST_ETAPA_ID,
         TEST_ARENA_ID
       );
-      expect(mockPartidaReiDaPraiaRepository.deletarPorEtapa).toHaveBeenCalledWith(
-        TEST_ETAPA_ID,
-        TEST_ARENA_ID
-      );
-      expect(mockEstatisticasJogadorRepository.deletarPorEtapa).toHaveBeenCalledWith(
-        TEST_ETAPA_ID,
-        TEST_ARENA_ID
-      );
+      expect(
+        mockPartidaReiDaPraiaRepository.deletarPorEtapa
+      ).toHaveBeenCalledWith(TEST_ETAPA_ID, TEST_ARENA_ID);
+      expect(
+        mockEstatisticasJogadorRepository.deletarPorEtapa
+      ).toHaveBeenCalledWith(TEST_ETAPA_ID, TEST_ARENA_ID);
       expect(mockEtapaRepository.marcarChavesGeradas).toHaveBeenCalledWith(
         TEST_ETAPA_ID,
         false

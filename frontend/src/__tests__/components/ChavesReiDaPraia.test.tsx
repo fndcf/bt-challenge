@@ -8,20 +8,15 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const mockBuscarGrupos = jest.fn();
 const mockBuscarJogadores = jest.fn();
 const mockBuscarConfrontosEliminatorios = jest.fn();
+const mockBuscarPartidas = jest.fn();
 
 jest.mock("@/services", () => ({
   getReiDaPraiaService: () => ({
     buscarGrupos: mockBuscarGrupos,
     buscarJogadores: mockBuscarJogadores,
     buscarConfrontosEliminatorios: mockBuscarConfrontosEliminatorios,
+    buscarPartidas: mockBuscarPartidas,
   }),
-}));
-
-// Mock do PartidasGrupoReiDaPraia
-jest.mock("@/components/etapas/PartidasGrupoReiDaPraia", () => ({
-  PartidasGrupoReiDaPraia: ({ grupoNome }: { grupoNome: string }) => (
-    <div data-testid="partidas-grupo">Partidas do {grupoNome}</div>
-  ),
 }));
 
 // Mock do FaseEliminatoriaReiDaPraia
@@ -29,6 +24,23 @@ jest.mock("@/components/etapas/FaseEliminatoriaReiDaPraia", () => ({
   FaseEliminatoriaReiDaPraia: () => (
     <div data-testid="fase-eliminatoria">Fase Eliminatória Rei da Praia</div>
   ),
+}));
+
+// Mock do ModalLancamentoResultadosLoteReiDaPraia
+jest.mock("@/components/etapas/ModalLancamentoResultadosLoteReiDaPraia/ModalLancamentoResultadosLoteReiDaPraia", () => ({
+  ModalLancamentoResultadosLoteReiDaPraia: ({ grupoNome, onClose, onSuccess }: any) => (
+    <div data-testid="modal-resultados">
+      <span>Modal {grupoNome}</span>
+      <button onClick={onClose}>Fechar</button>
+      <button onClick={onSuccess}>Salvar</button>
+    </div>
+  ),
+}));
+
+// Mock do LoadingOverlay
+jest.mock("@/components/ui/LoadingOverlay", () => ({
+  LoadingOverlay: ({ isLoading, message }: any) =>
+    isLoading ? <div data-testid="loading-overlay">{message}</div> : null,
 }));
 
 import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia/ChavesReiDaPraia";
@@ -124,6 +136,7 @@ describe("ChavesReiDaPraia", () => {
     mockBuscarGrupos.mockResolvedValue(mockGrupos);
     mockBuscarJogadores.mockResolvedValue(mockJogadores);
     mockBuscarConfrontosEliminatorios.mockResolvedValue([]);
+    mockBuscarPartidas.mockResolvedValue([]);
   });
 
   describe("estado de loading", () => {
@@ -339,52 +352,6 @@ describe("ChavesReiDaPraia", () => {
     });
   });
 
-  describe("ver partidas", () => {
-    it("deve mostrar botão Ver Partidas", async () => {
-      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Ver Partidas/).length).toBe(2);
-      });
-    });
-
-    it("deve expandir partidas ao clicar", async () => {
-      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Ver Partidas/).length).toBeGreaterThan(0);
-      });
-
-      const verPartidasButtons = screen.getAllByText(/Ver Partidas/);
-      fireEvent.click(verPartidasButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("partidas-grupo")).toBeInTheDocument();
-      });
-    });
-
-    it("deve ocultar partidas ao clicar novamente", async () => {
-      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Ver Partidas/).length).toBeGreaterThan(0);
-      });
-
-      const verPartidasButtons = screen.getAllByText(/Ver Partidas/);
-      fireEvent.click(verPartidasButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Ocultar Partidas/)).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText(/Ocultar Partidas/));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId("partidas-grupo")).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe("info card", () => {
     it("deve mostrar card informativo", async () => {
       render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
@@ -536,6 +503,312 @@ describe("ChavesReiDaPraia", () => {
         expect(screen.getByText("Jogador Sem Nível")).toBeInTheDocument();
         // Não deve mostrar texto de nível
         expect(screen.queryByText(/Nível:/)).not.toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar nível desconhecido quando diferente das opções padrão", async () => {
+      const jogadorNivelDesconhecido = [
+        {
+          id: "jog-custom",
+          jogadorId: "jog-custom",
+          jogadorNome: "Jogador Custom",
+          jogadorNivel: "custom_level",
+          grupoId: "grupo-1",
+          pontosGrupo: 3,
+          jogosGrupo: 1,
+          vitoriasGrupo: 1,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 6,
+          gamesPerdidosGrupo: 3,
+          saldoGamesGrupo: 3,
+          saldoSetsGrupo: 1,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadorNivelDesconhecido);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Nível: custom_level")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("eliminatória com erro", () => {
+    it("deve tratar erro ao buscar confrontos eliminatórios", async () => {
+      mockBuscarConfrontosEliminatorios.mockRejectedValue(new Error("Erro"));
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        // Deve renderizar normalmente mesmo com erro
+        expect(screen.getByText("Grupos Rei da Praia")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("modal de resultados", () => {
+    it("deve abrir modal ao clicar em Registrar Resultados", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1", grupoId: "grupo-1" },
+      ]);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Registrar Resultados").length).toBeGreaterThan(0);
+      });
+
+      fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+        expect(screen.getByText("Modal Grupo A")).toBeInTheDocument();
+      });
+    });
+
+    it("deve fechar modal ao clicar em Fechar", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1", grupoId: "grupo-1" },
+      ]);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Fechar"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal-resultados")).not.toBeInTheDocument();
+      });
+    });
+
+    it("deve recarregar dados ao salvar resultados", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1", grupoId: "grupo-1" },
+      ]);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+
+      mockBuscarGrupos.mockClear();
+      mockBuscarJogadores.mockClear();
+
+      fireEvent.click(screen.getByText("Salvar"));
+
+      await waitFor(() => {
+        expect(mockBuscarGrupos).toHaveBeenCalled();
+        expect(mockBuscarJogadores).toHaveBeenCalled();
+      });
+    });
+
+    it("deve mostrar alerta ao erro ao carregar partidas", async () => {
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+      mockBuscarPartidas.mockRejectedValue(new Error("Erro ao carregar"));
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+      });
+
+      await waitFor(() => {
+        expect(alertMock).toHaveBeenCalledWith("Erro ao carregar");
+      });
+
+      alertMock.mockRestore();
+    });
+  });
+
+  describe("ordenação por desempate", () => {
+    it("deve desempatar por saldo de games quando pontos são iguais", async () => {
+      const jogadoresEmpatados = [
+        {
+          id: "j1",
+          jogadorId: "j1",
+          jogadorNome: "Jogador1",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 10,
+          gamesPerdidosGrupo: 6,
+          saldoGamesGrupo: 4, // Menor saldo
+          saldoSetsGrupo: 2,
+        },
+        {
+          id: "j2",
+          jogadorId: "j2",
+          jogadorNome: "Jogador2",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6, // Mesmos pontos
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 12,
+          gamesPerdidosGrupo: 4,
+          saldoGamesGrupo: 8, // Maior saldo - deve vir primeiro
+          saldoSetsGrupo: 2,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresEmpatados);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Jogador[12]/);
+        expect(nomes[0].textContent).toBe("Jogador2");
+      });
+    });
+
+    it("deve desempatar por games vencidos quando saldo de games é igual", async () => {
+      const jogadoresEmpatados = [
+        {
+          id: "g1",
+          jogadorId: "g1",
+          jogadorNome: "GameA",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 10, // Menor
+          gamesPerdidosGrupo: 6,
+          saldoGamesGrupo: 4,
+          saldoSetsGrupo: 2,
+        },
+        {
+          id: "g2",
+          jogadorId: "g2",
+          jogadorNome: "GameB",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 14, // Maior - deve vir primeiro
+          gamesPerdidosGrupo: 10,
+          saldoGamesGrupo: 4, // Igual
+          saldoSetsGrupo: 2,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresEmpatados);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Game[AB]/);
+        expect(nomes[0].textContent).toBe("GameB");
+      });
+    });
+
+    it("deve desempatar por saldo de sets quando games vencidos é igual", async () => {
+      const jogadoresEmpatados = [
+        {
+          id: "s1",
+          jogadorId: "s1",
+          jogadorNome: "SetA",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 10,
+          gamesPerdidosGrupo: 6,
+          saldoGamesGrupo: 4,
+          saldoSetsGrupo: 1, // Menor
+        },
+        {
+          id: "s2",
+          jogadorId: "s2",
+          jogadorNome: "SetB",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 10, // Igual
+          gamesPerdidosGrupo: 6,
+          saldoGamesGrupo: 4, // Igual
+          saldoSetsGrupo: 3, // Maior - deve vir primeiro
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresEmpatados);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Set[AB]/);
+        expect(nomes[0].textContent).toBe("SetB");
+      });
+    });
+
+    it("deve desempatar por ordem alfabética quando tudo é igual", async () => {
+      const jogadoresIguais = [
+        {
+          id: "z1",
+          jogadorId: "z1",
+          jogadorNome: "Zeca",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 10,
+          gamesPerdidosGrupo: 6,
+          saldoGamesGrupo: 4,
+          saldoSetsGrupo: 2,
+        },
+        {
+          id: "a1",
+          jogadorId: "a1",
+          jogadorNome: "Abel",
+          jogadorNivel: "iniciante",
+          grupoId: "grupo-1",
+          pontosGrupo: 6,
+          jogosGrupo: 2,
+          vitoriasGrupo: 2,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 10,
+          gamesPerdidosGrupo: 6,
+          saldoGamesGrupo: 4,
+          saldoSetsGrupo: 2,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresIguais);
+
+      render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        // Abel vem antes de Zeca (ordem alfabética)
+        const nomes = screen.getAllByText(/Abel|Zeca/);
+        expect(nomes[0].textContent).toBe("Abel");
       });
     });
   });

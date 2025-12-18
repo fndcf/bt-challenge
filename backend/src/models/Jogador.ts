@@ -40,7 +40,7 @@ export interface Jogador {
   status: StatusJogador;
   observacoes?: string;
 
-  // Estatísticas (serão implementadas depois)
+  // Estatísticas
   vitorias?: number;
   derrotas?: number;
   pontos?: number;

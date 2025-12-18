@@ -2,7 +2,6 @@
  * Testes do ServiceContainer
  */
 
-// Mock de todos os repositories e services antes de importar
 jest.mock("../../repositories/ArenaRepository", () => ({
   arenaRepository: { buscar: jest.fn() },
 }));

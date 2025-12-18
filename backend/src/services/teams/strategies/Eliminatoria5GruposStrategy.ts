@@ -23,7 +23,7 @@ export class Eliminatoria5GruposStrategy extends BaseEliminatoriaStrategy {
     const [grupoA, grupoB, grupoC, grupoD, grupoE] = context.grupos;
 
     // Criar final
-    const confrontoFinal = await context.confrontoRepository.criar(
+    const [confrontoFinal] = await context.confrontoRepository.criarEmLote([
       this.criarConfrontoDTO(
         context.etapa,
         FaseEtapa.FINAL,
@@ -31,8 +31,8 @@ export class Eliminatoria5GruposStrategy extends BaseEliminatoriaStrategy {
         context.tipoFormacaoJogos,
         "Vencedor Semifinal 1",
         "Vencedor Semifinal 2"
-      )
-    );
+      ),
+    ]);
 
     // Criar semifinais
     const semifinais = await context.confrontoRepository.criarEmLote([

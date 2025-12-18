@@ -48,6 +48,16 @@ jest.mock("@/services/superXService", () => ({
   default: { buscarGrupo: jest.fn(), buscarJogadores: jest.fn(), buscarPartidas: jest.fn() },
 }));
 
+jest.mock("@/services/teamsService", () => ({
+  __esModule: true,
+  default: { gerarEquipes: jest.fn() },
+}));
+
+jest.mock("@/services/apiClient", () => ({
+  __esModule: true,
+  apiClient: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
+}));
+
 import {
   container,
   getArenaAdminService,

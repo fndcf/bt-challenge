@@ -21,14 +21,14 @@ jest.mock("@/utils/logger", () => ({
 const mockReabrirInscricoes = jest.fn();
 const mockEncerrarInscricoes = jest.fn();
 const mockEncerrarEtapa = jest.fn();
-const mockCancelarInscricao = jest.fn();
+const mockCancelarInscricoesEmLote = jest.fn();
 
 jest.mock("@/services", () => ({
   getEtapaService: () => ({
     reabrirInscricoes: mockReabrirInscricoes,
     encerrarInscricoes: mockEncerrarInscricoes,
     encerrarEtapa: mockEncerrarEtapa,
-    cancelarInscricao: mockCancelarInscricao,
+    cancelarInscricoesEmLote: mockCancelarInscricoesEmLote,
   }),
 }));
 
@@ -61,7 +61,7 @@ describe("useEtapaInscricoes", () => {
     mockReabrirInscricoes.mockResolvedValue(undefined);
     mockEncerrarInscricoes.mockResolvedValue(undefined);
     mockEncerrarEtapa.mockResolvedValue(undefined);
-    mockCancelarInscricao.mockResolvedValue(undefined);
+    mockCancelarInscricoesEmLote.mockResolvedValue({ canceladas: 1, erros: [] });
   });
 
   afterAll(() => {
@@ -314,7 +314,7 @@ describe("useEtapaInscricoes", () => {
       expect(window.confirm).toHaveBeenCalledWith(
         "Deseja cancelar a inscrição de João Silva?"
       );
-      expect(mockCancelarInscricao).toHaveBeenCalledWith("etapa-123", "insc-123");
+      expect(mockCancelarInscricoesEmLote).toHaveBeenCalledWith("etapa-123", ["insc-123"]);
       expect(mockOnSuccess).toHaveBeenCalled();
       expect(window.alert).toHaveBeenCalledWith(
         "Inscrição cancelada com sucesso!"
@@ -332,7 +332,7 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleCancelarInscricao("insc-123", "João Silva");
       });
 
-      expect(mockCancelarInscricao).not.toHaveBeenCalled();
+      expect(mockCancelarInscricoesEmLote).not.toHaveBeenCalled();
     });
 
     it("não deve fazer nada quando etapa é null", async () => {
@@ -344,11 +344,11 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleCancelarInscricao("insc-123", "João Silva");
       });
 
-      expect(mockCancelarInscricao).not.toHaveBeenCalled();
+      expect(mockCancelarInscricoesEmLote).not.toHaveBeenCalled();
     });
 
     it("deve tratar erro ao cancelar inscrição", async () => {
-      mockCancelarInscricao.mockRejectedValue(new Error("Erro ao cancelar"));
+      mockCancelarInscricoesEmLote.mockRejectedValue(new Error("Erro ao cancelar"));
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
@@ -364,7 +364,7 @@ describe("useEtapaInscricoes", () => {
     });
 
     it("deve mostrar mensagem padrão quando erro não tem message ao cancelar", async () => {
-      mockCancelarInscricao.mockRejectedValue({});
+      mockCancelarInscricoesEmLote.mockRejectedValue({});
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
@@ -382,6 +382,8 @@ describe("useEtapaInscricoes", () => {
 
   describe("handleCancelarMultiplosInscricoes", () => {
     it("deve cancelar múltiplas inscrições", async () => {
+      mockCancelarInscricoesEmLote.mockResolvedValue({ canceladas: 3, erros: [] });
+
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
       );
@@ -394,13 +396,37 @@ describe("useEtapaInscricoes", () => {
         ]);
       });
 
-      expect(mockCancelarInscricao).toHaveBeenCalledTimes(3);
-      expect(mockCancelarInscricao).toHaveBeenCalledWith("etapa-123", "insc-1");
-      expect(mockCancelarInscricao).toHaveBeenCalledWith("etapa-123", "insc-2");
-      expect(mockCancelarInscricao).toHaveBeenCalledWith("etapa-123", "insc-3");
+      expect(mockCancelarInscricoesEmLote).toHaveBeenCalledWith("etapa-123", [
+        "insc-1",
+        "insc-2",
+        "insc-3",
+      ]);
       expect(mockOnSuccess).toHaveBeenCalled();
       expect(window.alert).toHaveBeenCalledWith(
         "3 inscrição(ões) cancelada(s) com sucesso!"
+      );
+    });
+
+    it("deve mostrar erros quando alguns cancelamentos falham", async () => {
+      mockCancelarInscricoesEmLote.mockResolvedValue({
+        canceladas: 2,
+        erros: ["Erro no insc-3"],
+      });
+
+      const { result } = renderHook(() =>
+        useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
+      );
+
+      await act(async () => {
+        await result.current.handleCancelarMultiplosInscricoes([
+          "insc-1",
+          "insc-2",
+          "insc-3",
+        ]);
+      });
+
+      expect(window.alert).toHaveBeenCalledWith(
+        "2 inscrição(ões) cancelada(s).\n1 erro(s): Erro no insc-3"
       );
     });
 
@@ -413,11 +439,11 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleCancelarMultiplosInscricoes(["insc-1"]);
       });
 
-      expect(mockCancelarInscricao).not.toHaveBeenCalled();
+      expect(mockCancelarInscricoesEmLote).not.toHaveBeenCalled();
     });
 
     it("deve propagar erro ao cancelar múltiplas inscrições", async () => {
-      mockCancelarInscricao.mockRejectedValue(new Error("Erro ao cancelar"));
+      mockCancelarInscricoesEmLote.mockRejectedValue(new Error("Erro ao cancelar"));
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })

@@ -69,6 +69,24 @@ const mockEtapaReiDaPraia = {
   totalInscritos: 8,
 };
 
+const mockEtapaSuperX = {
+  ...mockEtapaDuplaFixa,
+  id: "3",
+  formato: FormatoEtapa.SUPER_X,
+  varianteSuperX: 8,
+  maxJogadores: 8,
+  totalInscritos: 0,
+};
+
+const mockEtapaTeams = {
+  ...mockEtapaDuplaFixa,
+  id: "4",
+  formato: FormatoEtapa.TEAMS,
+  varianteTeams: 4,
+  maxJogadores: 16,
+  totalInscritos: 0,
+};
+
 describe("useEditarEtapa", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -471,6 +489,228 @@ describe("useEditarEtapa", () => {
 
       expect(result.current.error).toBe(
         "Rei da Praia: número de jogadores deve ser múltiplo de 4"
+      );
+    });
+  });
+
+  describe("Info computada - Super X e TEAMS", () => {
+    it("deve identificar formato Super X", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaSuperX);
+
+      const { result } = renderHook(() => useEditarEtapa("3"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.isSuperX).toBe(true);
+      expect(result.current.isReiDaPraia).toBe(false);
+      expect(result.current.isTeams).toBe(false);
+    });
+
+    it("deve identificar formato TEAMS", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaTeams);
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.isTeams).toBe(true);
+      expect(result.current.isSuperX).toBe(false);
+      expect(result.current.isReiDaPraia).toBe(false);
+    });
+  });
+
+  describe("calcularMinimoJogadores - Super X e TEAMS", () => {
+    it("deve retornar variante para Super X", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaSuperX);
+
+      const { result } = renderHook(() => useEditarEtapa("3"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.calcularMinimoJogadores()).toBe(8);
+    });
+
+    it("deve retornar mínimo baseado na variante para TEAMS", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaTeams);
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Variante 4: mínimo 2 equipes = 8 jogadores
+      expect(result.current.calcularMinimoJogadores()).toBe(8);
+    });
+
+    it("deve arredondar para múltiplo da variante em TEAMS", async () => {
+      mockBuscarPorId.mockResolvedValue({ ...mockEtapaTeams, totalInscritos: 10 });
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // 10 inscritos, variante 4: arredonda para 12
+      expect(result.current.calcularMinimoJogadores()).toBe(12);
+    });
+
+    it("deve retornar 6 quando etapa é null", async () => {
+      mockBuscarPorId.mockImplementation(() => new Promise(() => {}));
+
+      const { result } = renderHook(() => useEditarEtapa("1"));
+
+      // Enquanto loading, etapa é null
+      expect(result.current.calcularMinimoJogadores()).toBe(6);
+    });
+  });
+
+  describe("ajustarValorJogadores - Super X e TEAMS", () => {
+    it("deve retornar valor fixo da variante para Super X", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaSuperX);
+
+      const { result } = renderHook(() => useEditarEtapa("3"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Super X não permite ajuste, sempre retorna a variante
+      expect(result.current.ajustarValorJogadores(100)).toBe(8);
+      expect(result.current.ajustarValorJogadores(4)).toBe(8);
+    });
+
+    it("deve arredondar para múltiplo da variante em TEAMS", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaTeams);
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Variante 4: arredonda para múltiplo de 4
+      expect(result.current.ajustarValorJogadores(10)).toBe(12);
+      expect(result.current.ajustarValorJogadores(13)).toBe(16);
+    });
+
+    it("deve manter valor par correto em Dupla Fixa", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaDuplaFixa);
+
+      const { result } = renderHook(() => useEditarEtapa("1"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Valor par deve ser mantido
+      expect(result.current.ajustarValorJogadores(20)).toBe(20);
+    });
+  });
+
+  describe("handleSubmit - Validações Super X", () => {
+    it("deve validar que maxJogadores seja igual à variante Super X", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaSuperX);
+
+      const { result } = renderHook(() => useEditarEtapa("3"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      act(() => {
+        result.current.handleChange("maxJogadores", 12);
+      });
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent);
+      });
+
+      expect(result.current.error).toBe(
+        "Super 8: número de jogadores deve ser exatamente 8"
+      );
+    });
+  });
+
+  describe("handleSubmit - Validações TEAMS", () => {
+    it("deve validar mínimo de jogadores para TEAMS", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaTeams);
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      act(() => {
+        result.current.handleChange("maxJogadores", 4);
+      });
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent);
+      });
+
+      expect(result.current.error).toBe(
+        "TEAMS 4: mínimo de 8 jogadores (2 equipes)"
+      );
+    });
+
+    it("deve validar máximo de jogadores para TEAMS 4", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaTeams);
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      act(() => {
+        result.current.handleChange("maxJogadores", 100);
+      });
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent);
+      });
+
+      expect(result.current.error).toBe(
+        "TEAMS 4: máximo de 96 jogadores (24 equipes)"
+      );
+    });
+
+    it("deve validar múltiplo da variante para TEAMS", async () => {
+      mockBuscarPorId.mockResolvedValue(mockEtapaTeams);
+
+      const { result } = renderHook(() => useEditarEtapa("4"));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      act(() => {
+        result.current.handleChange("maxJogadores", 10);
+      });
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent);
+      });
+
+      expect(result.current.error).toBe(
+        "TEAMS 4: número de jogadores deve ser múltiplo de 4"
       );
     });
   });

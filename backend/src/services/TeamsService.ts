@@ -366,21 +366,28 @@ export class TeamsService {
       etapaId,
       arenaId
     );
-    for (const equipe of equipes) {
-      await this.equipeRepository.atualizar(equipe.id, {
-        confrontos: 0,
-        vitorias: 0,
-        derrotas: 0,
-        pontos: 0,
-        jogosVencidos: 0,
-        jogosPerdidos: 0,
-        saldoJogos: 0,
-        gamesVencidos: 0,
-        gamesPerdidos: 0,
-        saldoGames: 0,
-      });
 
-      // Recriar estatísticas para cada jogador da equipe
+    // Resetar estatísticas de todas as equipes em lote
+    await this.equipeRepository.atualizarEmLote(
+      equipes.map((equipe) => ({
+        id: equipe.id,
+        dados: {
+          confrontos: 0,
+          vitorias: 0,
+          derrotas: 0,
+          pontos: 0,
+          jogosVencidos: 0,
+          jogosPerdidos: 0,
+          saldoJogos: 0,
+          gamesVencidos: 0,
+          gamesPerdidos: 0,
+          saldoGames: 0,
+        },
+      }))
+    );
+
+    // Recriar estatísticas para cada jogador das equipes
+    for (const equipe of equipes) {
       for (const jogador of equipe.jogadores) {
         await this.estatisticasService.criar({
           etapaId,

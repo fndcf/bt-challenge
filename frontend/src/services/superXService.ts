@@ -31,15 +31,6 @@ export interface ISuperXService {
   buscarJogadores(etapaId: string): Promise<EstatisticasJogador[]>;
   buscarGrupo(etapaId: string): Promise<Grupo>;
   buscarPartidas(etapaId: string): Promise<PartidaReiDaPraia[]>;
-  registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: Array<{
-      numero: number;
-      gamesDupla1: number;
-      gamesDupla2: number;
-    }>
-  ): Promise<void>;
 }
 
 /**
@@ -161,42 +152,6 @@ class SuperXService implements ISuperXService {
   // ============================================
   // REGISTRAR RESULTADOS
   // ============================================
-
-  /**
-   * Registrar resultado de partida Super X (1 SET)
-   *
-   * POST /api/etapas/:etapaId/super-x/partidas/:partidaId/resultado
-   */
-  async registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: Array<{
-      numero: number;
-      gamesDupla1: number;
-      gamesDupla2: number;
-    }>
-  ): Promise<void> {
-    try {
-      // Validar que é apenas 1 set
-      if (placar.length !== 1) {
-        throw new Error("Partida Super X deve ter apenas 1 set");
-      }
-
-      await apiClient.post(
-        `${this.basePath}/${etapaId}${this.superXPath}/partidas/${partidaId}/resultado`,
-        { placar }
-      );
-
-      logger.info("Resultado Super X registrado", {
-        etapaId,
-        partidaId,
-        placar: `${placar[0].gamesDupla1}-${placar[0].gamesDupla2}`,
-      });
-    } catch (error) {
-      const appError = handleError(error, "SuperXService.registrarResultado");
-      throw new Error(appError.message);
-    }
-  }
 
   /**
    * Registrar múltiplos resultados de partidas em lote

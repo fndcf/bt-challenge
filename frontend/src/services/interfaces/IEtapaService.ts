@@ -6,7 +6,6 @@ import {
   Etapa,
   CriarEtapaDTO,
   AtualizarEtapaDTO,
-  InscreverJogadorDTO,
   Inscricao,
   FiltrosEtapa,
   ListagemEtapas,
@@ -28,16 +27,11 @@ export interface IEtapaService {
   /**
    * Operações de Inscrição
    */
-  inscreverJogador(
-    etapaId: string,
-    data: InscreverJogadorDTO
-  ): Promise<Inscricao>;
   inscreverJogadores(
     etapaId: string,
     jogadorIds: string[]
   ): Promise<Inscricao[]>;
   listarInscricoes(etapaId: string): Promise<Inscricao[]>;
-  cancelarInscricao(etapaId: string, inscricaoId: string): Promise<void>;
   cancelarInscricoesEmLote(
     etapaId: string,
     inscricaoIds: string[]

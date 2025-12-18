@@ -14,7 +14,6 @@ import { IPartidaRepository } from "../../repositories/interfaces/IPartidaReposi
 import { IConfrontoEliminatorioRepository } from "../../repositories/interfaces/IConfrontoEliminatorioRepository";
 import { IEstatisticasJogadorRepository } from "../../repositories/interfaces/IEstatisticasJogadorRepository";
 import { IPartidaReiDaPraiaRepository } from "../../repositories/interfaces/IPartidaReiDaPraiaRepository";
-import { ICabecaDeChaveRepository } from "../../repositories/interfaces/ICabecaDeChaveRepository";
 import { IConfigRepository } from "../../repositories/interfaces/IConfigRepository";
 import { IEquipeRepository } from "../../repositories/interfaces/IEquipeRepository";
 import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfrontoEquipeRepository";
@@ -74,7 +73,6 @@ export function createMockEtapaRepository(): MockedEtapaRepository {
     atualizarStatus: jest.fn(),
     marcarChavesGeradas: jest.fn(),
     incrementarInscritos: jest.fn(),
-    decrementarInscritos: jest.fn(),
     decrementarInscritosEmLote: jest.fn(),
     definirCampeao: jest.fn(),
     obterEstatisticas: jest.fn(),
@@ -111,7 +109,6 @@ export function createMockInscricaoRepository(): MockedInscricaoRepository {
     buscarAtivasPorJogador: jest.fn(),
     jogadorInscrito: jest.fn(),
     atualizarStatus: jest.fn(),
-    cancelar: jest.fn(),
     buscarPorIds: jest.fn(),
     cancelarEmLote: jest.fn(),
     atribuirDupla: jest.fn(),
@@ -187,7 +184,6 @@ export function createMockGrupoRepository(): MockedGrupoRepository {
     buscarIncompletos: jest.fn(),
     adicionarDupla: jest.fn(),
     removerDupla: jest.fn(),
-    adicionarPartida: jest.fn(),
     adicionarPartidasEmLote: jest.fn(),
     incrementarPartidasFinalizadas: jest.fn(),
     decrementarPartidasFinalizadas: jest.fn(),
@@ -353,36 +349,6 @@ export function createMockPartidaReiDaPraiaRepository(): MockedPartidaReiDaPraia
   };
 }
 
-// ========== MOCK CABECA DE CHAVE REPOSITORY ==========
-
-type MockedCabecaDeChaveRepository = {
-  [K in keyof ICabecaDeChaveRepository]: jest.Mock;
-};
-
-export function createMockCabecaDeChaveRepository(): MockedCabecaDeChaveRepository {
-  return {
-    // IBaseRepository (sem 'listar')
-    criar: jest.fn(),
-    buscarPorId: jest.fn(),
-    atualizar: jest.fn(),
-    deletar: jest.fn(),
-    existe: jest.fn(),
-    // IBatchOperations
-    criarEmLote: jest.fn(),
-    deletarEmLote: jest.fn(),
-    atualizarEmLote: jest.fn(),
-    // ICabecaDeChaveRepository específicos
-    buscarPorEtapa: jest.fn(),
-    buscarPorEtapaOrdenado: jest.fn(),
-    buscarPorJogadorEEtapa: jest.fn(),
-    ehCabecaDeChave: jest.fn(),
-    atualizarPosicao: jest.fn(),
-    contar: jest.fn(),
-    deletarPorEtapa: jest.fn(),
-    removerPorJogador: jest.fn(),
-  };
-}
-
 // ========== MOCK CONFIG REPOSITORY ==========
 
 type MockedConfigRepository = {
@@ -408,19 +374,15 @@ type MockedEquipeRepository = {
 
 export function createMockEquipeRepository(): MockedEquipeRepository {
   return {
-    criar: jest.fn(),
     criarEmLote: jest.fn(),
     buscarPorId: jest.fn(),
     buscarPorEtapa: jest.fn(),
-    atualizar: jest.fn(),
     deletar: jest.fn(),
     deletarPorEtapa: jest.fn(),
     atualizarEstatisticas: jest.fn(),
-    incrementarEstatisticas: jest.fn(),
     incrementarEstatisticasEmLote: jest.fn(),
     buscarPorIds: jest.fn(),
     atualizarEmLote: jest.fn(),
-    atualizarPosicao: jest.fn(),
     atualizarPosicoesEmLote: jest.fn(),
     marcarClassificada: jest.fn(),
     buscarClassificadas: jest.fn(),
@@ -437,7 +399,6 @@ type MockedConfrontoEquipeRepository = {
 
 export function createMockConfrontoEquipeRepository(): MockedConfrontoEquipeRepository {
   return {
-    criar: jest.fn(),
     criarEmLote: jest.fn(),
     buscarPorId: jest.fn(),
     buscarPorEtapa: jest.fn(),
@@ -449,7 +410,6 @@ export function createMockConfrontoEquipeRepository(): MockedConfrontoEquipeRepo
     buscarPorEquipe: jest.fn(),
     registrarResultado: jest.fn(),
     atualizarStatus: jest.fn(),
-    adicionarPartida: jest.fn(),
     adicionarPartidasEmLote: jest.fn(),
     incrementarPartidasFinalizadas: jest.fn(),
     atualizarContadorJogos: jest.fn(),
@@ -474,7 +434,6 @@ export interface AllMockRepositories {
   confrontoRepository: MockedConfrontoRepository;
   estatisticasRepository: MockedEstatisticasRepository;
   partidaReiDaPraiaRepository: MockedPartidaReiDaPraiaRepository;
-  cabecaDeChaveRepository: MockedCabecaDeChaveRepository;
   configRepository: MockedConfigRepository;
 }
 
@@ -492,7 +451,6 @@ export function createAllMockRepositories(): AllMockRepositories {
     confrontoRepository: createMockConfrontoRepository(),
     estatisticasRepository: createMockEstatisticasRepository(),
     partidaReiDaPraiaRepository: createMockPartidaReiDaPraiaRepository(),
-    cabecaDeChaveRepository: createMockCabecaDeChaveRepository(),
     configRepository: createMockConfigRepository(),
   };
 }

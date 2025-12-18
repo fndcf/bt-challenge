@@ -86,7 +86,7 @@ export interface Etapa {
   varianteTeams?: VarianteTeams; // 4 ou 6 jogadores por equipe
   tipoFormacaoEquipe?: TipoFormacaoEquipe; // Como as equipes são formadas
   tipoFormacaoJogos?: TipoFormacaoJogos; // Como os jogos são formados dentro do confronto
-  isMisto?: boolean; // Se é torneio misto (obrigatório para TEAMS_6)
+  isMisto?: boolean; // Se é torneio misto
   dataInicio: Timestamp | string; // Início das inscrições
   dataFim: Timestamp | string; // Fim das inscrições
   dataRealizacao: Timestamp | string; // Data dos jogos
@@ -258,10 +258,6 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
       });
     }
 
-    // Validação removida: TEAMS_6 pode ser misto ou não misto
-    // TEAMS_6 MISTO: 3M + 3F → 3 jogos fixos (masculino, feminino, misto)
-    // TEAMS_6 NÃO MISTO: 6M ou 6F → 3 jogos fixos do mesmo gênero
-
     // Validação: maxJogadores para TEAMS deve ser múltiplo da variante
     if (data.formato === FormatoEtapa.TEAMS && data.varianteTeams) {
       if (data.maxJogadores % data.varianteTeams !== 0) {
@@ -290,8 +286,7 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message:
-          "Nível é obrigatório quando tipo de formação é 'Mesmo Nível'",
+        message: "Nível é obrigatório quando tipo de formação é 'Mesmo Nível'",
         path: ["nivel"],
       });
     }

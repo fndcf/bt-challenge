@@ -94,7 +94,7 @@ export abstract class BaseEliminatoriaStrategy implements IEliminatoriaStrategy 
     context: EliminatoriaContext,
     ordem: number
   ): Promise<ConfrontoEquipe> {
-    return context.confrontoRepository.criar(
+    const confrontos = await context.confrontoRepository.criarEmLote([
       this.criarConfrontoDTO(
         context.etapa,
         FaseEtapa.FINAL,
@@ -102,8 +102,9 @@ export abstract class BaseEliminatoriaStrategy implements IEliminatoriaStrategy 
         context.tipoFormacaoJogos,
         "Vencedor Semifinal 1",
         "Vencedor Semifinal 2"
-      )
-    );
+      ),
+    ]);
+    return confrontos[0];
   }
 
   /**

@@ -3,7 +3,6 @@ import {
   Etapa,
   CriarEtapaDTO,
   AtualizarEtapaDTO,
-  InscreverJogadorDTO,
   Inscricao,
   FiltrosEtapa,
   ListagemEtapas,
@@ -146,48 +145,13 @@ class EtapaService implements IEtapaService {
   }
 
   /**
-   * Inscrever jogador
-   */
-  async inscreverJogador(
-    etapaId: string,
-    data: InscreverJogadorDTO
-  ): Promise<Inscricao> {
-    try {
-      const inscricao = await apiClient.post<Inscricao>(
-        `${this.baseURL}/${etapaId}/inscrever`,
-        data
-      );
-
-      logger.info("Jogador inscrito na etapa", {
-        etapaId,
-        jogadorId: data.jogadorId,
-        inscricaoId: inscricao.id,
-      });
-
-      return inscricao;
-    } catch (error) {
-      const appError = handleError(error, "EtapaService.inscreverJogador");
-      throw new Error(appError.message);
-    }
-  }
-
-  /**
-   * Inscrever múltiplos jogadores (otimizado com batch)
+   * Inscrever jogadores em lote (funciona para 1 ou mais)
    */
   async inscreverJogadores(
     etapaId: string,
     jogadorIds: string[]
   ): Promise<Inscricao[]> {
     try {
-      // Se for apenas 1 jogador, usa método individual
-      if (jogadorIds.length === 1) {
-        const inscricao = await this.inscreverJogador(etapaId, {
-          jogadorId: jogadorIds[0]
-        });
-        return [inscricao];
-      }
-
-      // Para múltiplos jogadores, usa endpoint otimizado em lote
       const resultado = await apiClient.post<{
         inscricoes: Inscricao[];
         erros: Array<{ jogadorId: string; erro: string }>;
@@ -239,39 +203,13 @@ class EtapaService implements IEtapaService {
   }
 
   /**
-   * Cancelar inscrição
-   */
-  async cancelarInscricao(etapaId: string, inscricaoId: string): Promise<void> {
-    try {
-      await apiClient.delete(
-        `${this.baseURL}/${etapaId}/inscricoes/${inscricaoId}`
-      );
-
-      logger.info("Inscrição cancelada", {
-        etapaId,
-        inscricaoId,
-      });
-    } catch (error) {
-      const appError = handleError(error, "EtapaService.cancelarInscricao");
-      throw new Error(appError.message);
-    }
-  }
-
-  /**
-   * Cancelar múltiplas inscrições em lote (batch)
+   * Cancelar inscrições em lote (funciona para 1 ou mais)
    */
   async cancelarInscricoesEmLote(
     etapaId: string,
     inscricaoIds: string[]
   ): Promise<{ canceladas: number; erros: string[] }> {
     try {
-      // Se for apenas 1 inscrição, usa método individual
-      if (inscricaoIds.length === 1) {
-        await this.cancelarInscricao(etapaId, inscricaoIds[0]);
-        return { canceladas: 1, erros: [] };
-      }
-
-      // Para múltiplas inscrições, usa endpoint em lote
       // DELETE com body precisa ser passado no config.data
       const resultado = await apiClient.delete<{
         canceladas: number;

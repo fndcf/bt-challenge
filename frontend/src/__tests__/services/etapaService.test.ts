@@ -224,57 +224,34 @@ describe("EtapaService", () => {
     });
   });
 
-  describe("inscreverJogador", () => {
-    it("deve inscrever jogador com sucesso", async () => {
-      const mockInscricao = {
-        id: "insc-123",
-        jogadorId: "jogador-1",
-        etapaId: "etapa-123",
+  describe("inscreverJogadores", () => {
+    it("deve inscrever jogadores em lote com sucesso", async () => {
+      const mockResultado = {
+        inscricoes: [
+          { id: "insc-1", jogadorId: "j1" },
+          { id: "insc-2", jogadorId: "j2" },
+        ],
+        erros: [],
+        total: 2,
+        sucessos: 2,
+        falhas: 0,
       };
 
-      mockPost.mockResolvedValue(mockInscricao);
-
-      const result = await etapaService.inscreverJogador("etapa-123", {
-        jogadorId: "jogador-1",
-      });
-
-      expect(mockPost).toHaveBeenCalledWith("/etapas/etapa-123/inscrever", {
-        jogadorId: "jogador-1",
-      });
-      expect(result).toEqual(mockInscricao);
-    });
-
-    it("deve lançar erro quando inscrição falha", async () => {
-      mockPost.mockRejectedValue(new Error("Etapa lotada"));
-
-      await expect(
-        etapaService.inscreverJogador("etapa-123", { jogadorId: "jogador-1" })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("inscreverJogadores", () => {
-    it("deve inscrever múltiplos jogadores", async () => {
-      const mockInscricao1 = { id: "insc-1", jogadorId: "j1" };
-      const mockInscricao2 = { id: "insc-2", jogadorId: "j2" };
-
-      mockPost
-        .mockResolvedValueOnce(mockInscricao1)
-        .mockResolvedValueOnce(mockInscricao2);
+      mockPost.mockResolvedValue(mockResultado);
 
       const result = await etapaService.inscreverJogadores("etapa-123", [
         "j1",
         "j2",
       ]);
 
-      expect(mockPost).toHaveBeenCalledTimes(2);
+      expect(mockPost).toHaveBeenCalledWith("/etapas/etapa-123/inscrever-lote", {
+        jogadorIds: ["j1", "j2"],
+      });
       expect(result).toHaveLength(2);
     });
 
-    it("deve lançar erro quando inscrição de múltiplos falha", async () => {
-      mockPost
-        .mockResolvedValueOnce({ id: "insc-1", jogadorId: "j1" })
-        .mockRejectedValueOnce(new Error("Jogador já inscrito"));
+    it("deve lançar erro quando inscrição em lote falha", async () => {
+      mockPost.mockRejectedValue(new Error("Etapa lotada"));
 
       await expect(
         etapaService.inscreverJogadores("etapa-123", ["j1", "j2"])
@@ -306,22 +283,28 @@ describe("EtapaService", () => {
     });
   });
 
-  describe("cancelarInscricao", () => {
-    it("deve cancelar inscrição com sucesso", async () => {
-      mockDelete.mockResolvedValue(undefined);
+  describe("cancelarInscricoesEmLote", () => {
+    it("deve cancelar inscrições em lote com sucesso", async () => {
+      const mockResultado = { canceladas: 2, erros: [] };
+      mockDelete.mockResolvedValue(mockResultado);
 
-      await etapaService.cancelarInscricao("etapa-123", "insc-456");
+      const result = await etapaService.cancelarInscricoesEmLote("etapa-123", [
+        "insc-1",
+        "insc-2",
+      ]);
 
       expect(mockDelete).toHaveBeenCalledWith(
-        "/etapas/etapa-123/inscricoes/insc-456"
+        "/etapas/etapa-123/inscricoes-lote",
+        { data: { inscricaoIds: ["insc-1", "insc-2"] } }
       );
+      expect(result.canceladas).toBe(2);
     });
 
-    it("deve lançar erro quando cancelamento falha", async () => {
-      mockDelete.mockRejectedValue(new Error("Inscrição não encontrada"));
+    it("deve lançar erro quando cancelamento em lote falha", async () => {
+      mockDelete.mockRejectedValue(new Error("Erro ao cancelar"));
 
       await expect(
-        etapaService.cancelarInscricao("etapa-123", "insc-456")
+        etapaService.cancelarInscricoesEmLote("etapa-123", ["insc-456"])
       ).rejects.toThrow();
     });
   });

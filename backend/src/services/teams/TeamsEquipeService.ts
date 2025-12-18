@@ -349,9 +349,9 @@ export class TeamsEquipeService implements ITeamsEquipeService {
       throw new ValidationError("Nome da equipe não pode ter mais de 100 caracteres");
     }
 
-    await this.equipeRepository.atualizar(equipeId, {
-      nome: novoNome.trim(),
-    });
+    await this.equipeRepository.atualizarEmLote([
+      { id: equipeId, dados: { nome: novoNome.trim() } },
+    ]);
 
     logger.info("Equipe renomeada", {
       equipeId,

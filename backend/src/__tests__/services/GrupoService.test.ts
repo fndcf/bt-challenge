@@ -261,15 +261,15 @@ describe("GrupoService", () => {
     });
   });
 
-  describe("adicionarPartida", () => {
-    it("deve adicionar partida ao grupo", async () => {
-      mockGrupoRepository.adicionarPartida.mockResolvedValue(undefined);
+  describe("adicionarPartidasEmLote", () => {
+    it("deve adicionar partidas ao grupo em lote", async () => {
+      mockGrupoRepository.adicionarPartidasEmLote.mockResolvedValue(undefined);
 
-      await grupoService.adicionarPartida(TEST_IDS.grupo1, TEST_IDS.partida1);
+      await grupoService.adicionarPartidasEmLote(TEST_IDS.grupo1, [TEST_IDS.partida1, "partida-2"]);
 
-      expect(mockGrupoRepository.adicionarPartida).toHaveBeenCalledWith(
+      expect(mockGrupoRepository.adicionarPartidasEmLote).toHaveBeenCalledWith(
         TEST_IDS.grupo1,
-        TEST_IDS.partida1
+        [TEST_IDS.partida1, "partida-2"]
       );
     });
   });

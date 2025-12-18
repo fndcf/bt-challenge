@@ -49,19 +49,6 @@ export interface ISuperXService {
   buscarPartidas(etapaId: string): Promise<PartidaReiDaPraia[]>;
 
   /**
-   * Registrar resultado de partida Super X (1 SET)
-   */
-  registrarResultado(
-    etapaId: string,
-    partidaId: string,
-    placar: Array<{
-      numero: number;
-      gamesDupla1: number;
-      gamesDupla2: number;
-    }>
-  ): Promise<void>;
-
-  /**
    * Registrar múltiplos resultados de partidas em lote
    */
   registrarResultadosEmLote(

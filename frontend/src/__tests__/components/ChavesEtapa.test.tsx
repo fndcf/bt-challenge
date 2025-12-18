@@ -8,6 +8,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const mockBuscarGrupos = jest.fn();
 const mockBuscarDuplas = jest.fn();
 const mockBuscarConfrontosEliminatorios = jest.fn();
+const mockBuscarPartidas = jest.fn();
 const mockBuscarPorId = jest.fn();
 
 jest.mock("@/services", () => ({
@@ -15,17 +16,11 @@ jest.mock("@/services", () => ({
     buscarGrupos: mockBuscarGrupos,
     buscarDuplas: mockBuscarDuplas,
     buscarConfrontosEliminatorios: mockBuscarConfrontosEliminatorios,
+    buscarPartidas: mockBuscarPartidas,
   }),
   getEtapaService: () => ({
     buscarPorId: mockBuscarPorId,
   }),
-}));
-
-// Mock do PartidasGrupo
-jest.mock("@/components/etapas/PartidasGrupo", () => ({
-  PartidasGrupo: ({ grupoNome }: { grupoNome: string }) => (
-    <div data-testid="partidas-grupo">Partidas do {grupoNome}</div>
-  ),
 }));
 
 // Mock do FaseEliminatoria
@@ -33,6 +28,23 @@ jest.mock("@/components/etapas/FaseEliminatoria", () => ({
   FaseEliminatoria: () => (
     <div data-testid="fase-eliminatoria">Fase Eliminatória Component</div>
   ),
+}));
+
+// Mock do ModalLancamentoResultadosLoteDuplaFixa
+jest.mock("@/components/etapas/ModalLancamentoResultadosLoteDuplaFixa/ModalLancamentoResultadosLoteDuplaFixa", () => ({
+  ModalLancamentoResultadosLoteDuplaFixa: ({ grupoNome, onClose, onSuccess }: any) => (
+    <div data-testid="modal-resultados">
+      <span>Modal {grupoNome}</span>
+      <button onClick={onClose}>Fechar</button>
+      <button onClick={onSuccess}>Salvar</button>
+    </div>
+  ),
+}));
+
+// Mock do LoadingOverlay
+jest.mock("@/components/ui/LoadingOverlay", () => ({
+  LoadingOverlay: ({ isLoading, message }: any) =>
+    isLoading ? <div data-testid="loading-overlay">{message}</div> : null,
 }));
 
 import { ChavesEtapa } from "@/components/etapas/ChavesEtapa/ChavesEtapa";
@@ -120,6 +132,7 @@ describe("ChavesEtapa", () => {
     mockBuscarDuplas.mockResolvedValue(mockDuplas);
     mockBuscarPorId.mockResolvedValue(mockEtapa);
     mockBuscarConfrontosEliminatorios.mockResolvedValue([]);
+    mockBuscarPartidas.mockResolvedValue([]);
   });
 
   describe("estado de loading", () => {
@@ -318,52 +331,6 @@ describe("ChavesEtapa", () => {
     });
   });
 
-  describe("ver partidas", () => {
-    it("deve mostrar botão Ver Partidas", async () => {
-      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Ver Partidas/).length).toBe(2);
-      });
-    });
-
-    it("deve expandir partidas ao clicar", async () => {
-      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Ver Partidas/).length).toBeGreaterThan(0);
-      });
-
-      const verPartidasButtons = screen.getAllByText(/Ver Partidas/);
-      fireEvent.click(verPartidasButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("partidas-grupo")).toBeInTheDocument();
-      });
-    });
-
-    it("deve ocultar partidas ao clicar novamente", async () => {
-      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Ver Partidas/).length).toBeGreaterThan(0);
-      });
-
-      const verPartidasButtons = screen.getAllByText(/Ver Partidas/);
-      fireEvent.click(verPartidasButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Ocultar Partidas/)).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText(/Ocultar Partidas/));
-
-      await waitFor(() => {
-        expect(screen.queryByTestId("partidas-grupo")).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe("info card", () => {
     it("deve mostrar card informativo", async () => {
       render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
@@ -483,6 +450,335 @@ describe("ChavesEtapa", () => {
 
       await waitFor(() => {
         expect(mockBuscarConfrontosEliminatorios).toHaveBeenCalledWith("etapa-1");
+      });
+    });
+
+    it("deve tratar erro ao buscar confrontos eliminatórios", async () => {
+      mockBuscarConfrontosEliminatorios.mockRejectedValue(new Error("Erro"));
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        // Deve renderizar normalmente mesmo com erro
+        expect(screen.getByText("Grupos e Duplas")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("modal de resultados", () => {
+    it("deve abrir modal ao clicar em Registrar Resultados", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1", grupoId: "grupo-1" },
+      ]);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Registrar Resultados").length).toBeGreaterThan(0);
+      });
+
+      // Clica no botão de registrar resultados do primeiro grupo
+      fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+        expect(screen.getByText("Modal Grupo A")).toBeInTheDocument();
+      });
+    });
+
+    it("deve fechar modal ao clicar em Fechar", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1", grupoId: "grupo-1" },
+      ]);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Fechar"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal-resultados")).not.toBeInTheDocument();
+      });
+    });
+
+    it("deve recarregar chaves ao salvar resultados", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1", grupoId: "grupo-1" },
+      ]);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+
+      // Limpa as chamadas anteriores
+      mockBuscarGrupos.mockClear();
+      mockBuscarDuplas.mockClear();
+
+      fireEvent.click(screen.getByText("Salvar"));
+
+      await waitFor(() => {
+        // Deve recarregar os dados
+        expect(mockBuscarGrupos).toHaveBeenCalled();
+        expect(mockBuscarDuplas).toHaveBeenCalled();
+      });
+    });
+
+    it("deve mostrar alerta ao erro ao carregar partidas", async () => {
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+      mockBuscarPartidas.mockRejectedValue(new Error("Erro ao carregar"));
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        fireEvent.click(screen.getAllByText("Registrar Resultados")[0]);
+      });
+
+      await waitFor(() => {
+        expect(alertMock).toHaveBeenCalledWith("Erro ao carregar");
+      });
+
+      alertMock.mockRestore();
+    });
+  });
+
+  describe("saldo de games (variants)", () => {
+    it("deve mostrar saldo positivo com cor verde", async () => {
+      // Dupla com saldo positivo já está nos mocks (saldoGames: 12)
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText("+12")).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar saldo negativo com cor vermelha", async () => {
+      const duplaSaldoNegativo = [
+        {
+          id: "dupla-neg",
+          grupoId: "grupo-1",
+          jogador1Nome: "X",
+          jogador2Nome: "Y",
+          jogador1Nivel: "iniciante",
+          pontos: 0,
+          jogos: 2,
+          vitorias: 0,
+          derrotas: 2,
+          gamesVencidos: 4,
+          gamesPerdidos: 12,
+          saldoGames: -8,
+          saldoSets: -2,
+          posicaoGrupo: 3,
+        },
+      ];
+
+      mockBuscarDuplas.mockResolvedValue(duplaSaldoNegativo);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText("-8")).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar saldo zero com cor neutra", async () => {
+      // Dupla com saldo zero já está nos mocks (dupla-3)
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText("0")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("ordenação por desempate", () => {
+    it("deve desempatar por saldo de games", async () => {
+      const duplasEmpatadasPontos = [
+        {
+          id: "dupla-e1",
+          grupoId: "grupo-1",
+          jogador1Nome: "E1",
+          jogador2Nome: "F1",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 10,
+          gamesPerdidos: 6,
+          saldoGames: 4, // Menor saldo
+          saldoSets: 2,
+        },
+        {
+          id: "dupla-e2",
+          grupoId: "grupo-1",
+          jogador1Nome: "E2",
+          jogador2Nome: "F2",
+          jogador1Nivel: "iniciante",
+          pontos: 6, // Mesmos pontos
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 12,
+          gamesPerdidos: 4,
+          saldoGames: 8, // Maior saldo - deve vir primeiro
+          saldoSets: 2,
+        },
+      ];
+
+      mockBuscarDuplas.mockResolvedValue(duplasEmpatadasPontos);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        // E2 & F2 deve estar antes de E1 & F1
+        const nomes = screen.getAllByText(/E[12] & F[12]/);
+        expect(nomes[0].textContent).toBe("E2 & F2");
+      });
+    });
+
+    it("deve desempatar por saldo de sets quando saldo de games é igual", async () => {
+      const duplasEmpatadasSaldoGames = [
+        {
+          id: "dupla-s1",
+          grupoId: "grupo-1",
+          jogador1Nome: "S1",
+          jogador2Nome: "T1",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 10,
+          gamesPerdidos: 6,
+          saldoGames: 4, // Igual
+          saldoSets: 1, // Menor
+        },
+        {
+          id: "dupla-s2",
+          grupoId: "grupo-1",
+          jogador1Nome: "S2",
+          jogador2Nome: "T2",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 10,
+          gamesPerdidos: 6,
+          saldoGames: 4, // Igual
+          saldoSets: 3, // Maior - deve vir primeiro
+        },
+      ];
+
+      mockBuscarDuplas.mockResolvedValue(duplasEmpatadasSaldoGames);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/S[12] & T[12]/);
+        expect(nomes[0].textContent).toBe("S2 & T2");
+      });
+    });
+
+    it("deve desempatar por games vencidos quando saldo de sets é igual", async () => {
+      const duplasEmpatadasSaldoSets = [
+        {
+          id: "dupla-g1",
+          grupoId: "grupo-1",
+          jogador1Nome: "G1",
+          jogador2Nome: "H1",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 10, // Menor
+          gamesPerdidos: 6,
+          saldoGames: 4,
+          saldoSets: 2,
+        },
+        {
+          id: "dupla-g2",
+          grupoId: "grupo-1",
+          jogador1Nome: "G2",
+          jogador2Nome: "H2",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 14, // Maior - deve vir primeiro
+          gamesPerdidos: 10,
+          saldoGames: 4,
+          saldoSets: 2,
+        },
+      ];
+
+      mockBuscarDuplas.mockResolvedValue(duplasEmpatadasSaldoSets);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/G[12] & H[12]/);
+        expect(nomes[0].textContent).toBe("G2 & H2");
+      });
+    });
+
+    it("deve desempatar por ordem alfabética quando tudo é igual", async () => {
+      const duplasIguais = [
+        {
+          id: "dupla-z1",
+          grupoId: "grupo-1",
+          jogador1Nome: "Zebra",
+          jogador2Nome: "Zulu",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 10,
+          gamesPerdidos: 6,
+          saldoGames: 4,
+          saldoSets: 2,
+        },
+        {
+          id: "dupla-a1",
+          grupoId: "grupo-1",
+          jogador1Nome: "Alpha",
+          jogador2Nome: "Beta",
+          jogador1Nivel: "iniciante",
+          pontos: 6,
+          jogos: 2,
+          vitorias: 2,
+          derrotas: 0,
+          gamesVencidos: 10,
+          gamesPerdidos: 6,
+          saldoGames: 4,
+          saldoSets: 2,
+        },
+      ];
+
+      mockBuscarDuplas.mockResolvedValue(duplasIguais);
+
+      render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
+
+      await waitFor(() => {
+        // Alpha & Beta vem antes de Zebra & Zulu (ordem alfabética)
+        const nomes = screen.getAllByText(/Alpha|Zebra/);
+        expect(nomes[0].textContent).toContain("Alpha");
       });
     });
   });

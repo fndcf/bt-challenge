@@ -315,6 +315,35 @@ export class CabecaDeChaveService {
       return [];
     }
   }
+
+  /**
+   * Deletar todas as cabeças de chave de uma etapa
+   */
+  async deletarPorEtapa(etapaId: string, arenaId: string): Promise<number> {
+    const snapshot = await db
+      .collection(this.collection)
+      .where("etapaId", "==", etapaId)
+      .where("arenaId", "==", arenaId)
+      .get();
+
+    if (snapshot.empty) {
+      return 0;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+
+    logger.info("Cabeças de chave deletadas por etapa", {
+      etapaId,
+      quantidade: snapshot.size,
+    });
+
+    return snapshot.size;
+  }
 }
 
 export default new CabecaDeChaveService();

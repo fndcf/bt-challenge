@@ -523,7 +523,7 @@ describe("GruposViewer", () => {
       expect(screen.getByText("Grupos")).toBeInTheDocument();
       // "Partidas" pode aparecer múltiplas vezes (no resumo e na seção de grupos)
       expect(screen.getAllByText("Partidas").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Finalizadas")).toBeInTheDocument();
+      expect(screen.getByText("Finalizados")).toBeInTheDocument();
       expect(screen.getByText("Progresso")).toBeInTheDocument();
     });
 

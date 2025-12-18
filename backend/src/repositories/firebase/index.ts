@@ -14,7 +14,6 @@ export * from "./ConfrontoEliminatorioRepository";
 // Novos repositories (Fase 5)
 export * from "./EstatisticasJogadorRepository";
 export * from "./PartidaReiDaPraiaRepository";
-export * from "./CabecaDeChaveRepository";
 export * from "./ConfigRepository";
 
 // Instâncias prontas para uso
@@ -27,5 +26,4 @@ export { inscricaoRepository } from "./InscricaoRepository";
 export { confrontoEliminatorioRepository } from "./ConfrontoEliminatorioRepository";
 export { estatisticasJogadorRepository } from "./EstatisticasJogadorRepository";
 export { partidaReiDaPraiaRepository } from "./PartidaReiDaPraiaRepository";
-export { cabecaDeChaveRepository } from "./CabecaDeChaveRepository";
 export { configRepository } from "./ConfigRepository";

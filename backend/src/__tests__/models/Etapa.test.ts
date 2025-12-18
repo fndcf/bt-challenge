@@ -1,7 +1,5 @@
 /**
  * Testes para models/Etapa.ts
- * Foco em cobrir validações do CriarEtapaSchema
- * Linhas não cobertas: 166, 175, 184-185, 211, 220, 234, 245, 254, 267-277, 291, 306
  */
 
 import {
@@ -60,7 +58,9 @@ describe("CriarEtapaSchema", () => {
       });
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
-        expect(resultado.error.issues.some((i) => i.path.includes("nivel"))).toBe(true);
+        expect(
+          resultado.error.issues.some((i) => i.path.includes("nivel"))
+        ).toBe(true);
       }
     });
 
@@ -75,7 +75,9 @@ describe("CriarEtapaSchema", () => {
       });
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
-        expect(resultado.error.issues.some((i) => i.path.includes("nivel"))).toBe(true);
+        expect(
+          resultado.error.issues.some((i) => i.path.includes("nivel"))
+        ).toBe(true);
       }
     });
 
@@ -191,7 +193,9 @@ describe("CriarEtapaSchema", () => {
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
         expect(
-          resultado.error.issues.some((i) => i.path.includes("jogadoresPorGrupo"))
+          resultado.error.issues.some((i) =>
+            i.path.includes("jogadoresPorGrupo")
+          )
         ).toBe(true);
       }
     });
@@ -258,7 +262,9 @@ describe("CriarEtapaSchema", () => {
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
         expect(
-          resultado.error.issues.some((i) => i.path.includes("jogadoresPorGrupo"))
+          resultado.error.issues.some((i) =>
+            i.path.includes("jogadoresPorGrupo")
+          )
         ).toBe(true);
       }
     });
@@ -274,7 +280,9 @@ describe("CriarEtapaSchema", () => {
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
         expect(
-          resultado.error.issues.some((i) => i.path.includes("jogadoresPorGrupo"))
+          resultado.error.issues.some((i) =>
+            i.path.includes("jogadoresPorGrupo")
+          )
         ).toBe(true);
       }
     });
@@ -310,7 +318,9 @@ describe("CriarEtapaSchema", () => {
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
         expect(
-          resultado.error.issues.some((i) => i.path.includes("tipoFormacaoEquipe"))
+          resultado.error.issues.some((i) =>
+            i.path.includes("tipoFormacaoEquipe")
+          )
         ).toBe(true);
       }
     });
@@ -363,8 +373,7 @@ describe("CriarEtapaSchema", () => {
         expect(
           resultado.error.issues.some(
             (i) =>
-              i.path.includes("maxJogadores") &&
-              i.message.includes("Mínimo")
+              i.path.includes("maxJogadores") && i.message.includes("Mínimo")
           )
         ).toBe(true);
       }
@@ -384,8 +393,7 @@ describe("CriarEtapaSchema", () => {
         expect(
           resultado.error.issues.some(
             (i) =>
-              i.path.includes("maxJogadores") &&
-              i.message.includes("Mínimo")
+              i.path.includes("maxJogadores") && i.message.includes("Mínimo")
           )
         ).toBe(true);
       }
@@ -402,9 +410,9 @@ describe("CriarEtapaSchema", () => {
       });
       expect(resultado.success).toBe(false);
       if (!resultado.success) {
-        expect(resultado.error.issues.some((i) => i.path.includes("nivel"))).toBe(
-          true
-        );
+        expect(
+          resultado.error.issues.some((i) => i.path.includes("nivel"))
+        ).toBe(true);
       }
     });
 

@@ -11,7 +11,6 @@ import { StatusPartida } from "../../models/Partida";
  */
 export interface IPartidaTeamsRepository {
   // CRUD básico
-  criar(dto: CriarPartidaTeamsDTO): Promise<PartidaTeams>;
   criarEmLote(dtos: CriarPartidaTeamsDTO[]): Promise<PartidaTeams[]>;
   buscarPorId(id: string): Promise<PartidaTeams | null>;
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<PartidaTeams[]>;

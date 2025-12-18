@@ -58,12 +58,7 @@ export interface IEtapaRepository
   incrementarInscritos(id: string, jogadorId: string): Promise<void>;
 
   /**
-   * Decrementar total de inscritos
-   */
-  decrementarInscritos(id: string, jogadorId: string): Promise<void>;
-
-  /**
-   * Decrementar múltiplos inscritos em lote
+   * Decrementar inscritos em lote (funciona para 1 ou mais)
    */
   decrementarInscritosEmLote(
     id: string,

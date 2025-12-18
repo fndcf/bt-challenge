@@ -4,7 +4,7 @@
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
-import RankingListComponent from "@/components/jogadores/RankingList/RankingList";
+import { RankingList as RankingListComponent, invalidateRankingCache } from "@/components/jogadores/RankingList";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 
 // Mock do serviço
@@ -53,6 +53,7 @@ const renderWithRouter = (component: React.ReactNode) => {
 describe("RankingList", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    invalidateRankingCache(); // Limpar cache entre testes
     mockBuscarRanking.mockResolvedValue(mockJogadores);
   });
 

@@ -227,26 +227,7 @@ export class GrupoRepository implements IGrupoRepository {
   }
 
   /**
-   * Adicionar partida ao grupo
-   */
-  async adicionarPartida(id: string, partidaId: string): Promise<void> {
-    const grupo = await this.buscarPorId(id);
-    if (!grupo) {
-      throw new NotFoundError("Grupo não encontrado");
-    }
-
-    const partidas = [...grupo.partidas, partidaId];
-
-    await this.collection.doc(id).update({
-      partidas,
-      totalPartidas: partidas.length,
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
-  /**
-   * Adicionar múltiplas partidas ao grupo em batch
-   * ✅ OTIMIZAÇÃO: Reduz múltiplas escritas para uma única operação
+   * Adicionar partidas ao grupo em lote (funciona para 1 ou mais)
    */
   async adicionarPartidasEmLote(
     id: string,

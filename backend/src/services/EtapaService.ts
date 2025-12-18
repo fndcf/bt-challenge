@@ -28,7 +28,6 @@ import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
 import { IInscricaoRepository } from "../repositories/interfaces/IInscricaoRepository";
 import { IJogadorRepository } from "../repositories/interfaces/IJogadorRepository";
 import { IConfigRepository } from "../repositories/interfaces/IConfigRepository";
-import { ICabecaDeChaveRepository } from "../repositories/interfaces/ICabecaDeChaveRepository";
 import {
   IEstatisticasJogadorRepository,
   AtualizarPontuacaoEmLoteDTO,
@@ -45,7 +44,7 @@ import { EtapaRepository } from "../repositories/firebase/EtapaRepository";
 import { InscricaoRepository } from "../repositories/firebase/InscricaoRepository";
 import { JogadorRepository } from "../repositories/firebase/JogadorRepository";
 import { ConfigRepository } from "../repositories/firebase/ConfigRepository";
-import { CabecaDeChaveRepository } from "../repositories/firebase/CabecaDeChaveRepository";
+import cabecaDeChaveService from "./CabecaDeChaveService";
 import { EstatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
 import { GrupoRepository } from "../repositories/firebase/GrupoRepository";
 import { DuplaRepository } from "../repositories/firebase/DuplaRepository";
@@ -62,7 +61,6 @@ export class EtapaService {
     private inscricaoRepository: IInscricaoRepository,
     private jogadorRepository: IJogadorRepository,
     private configRepository: IConfigRepository,
-    private cabecaDeChaveRepository: ICabecaDeChaveRepository,
     private estatisticasJogadorRepository: IEstatisticasJogadorRepository,
     private grupoRepository: IGrupoRepository,
     private duplaRepository: IDuplaRepository,
@@ -507,65 +505,6 @@ export class EtapaService {
   }
 
   /**
-   * Cancelar inscrição
-   */
-  async cancelarInscricao(
-    inscricaoId: string,
-    etapaId: string,
-    arenaId: string
-  ): Promise<void> {
-    try {
-      const inscricao = await this.inscricaoRepository.buscarPorIdEtapaArena(
-        inscricaoId,
-        etapaId,
-        arenaId
-      );
-
-      if (!inscricao) {
-        throw new Error("Inscrição não encontrada");
-      }
-
-      const etapa = await this.buscarPorId(etapaId, arenaId);
-      if (!etapa) {
-        throw new Error("Etapa não encontrada");
-      }
-
-      if (etapa.chavesGeradas) {
-        throw new Error(
-          "Não é possível cancelar inscrição após geração de chaves"
-        );
-      }
-
-      // Cancelar inscrição via repository
-      await this.inscricaoRepository.cancelar(inscricaoId);
-
-      // Decrementar inscritos na etapa
-      await this.etapaRepository.decrementarInscritos(
-        etapaId,
-        inscricao.jogadorId
-      );
-
-      logger.info("Inscrição cancelada", {
-        inscricaoId,
-        etapaId,
-        jogadorId: inscricao.jogadorId,
-        jogadorNome: inscricao.jogadorNome,
-        totalInscritos: etapa.totalInscritos - 1,
-      });
-    } catch (error: any) {
-      logger.error(
-        "Erro ao cancelar inscrição",
-        {
-          inscricaoId,
-          etapaId,
-        },
-        error
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Cancelar múltiplas inscrições em lote (batch)
    * ✅ OTIMIZAÇÃO: Usa buscarPorIds (1 query) ao invés de N queries paralelas
    */
@@ -780,9 +719,9 @@ export class EtapaService {
         throw new Error("Não é possível excluir etapa após geração de chaves");
       }
 
-      // Limpar cabeças de chave via repository
+      // Limpar cabeças de chave via service
       const cabecasRemovidas =
-        await this.cabecaDeChaveRepository.deletarPorEtapa(id, arenaId);
+        await cabecaDeChaveService.deletarPorEtapa(id, arenaId);
 
       // Deletar etapa via repository
       await this.etapaRepository.deletar(id);
@@ -1076,13 +1015,13 @@ export class EtapaService {
           }
           timings["5c_batchPontuacoes"] = Date.now() - start5c;
 
-          // 5e. Atualizar posições das equipes em paralelo
+          // 5e. Atualizar posições das equipes em lote
           const start5e = Date.now();
-          await Promise.all(
-            equipes.map((equipe, i) =>
-              this.equipeRepository.atualizarPosicao(equipe.id, i + 1)
-            )
-          );
+          const posicoesEquipes = equipes.map((equipe, i) => ({
+            id: equipe.id,
+            posicao: i + 1,
+          }));
+          await this.equipeRepository.atualizarPosicoesEmLote(posicoesEquipes);
           timings["5d_atualizarPosicoes"] = Date.now() - start5e;
 
           timings["5_TOTAL_atribuirPontosTeams"] = Date.now() - start5;
@@ -1564,7 +1503,6 @@ const etapaRepositoryInstance = new EtapaRepository();
 const inscricaoRepositoryInstance = new InscricaoRepository();
 const jogadorRepositoryInstance = new JogadorRepository();
 const configRepositoryInstance = new ConfigRepository();
-const cabecaDeChaveRepositoryInstance = new CabecaDeChaveRepository();
 const estatisticasJogadorRepositoryInstance =
   new EstatisticasJogadorRepository();
 const grupoRepositoryInstance = new GrupoRepository();
@@ -1576,7 +1514,6 @@ export default new EtapaService(
   inscricaoRepositoryInstance,
   jogadorRepositoryInstance,
   configRepositoryInstance,
-  cabecaDeChaveRepositoryInstance,
   estatisticasJogadorRepositoryInstance,
   grupoRepositoryInstance,
   duplaRepositoryInstance,

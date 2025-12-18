@@ -40,16 +40,8 @@ router.post("/confrontos-eliminatorios/:confrontoId/resultado", (req, res) =>
 // ==================== INSCRIÇÕES ====================
 
 /**
- * @route   POST /api/etapas/:id/inscrever
- * @desc    Inscrever jogador na etapa
- */
-router.post("/:id/inscrever", (req, res) =>
-  etapaController.inscreverJogador(req, res)
-);
-
-/**
  * @route   POST /api/etapas/:id/inscrever-lote
- * @desc    Inscrever múltiplos jogadores na etapa (otimizado)
+ * @desc    Inscrever jogadores na etapa (funciona para 1 ou mais)
  */
 router.post("/:id/inscrever-lote", (req, res) =>
   etapaController.inscreverJogadoresEmLote(req, res)
@@ -65,20 +57,11 @@ router.get("/:id/inscricoes", (req, res) =>
 
 /**
  * @route   DELETE /api/etapas/:etapaId/inscricoes-lote
- * @desc    Cancelar múltiplas inscrições em lote
+ * @desc    Cancelar inscrições em lote (funciona para 1 ou mais)
  * @body    { inscricaoIds: string[] }
- * IMPORTANTE: Esta rota deve vir ANTES de /:etapaId/inscricoes/:inscricaoId
  */
 router.delete("/:etapaId/inscricoes-lote", (req, res) =>
   etapaController.cancelarInscricoesEmLote(req, res)
-);
-
-/**
- * @route   DELETE /api/etapas/:etapaId/inscricoes/:inscricaoId
- * @desc    Cancelar inscrição individual
- */
-router.delete("/:etapaId/inscricoes/:inscricaoId", (req, res) =>
-  etapaController.cancelarInscricao(req, res)
 );
 
 /**
@@ -278,14 +261,6 @@ router.get("/:id/super-x/grupo", (req, res) =>
 );
 
 /**
- * @route   POST /api/etapas/:id/super-x/partidas/:partidaId/resultado
- * @desc    Registrar resultado de partida Super X
- */
-router.post("/:id/super-x/partidas/:partidaId/resultado", (req, res) =>
-  etapaController.registrarResultadoSuperX(req, res)
-);
-
-/**
  * @route   POST /api/etapas/:id/super-x/resultados-lote
  * @desc    Registrar múltiplos resultados de partidas Super X em lote
  */
@@ -373,14 +348,6 @@ router.patch("/:id/teams/equipes/:equipeId/renomear", (req, res) =>
  */
 router.post("/:id/teams/partidas/:partidaId/definir-jogadores", (req, res) =>
   etapaController.definirJogadoresPartidaTeams(req, res)
-);
-
-/**
- * @route   POST /api/etapas/:id/teams/partidas/:partidaId/resultado
- * @desc    Registrar resultado de partida TEAMS
- */
-router.post("/:id/teams/partidas/:partidaId/resultado", (req, res) =>
-  etapaController.registrarResultadoTeams(req, res)
 );
 
 /**

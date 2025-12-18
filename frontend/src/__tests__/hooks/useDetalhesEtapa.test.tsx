@@ -24,6 +24,7 @@ const mockReabrirInscricoes = jest.fn();
 const mockEncerrarInscricoes = jest.fn();
 const mockEncerrarEtapa = jest.fn();
 const mockCancelarInscricao = jest.fn();
+const mockCancelarInscricoesEmLote = jest.fn();
 const mockGerarChavesDuplaFixa = jest.fn();
 const mockExcluirChaves = jest.fn();
 const mockGerarChavesReiDaPraia = jest.fn();
@@ -36,6 +37,7 @@ jest.mock("@/services", () => ({
     encerrarInscricoes: mockEncerrarInscricoes,
     encerrarEtapa: mockEncerrarEtapa,
     cancelarInscricao: mockCancelarInscricao,
+    cancelarInscricoesEmLote: mockCancelarInscricoesEmLote,
   }),
   getChaveService: () => ({
     gerarChaves: mockGerarChavesDuplaFixa,
@@ -80,7 +82,7 @@ describe("useDetalhesEtapa", () => {
     mockReabrirInscricoes.mockResolvedValue(undefined);
     mockEncerrarInscricoes.mockResolvedValue(undefined);
     mockEncerrarEtapa.mockResolvedValue(undefined);
-    mockCancelarInscricao.mockResolvedValue(undefined);
+    mockCancelarInscricoesEmLote.mockResolvedValue({ canceladas: 1, erros: [] });
     mockGerarChavesDuplaFixa.mockResolvedValue(undefined);
     mockExcluirChaves.mockResolvedValue(undefined);
   });
@@ -229,10 +231,11 @@ describe("useDetalhesEtapa", () => {
         await result.current.handleCancelarInscricao("insc-1", "Jogador 1");
       });
 
-      expect(mockCancelarInscricao).toHaveBeenCalledWith("etapa-123", "insc-1");
+      expect(mockCancelarInscricoesEmLote).toHaveBeenCalledWith("etapa-123", ["insc-1"]);
     });
 
     it("deve cancelar múltiplas inscrições", async () => {
+      mockCancelarInscricoesEmLote.mockResolvedValue({ canceladas: 2, erros: [] });
       const { result } = renderHook(() => useDetalhesEtapa("etapa-123"));
 
       await waitFor(() => {
@@ -246,7 +249,10 @@ describe("useDetalhesEtapa", () => {
         ]);
       });
 
-      expect(mockCancelarInscricao).toHaveBeenCalledTimes(2);
+      expect(mockCancelarInscricoesEmLote).toHaveBeenCalledWith("etapa-123", [
+        "insc-1",
+        "insc-2",
+      ]);
     });
   });
 

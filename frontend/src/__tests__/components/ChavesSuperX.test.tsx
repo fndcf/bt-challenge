@@ -7,19 +7,51 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 // Mock dos services
 const mockBuscarGrupo = jest.fn();
 const mockBuscarJogadores = jest.fn();
+const mockBuscarPartidas = jest.fn();
+const mockEncerrarEtapa = jest.fn();
 
 jest.mock("@/services", () => ({
   getSuperXService: () => ({
     buscarGrupo: mockBuscarGrupo,
     buscarJogadores: mockBuscarJogadores,
+    buscarPartidas: mockBuscarPartidas,
+  }),
+  getEtapaService: () => ({
+    encerrarEtapa: mockEncerrarEtapa,
   }),
 }));
 
-// Mock do PartidasSuperX
-jest.mock("@/components/etapas/PartidasSuperX", () => ({
-  PartidasSuperX: ({ grupoNome }: { grupoNome: string }) => (
-    <div data-testid="partidas-super-x">Partidas do {grupoNome}</div>
+// Mock do invalidateRankingCache
+jest.mock("@/components/jogadores/RankingList", () => ({
+  invalidateRankingCache: jest.fn(),
+}));
+
+// Mock do ModalLancamentoResultadosLoteSuperX
+jest.mock("@/components/etapas/ModalLancamentoResultadosLoteSuperX/ModalLancamentoResultadosLoteSuperX", () => ({
+  ModalLancamentoResultadosLoteSuperX: ({ onClose, onSuccess }: any) => (
+    <div data-testid="modal-resultados">
+      <span>Modal Resultados</span>
+      <button onClick={onClose}>Fechar</button>
+      <button onClick={onSuccess}>Salvar</button>
+    </div>
   ),
+}));
+
+// Mock do LoadingOverlay
+jest.mock("@/components/ui/LoadingOverlay", () => ({
+  LoadingOverlay: ({ isLoading, message }: any) =>
+    isLoading ? <div data-testid="loading-overlay">{message}</div> : null,
+}));
+
+// Mock do ConfirmacaoPerigosa
+jest.mock("@/components/modals/ConfirmacaoPerigosa/ConfirmacaoPerigosa", () => ({
+  ConfirmacaoPerigosa: ({ isOpen, onConfirm, onClose }: any) =>
+    isOpen ? (
+      <div data-testid="modal-encerrar">
+        <button onClick={onConfirm}>Confirmar Encerrar</button>
+        <button onClick={onClose}>Cancelar</button>
+      </div>
+    ) : null,
 }));
 
 import { ChavesSuperX } from "@/components/etapas/ChavesSuperX/ChavesSuperX";
@@ -184,6 +216,8 @@ describe("ChavesSuperX", () => {
     jest.clearAllMocks();
     mockBuscarGrupo.mockResolvedValue(mockGrupo);
     mockBuscarJogadores.mockResolvedValue(mockJogadores);
+    mockBuscarPartidas.mockResolvedValue([]);
+    mockEncerrarEtapa.mockResolvedValue(undefined);
   });
 
   describe("estado de loading", () => {
@@ -518,64 +552,6 @@ describe("ChavesSuperX", () => {
     });
   });
 
-  describe("toggle de partidas", () => {
-    it("deve mostrar botão Ver Partidas inicialmente", async () => {
-      render(
-        <ChavesSuperX
-          etapaId="etapa-1"
-          arenaId="arena-1"
-          varianteSuperX={VarianteSuperX.SUPER_8}
-        />
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText("Ver Partidas")).toBeInTheDocument();
-      });
-    });
-
-    it("deve mostrar partidas ao clicar em Ver Partidas", async () => {
-      render(
-        <ChavesSuperX
-          etapaId="etapa-1"
-          arenaId="arena-1"
-          varianteSuperX={VarianteSuperX.SUPER_8}
-        />
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText("Ver Partidas")).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText("Ver Partidas"));
-
-      expect(screen.getByTestId("partidas-super-x")).toBeInTheDocument();
-      expect(screen.getByText("▼ Ocultar Partidas")).toBeInTheDocument();
-    });
-
-    it("deve ocultar partidas ao clicar novamente", async () => {
-      render(
-        <ChavesSuperX
-          etapaId="etapa-1"
-          arenaId="arena-1"
-          varianteSuperX={VarianteSuperX.SUPER_8}
-        />
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText("Ver Partidas")).toBeInTheDocument();
-      });
-
-      // Mostrar partidas
-      fireEvent.click(screen.getByText("Ver Partidas"));
-      expect(screen.getByTestId("partidas-super-x")).toBeInTheDocument();
-
-      // Ocultar partidas
-      fireEvent.click(screen.getByText("▼ Ocultar Partidas"));
-      expect(screen.queryByTestId("partidas-super-x")).not.toBeInTheDocument();
-      expect(screen.getByText("Ver Partidas")).toBeInTheDocument();
-    });
-  });
-
   describe("card informativo", () => {
     it("deve mostrar informações sobre o formato Super 8", async () => {
       render(
@@ -682,6 +658,527 @@ describe("ChavesSuperX", () => {
         // Maria deve aparecer primeiro (15 pontos) antes de João (10 pontos)
         const items = screen.getAllByText(/Silva|Santos/);
         expect(items.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("deve desempatar por saldo de games quando pontos são iguais", async () => {
+      const jogadoresEmpatados = [
+        {
+          id: "j1",
+          jogadorId: "j1",
+          jogadorNome: "Jogador1",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 30,
+          gamesPerdidosGrupo: 26,
+          saldoGamesGrupo: 4, // Menor saldo
+          saldoSetsGrupo: 2,
+        },
+        {
+          id: "j2",
+          jogadorId: "j2",
+          jogadorNome: "Jogador2",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12, // Mesmos pontos
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 35,
+          gamesPerdidosGrupo: 25,
+          saldoGamesGrupo: 10, // Maior saldo
+          saldoSetsGrupo: 2,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresEmpatados);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Jogador[12]/);
+        expect(nomes[0].textContent).toBe("Jogador2");
+      });
+    });
+
+    it("deve desempatar por games vencidos quando saldo de games é igual", async () => {
+      const jogadoresEmpatados = [
+        {
+          id: "g1",
+          jogadorId: "g1",
+          jogadorNome: "GameA",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 30, // Menor
+          gamesPerdidosGrupo: 24,
+          saldoGamesGrupo: 6,
+          saldoSetsGrupo: 2,
+        },
+        {
+          id: "g2",
+          jogadorId: "g2",
+          jogadorNome: "GameB",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 36, // Maior
+          gamesPerdidosGrupo: 30,
+          saldoGamesGrupo: 6, // Igual
+          saldoSetsGrupo: 2,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresEmpatados);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Game[AB]/);
+        expect(nomes[0].textContent).toBe("GameB");
+      });
+    });
+
+    it("deve desempatar por saldo de sets quando games vencidos é igual", async () => {
+      const jogadoresEmpatados = [
+        {
+          id: "s1",
+          jogadorId: "s1",
+          jogadorNome: "SetA",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 30,
+          gamesPerdidosGrupo: 24,
+          saldoGamesGrupo: 6,
+          saldoSetsGrupo: 1, // Menor
+        },
+        {
+          id: "s2",
+          jogadorId: "s2",
+          jogadorNome: "SetB",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 30, // Igual
+          gamesPerdidosGrupo: 24,
+          saldoGamesGrupo: 6, // Igual
+          saldoSetsGrupo: 3, // Maior
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresEmpatados);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Set[AB]/);
+        expect(nomes[0].textContent).toBe("SetB");
+      });
+    });
+
+    it("deve desempatar por ordem alfabética quando tudo é igual", async () => {
+      const jogadoresIguais = [
+        {
+          id: "z1",
+          jogadorId: "z1",
+          jogadorNome: "Zeca",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 30,
+          gamesPerdidosGrupo: 24,
+          saldoGamesGrupo: 6,
+          saldoSetsGrupo: 2,
+        },
+        {
+          id: "a1",
+          jogadorId: "a1",
+          jogadorNome: "Abel",
+          jogadorNivel: "iniciante",
+          pontosGrupo: 12,
+          jogosGrupo: 5,
+          vitoriasGrupo: 4,
+          derrotasGrupo: 1,
+          gamesVencidosGrupo: 30,
+          gamesPerdidosGrupo: 24,
+          saldoGamesGrupo: 6,
+          saldoSetsGrupo: 2,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadoresIguais);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        const nomes = screen.getAllByText(/Abel|Zeca/);
+        expect(nomes[0].textContent).toBe("Abel");
+      });
+    });
+  });
+
+  describe("jogador sem nível ou com nível customizado", () => {
+    it("deve tratar jogador sem nível definido", async () => {
+      const jogadorSemNivel = [
+        {
+          id: "jog-sem-nivel",
+          jogadorId: "jog-sem-nivel",
+          jogadorNome: "Jogador Sem Nivel",
+          pontosGrupo: 3,
+          jogosGrupo: 1,
+          vitoriasGrupo: 1,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 6,
+          gamesPerdidosGrupo: 3,
+          saldoGamesGrupo: 3,
+          saldoSetsGrupo: 1,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadorSemNivel);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Jogador Sem Nivel")).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar nível customizado quando diferente das opções padrão", async () => {
+      const jogadorNivelCustom = [
+        {
+          id: "jog-custom",
+          jogadorId: "jog-custom",
+          jogadorNome: "Jogador Custom",
+          jogadorNivel: "profissional",
+          pontosGrupo: 3,
+          jogosGrupo: 1,
+          vitoriasGrupo: 1,
+          derrotasGrupo: 0,
+          gamesVencidosGrupo: 6,
+          gamesPerdidosGrupo: 3,
+          saldoGamesGrupo: 3,
+          saldoSetsGrupo: 1,
+        },
+      ];
+
+      mockBuscarJogadores.mockResolvedValue(jogadorNivelCustom);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Nivel: profissional")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("modal de resultados", () => {
+    it("deve abrir modal ao clicar em Registrar Resultados", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1" },
+      ]);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Registrar Resultados")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Registrar Resultados"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+    });
+
+    it("deve fechar modal ao clicar em Fechar", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1" },
+      ]);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("Registrar Resultados"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Fechar"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal-resultados")).not.toBeInTheDocument();
+      });
+    });
+
+    it("deve recarregar dados ao salvar resultados", async () => {
+      mockBuscarPartidas.mockResolvedValue([
+        { id: "partida-1" },
+      ]);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("Registrar Resultados"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-resultados")).toBeInTheDocument();
+      });
+
+      mockBuscarGrupo.mockClear();
+      mockBuscarJogadores.mockClear();
+
+      fireEvent.click(screen.getByText("Salvar"));
+
+      await waitFor(() => {
+        expect(mockBuscarGrupo).toHaveBeenCalled();
+        expect(mockBuscarJogadores).toHaveBeenCalled();
+      });
+    });
+
+    it("deve mostrar alerta ao erro ao carregar partidas", async () => {
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+      mockBuscarPartidas.mockRejectedValue(new Error("Erro ao carregar"));
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+        />
+      );
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("Registrar Resultados"));
+      });
+
+      await waitFor(() => {
+        expect(alertMock).toHaveBeenCalledWith("Erro ao carregar");
+      });
+
+      alertMock.mockRestore();
+    });
+  });
+
+  describe("encerrar etapa", () => {
+    it("deve mostrar botão de Encerrar Etapa quando todas as partidas estiverem finalizadas", async () => {
+      // Grupo com todas as partidas finalizadas (14/14 para Super 8)
+      const grupoFinalizado = {
+        ...mockGrupo,
+        partidasFinalizadas: 14,
+        totalPartidas: 14,
+      };
+      mockBuscarGrupo.mockResolvedValue(grupoFinalizado);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+          etapaFinalizada={false}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Encerrar Etapa")).toBeInTheDocument();
+      });
+    });
+
+    it("deve abrir modal de confirmação ao clicar em Encerrar Etapa", async () => {
+      const grupoFinalizado = {
+        ...mockGrupo,
+        partidasFinalizadas: 14,
+      };
+      mockBuscarGrupo.mockResolvedValue(grupoFinalizado);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+          etapaFinalizada={false}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Encerrar Etapa")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Encerrar Etapa"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-encerrar")).toBeInTheDocument();
+      });
+    });
+
+    it("deve encerrar etapa ao confirmar", async () => {
+      const onAtualizar = jest.fn();
+      const grupoFinalizado = {
+        ...mockGrupo,
+        partidasFinalizadas: 14,
+      };
+      mockBuscarGrupo.mockResolvedValue(grupoFinalizado);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+          etapaFinalizada={false}
+          onAtualizar={onAtualizar}
+        />
+      );
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("Encerrar Etapa"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-encerrar")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Confirmar Encerrar"));
+
+      await waitFor(() => {
+        expect(mockEncerrarEtapa).toHaveBeenCalledWith("etapa-1");
+        expect(onAtualizar).toHaveBeenCalled();
+      });
+    });
+
+    it("deve mostrar alerta ao erro ao encerrar etapa", async () => {
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+      mockEncerrarEtapa.mockRejectedValue(new Error("Erro ao encerrar"));
+
+      const grupoFinalizado = {
+        ...mockGrupo,
+        partidasFinalizadas: 14,
+      };
+      mockBuscarGrupo.mockResolvedValue(grupoFinalizado);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+          etapaFinalizada={false}
+        />
+      );
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("Encerrar Etapa"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-encerrar")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Confirmar Encerrar"));
+
+      await waitFor(() => {
+        expect(alertMock).toHaveBeenCalledWith("Erro ao encerrar");
+      });
+
+      alertMock.mockRestore();
+    });
+
+    it("deve fechar modal ao cancelar", async () => {
+      const grupoFinalizado = {
+        ...mockGrupo,
+        partidasFinalizadas: 14,
+      };
+      mockBuscarGrupo.mockResolvedValue(grupoFinalizado);
+
+      render(
+        <ChavesSuperX
+          etapaId="etapa-1"
+          arenaId="arena-1"
+          varianteSuperX={VarianteSuperX.SUPER_8}
+          etapaFinalizada={false}
+        />
+      );
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByText("Encerrar Etapa"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-encerrar")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Cancelar"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal-encerrar")).not.toBeInTheDocument();
       });
     });
   });

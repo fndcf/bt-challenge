@@ -12,42 +12,9 @@ const COLLECTION = "equipes";
 export class EquipeRepository implements IEquipeRepository {
   private collection = db.collection(COLLECTION);
 
-  async criar(dto: CriarEquipeDTO): Promise<Equipe> {
-    const agora = Timestamp.now();
-    const docRef = this.collection.doc();
-
-    // Calcular ordem baseado nas equipes existentes
-    const existentes = await this.buscarPorEtapa(dto.etapaId, dto.arenaId);
-    const ordem = existentes.length + 1;
-
-    const equipe: Omit<Equipe, "id"> = {
-      etapaId: dto.etapaId,
-      arenaId: dto.arenaId,
-      nome: dto.nome || `Equipe ${ordem}`,
-      ordem,
-      grupoId: dto.grupoId,
-      grupoNome: dto.grupoNome,
-      jogadores: dto.jogadores,
-      // Estatísticas zeradas
-      confrontos: 0,
-      vitorias: 0,
-      derrotas: 0,
-      pontos: 0,
-      jogosVencidos: 0,
-      jogosPerdidos: 0,
-      saldoJogos: 0,
-      gamesVencidos: 0,
-      gamesPerdidos: 0,
-      saldoGames: 0,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
-
-    await docRef.set(equipe);
-
-    return { id: docRef.id, ...equipe };
-  }
-
+  /**
+   * Criar equipes em lote (funciona para 1 ou mais)
+   */
   async criarEmLote(dtos: CriarEquipeDTO[]): Promise<Equipe[]> {
     const batch = db.batch();
     const agora = Timestamp.now();
@@ -100,7 +67,9 @@ export class EquipeRepository implements IEquipeRepository {
       .where("arenaId", "==", arenaId)
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Equipe));
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() } as Equipe)
+    );
   }
 
   async buscarPorEtapaOrdenadas(
@@ -113,14 +82,9 @@ export class EquipeRepository implements IEquipeRepository {
       .orderBy("ordem", "asc")
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Equipe));
-  }
-
-  async atualizar(id: string, dados: Partial<Equipe>): Promise<void> {
-    await this.collection.doc(id).update({
-      ...dados,
-      atualizadoEm: Timestamp.now(),
-    });
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() } as Equipe)
+    );
   }
 
   async deletar(id: string): Promise<void> {
@@ -148,44 +112,8 @@ export class EquipeRepository implements IEquipeRepository {
     });
   }
 
-  async incrementarEstatisticas(
-    id: string,
-    incrementos: Partial<AtualizarEstatisticasEquipeDTO>
-  ): Promise<void> {
-    const updates: Record<string, any> = {
-      atualizadoEm: Timestamp.now(),
-    };
-
-    if (incrementos.confrontos !== undefined) {
-      updates.confrontos = FieldValue.increment(incrementos.confrontos);
-    }
-    if (incrementos.vitorias !== undefined) {
-      updates.vitorias = FieldValue.increment(incrementos.vitorias);
-    }
-    if (incrementos.derrotas !== undefined) {
-      updates.derrotas = FieldValue.increment(incrementos.derrotas);
-    }
-    if (incrementos.pontos !== undefined) {
-      updates.pontos = FieldValue.increment(incrementos.pontos);
-    }
-    if (incrementos.jogosVencidos !== undefined) {
-      updates.jogosVencidos = FieldValue.increment(incrementos.jogosVencidos);
-    }
-    if (incrementos.jogosPerdidos !== undefined) {
-      updates.jogosPerdidos = FieldValue.increment(incrementos.jogosPerdidos);
-    }
-    if (incrementos.gamesVencidos !== undefined) {
-      updates.gamesVencidos = FieldValue.increment(incrementos.gamesVencidos);
-    }
-    if (incrementos.gamesPerdidos !== undefined) {
-      updates.gamesPerdidos = FieldValue.increment(incrementos.gamesPerdidos);
-    }
-
-    await this.collection.doc(id).update(updates);
-  }
-
   /**
-   * ✅ OTIMIZAÇÃO v3: Incrementar estatísticas E saldos de múltiplas equipes em batch
+   * Incrementar estatísticas de equipes em lote (funciona para 1 ou mais)
    * Saldos são calculados automaticamente baseado nos incrementos de jogos/games
    */
   async incrementarEstatisticasEmLote(
@@ -230,7 +158,6 @@ export class EquipeRepository implements IEquipeRepository {
         updates.gamesPerdidos = FieldValue.increment(incrementos.gamesPerdidos);
       }
 
-      // ✅ OTIMIZAÇÃO v3: Calcular saldos automaticamente usando increment
       // saldoJogos = jogosVencidos - jogosPerdidos
       // saldoGames = gamesVencidos - gamesPerdidos
       const saldoJogosIncrement =
@@ -252,7 +179,7 @@ export class EquipeRepository implements IEquipeRepository {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Buscar múltiplas equipes por IDs em paralelo
+   *  Buscar múltiplas equipes por IDs em paralelo
    */
   async buscarPorIds(ids: string[]): Promise<Equipe[]> {
     if (ids.length === 0) return [];
@@ -266,7 +193,7 @@ export class EquipeRepository implements IEquipeRepository {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Atualizar múltiplas equipes em batch (para saldos)
+   * Atualizar múltiplas equipes em batch (para saldos)
    */
   async atualizarEmLote(
     atualizacoes: Array<{ id: string; dados: Partial<Equipe> }>
@@ -287,15 +214,8 @@ export class EquipeRepository implements IEquipeRepository {
     await batch.commit();
   }
 
-  async atualizarPosicao(id: string, posicao: number): Promise<void> {
-    await this.collection.doc(id).update({
-      posicao,
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
   /**
-   * ✅ OTIMIZAÇÃO: Atualizar posições de múltiplas equipes em um único batch
+   * Atualizar posições de equipes em lote (funciona para 1 ou mais)
    */
   async atualizarPosicoesEmLote(
     atualizacoes: Array<{ id: string; posicao: number }>
@@ -334,7 +254,9 @@ export class EquipeRepository implements IEquipeRepository {
       .orderBy("posicao", "asc")
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Equipe));
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() } as Equipe)
+    );
   }
 
   /**

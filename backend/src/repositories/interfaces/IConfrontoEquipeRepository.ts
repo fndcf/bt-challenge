@@ -10,7 +10,6 @@ import { FaseEtapa } from "../../models/Etapa";
  */
 export interface IConfrontoEquipeRepository {
   // CRUD básico
-  criar(dto: CriarConfrontoDTO): Promise<ConfrontoEquipe>;
   criarEmLote(dtos: CriarConfrontoDTO[]): Promise<ConfrontoEquipe[]>;
   buscarPorId(id: string): Promise<ConfrontoEquipe | null>;
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<ConfrontoEquipe[]>;
@@ -46,7 +45,6 @@ export interface IConfrontoEquipeRepository {
   atualizarStatus(id: string, status: StatusConfronto): Promise<void>;
 
   // Partidas
-  adicionarPartida(confrontoId: string, partidaId: string): Promise<void>;
   adicionarPartidasEmLote(confrontoId: string, partidaIds: string[]): Promise<void>;
   incrementarPartidasFinalizadas(confrontoId: string): Promise<void>;
   atualizarContadorJogos(

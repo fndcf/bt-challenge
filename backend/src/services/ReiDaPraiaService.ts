@@ -1441,35 +1441,35 @@ export class ReiDaPraiaService {
       }
     }
 
-    // FASE 2: Criar todos os confrontos em paralelo
-    const confrontosCriados = await Promise.all(
-      confrontosParaCriar.map((c) => {
-        if (c.tipo === "bye") {
-          return this.confrontoRepository.criar({
-            etapaId,
-            arenaId,
-            fase: determinarTipoFase(totalDuplas),
-            ordem: c.ordem,
-            dupla1Id: c.dupla1.id,
-            dupla1Nome: `${c.dupla1.jogador1Nome} & ${c.dupla1.jogador2Nome}`,
-            dupla1Origem: `Dupla ${c.dupla1Index + 1}`,
-          });
-        } else {
-          return this.confrontoRepository.criar({
-            etapaId,
-            arenaId,
-            fase: determinarTipoFase(totalDuplas),
-            ordem: c.ordem,
-            dupla1Id: c.dupla1.id,
-            dupla1Nome: `${c.dupla1.jogador1Nome} & ${c.dupla1.jogador2Nome}`,
-            dupla1Origem: `Dupla ${c.dupla1Index + 1}`,
-            dupla2Id: c.dupla2!.id,
-            dupla2Nome: `${c.dupla2!.jogador1Nome} & ${c.dupla2!.jogador2Nome}`,
-            dupla2Origem: `Dupla ${c.dupla2Index! + 1}`,
-          });
-        }
-      })
-    );
+    // FASE 2: Criar todos os confrontos em lote
+    const fase = determinarTipoFase(totalDuplas);
+    const confrontoDTOs = confrontosParaCriar.map((c) => {
+      if (c.tipo === "bye") {
+        return {
+          etapaId,
+          arenaId,
+          fase,
+          ordem: c.ordem,
+          dupla1Id: c.dupla1.id,
+          dupla1Nome: `${c.dupla1.jogador1Nome} & ${c.dupla1.jogador2Nome}`,
+          dupla1Origem: `Dupla ${c.dupla1Index + 1}`,
+        };
+      } else {
+        return {
+          etapaId,
+          arenaId,
+          fase,
+          ordem: c.ordem,
+          dupla1Id: c.dupla1.id,
+          dupla1Nome: `${c.dupla1.jogador1Nome} & ${c.dupla1.jogador2Nome}`,
+          dupla1Origem: `Dupla ${c.dupla1Index + 1}`,
+          dupla2Id: c.dupla2!.id,
+          dupla2Nome: `${c.dupla2!.jogador1Nome} & ${c.dupla2!.jogador2Nome}`,
+          dupla2Origem: `Dupla ${c.dupla2Index! + 1}`,
+        };
+      }
+    });
+    const confrontosCriados = await this.confrontoRepository.criarEmLote(confrontoDTOs);
 
     // FASE 3: Registrar resultados dos BYEs em paralelo
     const byePromises: Promise<ConfrontoEliminatorio>[] = [];

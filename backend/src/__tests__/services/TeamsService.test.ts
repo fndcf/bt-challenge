@@ -71,11 +71,9 @@ describe("TeamsService", () => {
     deletar: jest.fn(),
     deletarPorEtapa: jest.fn(),
     atualizarEstatisticas: jest.fn(),
-    incrementarEstatisticas: jest.fn(),
     incrementarEstatisticasEmLote: jest.fn(),
     buscarPorIds: jest.fn(),
     atualizarEmLote: jest.fn(),
-    atualizarPosicao: jest.fn(),
     atualizarPosicoesEmLote: jest.fn(),
     marcarClassificada: jest.fn(),
     buscarClassificadas: jest.fn(),
@@ -586,13 +584,13 @@ describe("TeamsService", () => {
         arenaId: TEST_ARENA_ID,
         nome: "Equipe 1",
       });
-      mockEquipeRepository.atualizar.mockResolvedValue(undefined);
+      mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
 
       await service.renomearEquipe("equipe-1", "Os Campeoes", TEST_ARENA_ID);
 
-      expect(mockEquipeRepository.atualizar).toHaveBeenCalledWith("equipe-1", {
-        nome: "Os Campeoes",
-      });
+      expect(mockEquipeRepository.atualizarEmLote).toHaveBeenCalledWith([
+        { id: "equipe-1", dados: { nome: "Os Campeoes" } },
+      ]);
     });
   });
 
@@ -623,7 +621,7 @@ describe("TeamsService", () => {
       mockConfrontoRepository.buscarPorEtapa.mockResolvedValue(confrontos);
       mockConfrontoRepository.resetarConfronto.mockResolvedValue(undefined);
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
-      mockEquipeRepository.atualizar.mockResolvedValue(undefined);
+      mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
       mockEstatisticasService.criar.mockResolvedValue(undefined);
 
       await service.resetarPartidas(TEST_ETAPA_ID, TEST_ARENA_ID);
@@ -633,7 +631,7 @@ describe("TeamsService", () => {
         TEST_ARENA_ID
       );
       expect(mockConfrontoRepository.resetarConfronto).toHaveBeenCalledTimes(2);
-      expect(mockEquipeRepository.atualizar).toHaveBeenCalledTimes(2);
+      expect(mockEquipeRepository.atualizarEmLote).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1129,14 +1127,14 @@ describe("TeamsService", () => {
         isDecider: true,
       };
 
-      mockPartidaRepository.criar.mockResolvedValue(partidaDecider);
+      mockPartidaRepository.criarEmLote.mockResolvedValue([partidaDecider]);
       mockConfrontoRepository.adicionarPartida.mockResolvedValue(undefined);
       mockConfrontoRepository.marcarTemDecider.mockResolvedValue(undefined);
 
       const result = await service.gerarDecider(confronto as any, etapa as any);
 
       expect(result.tipoJogo).toBe(TipoJogoTeams.DECIDER);
-      expect(mockPartidaRepository.criar).toHaveBeenCalled();
+      expect(mockPartidaRepository.criarEmLote).toHaveBeenCalled();
       expect(mockConfrontoRepository.marcarTemDecider).toHaveBeenCalledWith("confronto-1", true);
     });
 
@@ -1188,7 +1186,7 @@ describe("TeamsService", () => {
 
       const partidaDecider = { id: "partida-decider", tipoJogo: TipoJogoTeams.DECIDER };
 
-      mockPartidaRepository.criar.mockResolvedValue(partidaDecider);
+      mockPartidaRepository.criarEmLote.mockResolvedValue([partidaDecider]);
       mockConfrontoRepository.adicionarPartida.mockResolvedValue(undefined);
       mockConfrontoRepository.marcarTemDecider.mockResolvedValue(undefined);
 
@@ -1225,7 +1223,7 @@ describe("TeamsService", () => {
 
       const partidaDecider = { id: "partida-decider", tipoJogo: TipoJogoTeams.DECIDER };
 
-      mockPartidaRepository.criar.mockResolvedValue(partidaDecider);
+      mockPartidaRepository.criarEmLote.mockResolvedValue([partidaDecider]);
       mockConfrontoRepository.adicionarPartida.mockResolvedValue(undefined);
       mockConfrontoRepository.marcarTemDecider.mockResolvedValue(undefined);
 
@@ -1465,8 +1463,8 @@ describe("TeamsService", () => {
       mockEquipeRepository.buscarPorEtapaOrdenadas.mockResolvedValue(equipes);
       mockConfrontoRepository.criarEmLote
         .mockResolvedValueOnce(confrontosGrupos)
+        .mockResolvedValueOnce([confrontoFinal])  // Final
         .mockResolvedValueOnce(semifinais);
-      mockConfrontoRepository.criar.mockResolvedValue(confrontoFinal);
       mockPartidaRepository.criarEmLote.mockResolvedValue([]);
 
       const result = await service.gerarConfrontos(etapa as any, TipoFormacaoJogos.SORTEIO);
@@ -2089,14 +2087,14 @@ describe("TeamsService", () => {
       mockEquipeRepository.buscarPorEtapaOrdenadas.mockResolvedValue(equipes);
       mockConfrontoRepository.criarEmLote
         .mockResolvedValueOnce(confrontosGrupos)
+        .mockResolvedValueOnce([confrontoFinal])  // Final
         .mockResolvedValueOnce(semifinais);
-      mockConfrontoRepository.criar.mockResolvedValue(confrontoFinal);
       mockPartidaRepository.criarEmLote.mockResolvedValue([]);
 
       const result = await service.gerarConfrontos(etapa as any, TipoFormacaoJogos.SORTEIO);
 
       expect(result.length).toBeGreaterThan(0);
-      expect(mockConfrontoRepository.criar).toHaveBeenCalled(); // Final
+      expect(mockConfrontoRepository.criarEmLote).toHaveBeenCalled();
     });
 
     it("deve gerar fase eliminatoria para 3 grupos (9 equipes)", async () => {
@@ -2135,9 +2133,9 @@ describe("TeamsService", () => {
       mockEquipeRepository.buscarPorEtapaOrdenadas.mockResolvedValue(equipes);
       mockConfrontoRepository.criarEmLote
         .mockResolvedValueOnce(confrontosGrupos)
+        .mockResolvedValueOnce([confrontoFinal])  // Final
         .mockResolvedValueOnce(semifinais)
         .mockResolvedValueOnce(quartas);
-      mockConfrontoRepository.criar.mockResolvedValue(confrontoFinal);
       mockPartidaRepository.criarEmLote.mockResolvedValue([]);
 
       const result = await service.gerarConfrontos(etapa as any, TipoFormacaoJogos.SORTEIO);
@@ -2181,9 +2179,9 @@ describe("TeamsService", () => {
       mockEquipeRepository.buscarPorEtapaOrdenadas.mockResolvedValue(equipes);
       mockConfrontoRepository.criarEmLote
         .mockResolvedValueOnce(confrontosGrupos)
+        .mockResolvedValueOnce([confrontoFinal])  // Final
         .mockResolvedValueOnce(semifinais)
         .mockResolvedValueOnce(quartas);
-      mockConfrontoRepository.criar.mockResolvedValue(confrontoFinal);
       mockPartidaRepository.criarEmLote.mockResolvedValue([]);
 
       const result = await service.gerarConfrontos(etapa as any, TipoFormacaoJogos.SORTEIO);

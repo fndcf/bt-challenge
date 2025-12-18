@@ -254,15 +254,6 @@ export interface GerarEquipesResponse {
 }
 
 /**
- * Resposta do registro de resultado
- */
-export interface RegistrarResultadoResponse {
-  message: string;
-  precisaDecider: boolean;
-  confrontoFinalizado: boolean;
-}
-
-/**
  * Resposta do registro de resultados em lote
  */
 export interface RegistrarResultadosEmLoteResponse {
