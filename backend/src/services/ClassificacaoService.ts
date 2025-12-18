@@ -46,10 +46,9 @@ export class ClassificacaoService implements IClassificacaoService {
    * CRITÉRIOS DE DESEMPATE (em ordem):
    * Pontos (vitórias * 3)
    * Saldo de games
-   * Confronto direto (apenas 2 duplas empatadas)
-   * Saldo de sets
+   * Confronto direto (apenas quando 2 duplas empatadas)
    * Games vencidos
-   * Sorteio (3+ duplas empatadas em todos critérios)
+   * Sorteio
    */
   async recalcularClassificacaoGrupo(grupoId: string): Promise<void> {
     try {
@@ -150,22 +149,13 @@ export class ClassificacaoService implements IClassificacaoService {
         if (confrontoDireto.vencedora === b.id) return 1;
       }
 
-      // Saldo de sets (maior melhor)
-      if (a.saldoSets !== b.saldoSets) {
-        return b.saldoSets - a.saldoSets;
-      }
-
       // Games vencidos (maior melhor)
       if (a.gamesVencidos !== b.gamesVencidos) {
         return b.gamesVencidos - a.gamesVencidos;
       }
 
-      // Sorteio (3+ duplas empatadas em tudo)
-      if (duplasEmpatadas.length >= 3) {
-        return Math.random() - 0.5;
-      }
-
-      return 0;
+      // Sorteio como último critério
+      return Math.random() - 0.5;
     });
   }
 

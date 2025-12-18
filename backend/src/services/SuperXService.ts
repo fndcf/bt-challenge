@@ -429,16 +429,16 @@ export class SuperXService {
         ]);
 
         // Ordenar e atualizar posições
+        // Critérios: Pontos → Saldo Games → Games vencidos → Sorteio
         const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
           if (a.pontosGrupo !== b.pontosGrupo)
             return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
           if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
             return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
-          if (a.saldoSetsGrupo !== b.saldoSetsGrupo)
-            return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
           if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
             return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
-          return 0;
+          // Sorteio como último critério
+          return Math.random() - 0.5;
         });
 
         const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
@@ -740,18 +740,18 @@ export class SuperXService {
               this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId),
             ]);
 
+            // Critérios: Pontos → Saldo Games → Games vencidos → Sorteio
             const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
               if (a.pontosGrupo !== b.pontosGrupo)
                 return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
               if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
                 return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
-              if (a.saldoSetsGrupo !== b.saldoSetsGrupo)
-                return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
               if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
                 return (
                   (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0)
                 );
-              return 0;
+              // Sorteio como último critério
+              return Math.random() - 0.5;
             });
 
             const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({

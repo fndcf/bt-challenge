@@ -807,6 +807,12 @@ export class ReiDaPraiaService {
 
   /**
    * Recalcular classificação do grupo
+   *
+   * CRITÉRIOS DE DESEMPATE (em ordem):
+   * Pontos (vitórias * 3)
+   * Saldo de games
+   * Games vencidos
+   * Sorteio
    */
   private async recalcularClassificacaoGrupo(
     grupoId: string,
@@ -827,10 +833,8 @@ export class ReiDaPraiaService {
       if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
         return b.gamesVencidosGrupo - a.gamesVencidosGrupo;
       }
-      if (a.saldoSetsGrupo !== b.saldoSetsGrupo) {
-        return b.saldoSetsGrupo - a.saldoSetsGrupo;
-      }
-      return 0;
+      // Sorteio como último critério
+      return Math.random() - 0.5;
     });
 
     // Atualizar posição de cada jogador

@@ -38,15 +38,31 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
 
   /**
    * Recalcula a classificação de todas as equipes da etapa
-   * Ordenando por critérios de desempate
+   *
+   * CRITÉRIOS DE DESEMPATE (em ordem):
+   * Pontos
+   * Saldo de jogos
+   * Saldo de games
+   * Confronto direto (apenas quando 2 equipes empatadas)
+   * Games vencidos
+   * Sorteio
    */
   async recalcularClassificacao(
     etapaId: string,
     arenaId: string
   ): Promise<Equipe[]> {
-    const equipes = await this.equipeRepository.buscarPorEtapa(
-      etapaId,
-      arenaId
+    // Buscar equipes e confrontos da fase de grupos
+    const [equipes, todosConfrontosGrupos] = await Promise.all([
+      this.equipeRepository.buscarPorEtapa(etapaId, arenaId),
+      this.confrontoRepository.buscarPorFase(
+        etapaId,
+        arenaId,
+        FaseEtapa.GRUPOS
+      ),
+    ]);
+    // Filtrar apenas confrontos finalizados para confronto direto
+    const confrontosGrupos = todosConfrontosGrupos.filter(
+      (c) => c.status === StatusConfronto.FINALIZADO
     );
 
     // Ordenar por critérios de desempate
@@ -57,11 +73,31 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
       if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
       // Saldo de games (desc)
       if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
+
+      // Verificar quantas equipes estão empatadas nestes critérios
+      const equipesEmpatadas = equipes.filter(
+        (e: Equipe) =>
+          e.pontos === a.pontos &&
+          e.saldoJogos === a.saldoJogos &&
+          e.saldoGames === a.saldoGames
+      );
+
+      // Confronto direto (apenas se 2 equipes empatadas)
+      if (equipesEmpatadas.length === 2) {
+        const confrontoDireto = this.verificarConfrontoDireto(
+          confrontosGrupos,
+          a.id,
+          b.id
+        );
+        if (confrontoDireto === a.id) return -1;
+        if (confrontoDireto === b.id) return 1;
+      }
+
       // Games vencidos (desc)
       if (b.gamesVencidos !== a.gamesVencidos)
         return b.gamesVencidos - a.gamesVencidos;
-      // Nome (asc) como último critério
-      return a.nome.localeCompare(b.nome);
+      // Sorteio como último critério
+      return Math.random() - 0.5;
     });
 
     // Atualizar todas as posições em um único batch
@@ -129,7 +165,9 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
         if (b.pontos !== a.pontos) return b.pontos - a.pontos;
         if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
         if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
-        return b.gamesVencidos - a.gamesVencidos;
+        if (b.gamesVencidos !== a.gamesVencidos)
+          return b.gamesVencidos - a.gamesVencidos;
+        return Math.random() - 0.5;
       });
     }
 
@@ -335,6 +373,28 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
     }
 
     return null;
+  }
+
+  /**
+   * Verifica confronto direto entre duas equipes
+   * Retorna o ID da equipe vencedora ou null se não houve confronto
+   */
+  private verificarConfrontoDireto(
+    confrontos: ConfrontoEquipe[],
+    equipe1Id: string,
+    equipe2Id: string
+  ): string | null {
+    const confronto = confrontos.find(
+      (c) =>
+        (c.equipe1Id === equipe1Id && c.equipe2Id === equipe2Id) ||
+        (c.equipe1Id === equipe2Id && c.equipe2Id === equipe1Id)
+    );
+
+    if (!confronto || !confronto.vencedoraId) {
+      return null;
+    }
+
+    return confronto.vencedoraId;
   }
 }
 
