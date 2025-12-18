@@ -62,7 +62,7 @@ export class DuplaService implements IDuplaService {
         arenaId,
         etapaId
       );
-      tempos["1_obterCabecas"] = Date.now() - inicio;
+      tempos["obterCabecas"] = Date.now() - inicio;
 
       // Separar cabeças de chave dos jogadores normais
       inicio = Date.now();
@@ -76,7 +76,7 @@ export class DuplaService implements IDuplaService {
           normais.push(inscricao);
         }
       }
-      tempos["2_separarCabecas"] = Date.now() - inicio;
+      tempos["separarCabecas"] = Date.now() - inicio;
 
       // Verificar estatísticas de combinações
       inicio = Date.now();
@@ -84,7 +84,7 @@ export class DuplaService implements IDuplaService {
         arenaId,
         etapaId
       );
-      tempos["3_calcularEstatisticas"] = Date.now() - inicio;
+      tempos["calcularEstatisticas"] = Date.now() - inicio;
 
       let duplas: Dupla[];
 
@@ -101,10 +101,9 @@ export class DuplaService implements IDuplaService {
           normais
         );
       }
-      tempos["4_formarDuplas"] = Date.now() - inicio;
+      tempos["formarDuplas"] = Date.now() - inicio;
 
       // Registrar histórico de duplas formadas
-      // ✅ OTIMIZAÇÃO v2: Usar registrarEmLote ao invés de loop sequencial
       inicio = Date.now();
       const historicosDTOs = duplas.map((dupla) => ({
         arenaId,
@@ -119,7 +118,7 @@ export class DuplaService implements IDuplaService {
           cabecasIds.includes(dupla.jogador2Id),
       }));
       await historicoDuplaService.registrarEmLote(historicosDTOs);
-      tempos["5_registrarHistorico"] = Date.now() - inicio;
+      tempos["registrarHistorico"] = Date.now() - inicio;
 
       tempos["TOTAL"] = Date.now() - inicioTotal;
 
@@ -146,7 +145,6 @@ export class DuplaService implements IDuplaService {
   /**
    * Formar duplas protegendo cabeças de chave
    * Cabeças de chave são pareadas com jogadores normais
-   * ✅ OTIMIZAÇÃO v3: Usar criarEmLote ao invés de criar sequencialmente
    */
   private async formarDuplasProtegendoCabecas(
     etapaId: string,
@@ -191,18 +189,19 @@ export class DuplaService implements IDuplaService {
       if (i + 1 < normaisRestantes.length) {
         const jogador1 = normaisRestantes[i];
         const jogador2 = normaisRestantes[i + 1];
-        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, jogador1, jogador2));
+        duplaDTOs.push(
+          this.montarDuplaDTO(etapaId, arenaId, jogador1, jogador2)
+        );
       }
     }
 
-    // ✅ Criar todas as duplas em uma única operação batch
+    // Criar todas as duplas em uma única operação batch
     return this.repository.criarEmLote(duplaDTOs);
   }
 
   /**
    * Formar duplas livremente (sem proteção de cabeças)
    * Usado quando todas combinações de cabeças já foram feitas
-   * ✅ OTIMIZAÇÃO v3: Usar criarEmLote ao invés de criar sequencialmente
    */
   private async formarDuplasLivre(
     etapaId: string,
@@ -224,7 +223,7 @@ export class DuplaService implements IDuplaService {
       duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, jogador1, jogador2));
     }
 
-    // ✅ Criar todas as duplas em uma única operação batch
+    // Criar todas as duplas em uma única operação batch
     return this.repository.criarEmLote(duplaDTOs);
   }
 

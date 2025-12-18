@@ -336,7 +336,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         etapaId,
         arenaId
       );
-      tempos["1_buscarGrupos"] = Date.now() - inicio;
+      tempos["buscarGrupos"] = Date.now() - inicio;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo encontrado");
@@ -411,7 +411,9 @@ export class EliminatoriaService implements IEliminatoriaService {
 
       // Marcar duplas em paralelo
       await Promise.all(
-        classificados.map((c) => this.duplaRepo.marcarClassificada(c.dupla.id, true))
+        classificados.map((c) =>
+          this.duplaRepo.marcarClassificada(c.dupla.id, true)
+        )
       );
 
       // Marcar jogadores em lote
@@ -572,8 +574,12 @@ export class EliminatoriaService implements IEliminatoriaService {
             dupla1Nome: `${c.classificado1.dupla.jogador1Nome} & ${c.classificado1.dupla.jogador2Nome}`,
             dupla1Origem: `${c.classificado1.posicaoGrupo}º ${c.classificado1.grupoNome}`,
             dupla2Id: c.classificado2!.dupla.id,
-            dupla2Nome: `${c.classificado2!.dupla.jogador1Nome} & ${c.classificado2!.dupla.jogador2Nome}`,
-            dupla2Origem: `${c.classificado2!.posicaoGrupo}º ${c.classificado2!.grupoNome}`,
+            dupla2Nome: `${c.classificado2!.dupla.jogador1Nome} & ${
+              c.classificado2!.dupla.jogador2Nome
+            }`,
+            dupla2Origem: `${c.classificado2!.posicaoGrupo}º ${
+              c.classificado2!.grupoNome
+            }`,
             status: StatusConfrontoEliminatorio.AGENDADA,
           });
         }
@@ -613,7 +619,9 @@ export class EliminatoriaService implements IEliminatoriaService {
         logger.debug("Confronto criado", {
           ordem: config.ordem,
           dupla1: `${config.classificado1.posicaoGrupo}º ${config.classificado1.grupoNome}`,
-          dupla2: `${config.classificado2!.posicaoGrupo}º ${config.classificado2!.grupoNome}`,
+          dupla2: `${config.classificado2!.posicaoGrupo}º ${
+            config.classificado2!.grupoNome
+          }`,
         });
       }
     }
@@ -641,7 +649,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         confrontoId,
         arenaId
       );
-      timings["1_buscarConfronto"] = Date.now() - start;
+      timings["buscarConfronto"] = Date.now() - start;
 
       if (!confronto) {
         throw new Error("Confronto não encontrado");
@@ -730,7 +738,10 @@ export class EliminatoriaService implements IEliminatoriaService {
       timings["6_avancarVencedor"] = Date.now() - start;
 
       timings["TOTAL"] = Date.now() - startTotal;
-      logger.info("⏱️ TIMING registrarResultadoEliminatorio", { timings, confrontoId });
+      logger.info("⏱️ TIMING registrarResultadoEliminatorio", {
+        timings,
+        confrontoId,
+      });
 
       logger.info("Resultado eliminatório registrado", {
         confrontoId,
@@ -1166,7 +1177,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         etapaId,
         arenaId
       );
-      tempos["1_buscarConfrontos"] = Date.now() - inicio;
+      tempos["buscarConfrontos"] = Date.now() - inicio;
 
       if (confrontos.length === 0) {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");

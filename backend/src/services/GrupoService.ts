@@ -139,7 +139,6 @@ export class GrupoService implements IGrupoService {
       tempos["3_distribuirDuplas"] = Date.now() - inicio;
 
       // 3. Criar grupos no banco de dados
-      // ✅ OTIMIZAÇÃO v3: Criar todos os grupos em batch
       inicio = Date.now();
 
       // 3.1 Preparar DTOs e criar todos os grupos em batch
@@ -276,7 +275,10 @@ export class GrupoService implements IGrupoService {
   /**
    * Adicionar partidas ao grupo em lote (funciona para 1 ou mais)
    */
-  async adicionarPartidasEmLote(grupoId: string, partidaIds: string[]): Promise<void> {
+  async adicionarPartidasEmLote(
+    grupoId: string,
+    partidaIds: string[]
+  ): Promise<void> {
     await this.grupoRepo.adicionarPartidasEmLote(grupoId, partidaIds);
   }
 

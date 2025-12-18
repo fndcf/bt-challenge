@@ -118,8 +118,7 @@ export class HistoricoDuplaService {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Registrar múltiplas duplas em lote (batch)
-   * Usado na geração de chaves onde não há duplicatas possíveis
+   *  Registrar múltiplas duplas em lote (batch)
    */
   async registrarEmLote(
     dtos: CriarHistoricoDuplaDTO[]

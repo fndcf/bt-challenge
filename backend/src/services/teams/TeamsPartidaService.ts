@@ -125,7 +125,6 @@ export class TeamsPartidaService implements ITeamsPartidaService {
 
   /**
    * Gera partidas para múltiplos confrontos em batch
-   * Usado na geração inicial de confrontos para otimização
    */
   async gerarPartidasParaConfrontosBatch(
     confrontos: ConfrontoEquipe[],
@@ -526,7 +525,9 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     timings["3_criarPartida"] = Date.now() - start;
 
     start = Date.now();
-    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, [partida.id]);
+    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, [
+      partida.id,
+    ]);
     timings["4_adicionarPartidaConfronto"] = Date.now() - start;
 
     start = Date.now();
@@ -870,9 +871,12 @@ export class TeamsPartidaService implements ITeamsPartidaService {
 
     const partidas = await this.partidaRepository.criarEmLote(partidaDTOs);
 
-    // Adiciona todas as partidas de uma vez (otimização)
+    // Adiciona todas as partidas de uma vez
     const partidaIds = partidas.map((p) => p.id);
-    await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, partidaIds);
+    await this.confrontoRepository.adicionarPartidasEmLote(
+      confronto.id,
+      partidaIds
+    );
 
     return partidas;
   }
@@ -951,7 +955,9 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     const dupla1Key = dupla1Ids.join("-");
     if (duplasUsadas.has(dupla1Key)) {
       throw new ValidationError(
-        `A dupla ${dupla1Jogadores.map((j) => j.nome).join(" / ")} já jogou neste confronto`
+        `A dupla ${dupla1Jogadores
+          .map((j) => j.nome)
+          .join(" / ")} já jogou neste confronto`
       );
     }
 
@@ -959,7 +965,9 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     const dupla2Key = dupla2Ids.join("-");
     if (duplasUsadas.has(dupla2Key)) {
       throw new ValidationError(
-        `A dupla ${dupla2Jogadores.map((j) => j.nome).join(" / ")} já jogou neste confronto`
+        `A dupla ${dupla2Jogadores
+          .map((j) => j.nome)
+          .join(" / ")} já jogou neste confronto`
       );
     }
   }

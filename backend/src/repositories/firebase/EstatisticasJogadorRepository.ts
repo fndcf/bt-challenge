@@ -480,7 +480,6 @@ export class EstatisticasJogadorRepository
 
   /**
    * Atualizar pontuação em lote (batch write)
-   * Otimização: atualiza múltiplas estatísticas em uma única operação
    */
   async atualizarPontuacaoEmLote(
     items: AtualizarPontuacaoEmLoteDTO[]

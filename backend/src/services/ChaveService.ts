@@ -114,12 +114,12 @@ export class ChaveService implements IChaveService {
         throw new Error("Etapa não encontrada");
       }
       this.validarEtapaParaGeracaoChaves(etapa);
-      tempos["1_buscarEtapa"] = Date.now() - inicio;
+      tempos["buscarEtapa"] = Date.now() - inicio;
 
       // 2. Buscar inscrições
       inicio = Date.now();
       const inscricoes = await etapaService.listarInscricoes(etapaId, arenaId);
-      tempos["2_buscarInscricoes"] = Date.now() - inicio;
+      tempos["buscarInscricoes"] = Date.now() - inicio;
 
       // 3. Formar duplas
       inicio = Date.now();
@@ -129,7 +129,7 @@ export class ChaveService implements IChaveService {
         arenaId,
         inscricoes
       );
-      tempos["3_formarDuplas"] = Date.now() - inicio;
+      tempos["formarDuplas"] = Date.now() - inicio;
 
       // 4. Criar estatísticas dos jogadores
       inicio = Date.now();
@@ -156,7 +156,7 @@ export class ChaveService implements IChaveService {
         },
       ]);
       await estatisticasJogadorService.criarEmLote(estatisticasDTOs);
-      tempos["4_criarEstatisticas"] = Date.now() - inicio;
+      tempos["criarEstatisticas"] = Date.now() - inicio;
 
       // 5. Criar grupos
       inicio = Date.now();
@@ -166,7 +166,7 @@ export class ChaveService implements IChaveService {
         duplas,
         etapa.jogadoresPorGrupo
       );
-      tempos["5_criarGrupos"] = Date.now() - inicio;
+      tempos["criarGrupos"] = Date.now() - inicio;
 
       // 6. Gerar partidas
       inicio = Date.now();
@@ -175,7 +175,7 @@ export class ChaveService implements IChaveService {
         arenaId,
         grupos
       );
-      tempos["6_gerarPartidas"] = Date.now() - inicio;
+      tempos["gerarPartidas"] = Date.now() - inicio;
 
       // 7. Atualizar status da etapa
       inicio = Date.now();
@@ -185,7 +185,7 @@ export class ChaveService implements IChaveService {
         status: StatusEtapa.CHAVES_GERADAS,
         atualizadoEm: Timestamp.now(),
       });
-      tempos["7_atualizarEtapa"] = Date.now() - inicio;
+      tempos["atualizarEtapa"] = Date.now() - inicio;
 
       tempos["TOTAL"] = Date.now() - inicioTotal;
 
@@ -330,7 +330,11 @@ export class ChaveService implements IChaveService {
       logger.info("Chaves excluídas", { etapaId, arenaId });
     } catch (error: any) {
       timings["TOTAL"] = Date.now() - startTotal;
-      logger.error("Erro ao excluir chaves", { etapaId, arenaId, timings }, error);
+      logger.error(
+        "Erro ao excluir chaves",
+        { etapaId, arenaId, timings },
+        error
+      );
       throw error;
     }
   }

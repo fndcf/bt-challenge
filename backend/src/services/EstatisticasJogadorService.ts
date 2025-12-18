@@ -79,7 +79,9 @@ export class EstatisticasJogadorService {
   /**
    * Criar estatísticas em lote (batch) - OTIMIZADO para performance
    */
-  async criarEmLote(dtos: CriarEstatisticasJogadorDTO[]): Promise<EstatisticasJogador[]> {
+  async criarEmLote(
+    dtos: CriarEstatisticasJogadorDTO[]
+  ): Promise<EstatisticasJogador[]> {
     const inicioTotal = Date.now();
 
     try {
@@ -606,8 +608,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Buscar estatísticas de múltiplos jogadores de uma etapa em uma única query
-   * Retorna um Map de jogadorId -> EstatisticasJogador para acesso rápido O(1)
+   * Buscar estatísticas de múltiplos jogadores de uma etapa em uma única query
    */
   async buscarPorJogadoresEtapa(
     jogadorIds: string[],
@@ -699,7 +700,6 @@ export class EstatisticasJogadorService {
 
   /**
    * Atualizar grupo de múltiplos jogadores em batch usando estatisticaId
-   * ✅ OTIMIZAÇÃO: Usa IDs diretamente, sem busca adicional
    */
   async atualizarGrupoEmLotePorId(
     atualizacoes: Array<{
@@ -779,7 +779,6 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Atualizar estatísticas de múltiplos jogadores em batch após partida de GRUPO
    * Recebe array de jogadores com suas estatísticas para atualizar
    */
   async atualizarAposPartidaGrupoEmLote(
@@ -812,25 +811,37 @@ export class EstatisticasJogadorService {
         const novasEstatisticas = {
           // Estatísticas de GRUPO
           jogosGrupo: (estatisticas.jogosGrupo || 0) + 1,
-          vitoriasGrupo: (estatisticas.vitoriasGrupo || 0) + (dto.venceu ? 1 : 0),
-          derrotasGrupo: (estatisticas.derrotasGrupo || 0) + (dto.venceu ? 0 : 1),
+          vitoriasGrupo:
+            (estatisticas.vitoriasGrupo || 0) + (dto.venceu ? 1 : 0),
+          derrotasGrupo:
+            (estatisticas.derrotasGrupo || 0) + (dto.venceu ? 0 : 1),
           pontosGrupo: (estatisticas.pontosGrupo || 0) + (dto.venceu ? 3 : 0),
-          setsVencidosGrupo: (estatisticas.setsVencidosGrupo || 0) + dto.setsVencidos,
-          setsPerdidosGrupo: (estatisticas.setsPerdidosGrupo || 0) + dto.setsPerdidos,
-          saldoSetsGrupo: (estatisticas.saldoSetsGrupo || 0) + (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidosGrupo: (estatisticas.gamesVencidosGrupo || 0) + dto.gamesVencidos,
-          gamesPerdidosGrupo: (estatisticas.gamesPerdidosGrupo || 0) + dto.gamesPerdidos,
-          saldoGamesGrupo: (estatisticas.saldoGamesGrupo || 0) + (dto.gamesVencidos - dto.gamesPerdidos),
+          setsVencidosGrupo:
+            (estatisticas.setsVencidosGrupo || 0) + dto.setsVencidos,
+          setsPerdidosGrupo:
+            (estatisticas.setsPerdidosGrupo || 0) + dto.setsPerdidos,
+          saldoSetsGrupo:
+            (estatisticas.saldoSetsGrupo || 0) +
+            (dto.setsVencidos - dto.setsPerdidos),
+          gamesVencidosGrupo:
+            (estatisticas.gamesVencidosGrupo || 0) + dto.gamesVencidos,
+          gamesPerdidosGrupo:
+            (estatisticas.gamesPerdidosGrupo || 0) + dto.gamesPerdidos,
+          saldoGamesGrupo:
+            (estatisticas.saldoGamesGrupo || 0) +
+            (dto.gamesVencidos - dto.gamesPerdidos),
           // Estatísticas TOTAIS
           jogos: estatisticas.jogos + 1,
           vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
           derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
           setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
           setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
-          saldoSets: estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
+          saldoSets:
+            estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
           gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
           gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
-          saldoGames: estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
+          saldoGames:
+            estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
           atualizadoEm: now,
         };
 
@@ -856,7 +867,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Reverter estatísticas de múltiplos jogadores em batch
+   * Reverter estatísticas de múltiplos jogadores em batch
    */
   async reverterAposPartidaEmLote(
     reversoes: Array<{
@@ -888,25 +899,64 @@ export class EstatisticasJogadorService {
         const estatisticasRevertidas = {
           // Estatísticas de GRUPO
           jogosGrupo: Math.max(0, (estatisticas.jogosGrupo || 0) - 1),
-          vitoriasGrupo: Math.max(0, (estatisticas.vitoriasGrupo || 0) - (dto.venceu ? 1 : 0)),
-          derrotasGrupo: Math.max(0, (estatisticas.derrotasGrupo || 0) - (dto.venceu ? 0 : 1)),
-          pontosGrupo: Math.max(0, (estatisticas.pontosGrupo || 0) - (dto.venceu ? 3 : 0)),
-          setsVencidosGrupo: Math.max(0, (estatisticas.setsVencidosGrupo || 0) - dto.setsVencidos),
-          setsPerdidosGrupo: Math.max(0, (estatisticas.setsPerdidosGrupo || 0) - dto.setsPerdidos),
-          saldoSetsGrupo: (estatisticas.saldoSetsGrupo || 0) - (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidosGrupo: Math.max(0, (estatisticas.gamesVencidosGrupo || 0) - dto.gamesVencidos),
-          gamesPerdidosGrupo: Math.max(0, (estatisticas.gamesPerdidosGrupo || 0) - dto.gamesPerdidos),
-          saldoGamesGrupo: (estatisticas.saldoGamesGrupo || 0) - (dto.gamesVencidos - dto.gamesPerdidos),
+          vitoriasGrupo: Math.max(
+            0,
+            (estatisticas.vitoriasGrupo || 0) - (dto.venceu ? 1 : 0)
+          ),
+          derrotasGrupo: Math.max(
+            0,
+            (estatisticas.derrotasGrupo || 0) - (dto.venceu ? 0 : 1)
+          ),
+          pontosGrupo: Math.max(
+            0,
+            (estatisticas.pontosGrupo || 0) - (dto.venceu ? 3 : 0)
+          ),
+          setsVencidosGrupo: Math.max(
+            0,
+            (estatisticas.setsVencidosGrupo || 0) - dto.setsVencidos
+          ),
+          setsPerdidosGrupo: Math.max(
+            0,
+            (estatisticas.setsPerdidosGrupo || 0) - dto.setsPerdidos
+          ),
+          saldoSetsGrupo:
+            (estatisticas.saldoSetsGrupo || 0) -
+            (dto.setsVencidos - dto.setsPerdidos),
+          gamesVencidosGrupo: Math.max(
+            0,
+            (estatisticas.gamesVencidosGrupo || 0) - dto.gamesVencidos
+          ),
+          gamesPerdidosGrupo: Math.max(
+            0,
+            (estatisticas.gamesPerdidosGrupo || 0) - dto.gamesPerdidos
+          ),
+          saldoGamesGrupo:
+            (estatisticas.saldoGamesGrupo || 0) -
+            (dto.gamesVencidos - dto.gamesPerdidos),
           // Estatísticas TOTAIS
           jogos: Math.max(0, estatisticas.jogos - 1),
           vitorias: Math.max(0, estatisticas.vitorias - (dto.venceu ? 1 : 0)),
           derrotas: Math.max(0, estatisticas.derrotas - (dto.venceu ? 0 : 1)),
-          setsVencidos: Math.max(0, estatisticas.setsVencidos - dto.setsVencidos),
-          setsPerdidos: Math.max(0, estatisticas.setsPerdidos - dto.setsPerdidos),
-          saldoSets: estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidos: Math.max(0, estatisticas.gamesVencidos - dto.gamesVencidos),
-          gamesPerdidos: Math.max(0, estatisticas.gamesPerdidos - dto.gamesPerdidos),
-          saldoGames: estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
+          setsVencidos: Math.max(
+            0,
+            estatisticas.setsVencidos - dto.setsVencidos
+          ),
+          setsPerdidos: Math.max(
+            0,
+            estatisticas.setsPerdidos - dto.setsPerdidos
+          ),
+          saldoSets:
+            estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
+          gamesVencidos: Math.max(
+            0,
+            estatisticas.gamesVencidos - dto.gamesVencidos
+          ),
+          gamesPerdidos: Math.max(
+            0,
+            estatisticas.gamesPerdidos - dto.gamesPerdidos
+          ),
+          saldoGames:
+            estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
           atualizadoEm: now,
         };
 
@@ -932,7 +982,6 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ OTIMIZAÇÃO: Atualizar posições de múltiplos jogadores em batch
    * Recebe array de jogadores já ordenados com suas posições
    */
   async atualizarPosicoesGrupoEmLote(
@@ -971,9 +1020,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ SUPER OTIMIZAÇÃO para TEAMS: Atualizar estatísticas usando FieldValue.increment
-   * Não precisa ler os documentos antes - usa increment atômico
-   * Recebe estatisticaId diretamente para evitar queries
+   * Atualizar estatísticas usando FieldValue.increment
    */
   async atualizarAposPartidaComIncrement(
     atualizacoes: Array<{
@@ -1001,16 +1048,21 @@ export class EstatisticasJogadorService {
           saldoSets: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
           gamesVencidos: FieldValue.increment(dto.gamesVencidos),
           gamesPerdidos: FieldValue.increment(dto.gamesPerdidos),
-          saldoGames: FieldValue.increment(dto.gamesVencidos - dto.gamesPerdidos),
+          saldoGames: FieldValue.increment(
+            dto.gamesVencidos - dto.gamesPerdidos
+          ),
           atualizadoEm: now,
         });
       }
 
       await batch.commit();
 
-      logger.info("Estatísticas TEAMS atualizadas com increment (sem leitura)", {
-        quantidade: atualizacoes.length,
-      });
+      logger.info(
+        "Estatísticas TEAMS atualizadas com increment (sem leitura)",
+        {
+          quantidade: atualizacoes.length,
+        }
+      );
     } catch (error) {
       logger.error(
         "Erro ao atualizar estatísticas TEAMS com increment",
@@ -1022,9 +1074,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ SUPER OTIMIZAÇÃO: Atualizar estatísticas usando FieldValue.increment
-   * Não precisa ler os documentos antes - usa increment atômico
-   * Recebe estatisticaId diretamente para evitar queries
+   * Atualizar estatísticas usando FieldValue.increment
    */
   async atualizarAposPartidaGrupoComIncrement(
     atualizacoes: Array<{
@@ -1050,10 +1100,14 @@ export class EstatisticasJogadorService {
           pontosGrupo: FieldValue.increment(dto.venceu ? 3 : 0),
           setsVencidosGrupo: FieldValue.increment(dto.setsVencidos),
           setsPerdidosGrupo: FieldValue.increment(dto.setsPerdidos),
-          saldoSetsGrupo: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
+          saldoSetsGrupo: FieldValue.increment(
+            dto.setsVencidos - dto.setsPerdidos
+          ),
           gamesVencidosGrupo: FieldValue.increment(dto.gamesVencidos),
           gamesPerdidosGrupo: FieldValue.increment(dto.gamesPerdidos),
-          saldoGamesGrupo: FieldValue.increment(dto.gamesVencidos - dto.gamesPerdidos),
+          saldoGamesGrupo: FieldValue.increment(
+            dto.gamesVencidos - dto.gamesPerdidos
+          ),
           // Estatísticas TOTAIS
           jogos: FieldValue.increment(1),
           vitorias: FieldValue.increment(dto.venceu ? 1 : 0),
@@ -1063,7 +1117,9 @@ export class EstatisticasJogadorService {
           saldoSets: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
           gamesVencidos: FieldValue.increment(dto.gamesVencidos),
           gamesPerdidos: FieldValue.increment(dto.gamesPerdidos),
-          saldoGames: FieldValue.increment(dto.gamesVencidos - dto.gamesPerdidos),
+          saldoGames: FieldValue.increment(
+            dto.gamesVencidos - dto.gamesPerdidos
+          ),
           atualizadoEm: now,
         });
       }
@@ -1080,7 +1136,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * ✅ SUPER OTIMIZAÇÃO: Reverter estatísticas usando FieldValue.increment negativo
+   * Reverter estatísticas usando FieldValue.increment negativo
    */
   async reverterAposPartidaComIncrement(
     reversoes: Array<{
@@ -1106,20 +1162,28 @@ export class EstatisticasJogadorService {
           pontosGrupo: FieldValue.increment(dto.venceu ? -3 : 0),
           setsVencidosGrupo: FieldValue.increment(-dto.setsVencidos),
           setsPerdidosGrupo: FieldValue.increment(-dto.setsPerdidos),
-          saldoSetsGrupo: FieldValue.increment(-(dto.setsVencidos - dto.setsPerdidos)),
+          saldoSetsGrupo: FieldValue.increment(
+            -(dto.setsVencidos - dto.setsPerdidos)
+          ),
           gamesVencidosGrupo: FieldValue.increment(-dto.gamesVencidos),
           gamesPerdidosGrupo: FieldValue.increment(-dto.gamesPerdidos),
-          saldoGamesGrupo: FieldValue.increment(-(dto.gamesVencidos - dto.gamesPerdidos)),
+          saldoGamesGrupo: FieldValue.increment(
+            -(dto.gamesVencidos - dto.gamesPerdidos)
+          ),
           // Estatísticas TOTAIS
           jogos: FieldValue.increment(-1),
           vitorias: FieldValue.increment(dto.venceu ? -1 : 0),
           derrotas: FieldValue.increment(dto.venceu ? 0 : -1),
           setsVencidos: FieldValue.increment(-dto.setsVencidos),
           setsPerdidos: FieldValue.increment(-dto.setsPerdidos),
-          saldoSets: FieldValue.increment(-(dto.setsVencidos - dto.setsPerdidos)),
+          saldoSets: FieldValue.increment(
+            -(dto.setsVencidos - dto.setsPerdidos)
+          ),
           gamesVencidos: FieldValue.increment(-dto.gamesVencidos),
           gamesPerdidos: FieldValue.increment(-dto.gamesPerdidos),
-          saldoGames: FieldValue.increment(-(dto.gamesVencidos - dto.gamesPerdidos)),
+          saldoGames: FieldValue.increment(
+            -(dto.gamesVencidos - dto.gamesPerdidos)
+          ),
           atualizadoEm: now,
         });
       }
@@ -1235,9 +1299,12 @@ export class EstatisticasJogadorService {
       );
 
       if (estatisticasValidas.length === 0) {
-        logger.warn("Nenhuma estatística encontrada para marcar classificados", {
-          total: jogadores.length,
-        });
+        logger.warn(
+          "Nenhuma estatística encontrada para marcar classificados",
+          {
+            total: jogadores.length,
+          }
+        );
         return;
       }
 
@@ -1287,7 +1354,9 @@ export class EstatisticasJogadorService {
   /**
    * Buscar IDs das etapas que contam pontos no ranking
    */
-  private async buscarEtapasQueContamPontos(arenaId: string): Promise<Set<string>> {
+  private async buscarEtapasQueContamPontos(
+    arenaId: string
+  ): Promise<Set<string>> {
     const etapasSnapshot = await db
       .collection("etapas")
       .where("arenaId", "==", arenaId)

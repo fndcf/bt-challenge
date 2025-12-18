@@ -230,7 +230,8 @@ export class EtapaService {
       // Validar gênero: etapa "misto" aceita masculino ou feminino
       const isMisto = etapa.genero === GeneroJogador.MISTO;
       const generoValido = isMisto
-        ? jogador.genero === GeneroJogador.MASCULINO || jogador.genero === GeneroJogador.FEMININO
+        ? jogador.genero === GeneroJogador.MASCULINO ||
+          jogador.genero === GeneroJogador.FEMININO
         : jogador.genero === etapa.genero;
 
       if (!generoValido) {
@@ -251,10 +252,8 @@ export class EtapaService {
 
       // Validar proporção de gênero para etapas TEAMS mistas
       if (etapa.formato === FormatoEtapa.TEAMS && isMisto) {
-        const inscricoesAtuais = await this.inscricaoRepository.buscarConfirmadas(
-          etapaId,
-          arenaId
-        );
+        const inscricoesAtuais =
+          await this.inscricaoRepository.buscarConfirmadas(etapaId, arenaId);
 
         // Contar inscritos por gênero
         const masculinosInscritos = inscricoesAtuais.filter(
@@ -332,7 +331,10 @@ export class EtapaService {
     etapaId: string,
     arenaId: string,
     jogadorIds: string[]
-  ): Promise<{ inscricoes: Inscricao[]; erros: Array<{ jogadorId: string; erro: string }> }> {
+  ): Promise<{
+    inscricoes: Inscricao[];
+    erros: Array<{ jogadorId: string; erro: string }>;
+  }> {
     try {
       const inscricoes: Inscricao[] = [];
       const erros: Array<{ jogadorId: string; erro: string }> = [];
@@ -348,10 +350,8 @@ export class EtapaService {
       }
 
       // Buscar inscrições existentes uma única vez
-      const inscricoesExistentes = await this.inscricaoRepository.buscarConfirmadas(
-        etapaId,
-        arenaId
-      );
+      const inscricoesExistentes =
+        await this.inscricaoRepository.buscarConfirmadas(etapaId, arenaId);
 
       // Verificar limite total
       const vagas = etapa.maxJogadores - inscricoesExistentes.length;
@@ -475,12 +475,16 @@ export class EtapaService {
         inscricoes.push(...novasInscricoes);
 
         // Atualizar contador de inscritos na etapa (uma única vez)
-        const totalInscritos = inscricoesExistentes.length + novasInscricoes.length;
-        await db.collection("etapas").doc(etapaId).update({
-          jogadoresInscritos: Array.from(jogadoresInscritos),
-          totalInscritos,
-          atualizadoEm: Timestamp.now(),
-        });
+        const totalInscritos =
+          inscricoesExistentes.length + novasInscricoes.length;
+        await db
+          .collection("etapas")
+          .doc(etapaId)
+          .update({
+            jogadoresInscritos: Array.from(jogadoresInscritos),
+            totalInscritos,
+            atualizadoEm: Timestamp.now(),
+          });
       }
 
       logger.info("Inscrições em lote processadas", {
@@ -506,7 +510,6 @@ export class EtapaService {
 
   /**
    * Cancelar múltiplas inscrições em lote (batch)
-   * ✅ OTIMIZAÇÃO: Usa buscarPorIds (1 query) ao invés de N queries paralelas
    */
   async cancelarInscricoesEmLote(
     inscricaoIds: string[],
@@ -527,7 +530,7 @@ export class EtapaService {
       );
     }
 
-    // ✅ OTIMIZAÇÃO: Buscar todas as inscrições em UMA única query (getAll)
+    // Buscar todas as inscrições em UMA única query (getAll)
     const inscricoesValidas = await this.inscricaoRepository.buscarPorIds(
       inscricaoIds,
       etapaId,
@@ -550,7 +553,7 @@ export class EtapaService {
     const inscricaoIdsValidos = inscricoesValidas.map((i) => i.id);
     const jogadorIds = inscricoesValidas.map((i) => i.jogadorId);
 
-    // ✅ OTIMIZAÇÃO: Executar cancelamento e decremento em paralelo
+    // Executar cancelamento e decremento em paralelo
     await Promise.all([
       this.inscricaoRepository.cancelarEmLote(inscricaoIdsValidos),
       this.etapaRepository.decrementarInscritosEmLote(
@@ -720,8 +723,10 @@ export class EtapaService {
       }
 
       // Limpar cabeças de chave via service
-      const cabecasRemovidas =
-        await cabecaDeChaveService.deletarPorEtapa(id, arenaId);
+      const cabecasRemovidas = await cabecaDeChaveService.deletarPorEtapa(
+        id,
+        arenaId
+      );
 
       // Deletar etapa via repository
       await this.etapaRepository.deletar(id);
@@ -1159,7 +1164,10 @@ export class EtapaService {
         timings["6_definirCampeao"] = Date.now() - start6;
 
         timings["TOTAL"] = Date.now() - startTotal;
-        logger.info("⏱️ TIMING encerrarEtapa SUPER_X", { timings, etapaId: id });
+        logger.info("⏱️ TIMING encerrarEtapa SUPER_X", {
+          timings,
+          etapaId: id,
+        });
 
         logger.info("Etapa Super X encerrada", {
           etapaId: id,
@@ -1288,7 +1296,10 @@ export class EtapaService {
         timings["6_definirCampeao"] = Date.now() - start6;
 
         timings["TOTAL"] = Date.now() - startTotal;
-        logger.info("⏱️ TIMING encerrarEtapa GRUPO_UNICO", { timings, etapaId: id });
+        logger.info("⏱️ TIMING encerrarEtapa GRUPO_UNICO", {
+          timings,
+          etapaId: id,
+        });
 
         logger.info("Etapa encerrada (grupo único)", {
           etapaId: id,
@@ -1326,23 +1337,45 @@ export class EtapaService {
         // 5. BATCH OTIMIZADO - Buscar todos os confrontos em paralelo
         const start5 = Date.now();
 
-        const [confrontosSemi, confrontosQuartas, confrontosOitavas, todasDuplas] =
-          await Promise.all([
-            this.confrontoRepository.buscarFinalizadosPorFase(id, arenaId, TipoFase.SEMIFINAL),
-            this.confrontoRepository.buscarFinalizadosPorFase(id, arenaId, TipoFase.QUARTAS),
-            this.confrontoRepository.buscarFinalizadosPorFase(id, arenaId, TipoFase.OITAVAS),
-            this.duplaRepository.buscarPorEtapa(id, arenaId),
-          ]);
+        const [
+          confrontosSemi,
+          confrontosQuartas,
+          confrontosOitavas,
+          todasDuplas,
+        ] = await Promise.all([
+          this.confrontoRepository.buscarFinalizadosPorFase(
+            id,
+            arenaId,
+            TipoFase.SEMIFINAL
+          ),
+          this.confrontoRepository.buscarFinalizadosPorFase(
+            id,
+            arenaId,
+            TipoFase.QUARTAS
+          ),
+          this.confrontoRepository.buscarFinalizadosPorFase(
+            id,
+            arenaId,
+            TipoFase.OITAVAS
+          ),
+          this.duplaRepository.buscarPorEtapa(id, arenaId),
+        ]);
         timings["5_buscarConfrontosParalelo"] = Date.now() - start5;
 
         // 6. Coletar todas as duplas e suas colocações
         const start6 = Date.now();
-        const duplaColocacoes: Map<string, { pontos: number; colocacao: string }> = new Map();
+        const duplaColocacoes: Map<
+          string,
+          { pontos: number; colocacao: string }
+        > = new Map();
 
         // Campeão
         const campeaoDuplaId = confrontoFinal.vencedoraId;
         if (campeaoDuplaId) {
-          duplaColocacoes.set(campeaoDuplaId, { pontos: pontuacao.campeao, colocacao: "campeao" });
+          duplaColocacoes.set(campeaoDuplaId, {
+            pontos: pontuacao.campeao,
+            colocacao: "campeao",
+          });
         }
 
         // Vice
@@ -1351,7 +1384,10 @@ export class EtapaService {
             ? confrontoFinal.dupla2Id
             : confrontoFinal.dupla1Id;
         if (viceDuplaId) {
-          duplaColocacoes.set(viceDuplaId, { pontos: pontuacao.vice, colocacao: "vice" });
+          duplaColocacoes.set(viceDuplaId, {
+            pontos: pontuacao.vice,
+            colocacao: "vice",
+          });
         }
 
         // Semifinalistas (perdedores da semi)
@@ -1361,7 +1397,10 @@ export class EtapaService {
               ? confronto.dupla2Id
               : confronto.dupla1Id;
           if (perdedorId && !duplaColocacoes.has(perdedorId)) {
-            duplaColocacoes.set(perdedorId, { pontos: pontuacao.semifinalista, colocacao: "semifinalista" });
+            duplaColocacoes.set(perdedorId, {
+              pontos: pontuacao.semifinalista,
+              colocacao: "semifinalista",
+            });
           }
         }
 
@@ -1372,7 +1411,10 @@ export class EtapaService {
               ? confronto.dupla2Id
               : confronto.dupla1Id;
           if (perdedorId && !duplaColocacoes.has(perdedorId)) {
-            duplaColocacoes.set(perdedorId, { pontos: pontuacao.quartas, colocacao: "quartas" });
+            duplaColocacoes.set(perdedorId, {
+              pontos: pontuacao.quartas,
+              colocacao: "quartas",
+            });
           }
         }
 
@@ -1383,15 +1425,23 @@ export class EtapaService {
               ? confronto.dupla2Id
               : confronto.dupla1Id;
           if (perdedorId && !duplaColocacoes.has(perdedorId)) {
-            duplaColocacoes.set(perdedorId, { pontos: pontuacao.oitavas, colocacao: "oitavas" });
+            duplaColocacoes.set(perdedorId, {
+              pontos: pontuacao.oitavas,
+              colocacao: "oitavas",
+            });
           }
         }
 
         // Participação (duplas não classificadas)
-        const duplasNaoClassificadas = todasDuplas.filter((d) => !d.classificada);
+        const duplasNaoClassificadas = todasDuplas.filter(
+          (d) => !d.classificada
+        );
         for (const dupla of duplasNaoClassificadas) {
           if (!duplaColocacoes.has(dupla.id)) {
-            duplaColocacoes.set(dupla.id, { pontos: pontuacao.participacao, colocacao: "participacao" });
+            duplaColocacoes.set(dupla.id, {
+              pontos: pontuacao.participacao,
+              colocacao: "participacao",
+            });
           }
         }
         timings["6_coletarColocacoes"] = Date.now() - start6;
@@ -1407,7 +1457,10 @@ export class EtapaService {
 
         // 8. Coletar jogadorIds e suas colocações
         const start8 = Date.now();
-        const jogadorColocacoes: Map<string, { pontos: number; colocacao: string }> = new Map();
+        const jogadorColocacoes: Map<
+          string,
+          { pontos: number; colocacao: string }
+        > = new Map();
         const jogadorIds: string[] = [];
 
         for (const dupla of duplasResolvidas) {
@@ -1433,7 +1486,10 @@ export class EtapaService {
         // 9. Buscar todas as estatísticas em paralelo
         const start9 = Date.now();
         const estatisticasPromises = jogadorIds.map((jogadorId) =>
-          this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(jogadorId, id)
+          this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
+            jogadorId,
+            id
+          )
         );
         const estatisticas = await Promise.all(estatisticasPromises);
         timings["9_buscarEstatisticasParalelo"] = Date.now() - start9;
@@ -1451,7 +1507,9 @@ export class EtapaService {
             };
           });
 
-        await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(pontuacoesBatch);
+        await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(
+          pontuacoesBatch
+        );
         timings["10_batchWritePontuacoes"] = Date.now() - start10;
       } else {
         logger.info(
@@ -1474,7 +1532,10 @@ export class EtapaService {
       timings["11_definirCampeao"] = Date.now() - start11;
 
       timings["TOTAL"] = Date.now() - startTotal;
-      logger.info("⏱️ TIMING encerrarEtapa COM_ELIMINATORIA", { timings, etapaId: id });
+      logger.info("⏱️ TIMING encerrarEtapa COM_ELIMINATORIA", {
+        timings,
+        etapaId: id,
+      });
 
       logger.info("Etapa encerrada (com eliminatória)", {
         etapaId: id,
@@ -1495,7 +1556,6 @@ export class EtapaService {
       throw error;
     }
   }
-
 }
 
 // Instância default com repositories Firebase

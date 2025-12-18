@@ -19,10 +19,7 @@ import logger from "../utils/logger";
 import { embaralhar } from "../utils/arrayUtils";
 
 // Config de schedules
-import {
-  getSuperXSchedule,
-  getTotalRodadas,
-} from "../config/SuperXSchedules";
+import { getSuperXSchedule, getTotalRodadas } from "../config/SuperXSchedules";
 
 // Interfaces dos repositories
 import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
@@ -127,7 +124,7 @@ export class SuperXService {
         variant
       );
 
-      // ✅ OTIMIZAÇÃO: Atualizar grupoId em todos os jogadores em batch
+      //  Atualizar grupoId em todos os jogadores em batch
       const atualizacoesGrupo = jogadores.map((jogador) => ({
         jogadorId: jogador.jogadorId,
         etapaId,
@@ -186,7 +183,7 @@ export class SuperXService {
       // Embaralhar para distribuição aleatória
       const inscricoesEmbaralhadas = embaralhar([...inscricoes]);
 
-      // ✅ OTIMIZAÇÃO: Criar todas as estatísticas em batch
+      //  Criar todas as estatísticas em batch
       const estatisticasDTOs = inscricoesEmbaralhadas.map((inscricao) => ({
         etapaId,
         arenaId,
@@ -261,7 +258,7 @@ export class SuperXService {
     try {
       const schedule = getSuperXSchedule(variant);
 
-      // ✅ OTIMIZAÇÃO: Construir todos os DTOs primeiro, depois criar em batch
+      //  Construir todos os DTOs primeiro, depois criar em batch
       const partidaDTOs: CriarPartidaReiDaPraiaDTO[] = [];
 
       for (const rodada of schedule) {
@@ -292,12 +289,13 @@ export class SuperXService {
         }
       }
 
-      // ✅ OTIMIZAÇÃO: Criar todas as partidas em batch
-      const todasPartidas =
-        await this.partidaReiDaPraiaRepository.criarEmLote(partidaDTOs);
+      //  Criar todas as partidas em batch
+      const todasPartidas = await this.partidaReiDaPraiaRepository.criarEmLote(
+        partidaDTOs
+      );
       const partidasIds = todasPartidas.map((p) => p.id);
 
-      // ✅ OTIMIZAÇÃO: Adicionar todas as partidas ao grupo em uma única operação
+      //  Adicionar todas as partidas ao grupo em uma única operação
       await this.grupoRepository.adicionarPartidasEmLote(grupo.id, partidasIds);
 
       return todasPartidas;
@@ -316,7 +314,6 @@ export class SuperXService {
 
   /**
    * Registrar resultado de partida
-   * ✅ SUPER OTIMIZAÇÃO v2: Máxima performance com mínimo de operações
    */
   async registrarResultadoPartida(
     partidaId: string,
@@ -347,11 +344,12 @@ export class SuperXService {
         partida.jogador2BId,
       ];
 
-      // ✅ OTIMIZAÇÃO: Buscar estatísticas UMA VEZ no início (reutilizada para reversão e atualização)
-      const estatisticasMap = await estatisticasJogadorService.buscarPorJogadoresEtapa(
-        jogadorIds,
-        partida.etapaId
-      );
+      //  Buscar estatísticas UMA VEZ no início (reutilizada para reversão e atualização)
+      const estatisticasMap =
+        await estatisticasJogadorService.buscarPorJogadoresEtapa(
+          jogadorIds,
+          partida.etapaId
+        );
 
       // Se for edição, reverter estatísticas anteriores (sem re-buscar partida)
       if (isEdicao && partida.placar && partida.placar.length > 0) {
@@ -364,25 +362,49 @@ export class SuperXService {
       const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
       const dupla1Venceu = vencedorDupla === 1;
 
-      // ✅ OTIMIZAÇÃO: Executar atualização da partida e estatísticas em PARALELO
+      //  Executar atualização da partida e estatísticas em PARALELO
       const atualizacoes = [
         {
           estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
-          dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+          dto: {
+            venceu: dupla1Venceu,
+            setsVencidos: setsDupla1,
+            setsPerdidos: setsDupla2,
+            gamesVencidos: set.gamesDupla1,
+            gamesPerdidos: set.gamesDupla2,
+          },
         },
         {
           estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
-          dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+          dto: {
+            venceu: dupla1Venceu,
+            setsVencidos: setsDupla1,
+            setsPerdidos: setsDupla2,
+            gamesVencidos: set.gamesDupla1,
+            gamesPerdidos: set.gamesDupla2,
+          },
         },
         {
           estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
-          dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+          dto: {
+            venceu: !dupla1Venceu,
+            setsVencidos: setsDupla2,
+            setsPerdidos: setsDupla1,
+            gamesVencidos: set.gamesDupla2,
+            gamesPerdidos: set.gamesDupla1,
+          },
         },
         {
           estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
-          dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+          dto: {
+            venceu: !dupla1Venceu,
+            setsVencidos: setsDupla2,
+            setsPerdidos: setsDupla1,
+            gamesVencidos: set.gamesDupla2,
+            gamesPerdidos: set.gamesDupla1,
+          },
         },
-      ].filter(a => a.estatisticaId);
+      ].filter((a) => a.estatisticaId);
 
       // Executar em paralelo: atualizar partida + atualizar estatísticas
       await Promise.all([
@@ -393,12 +415,14 @@ export class SuperXService {
           vencedorDupla,
           status: StatusPartida.FINALIZADA,
         }),
-        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(atualizacoes),
+        estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(
+          atualizacoes
+        ),
       ]);
 
       // Recalcular classificação e verificar grupo completo
       if (partida.grupoId) {
-        // ✅ OTIMIZAÇÃO: Buscar dados para classificação e verificação em PARALELO
+        // Buscar dados para classificação e verificação em PARALELO
         const [jogadoresGrupo, partidasGrupo] = await Promise.all([
           this.estatisticasJogadorRepository.buscarPorGrupo(partida.grupoId),
           this.partidaReiDaPraiaRepository.buscarPorGrupo(partida.grupoId),
@@ -406,10 +430,14 @@ export class SuperXService {
 
         // Ordenar e atualizar posições
         const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
-          if (a.pontosGrupo !== b.pontosGrupo) return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
-          if (a.saldoGamesGrupo !== b.saldoGamesGrupo) return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
-          if (a.saldoSetsGrupo !== b.saldoSetsGrupo) return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
-          if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
+          if (a.pontosGrupo !== b.pontosGrupo)
+            return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+          if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
+            return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
+          if (a.saldoSetsGrupo !== b.saldoSetsGrupo)
+            return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
+          if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
+            return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
           return 0;
         });
 
@@ -422,11 +450,15 @@ export class SuperXService {
         const partidasFinalizadas = partidasGrupo.filter(
           (p) => p.status === StatusPartida.FINALIZADA || p.id === partidaId
         ).length;
-        const grupoCompleto = partidasFinalizadas === partidasGrupo.length && partidasGrupo.length > 0;
+        const grupoCompleto =
+          partidasFinalizadas === partidasGrupo.length &&
+          partidasGrupo.length > 0;
 
-        // ✅ OTIMIZAÇÃO: Atualizar posições e status do grupo em PARALELO
+        //  Atualizar posições e status do grupo em PARALELO
         await Promise.all([
-          estatisticasJogadorService.atualizarPosicoesGrupoEmLote(atualizacoesPosicao),
+          estatisticasJogadorService.atualizarPosicoesGrupoEmLote(
+            atualizacoesPosicao
+          ),
           this.grupoRepository.atualizar(partida.grupoId, {
             completo: grupoCompleto,
             partidasFinalizadas,
@@ -434,9 +466,17 @@ export class SuperXService {
         ]);
       }
 
-      logger.info("Resultado Super X registrado", { partidaId, vencedorDupla, placar });
+      logger.info("Resultado Super X registrado", {
+        partidaId,
+        vencedorDupla,
+        placar,
+      });
     } catch (error: any) {
-      logger.error("Erro ao registrar resultado Super X", { partidaId, arenaId }, error);
+      logger.error(
+        "Erro ao registrar resultado Super X",
+        { partidaId, arenaId },
+        error
+      );
       throw error;
     }
   }
@@ -446,7 +486,10 @@ export class SuperXService {
    */
   private async reverterEstatisticasComMap(
     partida: PartidaReiDaPraia,
-    estatisticasMap: Map<string, import("../models/EstatisticasJogador").EstatisticasJogador>
+    estatisticasMap: Map<
+      string,
+      import("../models/EstatisticasJogador").EstatisticasJogador
+    >
   ): Promise<void> {
     if (!partida.placar || partida.placar.length === 0) return;
 
@@ -458,21 +501,45 @@ export class SuperXService {
     const reversoes = [
       {
         estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
-        dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+        dto: {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        },
       },
       {
         estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
-        dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
+        dto: {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: set.gamesDupla1,
+          gamesPerdidos: set.gamesDupla2,
+        },
       },
       {
         estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
-        dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+        dto: {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        },
       },
       {
         estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
-        dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
+        dto: {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: set.gamesDupla2,
+          gamesPerdidos: set.gamesDupla1,
+        },
       },
-    ].filter(r => r.estatisticaId);
+    ].filter((r) => r.estatisticaId);
 
     await estatisticasJogadorService.reverterAposPartidaComIncrement(reversoes);
   }
@@ -521,10 +588,11 @@ export class SuperXService {
       const jogadorIds = Array.from(jogadorIdsSet);
 
       // Buscar todas as estatísticas de uma vez
-      const estatisticasMap = await estatisticasJogadorService.buscarPorJogadoresEtapa(
-        jogadorIds,
-        etapaId
-      );
+      const estatisticasMap =
+        await estatisticasJogadorService.buscarPorJogadoresEtapa(
+          jogadorIds,
+          etapaId
+        );
       tempos["2_buscarEstatisticas"] = Date.now() - inicio;
 
       // 3. Processar cada resultado - OTIMIZADO: paralelo
@@ -533,8 +601,8 @@ export class SuperXService {
 
       // 3.1 Validar e preparar dados
       type ResultadoValido = {
-        resultado: typeof resultados[0];
-        partida: NonNullable<typeof partidas[0]>;
+        resultado: (typeof resultados)[0];
+        partida: NonNullable<(typeof partidas)[0]>;
         isEdicao: boolean;
       };
       const resultadosValidos: ResultadoValido[] = [];
@@ -544,12 +612,18 @@ export class SuperXService {
         const partida = partidas[i];
 
         if (!partida) {
-          erros.push({ partidaId: resultado.partidaId, erro: "Partida não encontrada" });
+          erros.push({
+            partidaId: resultado.partidaId,
+            erro: "Partida não encontrada",
+          });
           continue;
         }
 
         if (!resultado.placar || resultado.placar.length !== 1) {
-          erros.push({ partidaId: resultado.partidaId, erro: "Placar deve ter exatamente 1 set" });
+          erros.push({
+            partidaId: resultado.partidaId,
+            erro: "Placar deve ter exatamente 1 set",
+          });
           continue;
         }
 
@@ -563,57 +637,97 @@ export class SuperXService {
 
       // 3.2 Reverter estatísticas de edições em paralelo
       const reversoes = resultadosValidos
-        .filter(r => r.isEdicao && r.partida.placar && r.partida.placar.length > 0)
-        .map(r => this.reverterEstatisticasComMap(r.partida, estatisticasMap));
+        .filter(
+          (r) => r.isEdicao && r.partida.placar && r.partida.placar.length > 0
+        )
+        .map((r) =>
+          this.reverterEstatisticasComMap(r.partida, estatisticasMap)
+        );
 
       if (reversoes.length > 0) {
         await Promise.all(reversoes);
       }
 
       // 3.3 Aplicar novos resultados em paralelo
-      const aplicacoes = resultadosValidos.map(async ({ resultado, partida }) => {
-        try {
-          const set = resultado.placar[0];
-          const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
-          const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
-          const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
-          const dupla1Venceu = vencedorDupla === 1;
+      const aplicacoes = resultadosValidos.map(
+        async ({ resultado, partida }) => {
+          try {
+            const set = resultado.placar[0];
+            const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
+            const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
+            const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
+            const dupla1Venceu = vencedorDupla === 1;
 
-          const atualizacoes = [
-            {
-              estatisticaId: estatisticasMap.get(partida.jogador1AId)?.id || "",
-              dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
-            },
-            {
-              estatisticaId: estatisticasMap.get(partida.jogador1BId)?.id || "",
-              dto: { venceu: dupla1Venceu, setsVencidos: setsDupla1, setsPerdidos: setsDupla2, gamesVencidos: set.gamesDupla1, gamesPerdidos: set.gamesDupla2 },
-            },
-            {
-              estatisticaId: estatisticasMap.get(partida.jogador2AId)?.id || "",
-              dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
-            },
-            {
-              estatisticaId: estatisticasMap.get(partida.jogador2BId)?.id || "",
-              dto: { venceu: !dupla1Venceu, setsVencidos: setsDupla2, setsPerdidos: setsDupla1, gamesVencidos: set.gamesDupla2, gamesPerdidos: set.gamesDupla1 },
-            },
-          ].filter(a => a.estatisticaId);
+            const atualizacoes = [
+              {
+                estatisticaId:
+                  estatisticasMap.get(partida.jogador1AId)?.id || "",
+                dto: {
+                  venceu: dupla1Venceu,
+                  setsVencidos: setsDupla1,
+                  setsPerdidos: setsDupla2,
+                  gamesVencidos: set.gamesDupla1,
+                  gamesPerdidos: set.gamesDupla2,
+                },
+              },
+              {
+                estatisticaId:
+                  estatisticasMap.get(partida.jogador1BId)?.id || "",
+                dto: {
+                  venceu: dupla1Venceu,
+                  setsVencidos: setsDupla1,
+                  setsPerdidos: setsDupla2,
+                  gamesVencidos: set.gamesDupla1,
+                  gamesPerdidos: set.gamesDupla2,
+                },
+              },
+              {
+                estatisticaId:
+                  estatisticasMap.get(partida.jogador2AId)?.id || "",
+                dto: {
+                  venceu: !dupla1Venceu,
+                  setsVencidos: setsDupla2,
+                  setsPerdidos: setsDupla1,
+                  gamesVencidos: set.gamesDupla2,
+                  gamesPerdidos: set.gamesDupla1,
+                },
+              },
+              {
+                estatisticaId:
+                  estatisticasMap.get(partida.jogador2BId)?.id || "",
+                dto: {
+                  venceu: !dupla1Venceu,
+                  setsVencidos: setsDupla2,
+                  setsPerdidos: setsDupla1,
+                  gamesVencidos: set.gamesDupla2,
+                  gamesPerdidos: set.gamesDupla1,
+                },
+              },
+            ].filter((a) => a.estatisticaId);
 
-          await Promise.all([
-            this.partidaReiDaPraiaRepository.atualizar(resultado.partidaId, {
-              placar: resultado.placar,
-              setsDupla1,
-              setsDupla2,
-              vencedorDupla,
-              status: StatusPartida.FINALIZADA,
-            }),
-            estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(atualizacoes),
-          ]);
+            await Promise.all([
+              this.partidaReiDaPraiaRepository.atualizar(resultado.partidaId, {
+                placar: resultado.placar,
+                setsDupla1,
+                setsDupla2,
+                vencedorDupla,
+                status: StatusPartida.FINALIZADA,
+              }),
+              estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(
+                atualizacoes
+              ),
+            ]);
 
-          return { success: true, partidaId: resultado.partidaId };
-        } catch (error: any) {
-          return { success: false, partidaId: resultado.partidaId, erro: error.message || "Erro desconhecido" };
+            return { success: true, partidaId: resultado.partidaId };
+          } catch (error: any) {
+            return {
+              success: false,
+              partidaId: resultado.partidaId,
+              erro: error.message || "Erro desconhecido",
+            };
+          }
         }
-      });
+      );
 
       const resultadosAplicacao = await Promise.all(aplicacoes);
 
@@ -629,42 +743,58 @@ export class SuperXService {
 
       // 4. Recalcular classificação de todos os grupos afetados - OTIMIZADO: paralelo
       inicio = Date.now();
-      const recalcPromises = Array.from(gruposParaRecalcular).map(async (grupoId) => {
-        try {
-          const [jogadoresGrupo, partidasGrupo] = await Promise.all([
-            this.estatisticasJogadorRepository.buscarPorGrupo(grupoId),
-            this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId),
-          ]);
+      const recalcPromises = Array.from(gruposParaRecalcular).map(
+        async (grupoId) => {
+          try {
+            const [jogadoresGrupo, partidasGrupo] = await Promise.all([
+              this.estatisticasJogadorRepository.buscarPorGrupo(grupoId),
+              this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId),
+            ]);
 
-          const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
-            if (a.pontosGrupo !== b.pontosGrupo) return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
-            if (a.saldoGamesGrupo !== b.saldoGamesGrupo) return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
-            if (a.saldoSetsGrupo !== b.saldoSetsGrupo) return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
-            if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
-            return 0;
-          });
+            const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
+              if (a.pontosGrupo !== b.pontosGrupo)
+                return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+              if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
+                return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
+              if (a.saldoSetsGrupo !== b.saldoSetsGrupo)
+                return (b.saldoSetsGrupo || 0) - (a.saldoSetsGrupo || 0);
+              if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
+                return (
+                  (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0)
+                );
+              return 0;
+            });
 
-          const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
-            estatisticaId: j.id,
-            posicaoGrupo: i + 1,
-          }));
+            const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
+              estatisticaId: j.id,
+              posicaoGrupo: i + 1,
+            }));
 
-          const partidasFinalizadas = partidasGrupo.filter(
-            (p) => p.status === StatusPartida.FINALIZADA
-          ).length;
-          const grupoCompleto = partidasFinalizadas === partidasGrupo.length && partidasGrupo.length > 0;
+            const partidasFinalizadas = partidasGrupo.filter(
+              (p) => p.status === StatusPartida.FINALIZADA
+            ).length;
+            const grupoCompleto =
+              partidasFinalizadas === partidasGrupo.length &&
+              partidasGrupo.length > 0;
 
-          await Promise.all([
-            estatisticasJogadorService.atualizarPosicoesGrupoEmLote(atualizacoesPosicao),
-            this.grupoRepository.atualizar(grupoId, {
-              completo: grupoCompleto,
-              partidasFinalizadas,
-            }),
-          ]);
-        } catch (error: any) {
-          logger.error("Erro ao recalcular classificação do grupo Super X", { grupoId }, error);
+            await Promise.all([
+              estatisticasJogadorService.atualizarPosicoesGrupoEmLote(
+                atualizacoesPosicao
+              ),
+              this.grupoRepository.atualizar(grupoId, {
+                completo: grupoCompleto,
+                partidasFinalizadas,
+              }),
+            ]);
+          } catch (error: any) {
+            logger.error(
+              "Erro ao recalcular classificação do grupo Super X",
+              { grupoId },
+              error
+            );
+          }
         }
-      });
+      );
       await Promise.all(recalcPromises);
       tempos["4_recalcularClassificacao"] = Date.now() - inicio;
 
