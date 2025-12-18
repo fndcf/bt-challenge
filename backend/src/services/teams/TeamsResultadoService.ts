@@ -281,7 +281,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     const confrontosFinalizados: string[] = [];
     let processados = 0;
 
-    // 1. Buscar todas as partidas
+    // Buscar todas as partidas
     const partidaIds = resultados.map((r) => r.partidaId);
     const partidas = await Promise.all(
       partidaIds.map((id) => this.partidaRepository.buscarPorId(id))
@@ -295,7 +295,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       }
     }
 
-    // 2. Agrupar resultados por confronto
+    // Agrupar resultados por confronto
     const resultadosPorConfronto = new Map<
       string,
       Array<{ partida: PartidaTeams; placar: SetPlacarTeams[] }>
@@ -321,7 +321,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       });
     }
 
-    // 3. Buscar todos os confrontos únicos
+    // Buscar todos os confrontos únicos
     const confrontoIds = Array.from(resultadosPorConfronto.keys());
     const confrontos = await Promise.all(
       confrontoIds.map((id) => this.confrontoRepository.buscarPorId(id))
@@ -334,7 +334,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       }
     }
 
-    // 4. Processar cada confronto
+    // Processar cada confronto
     for (const [confrontoId, partidasDoConfronto] of resultadosPorConfronto) {
       const confronto = confrontosMap.get(confrontoId);
       if (!confronto) {
@@ -368,7 +368,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       }
     }
 
-    // 5. Recalcular classificação uma única vez
+    // Recalcular classificação uma única vez
     if (processados > 0 && this.classificacaoService) {
       await this.classificacaoService.recalcularClassificacao(etapaId, arenaId);
     }

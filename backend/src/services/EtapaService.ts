@@ -325,7 +325,7 @@ export class EtapaService {
   }
 
   /**
-   * Inscrever múltiplos jogadores em lote (otimizado)
+   * Inscrever múltiplos jogadores em lote
    */
   async inscreverJogadoresEmLote(
     etapaId: string,
@@ -862,7 +862,7 @@ export class EtapaService {
    */
   async encerrarEtapa(id: string, arenaId: string): Promise<void> {
     try {
-      // 1. Buscar etapa
+      // Buscar etapa
       const etapa = await this.buscarPorId(id, arenaId);
 
       if (!etapa) {
@@ -882,12 +882,12 @@ export class EtapaService {
         formato: etapa.formato,
       });
 
-      // 2. Buscar pontuação via repository
+      // Buscar pontuação via repository
       const pontuacao = await this.configRepository.buscarPontuacao();
 
       // CENÁRIO 0: TEAMS (equipes)
       if (etapa.formato === FormatoEtapa.TEAMS) {
-        // 3. Buscar confrontos TEAMS
+        // Buscar confrontos TEAMS
         const confrontos = await this.confrontoEquipeRepository.buscarPorEtapa(
           id,
           arenaId
@@ -907,7 +907,7 @@ export class EtapaService {
           );
         }
 
-        // 4. Buscar equipes ordenadas por classificação
+        // Buscar equipes ordenadas por classificação
         const equipes = await this.equipeRepository.buscarPorClassificacao(
           id,
           arenaId
@@ -1021,7 +1021,7 @@ export class EtapaService {
           throw new Error("Nenhuma equipe campeã encontrada");
         }
 
-        // 6. Definir campeão
+        // Definir campeão
         await this.etapaRepository.definirCampeao(id, campeao.id, campeao.nome);
 
         logger.info("Etapa TEAMS encerrada", {
@@ -1035,7 +1035,7 @@ export class EtapaService {
         return;
       }
 
-      // 3. Buscar grupos via repository (para outros formatos)
+      // Buscar grupos via repository (para outros formatos)
       const grupos = await this.grupoRepository.buscarPorEtapa(id, arenaId);
 
       if (grupos.length === 0) {
@@ -1052,7 +1052,7 @@ export class EtapaService {
           );
         }
 
-        // 4. Buscar jogadores ordenados por posição via repository
+        // Buscar jogadores ordenados por posição via repository
         const jogadores =
           await this.estatisticasJogadorRepository.buscarPorGrupoOrdenado(
             grupo.id
@@ -1118,7 +1118,7 @@ export class EtapaService {
           throw new Error("Nenhum campeão encontrado");
         }
 
-        // 6. Definir campeão
+        // Definir campeão
         await this.etapaRepository.definirCampeao(
           id,
           campeao.jogadorId,
@@ -1146,7 +1146,7 @@ export class EtapaService {
           );
         }
 
-        // 4. Buscar duplas ordenadas por posição via repository
+        // Buscar duplas ordenadas por posição via repository
         const duplas = await this.duplaRepository.buscarPorGrupoOrdenado(
           grupo.id
         );
@@ -1236,7 +1236,7 @@ export class EtapaService {
           throw new Error("Nenhum campeão encontrado");
         }
 
-        // 6. Definir campeão
+        // Definir campeão
         await this.etapaRepository.definirCampeao(
           id,
           campeao.id,
@@ -1255,7 +1255,7 @@ export class EtapaService {
       }
 
       // CENÁRIO 3: COM ELIMINATÓRIA (múltiplos grupos)
-      // 4. Buscar confronto da final via repository
+      // Buscar confronto da final via repository
       const confrontosFinais = await this.confrontoRepository.buscarPorFase(
         id,
         arenaId,
@@ -1298,7 +1298,7 @@ export class EtapaService {
           this.duplaRepository.buscarPorEtapa(id, arenaId),
         ]);
 
-        // 6. Coletar todas as duplas e suas colocações
+        // Coletar todas as duplas e suas colocações
         const duplaColocacoes: Map<
           string,
           { pontos: number; colocacao: string }
@@ -1380,14 +1380,14 @@ export class EtapaService {
           }
         }
 
-        // 7. Buscar todas as duplas em paralelo para obter jogadorIds
+        // Buscar todas as duplas em paralelo para obter jogadorIds
         const duplaIds = Array.from(duplaColocacoes.keys());
         const duplasPromises = duplaIds.map((duplaId) =>
           this.duplaRepository.buscarPorId(duplaId)
         );
         const duplasResolvidas = await Promise.all(duplasPromises);
 
-        // 8. Coletar jogadorIds e suas colocações
+        // Coletar jogadorIds e suas colocações
         const jogadorColocacoes: Map<
           string,
           { pontos: number; colocacao: string }
@@ -1413,7 +1413,7 @@ export class EtapaService {
           });
         }
 
-        // 9. Buscar todas as estatísticas em paralelo
+        // Buscar todas as estatísticas em paralelo
         const estatisticasPromises = jogadorIds.map((jogadorId) =>
           this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
             jogadorId,
@@ -1422,7 +1422,7 @@ export class EtapaService {
         );
         const estatisticas = await Promise.all(estatisticasPromises);
 
-        // 10. Preparar e executar batch write
+        // Preparar e executar batch write
         const pontuacoesBatch = estatisticas
           .filter((est) => est !== null)
           .map((est) => {
@@ -1446,7 +1446,7 @@ export class EtapaService {
         );
       }
 
-      // 11. Definir campeão
+      // Definir campeão
       if (confrontoFinal.vencedoraId) {
         await this.etapaRepository.definirCampeao(
           id,

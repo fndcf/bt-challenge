@@ -153,14 +153,14 @@ export class TeamsService {
     tipoFormacaoJogos: TipoFormacaoJogos = TipoFormacaoJogos.SORTEIO,
     equipesJaCriadas?: Equipe[]
   ): Promise<ConfrontoEquipe[]> {
-    // 1. Gerar confrontos
+    // Gerar confrontos
     const confrontos = await this.confrontoService.gerarConfrontos(
       etapa,
       tipoFormacaoJogos,
       equipesJaCriadas
     );
 
-    // 2. Gerar partidas para confrontos da fase de grupos (mantém comportamento original)
+    // Gerar partidas para confrontos da fase de grupos (mantém comportamento original)
     const tipoFormacao = etapa.tipoFormacaoJogos || TipoFormacaoJogos.SORTEIO;
     if (tipoFormacao !== TipoFormacaoJogos.MANUAL) {
       // Buscar equipes se não foram passadas

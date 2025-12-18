@@ -56,7 +56,7 @@ export class ArenaService {
       // Validar outros dados
       this.validateArenaData({ ...data, slug });
 
-      // 1. Criar usuário no Firebase Authentication
+      // Criar usuário no Firebase Authentication
       const userRecord = await auth.createUser({
         email: data.adminEmail,
         password: data.adminPassword,
@@ -64,7 +64,7 @@ export class ArenaService {
       });
 
       try {
-        // 2. Criar arena no Firestore
+        // Criar arena no Firestore
         const arenaData: ArenaType = {
           id: "",
           nome: data.nome,
@@ -78,7 +78,7 @@ export class ArenaService {
 
         const arena = await this.arenaRepository.create(arenaData);
 
-        // 3. Criar documento de admin no Firestore
+        // Criar documento de admin no Firestore
         await db.collection(COLLECTIONS.ADMINS).doc(userRecord.uid).set({
           uid: userRecord.uid,
           email: data.adminEmail,
@@ -87,7 +87,7 @@ export class ArenaService {
           createdAt: new Date(),
         });
 
-        // 4. Enviar email de verificação (opcional)
+        // Enviar email de verificação (opcional)
         try {
           await auth.generateEmailVerificationLink(data.adminEmail);
         } catch (error) {

@@ -76,7 +76,7 @@ export class ReiDaPraiaService {
     partidas: PartidaReiDaPraia[];
   }> {
     try {
-      // 1. Buscar e validar etapa
+      // Buscar e validar etapa
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
@@ -105,26 +105,26 @@ export class ReiDaPraiaService {
         );
       }
 
-      // 2. Buscar inscrições via repository
+      // Buscar inscrições via repository
       const inscricoes = await this.inscricaoRepository.buscarConfirmadas(
         etapaId,
         arenaId
       );
 
-      // 3. Distribuir jogadores em grupos
+      // Distribuir jogadores em grupos
       const jogadores = await this.distribuirJogadoresEmGrupos(
         etapaId,
         arenaId,
         inscricoes
       );
 
-      // 4. Criar grupos
+      // Criar grupos
       const grupos = await this.criarGrupos(etapaId, arenaId, jogadores);
 
-      // 5. Gerar partidas
+      // Gerar partidas
       const partidas = await this.gerarPartidas(etapaId, arenaId, grupos);
 
-      // 6. Marcar chaves como geradas
+      // Marcar chaves como geradas
       await this.etapaRepository.marcarChavesGeradas(etapaId, true);
 
       return { jogadores, grupos, partidas };
@@ -349,14 +349,14 @@ export class ReiDaPraiaService {
     grupos: Grupo[]
   ): Promise<PartidaReiDaPraia[]> {
     try {
-      // 1. Buscar jogadores de todos os grupos em paralelo
+      // Buscar jogadores de todos os grupos em paralelo
       const jogadoresPorGrupo = await Promise.all(
         grupos.map((grupo) =>
           this.estatisticasJogadorRepository.buscarPorGrupo(grupo.id)
         )
       );
 
-      // 2. Validar e gerar todos os DTOs de partidas
+      // Validar e gerar todos os DTOs de partidas
       const todosPartidaDTOs: CriarPartidaReiDaPraiaDTO[] = [];
       const partidasPorGrupo: Map<string, number> = new Map();
 
@@ -379,12 +379,12 @@ export class ReiDaPraiaService {
         partidasPorGrupo.set(grupo.id, todosPartidaDTOs.length - startIndex);
       }
 
-      // 3. Criar todas as partidas em um único batch
+      // Criar todas as partidas em um único batch
       const todasPartidas = await this.partidaReiDaPraiaRepository.criarEmLote(
         todosPartidaDTOs
       );
 
-      // 4. Atualizar grupos com IDs das partidas em paralelo
+      // Atualizar grupos com IDs das partidas em paralelo
       let partidaIndex = 0;
       const atualizacoesGrupos = grupos.map((grupo) => {
         const qtdPartidas = partidasPorGrupo.get(grupo.id) || 0;
@@ -505,13 +505,13 @@ export class ReiDaPraiaService {
     let processados = 0;
 
     try {
-      // 1. Buscar todas as partidas em paralelo
+      // Buscar todas as partidas em paralelo
       const partidasPromises = resultados.map((r) =>
         this.partidaReiDaPraiaRepository.buscarPorIdEArena(r.partidaId, arenaId)
       );
       const partidas = await Promise.all(partidasPromises);
 
-      // 2. Coletar todos os jogadorIds únicos e buscar estatísticas
+      // Coletar todos os jogadorIds únicos e buscar estatísticas
       const jogadorIdsSet = new Set<string>();
       for (const partida of partidas) {
         if (partida) {
@@ -530,10 +530,10 @@ export class ReiDaPraiaService {
       ]);
       const eliminatoriaGerada = confrontos.length > 0;
 
-      // 3. Processar cada resultado
+      // Processar cada resultado
       const gruposParaRecalcular = new Set<string>();
 
-      // 3.1 Validar e preparar dados
+      // Validar e preparar dados
       type ResultadoValido = {
         resultado: (typeof resultados)[0];
         partida: NonNullable<(typeof partidas)[0]>;
@@ -577,7 +577,7 @@ export class ReiDaPraiaService {
         }
       }
 
-      // 3.2 Reverter estatísticas de edições usando increment negativo
+      // Reverter estatísticas de edições usando increment negativo
       const reversoes = resultadosValidos
         .filter(
           (r) => r.isEdicao && r.partida.placar && r.partida.placar.length > 0
@@ -590,7 +590,7 @@ export class ReiDaPraiaService {
         await Promise.all(reversoes);
       }
 
-      // 3.3 Aplicar novos resultados em PARALELO usando FieldValue.increment (atômico)
+      // Aplicar novos resultados em PARALELO usando FieldValue.increment (atômico)
       const aplicacoes = resultadosValidos.map(
         async ({ resultado, partida }) => {
           try {
@@ -701,7 +701,7 @@ export class ReiDaPraiaService {
         }
       }
 
-      // 4. Recalcular classificação de todos os grupos afetados
+      // Recalcular classificação de todos os grupos afetados
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {
           try {
@@ -736,8 +736,7 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * Reverter estatísticas usando map de estatísticas já carregado (otimizado)
-   * Usa FieldValue.increment negativo para atomicidade
+   * Reverter estatísticas usando map de estatísticas já carregado
    */
   private async reverterEstatisticasComMap(
     partida: PartidaReiDaPraia,
@@ -834,7 +833,7 @@ export class ReiDaPraiaService {
       return 0;
     });
 
-    // Atualizar posição de cada jogador - OTIMIZADO: todas em paralelo
+    // Atualizar posição de cada jogador
     const atualizacoesPosicao = jogadoresOrdenados.map((jogador, i) =>
       estatisticasJogadorService.atualizarPosicaoGrupo(
         jogador.jogadorId,
@@ -897,7 +896,7 @@ export class ReiDaPraiaService {
     confrontos: ConfrontoEliminatorio[];
   }> {
     try {
-      // 1. Buscar grupos completos via repository
+      // Buscar grupos completos via repository
       const grupos = await this.grupoRepository.buscarCompletos(
         etapaId,
         arenaId
@@ -913,7 +912,7 @@ export class ReiDaPraiaService {
         );
       }
 
-      // 2. Buscar classificados de cada grupo
+      // Buscar classificados de cada grupo
       const todosClassificados: EstatisticasJogador[] = [];
 
       for (const grupo of grupos) {
@@ -935,7 +934,7 @@ export class ReiDaPraiaService {
         );
       }
 
-      // 3. Marcar jogadores como classificados
+      // Marcar jogadores como classificados
       const jogadoresParaMarcar = todosClassificados.map((j) => ({
         jogadorId: j.jogadorId,
         etapaId,
@@ -945,7 +944,7 @@ export class ReiDaPraiaService {
         true
       );
 
-      // 4. Formar duplas fixas baseado no tipo de chaveamento
+      // Formar duplas fixas baseado no tipo de chaveamento
       let duplas: Dupla[];
 
       switch (tipoChaveamento) {
@@ -981,14 +980,14 @@ export class ReiDaPraiaService {
           throw new Error(`Tipo de chaveamento inválido: ${tipoChaveamento}`);
       }
 
-      // 5. Gerar confrontos eliminatórios
+      // Gerar confrontos eliminatórios
       const confrontos = await this.gerarConfrontosEliminatorios(
         etapaId,
         arenaId,
         duplas
       );
 
-      // 6. Atualizar status da etapa via repository
+      // Atualizar status da etapa via repository
       await this.etapaRepository.atualizarStatus(
         etapaId,
         StatusEtapa.FASE_ELIMINATORIA
@@ -1127,7 +1126,7 @@ export class ReiDaPraiaService {
       );
     }
 
-    // Criar todas as duplas em paralelo (otimizado)
+    // Criar todas as duplas em paralelo
     const duplas = await Promise.all(
       paresParaCriar.map((par) =>
         this.criarDupla(etapaId, arenaId, par.jogador1, par.jogador2, par.ordem)
@@ -1207,7 +1206,7 @@ export class ReiDaPraiaService {
       });
     }
 
-    // Criar todas as duplas em paralelo (otimizado)
+    // Criar todas as duplas em paralelo
     const duplas = await Promise.all(
       paresParaCriar.map((par) =>
         this.criarDupla(etapaId, arenaId, par.jogador1, par.jogador2, par.ordem)
@@ -1286,7 +1285,7 @@ export class ReiDaPraiaService {
       throw new Error("Não foi possível formar duplas sem repetir grupos");
     }
 
-    // Criar todas as duplas em paralelo (otimizado)
+    // Criar todas as duplas em paralelo
     const duplas = await Promise.all(
       paresParaCriar.map((par) =>
         this.criarDupla(etapaId, arenaId, par.jogador1, par.jogador2, par.ordem)
@@ -1332,7 +1331,7 @@ export class ReiDaPraiaService {
   }
 
   /**
-   * Gerar confrontos eliminatórios via repository (otimizado com Promise.all)
+   * Gerar confrontos eliminatórios via repository
    */
   private async gerarConfrontosEliminatorios(
     etapaId: string,
@@ -1512,7 +1511,7 @@ export class ReiDaPraiaService {
     arenaId: string
   ): Promise<void> {
     try {
-      // 1. Buscar etapa
+      // Buscar etapa
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
@@ -1526,7 +1525,7 @@ export class ReiDaPraiaService {
         throw new Error("Esta etapa não é do formato Rei da Praia");
       }
 
-      // 2. Buscar confrontos e partidas em paralelo
+      // Buscar confrontos e partidas em paralelo
       const [confrontos, partidasEliminatorias] = await Promise.all([
         this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
         this.partidaRepository.buscarPorTipo(etapaId, arenaId, "eliminatoria"),
@@ -1536,7 +1535,7 @@ export class ReiDaPraiaService {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
       }
 
-      // 3. Reverter estatísticas de partidas finalizadas
+      // Reverter estatísticas de partidas finalizadas
       let partidasRevertidas = 0;
 
       if (partidasEliminatorias.length > 0) {
@@ -1649,20 +1648,20 @@ export class ReiDaPraiaService {
 
         await Promise.all(reversaoPromises);
 
-        // 4. Excluir partidas eliminatórias
+        // Excluir partidas eliminatórias
         await this.partidaRepository.deletarEliminatoriasPorEtapa(
           etapaId,
           arenaId
         );
       }
 
-      // 5. Excluir confrontos e duplas em paralelo
+      // Excluir confrontos e duplas em paralelo
       await Promise.all([
         this.confrontoRepository.deletarPorEtapa(etapaId, arenaId),
         this.duplaRepository.deletarPorEtapa(etapaId, arenaId),
       ]);
 
-      // 6. Buscar e desmarcar jogadores classificados
+      // Buscar e desmarcar jogadores classificados
       const estatisticas =
         await this.estatisticasJogadorRepository.buscarPorEtapa(
           etapaId,
@@ -1675,7 +1674,7 @@ export class ReiDaPraiaService {
       );
       await Promise.all(desmarcarPromises);
 
-      // 7. Voltar status da etapa
+      // Voltar status da etapa
       await this.etapaRepository.atualizarStatus(
         etapaId,
         StatusEtapa.CHAVES_GERADAS

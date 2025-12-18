@@ -82,12 +82,12 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     grupos: Grupo[]
   ): Promise<Partida[]> {
     try {
-      // 1. Buscar duplas de todos os grupos em paralelo
+      // Buscar duplas de todos os grupos em paralelo
       const duplasPorGrupo = await Promise.all(
         grupos.map((grupo) => this.duplaRepo.buscarPorGrupo(grupo.id))
       );
 
-      // 2. Gerar todos os DTOs de partidas
+      // Gerar todos os DTOs de partidas
       const todosPartidaDTOs: any[] = [];
       const partidasPorGrupo: Map<string, number> = new Map(); // grupoId -> quantidade de partidas
 
@@ -119,12 +119,12 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         partidasPorGrupo.set(grupo.id, todosPartidaDTOs.length - startIndex);
       }
 
-      // 3. Criar todas as partidas em um único batch
+      // Criar todas as partidas em um único batch
       const todasPartidas = await this.partidaRepo.criarEmLote(
         todosPartidaDTOs
       );
 
-      // 4. Atualizar grupos com IDs das partidas em paralelo
+      // Atualizar grupos com IDs das partidas em paralelo
       let partidaIndex = 0;
       const atualizacoesGrupos = grupos.map((grupo) => {
         const qtdPartidas = partidasPorGrupo.get(grupo.id) || 0;
@@ -545,13 +545,13 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     let processados = 0;
 
     try {
-      // 1. Buscar todas as partidas em paralelo
+      // Buscar todas as partidas em paralelo
       const partidasPromises = resultados.map((r) =>
         this.partidaRepo.buscarPorIdEArena(r.partidaId, arenaId)
       );
       const partidas = await Promise.all(partidasPromises);
 
-      // 2. Coletar todas as duplas e jogadores únicos e verificar eliminatória uma vez
+      // Coletar todas as duplas e jogadores únicos e verificar eliminatória uma vez
       const duplaIdsSet = new Set<string>();
       const jogadorIdsSet = new Set<string>();
       let etapaIdParaVerificar: string | null = null;
@@ -605,9 +605,9 @@ export class PartidaGrupoService implements IPartidaGrupoService {
           )
         : new Map();
 
-      // 3. Processar cada resultado
+      // Processar cada resultado
 
-      // 3.1 Preparar dados e validar
+      // Preparar dados e validar
       const resultadosValidos: Array<{
         resultado: ResultadoPartidaLoteDTO;
         partida: Partida;
@@ -662,7 +662,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         }
       }
 
-      // 3.2 Reverter estatísticas de edições em paralelo
+      // Reverter estatísticas de edições em paralelo
       const reversoes = resultadosValidos
         .filter(
           (r) => r.isEdicao && r.partida.placar && r.partida.placar.length > 0
@@ -680,7 +680,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         await Promise.all(reversoes);
       }
 
-      // 3.3 Aplicar novos resultados em paralelo
+      // Aplicar novos resultados em paralelo
       const aplicacoes = resultadosValidos.map(
         async ({ resultado, partida, dupla1, dupla2 }) => {
           try {
@@ -742,7 +742,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         }
       }
 
-      // 4. Recalcular classificação de todos os grupos afetados em paralelo
+      // Recalcular classificação de todos os grupos afetados em paralelo
       const gruposRecalculados: string[] = [];
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {

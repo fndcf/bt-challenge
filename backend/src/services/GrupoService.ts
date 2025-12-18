@@ -50,9 +50,9 @@ export class GrupoService implements IGrupoService {
    * Criar grupos com distribuição equilibrada de duplas
    *
    * REGRAS:
-   * 1. Cabeças de chave são distribuídos uniformemente entre grupos
-   * 2. Duplas normais preenchem as vagas restantes
-   * 3. Prioriza grupos de 3, depois de 4 (exceto 5 duplas = 1 grupo de 5)
+   * Cabeças de chave são distribuídos uniformemente entre grupos
+   * Duplas normais preenchem as vagas restantes
+   * Prioriza grupos de 3, depois de 4 (exceto 5 duplas = 1 grupo de 5)
    */
   async criarGrupos(
     etapaId: string,
@@ -95,14 +95,14 @@ export class GrupoService implements IGrupoService {
         () => []
       );
 
-      // 1. Distribuir cabeças de chave uniformemente (round-robin)
+      // Distribuir cabeças de chave uniformemente (round-robin)
       let grupoAtual = 0;
       for (const dupla of duplasComCabecas) {
         gruposDuplas[grupoAtual].push(dupla);
         grupoAtual = (grupoAtual + 1) % qtdGrupos;
       }
 
-      // 2. Preencher vagas restantes com duplas normais
+      // Preencher vagas restantes com duplas normais
       let indiceNormal = 0;
       for (let g = 0; g < qtdGrupos; g++) {
         const limiteGrupo = distribuicao[g];
@@ -129,9 +129,9 @@ export class GrupoService implements IGrupoService {
         );
       }
 
-      // 3. Criar grupos no banco de dados
+      // Criar grupos no banco de dados
 
-      // 3.1 Preparar DTOs e criar todos os grupos em batch
+      // Preparar DTOs e criar todos os grupos em batch
       const grupoDTOs = [];
       for (let grupoIndex = 0; grupoIndex < qtdGrupos; grupoIndex++) {
         const nomeGrupo = `Grupo ${LETRAS_GRUPOS[grupoIndex]}`;
@@ -150,7 +150,7 @@ export class GrupoService implements IGrupoService {
       const gruposCriados = await this.grupoRepo.criarEmLote(grupoDTOs);
       grupos.push(...gruposCriados);
 
-      // 3.2 Atualizar todas as duplas em batch
+      // Atualizar todas as duplas em batch
       const duplaUpdates: Array<{ id: string; data: Partial<Dupla> }> = [];
       for (let grupoIndex = 0; grupoIndex < qtdGrupos; grupoIndex++) {
         const grupo = grupos[grupoIndex];

@@ -92,29 +92,29 @@ export class ChaveService implements IChaveService {
    * Gerar chaves completas (duplas + grupos + partidas)
    *
    * FLUXO:
-   * 1. Validar etapa
-   * 2. Formar duplas (respeitando cabeças de chave)
-   * 3. Criar estatísticas dos jogadores
-   * 4. Criar grupos (distribuindo cabeças uniformemente)
-   * 5. Gerar partidas (todos contra todos)
-   * 6. Atualizar status da etapa
+   * Validar etapa
+   * Formar duplas (respeitando cabeças de chave)
+   * Criar estatísticas dos jogadores
+   * Criar grupos (distribuindo cabeças uniformemente)
+   * Gerar partidas (todos contra todos)
+   * Atualizar status da etapa
    */
   async gerarChaves(
     etapaId: string,
     arenaId: string
   ): Promise<{ duplas: Dupla[]; grupos: Grupo[]; partidas: Partida[] }> {
     try {
-      // 1. Validar etapa
+      // Validar etapa
       const etapa = await etapaService.buscarPorId(etapaId, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
       }
       this.validarEtapaParaGeracaoChaves(etapa);
 
-      // 2. Buscar inscrições
+      // Buscar inscrições
       const inscricoes = await etapaService.listarInscricoes(etapaId, arenaId);
 
-      // 3. Formar duplas
+      // Formar duplas
       const duplas = await this.duplas.formarDuplasComCabecasDeChave(
         etapaId,
         etapa.nome,
@@ -122,7 +122,7 @@ export class ChaveService implements IChaveService {
         inscricoes
       );
 
-      // 4. Criar estatísticas dos jogadores
+      // Criar estatísticas dos jogadores
       const estatisticasDTOs = duplas.flatMap((dupla) => [
         {
           etapaId,
@@ -147,7 +147,7 @@ export class ChaveService implements IChaveService {
       ]);
       await estatisticasJogadorService.criarEmLote(estatisticasDTOs);
 
-      // 5. Criar grupos
+      // Criar grupos
       const grupos = await this.grupos.criarGrupos(
         etapaId,
         arenaId,
@@ -155,14 +155,14 @@ export class ChaveService implements IChaveService {
         etapa.jogadoresPorGrupo
       );
 
-      // 6. Gerar partidas
+      // Gerar partidas
       const partidas = await this.partidasGrupo.gerarPartidas(
         etapaId,
         arenaId,
         grupos
       );
 
-      // 7. Atualizar status da etapa
+      // Atualizar status da etapa
       await db.collection("etapas").doc(etapaId).update({
         chavesGeradas: true,
         dataGeracaoChaves: Timestamp.now(),

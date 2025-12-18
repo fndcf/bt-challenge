@@ -529,13 +529,18 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
     }
   };
 
-  const handleAbrirModalResultados = async (grupoId: string, grupoNome: string) => {
+  const handleAbrirModalResultados = async (
+    grupoId: string,
+    grupoNome: string
+  ) => {
     try {
       setGlobalLoading(true);
       setGlobalLoadingMessage("Carregando partidas...");
 
       const todasPartidas = await reiDaPraiaService.buscarPartidas(etapaId);
-      const partidasDoGrupo = todasPartidas.filter((p) => p.grupoId === grupoId);
+      const partidasDoGrupo = todasPartidas.filter(
+        (p) => p.grupoId === grupoId
+      );
 
       setPartidasModal(partidasDoGrupo);
       setGrupoModalAberto({ id: grupoId, nome: grupoNome });
@@ -637,7 +642,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                       jogadoresDoGrupo
                         // ============== ORDENAÇÃO ==============
                         .sort((a, b) => {
-                          // 1. Posição do grupo (se definida pelo backend)
+                          // Posição do grupo (se definida pelo backend)
                           if (
                             a.posicaoGrupo !== undefined &&
                             b.posicaoGrupo !== undefined
@@ -645,27 +650,27 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                             return a.posicaoGrupo - b.posicaoGrupo;
                           }
 
-                          // 2. Pontos (3 por vitória)
+                          // Pontos (3 por vitória)
                           if (a.pontosGrupo !== b.pontosGrupo) {
                             return b.pontosGrupo - a.pontosGrupo;
                           }
 
-                          // 3. Saldo de games
+                          // Saldo de games
                           if (a.saldoGamesGrupo !== b.saldoGamesGrupo) {
                             return b.saldoGamesGrupo - a.saldoGamesGrupo;
                           }
 
-                          // 4. Games vencidos
+                          // Games vencidos
                           if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
                             return b.gamesVencidosGrupo - a.gamesVencidosGrupo;
                           }
 
-                          // 5. Saldo de sets
+                          // Saldo de sets
                           if (a.saldoSetsGrupo !== b.saldoSetsGrupo) {
                             return b.saldoSetsGrupo - a.saldoSetsGrupo;
                           }
 
-                          // 6. Alfabético
+                          // Alfabético
                           return a.jogadorNome.localeCompare(b.jogadorNome);
                         })
                         // ============== RENDERIZAÇÃO ==============
@@ -749,7 +754,9 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                     </FooterInfo>
 
                     <VerPartidasButton
-                      onClick={() => handleAbrirModalResultados(grupo.id, grupo.nome)}
+                      onClick={() =>
+                        handleAbrirModalResultados(grupo.id, grupo.nome)
+                      }
                     >
                       Registrar Resultados
                     </VerPartidasButton>
@@ -792,7 +799,10 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
       )}
 
       {/* Loading Overlay Global - Bloqueia toda a tela */}
-      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+      <LoadingOverlay
+        isLoading={globalLoading}
+        message={globalLoadingMessage}
+      />
     </Container>
   );
 };

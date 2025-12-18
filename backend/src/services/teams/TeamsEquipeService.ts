@@ -88,7 +88,7 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     const isMisto = etapa.isMisto || etapa.genero === GeneroJogador.MISTO;
     const numEquipes = inscricoes.length / variante;
 
-    // 1. Distribuir jogadores em equipes
+    // Distribuir jogadores em equipes
     let jogadoresPorEquipe: JogadorEquipe[][];
 
     switch (tipoFormacao) {
@@ -115,7 +115,7 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     const temFaseGrupos = numEquipes >= 6;
     const grupos = temFaseGrupos ? this.calcularGrupos(numEquipes) : null;
 
-    // 2. Preparar DTOs de equipes
+    // Preparar DTOs de equipes
     const equipeDTOs: CriarEquipeDTO[] = jogadoresPorEquipe.map(
       (jogadores, index) => {
         const dto: CriarEquipeDTO = {
@@ -135,10 +135,10 @@ export class TeamsEquipeService implements ITeamsEquipeService {
       }
     );
 
-    // 3. Criar equipes no banco
+    // Criar equipes no banco
     const equipes = await this.equipeRepository.criarEmLote(equipeDTOs);
 
-    // 4. Criar estatísticas individuais para cada jogador EM LOTE
+    // Criar estatísticas individuais para cada jogador EM LOTE
     const estatisticasDTOs = equipes.flatMap((equipe) =>
       equipe.jogadores.map((jogador) => ({
         etapaId: etapa.id,
@@ -267,7 +267,7 @@ export class TeamsEquipeService implements ITeamsEquipeService {
 
     const equipes = await this.equipeRepository.criarEmLote(equipeDTOs);
 
-    // Criar estatísticas EM LOTE (otimizado)
+    // Criar estatísticas
     const estatisticasDTOs = equipes.flatMap((equipe) =>
       equipe.jogadores.map((jogador) => ({
         etapaId: etapa.id,

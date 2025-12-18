@@ -52,7 +52,7 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
     equipesJaCriadas?: Equipe[]
   ): Promise<ConfrontoEquipe[]> {
     try {
-      // 1. Usar equipes já criadas ou buscar do banco
+      // Usar equipes já criadas ou buscar do banco
       const equipes =
         equipesJaCriadas ||
         (await this.equipeRepository.buscarPorEtapaOrdenadas(
@@ -66,7 +66,7 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
 
       const temFaseGrupos = equipes.length >= 6;
 
-      // 2. Gerar confrontos
+      // Gerar confrontos
       let confrontos: ConfrontoEquipe[];
       if (temFaseGrupos) {
         confrontos = await this.gerarConfrontosFaseGrupos(

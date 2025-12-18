@@ -490,13 +490,18 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
     }
   };
 
-  const handleAbrirModalResultados = async (grupoId: string, grupoNome: string) => {
+  const handleAbrirModalResultados = async (
+    grupoId: string,
+    grupoNome: string
+  ) => {
     try {
       setGlobalLoading(true);
       setGlobalLoadingMessage("Carregando partidas...");
 
       const todasPartidas = await chaveService.buscarPartidas(etapaId);
-      const partidasDoGrupo = todasPartidas.filter((p) => p.grupoId === grupoId);
+      const partidasDoGrupo = todasPartidas.filter(
+        (p) => p.grupoId === grupoId
+      );
 
       setPartidasModal(partidasDoGrupo);
       setGrupoModalAberto({ id: grupoId, nome: grupoNome });
@@ -603,27 +608,27 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                           }
 
                           // FALLBACK: Se posicaoGrupo não existe ainda
-                          // 1. Pontos
+                          // Pontos
                           if (a.pontos !== b.pontos) {
                             return b.pontos - a.pontos;
                           }
 
-                          // 2. Saldo de games
+                          // Saldo de games
                           if (a.saldoGames !== b.saldoGames) {
                             return b.saldoGames - a.saldoGames;
                           }
 
-                          // 3. Saldo de sets
+                          // Saldo de sets
                           if (a.saldoSets !== b.saldoSets) {
                             return b.saldoSets - a.saldoSets;
                           }
 
-                          // 4. Games vencidos
+                          // Games vencidos
                           if (a.gamesVencidos !== b.gamesVencidos) {
                             return b.gamesVencidos - a.gamesVencidos;
                           }
 
-                          // 5. Desempate final: ordem alfabética
+                          // Desempate final: ordem alfabética
                           const nomeA = `${a.jogador1Nome} & ${a.jogador2Nome}`;
                           const nomeB = `${b.jogador1Nome} & ${b.jogador2Nome}`;
                           return nomeA.localeCompare(nomeB);
@@ -702,7 +707,9 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                     </FooterInfo>
 
                     <VerPartidasButton
-                      onClick={() => handleAbrirModalResultados(grupo.id, grupo.nome)}
+                      onClick={() =>
+                        handleAbrirModalResultados(grupo.id, grupo.nome)
+                      }
                     >
                       Registrar Resultados
                     </VerPartidasButton>
@@ -740,7 +747,10 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
       )}
 
       {/* Loading Overlay Global - Bloqueia toda a tela */}
-      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+      <LoadingOverlay
+        isLoading={globalLoading}
+        message={globalLoadingMessage}
+      />
     </Container>
   );
 };

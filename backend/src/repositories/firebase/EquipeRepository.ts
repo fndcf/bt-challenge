@@ -262,10 +262,10 @@ export class EquipeRepository implements IEquipeRepository {
   /**
    * Buscar equipes ordenadas por classificação (pontos, saldo jogos, saldo games)
    * Critérios de desempate:
-   * 1. Pontos (3 por vitória)
-   * 2. Saldo de jogos
-   * 3. Saldo de games
-   * 4. Games vencidos
+   * Pontos (3 por vitória)
+   * Saldo de jogos
+   * Saldo de games
+   * Games vencidos
    */
   async buscarPorClassificacao(
     etapaId: string,
@@ -275,19 +275,19 @@ export class EquipeRepository implements IEquipeRepository {
 
     // Ordenar por critérios de classificação
     return equipes.sort((a, b) => {
-      // 1. Pontos (decrescente)
+      // Pontos (decrescente)
       if (b.pontos !== a.pontos) {
         return b.pontos - a.pontos;
       }
-      // 2. Saldo de jogos (decrescente)
+      // Saldo de jogos (decrescente)
       if (b.saldoJogos !== a.saldoJogos) {
         return b.saldoJogos - a.saldoJogos;
       }
-      // 3. Saldo de games (decrescente)
+      // Saldo de games (decrescente)
       if (b.saldoGames !== a.saldoGames) {
         return b.saldoGames - a.saldoGames;
       }
-      // 4. Games vencidos (decrescente)
+      // Games vencidos (decrescente)
       return b.gamesVencidos - a.gamesVencidos;
     });
   }

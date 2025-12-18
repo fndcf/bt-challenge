@@ -51,16 +51,16 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
 
     // Ordenar por critérios de desempate
     const equipesOrdenadas = [...equipes].sort((a, b) => {
-      // 1. Pontos (desc)
+      // Pontos (desc)
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-      // 2. Saldo de jogos (desc)
+      // Saldo de jogos (desc)
       if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
-      // 3. Saldo de games (desc)
+      // Saldo de games (desc)
       if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
-      // 4. Games vencidos (desc)
+      // Games vencidos (desc)
       if (b.gamesVencidos !== a.gamesVencidos)
         return b.gamesVencidos - a.gamesVencidos;
-      // 5. Nome (asc) como último critério
+      // Nome (asc) como último critério
       return a.nome.localeCompare(b.nome);
     });
 

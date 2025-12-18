@@ -563,13 +563,13 @@ export class SuperXService {
     let processados = 0;
 
     try {
-      // 1. Buscar todas as partidas em paralelo
+      // Buscar todas as partidas em paralelo
       const partidasPromises = resultados.map((r) =>
         this.partidaReiDaPraiaRepository.buscarPorIdEArena(r.partidaId, arenaId)
       );
       const partidas = await Promise.all(partidasPromises);
 
-      // 2. Coletar todos os jogadorIds únicos
+      // Coletar todos os jogadorIds únicos
       const jogadorIdsSet = new Set<string>();
       for (const partida of partidas) {
         if (partida) {
@@ -588,10 +588,10 @@ export class SuperXService {
           etapaId
         );
 
-      // 3. Processar cada resultado
+      // Processar cada resultado
       const gruposParaRecalcular = new Set<string>();
 
-      // 3.1 Validar e preparar dados
+      // Validar e preparar dados
       type ResultadoValido = {
         resultado: (typeof resultados)[0];
         partida: NonNullable<(typeof partidas)[0]>;
@@ -627,7 +627,7 @@ export class SuperXService {
         }
       }
 
-      // 3.2 Reverter estatísticas de edições em paralelo
+      // Reverter estatísticas de edições em paralelo
       const reversoes = resultadosValidos
         .filter(
           (r) => r.isEdicao && r.partida.placar && r.partida.placar.length > 0
@@ -640,7 +640,7 @@ export class SuperXService {
         await Promise.all(reversoes);
       }
 
-      // 3.3 Aplicar novos resultados em paralelo
+      // Aplicar novos resultados em paralelo
       const aplicacoes = resultadosValidos.map(
         async ({ resultado, partida }) => {
           try {
@@ -731,7 +731,7 @@ export class SuperXService {
         }
       }
 
-      // 4. Recalcular classificação de todos os grupos afetados
+      // Recalcular classificação de todos os grupos afetados
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {
           try {

@@ -77,7 +77,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * Criar estatísticas em lote (batch) - OTIMIZADO para performance
+   * Criar estatísticas em lote (batch)
    */
   async criarEmLote(
     dtos: CriarEstatisticasJogadorDTO[]
@@ -774,14 +774,14 @@ export class EstatisticasJogadorService {
     if (atualizacoes.length === 0) return;
 
     try {
-      // 1. Buscar todas as estatísticas em paralelo
+      // Buscar todas as estatísticas em paralelo
       const estatisticasList = await Promise.all(
         atualizacoes.map(({ jogadorId, etapaId }) =>
           this.buscarPorJogadorEtapa(jogadorId, etapaId)
         )
       );
 
-      // 2. Criar batch de atualizações
+      // Criar batch de atualizações
       const batch = db.batch();
       const now = Timestamp.now();
 
@@ -832,7 +832,7 @@ export class EstatisticasJogadorService {
         batch.update(docRef, novasEstatisticas);
       }
 
-      // 3. Commit único
+      // Commit único
       await batch.commit();
 
       logger.info("Estatísticas de grupo atualizadas em lote", {
@@ -862,14 +862,14 @@ export class EstatisticasJogadorService {
     if (reversoes.length === 0) return;
 
     try {
-      // 1. Buscar todas as estatísticas em paralelo
+      // Buscar todas as estatísticas em paralelo
       const estatisticasList = await Promise.all(
         reversoes.map(({ jogadorId, etapaId }) =>
           this.buscarPorJogadorEtapa(jogadorId, etapaId)
         )
       );
 
-      // 2. Criar batch de atualizações
+      // Criar batch de atualizações
       const batch = db.batch();
       const now = Timestamp.now();
 
@@ -947,7 +947,7 @@ export class EstatisticasJogadorService {
         batch.update(docRef, estatisticasRevertidas);
       }
 
-      // 3. Commit único
+      // Commit único
       await batch.commit();
 
       logger.info("Estatísticas revertidas em lote", {
@@ -1261,7 +1261,7 @@ export class EstatisticasJogadorService {
   }
 
   /**
-   * Marcar múltiplos jogadores como classificados em lote (otimizado)
+   * Marcar múltiplos jogadores como classificados em lote
    */
   async marcarComoClassificadoEmLote(
     jogadores: Array<{ jogadorId: string; etapaId: string }>,

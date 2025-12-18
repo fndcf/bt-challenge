@@ -319,7 +319,7 @@ export class EliminatoriaService implements IEliminatoriaService {
   ) {}
 
   /**
-   * Gerar fase eliminatória no formato Copa do Mundo (otimizado)
+   * Gerar fase eliminatória no formato Copa do Mundo
    */
   async gerarFaseEliminatoria(
     etapaId: string,
@@ -327,7 +327,7 @@ export class EliminatoriaService implements IEliminatoriaService {
     classificadosPorGrupo: number = 2
   ): Promise<{ confrontos: ConfrontoEliminatorio[] }> {
     try {
-      // 1. Buscar grupos ordenados
+      // Buscar grupos ordenados
       const grupos = await this.grupoRepo.buscarPorEtapaOrdenado(
         etapaId,
         arenaId
@@ -373,7 +373,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         );
       }
 
-      // 2. Coletar classificados de cada grupo
+      // Coletar classificados de cada grupo
       const classificados = await this.coletarClassificados(
         grupos,
         classificadosPorGrupo
@@ -389,7 +389,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         mapaClassificados.set(c.chave, c);
       }
 
-      // 3. Criar confrontos com base no bracket pré-definido
+      // Criar confrontos com base no bracket pré-definido
       const confrontos = await this.criarConfrontosPredefinidos(
         etapaId,
         arenaId,
@@ -397,7 +397,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         mapaClassificados
       );
 
-      // 4. Marcar duplas como classificadas
+      // Marcar duplas como classificadas
       await Promise.all(
         classificados.map((c) =>
           this.duplaRepo.marcarClassificada(c.dupla.id, true)
@@ -475,7 +475,7 @@ export class EliminatoriaService implements IEliminatoriaService {
   }
 
   /**
-   * Criar confrontos com base no bracket pré-definido (otimizado com Promise.all)
+   * Criar confrontos com base no bracket pré-definido
    */
   private async criarConfrontosPredefinidos(
     etapaId: string,
@@ -715,7 +715,6 @@ export class EliminatoriaService implements IEliminatoriaService {
 
   /**
    * Atualizar estatísticas dos jogadores
-   * OTIMIZADO: busca duplas em paralelo + atualiza 4 jogadores em paralelo
    */
   private async atualizarEstatisticasJogadores(
     confronto: ConfrontoEliminatorio,
@@ -785,7 +784,6 @@ export class EliminatoriaService implements IEliminatoriaService {
 
   /**
    * Reverter estatísticas de confronto (para edição)
-   * OTIMIZADO: busca duplas em paralelo + reverte 4 jogadores em paralelo
    */
   private async reverterEstatisticasConfronto(
     confronto: ConfrontoEliminatorio
@@ -859,7 +857,6 @@ export class EliminatoriaService implements IEliminatoriaService {
 
   /**
    * Avançar vencedor para próxima fase
-   * OTIMIZADO: busca confrontos da fase, grupos e próxima fase em paralelo
    */
   private async avancarVencedor(
     confronto: ConfrontoEliminatorio,
@@ -1162,7 +1159,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         arenaId
       );
 
-      // 6. Desmarcar duplas como classificadas
+      // Desmarcar duplas como classificadas
       const desmarcarPromises = duplasClassificadas.flatMap((dupla) => [
         this.duplaRepo.marcarClassificada(dupla.id, false),
         estatisticasJogadorService.marcarComoClassificado(

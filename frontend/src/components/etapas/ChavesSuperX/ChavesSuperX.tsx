@@ -592,20 +592,36 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
   return (
     <Container>
       {/* Botão de Encerrar Etapa no topo - só aparece quando todas as partidas estiverem finalizadas */}
-      {!etapaFinalizada && grupo && (grupo.partidasFinalizadas || 0) === totalPartidas && totalPartidas > 0 && (
-        <ActionsRow>
-          <EncerrarEtapaButton onClick={() => setModalEncerrarAberto(true)}>
-            Encerrar Etapa
-          </EncerrarEtapaButton>
-        </ActionsRow>
-      )}
+      {!etapaFinalizada &&
+        grupo &&
+        (grupo.partidasFinalizadas || 0) === totalPartidas &&
+        totalPartidas > 0 && (
+          <ActionsRow>
+            <EncerrarEtapaButton onClick={() => setModalEncerrarAberto(true)}>
+              Encerrar Etapa
+            </EncerrarEtapaButton>
+          </ActionsRow>
+        )}
 
       {etapaFinalizada && (
         <AlertBox>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
-          <span>Esta etapa foi encerrada. Os resultados não podem mais ser alterados.</span>
+          <span>
+            Esta etapa foi encerrada. Os resultados não podem mais ser
+            alterados.
+          </span>
         </AlertBox>
       )}
 
@@ -633,7 +649,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
             jogadores
               // ============== ORDENACAO ==============
               .sort((a, b) => {
-                // 1. Posicao do grupo (se definida pelo backend)
+                // Posicao do grupo (se definida pelo backend)
                 if (
                   a.posicaoGrupo !== undefined &&
                   b.posicaoGrupo !== undefined
@@ -641,27 +657,27 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
                   return a.posicaoGrupo - b.posicaoGrupo;
                 }
 
-                // 2. Pontos (3 por vitoria)
+                // Pontos (3 por vitoria)
                 if (a.pontosGrupo !== b.pontosGrupo) {
                   return b.pontosGrupo - a.pontosGrupo;
                 }
 
-                // 3. Saldo de games
+                // Saldo de games
                 if (a.saldoGamesGrupo !== b.saldoGamesGrupo) {
                   return b.saldoGamesGrupo - a.saldoGamesGrupo;
                 }
 
-                // 4. Games vencidos
+                // Games vencidos
                 if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
                   return b.gamesVencidosGrupo - a.gamesVencidosGrupo;
                 }
 
-                // 5. Saldo de sets
+                // Saldo de sets
                 if (a.saldoSetsGrupo !== b.saldoSetsGrupo) {
                   return b.saldoSetsGrupo - a.saldoSetsGrupo;
                 }
 
-                // 6. Alfabetico
+                // Alfabetico
                 return a.jogadorNome.localeCompare(b.jogadorNome);
               })
               // ============== RENDERIZACAO ==============
@@ -776,7 +792,10 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       )}
 
       {/* Loading Overlay Global - Bloqueia toda a tela */}
-      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+      <LoadingOverlay
+        isLoading={globalLoading}
+        message={globalLoadingMessage}
+      />
 
       {/* Modal de Confirmação para Encerrar Etapa */}
       <ConfirmacaoPerigosa

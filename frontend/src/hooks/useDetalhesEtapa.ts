@@ -44,7 +44,9 @@ interface UseDetalhesEtapaReturn {
 
   // Actions - Chaves
   handleGerarChaves: () => Promise<void>;
-  handleGerarChavesManual: (formacoes: FormacaoManualEquipeDTO[]) => Promise<void>;
+  handleGerarChavesManual: (
+    formacoes: FormacaoManualEquipeDTO[]
+  ) => Promise<void>;
   handleApagarChaves: () => Promise<void>;
   isFormacaoManual: boolean;
 
@@ -62,13 +64,22 @@ interface UseDetalhesEtapaReturn {
  */
 export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   // ============================================
-  // 1. DADOS DA ETAPA
+  // DADOS DA ETAPA
   // ============================================
-  const { etapa, loading, error, isReiDaPraia, isSuperX, isTeams, progresso, todasPartidasFinalizadas, recarregar } =
-    useEtapaData(etapaId);
+  const {
+    etapa,
+    loading,
+    error,
+    isReiDaPraia,
+    isSuperX,
+    isTeams,
+    progresso,
+    todasPartidasFinalizadas,
+    recarregar,
+  } = useEtapaData(etapaId);
 
   // ============================================
-  // 2. ESTADO DA UI
+  // ESTADO DA UI
   // ============================================
   const {
     abaAtiva,
@@ -80,7 +91,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   } = useEtapaUI();
 
   // ============================================
-  // 3. AÇÕES DE INSCRIÇÃO
+  // AÇÕES DE INSCRIÇÃO
   // ============================================
   const {
     handleAbrirInscricoes,
@@ -94,7 +105,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   });
 
   // ============================================
-  // 4. AÇÕES DE CHAVES
+  // AÇÕES DE CHAVES
   // ============================================
   const onSuccessChaves = useCallback(
     async (aba?: AbaEtapa) => {
@@ -104,7 +115,12 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
     [recarregar, setAbaAtiva]
   );
 
-  const { handleGerarChaves, handleGerarChavesManual, handleApagarChaves, isFormacaoManual } = useEtapaChaves({
+  const {
+    handleGerarChaves,
+    handleGerarChavesManual,
+    handleApagarChaves,
+    isFormacaoManual,
+  } = useEtapaChaves({
     etapa,
     onSuccess: onSuccessChaves,
   });

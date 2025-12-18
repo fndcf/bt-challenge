@@ -44,12 +44,12 @@ export class ClassificacaoService implements IClassificacaoService {
    * Recalcular classificação do grupo
    *
    * CRITÉRIOS DE DESEMPATE (em ordem):
-   * 1. Pontos (vitórias * 3)
-   * 2. Saldo de games
-   * 3. Confronto direto (apenas 2 duplas empatadas)
-   * 4. Saldo de sets
-   * 5. Games vencidos
-   * 6. Sorteio (3+ duplas empatadas em todos critérios)
+   * Pontos (vitórias * 3)
+   * Saldo de games
+   * Confronto direto (apenas 2 duplas empatadas)
+   * Saldo de sets
+   * Games vencidos
+   * Sorteio (3+ duplas empatadas em todos critérios)
    */
   async recalcularClassificacaoGrupo(grupoId: string): Promise<void> {
     try {
@@ -67,7 +67,7 @@ export class ClassificacaoService implements IClassificacaoService {
         partidas
       );
 
-      // Atualizar posições no banco - OTIMIZADO: todas em paralelo
+      // Atualizar posições no banco
       const atualizacoesPosicao = duplasOrdenadas.flatMap((dupla, i) => {
         const posicao = i + 1;
         return [
@@ -124,12 +124,12 @@ export class ClassificacaoService implements IClassificacaoService {
     partidas: Partida[]
   ): Dupla[] {
     return [...duplas].sort((a, b) => {
-      // 1. Pontos (maior melhor)
+      // Pontos (maior melhor)
       if (a.pontos !== b.pontos) {
         return b.pontos - a.pontos;
       }
 
-      // 2. Saldo de games (maior melhor)
+      // Saldo de games (maior melhor)
       if (a.saldoGames !== b.saldoGames) {
         return b.saldoGames - a.saldoGames;
       }
@@ -139,7 +139,7 @@ export class ClassificacaoService implements IClassificacaoService {
         (d) => d.pontos === a.pontos && d.saldoGames === a.saldoGames
       );
 
-      // 3. Confronto direto (apenas se 2 duplas empatadas)
+      // Confronto direto (apenas se 2 duplas empatadas)
       if (duplasEmpatadas.length === 2) {
         const confrontoDireto = this.verificarConfrontoDireto(
           partidas,
@@ -150,17 +150,17 @@ export class ClassificacaoService implements IClassificacaoService {
         if (confrontoDireto.vencedora === b.id) return 1;
       }
 
-      // 4. Saldo de sets (maior melhor)
+      // Saldo de sets (maior melhor)
       if (a.saldoSets !== b.saldoSets) {
         return b.saldoSets - a.saldoSets;
       }
 
-      // 5. Games vencidos (maior melhor)
+      // Games vencidos (maior melhor)
       if (a.gamesVencidos !== b.gamesVencidos) {
         return b.gamesVencidos - a.gamesVencidos;
       }
 
-      // 6. Sorteio (3+ duplas empatadas em tudo)
+      // Sorteio (3+ duplas empatadas em tudo)
       if (duplasEmpatadas.length >= 3) {
         return Math.random() - 0.5;
       }
