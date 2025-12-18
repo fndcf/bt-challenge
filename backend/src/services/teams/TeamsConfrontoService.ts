@@ -51,20 +51,14 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
     tipoFormacaoJogos: TipoFormacaoJogos = TipoFormacaoJogos.SORTEIO,
     equipesJaCriadas?: Equipe[]
   ): Promise<ConfrontoEquipe[]> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     try {
       // 1. Usar equipes já criadas ou buscar do banco
-      let inicio = Date.now();
       const equipes =
         equipesJaCriadas ||
         (await this.equipeRepository.buscarPorEtapaOrdenadas(
           etapa.id,
           etapa.arenaId
         ));
-      tempos["1_buscarEquipes"] = Date.now() - inicio;
-      tempos["1_equipesJaCriadas"] = equipesJaCriadas ? 1 : 0;
 
       if (equipes.length < 2) {
         throw new ValidationError("Mínimo de 2 equipes para gerar confrontos");
@@ -73,7 +67,6 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
       const temFaseGrupos = equipes.length >= 6;
 
       // 2. Gerar confrontos
-      inicio = Date.now();
       let confrontos: ConfrontoEquipe[];
       if (temFaseGrupos) {
         confrontos = await this.gerarConfrontosFaseGrupos(
@@ -88,24 +81,12 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
           tipoFormacaoJogos
         );
       }
-      tempos["2_gerarConfrontos"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS gerarConfrontos TeamsConfrontoService", {
-        etapaId: etapa.id,
-        equipes: equipes.length,
-        confrontos: confrontos.length,
-        temFaseGrupos,
-        tempos,
-      });
 
       return confrontos;
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao gerar confrontos Teams",
-        { etapaId: etapa.id, tempos },
+        { etapaId: etapa.id },
         error
       );
       throw error;
@@ -264,7 +245,9 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
     if (!eliminatoriaStrategyFactory.isSupported(numGrupos)) {
       const supported = eliminatoriaStrategyFactory.getSupportedGroupCounts();
       logger.warn(
-        `Fase eliminatória suporta ${supported.join(", ")} grupos. Recebido: ${numGrupos}`
+        `Fase eliminatória suporta ${supported.join(
+          ", "
+        )} grupos. Recebido: ${numGrupos}`
       );
       return [];
     }

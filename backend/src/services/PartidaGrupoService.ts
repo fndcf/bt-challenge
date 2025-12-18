@@ -81,19 +81,13 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     arenaId: string,
     grupos: Grupo[]
   ): Promise<Partida[]> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     try {
       // 1. Buscar duplas de todos os grupos em paralelo
-      let inicio = Date.now();
       const duplasPorGrupo = await Promise.all(
         grupos.map((grupo) => this.duplaRepo.buscarPorGrupo(grupo.id))
       );
-      tempos["1_buscarDuplas"] = Date.now() - inicio;
 
       // 2. Gerar todos os DTOs de partidas
-      inicio = Date.now();
       const todosPartidaDTOs: any[] = [];
       const partidasPorGrupo: Map<string, number> = new Map(); // grupoId -> quantidade de partidas
 
@@ -124,17 +118,13 @@ export class PartidaGrupoService implements IPartidaGrupoService {
 
         partidasPorGrupo.set(grupo.id, todosPartidaDTOs.length - startIndex);
       }
-      tempos["2_gerarDTOs"] = Date.now() - inicio;
 
       // 3. Criar todas as partidas em um único batch
-      inicio = Date.now();
       const todasPartidas = await this.partidaRepo.criarEmLote(
         todosPartidaDTOs
       );
-      tempos["3_criarPartidas"] = Date.now() - inicio;
 
       // 4. Atualizar grupos com IDs das partidas em paralelo
-      inicio = Date.now();
       let partidaIndex = 0;
       const atualizacoesGrupos = grupos.map((grupo) => {
         const qtdPartidas = partidasPorGrupo.get(grupo.id) || 0;
@@ -149,23 +139,12 @@ export class PartidaGrupoService implements IPartidaGrupoService {
       });
 
       await Promise.all(atualizacoesGrupos);
-      tempos["4_atualizarGrupos"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS gerarPartidas", {
-        etapaId,
-        grupos: grupos.length,
-        partidas: todasPartidas.length,
-        tempos,
-      });
 
       return todasPartidas;
     } catch (error) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao gerar partidas",
-        { etapaId, arenaId, tempos },
+        { etapaId, arenaId },
         error as Error
       );
       throw new Error("Falha ao gerar partidas");
@@ -561,24 +540,18 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     arenaId: string,
     resultados: ResultadoPartidaLoteDTO[]
   ): Promise<RegistrarResultadosEmLoteResponse> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     const erros: Array<{ partidaId: string; erro: string }> = [];
     const gruposParaRecalcular = new Set<string>();
     let processados = 0;
 
     try {
       // 1. Buscar todas as partidas em paralelo
-      let inicio = Date.now();
       const partidasPromises = resultados.map((r) =>
         this.partidaRepo.buscarPorIdEArena(r.partidaId, arenaId)
       );
       const partidas = await Promise.all(partidasPromises);
-      tempos["1_buscarPartidas"] = Date.now() - inicio;
 
       // 2. Coletar todas as duplas e jogadores únicos e verificar eliminatória uma vez
-      inicio = Date.now();
       const duplaIdsSet = new Set<string>();
       const jogadorIdsSet = new Set<string>();
       let etapaIdParaVerificar: string | null = null;
@@ -631,10 +604,8 @@ export class PartidaGrupoService implements IPartidaGrupoService {
             etapaId
           )
         : new Map();
-      tempos["2_buscarDuplasEstatisticas"] = Date.now() - inicio;
 
-      // 3. Processar cada resultado - OTIMIZADO: paralelo
-      inicio = Date.now();
+      // 3. Processar cada resultado
 
       // 3.1 Preparar dados e validar
       const resultadosValidos: Array<{
@@ -771,10 +742,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         }
       }
 
-      tempos["3_processarResultados"] = Date.now() - inicio;
-
       // 4. Recalcular classificação de todos os grupos afetados em paralelo
-      inicio = Date.now();
       const gruposRecalculados: string[] = [];
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {
@@ -791,17 +759,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         }
       );
       await Promise.all(recalcPromises);
-      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS registrarResultadosEmLote (Dupla Fixa)", {
-        total: resultados.length,
-        processados,
-        erros: erros.length,
-        gruposRecalculados: gruposRecalculados.length,
-        tempos,
-      });
 
       return {
         message:
@@ -813,10 +770,9 @@ export class PartidaGrupoService implements IPartidaGrupoService {
         gruposRecalculados,
       };
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao registrar resultados em lote",
-        { total: resultados.length, tempos },
+        { total: resultados.length },
         error
       );
       throw error;

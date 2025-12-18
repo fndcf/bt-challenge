@@ -559,23 +559,17 @@ export class SuperXService {
     processados: number;
     erros: Array<{ partidaId: string; erro: string }>;
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     const erros: Array<{ partidaId: string; erro: string }> = [];
     let processados = 0;
 
     try {
       // 1. Buscar todas as partidas em paralelo
-      let inicio = Date.now();
       const partidasPromises = resultados.map((r) =>
         this.partidaReiDaPraiaRepository.buscarPorIdEArena(r.partidaId, arenaId)
       );
       const partidas = await Promise.all(partidasPromises);
-      tempos["1_buscarPartidas"] = Date.now() - inicio;
 
       // 2. Coletar todos os jogadorIds únicos
-      inicio = Date.now();
       const jogadorIdsSet = new Set<string>();
       for (const partida of partidas) {
         if (partida) {
@@ -593,10 +587,8 @@ export class SuperXService {
           jogadorIds,
           etapaId
         );
-      tempos["2_buscarEstatisticas"] = Date.now() - inicio;
 
-      // 3. Processar cada resultado - OTIMIZADO: paralelo
-      inicio = Date.now();
+      // 3. Processar cada resultado
       const gruposParaRecalcular = new Set<string>();
 
       // 3.1 Validar e preparar dados
@@ -739,10 +731,7 @@ export class SuperXService {
         }
       }
 
-      tempos["3_processarResultados"] = Date.now() - inicio;
-
-      // 4. Recalcular classificação de todos os grupos afetados - OTIMIZADO: paralelo
-      inicio = Date.now();
+      // 4. Recalcular classificação de todos os grupos afetados
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {
           try {
@@ -796,17 +785,6 @@ export class SuperXService {
         }
       );
       await Promise.all(recalcPromises);
-      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS registrarResultadosEmLote (Super X)", {
-        etapaId,
-        total: resultados.length,
-        processados,
-        erros: erros.length,
-        tempos,
-      });
 
       return {
         message:
@@ -817,10 +795,9 @@ export class SuperXService {
         erros,
       };
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao registrar resultados em lote Super X",
-        { etapaId, total: resultados.length, tempos },
+        { etapaId, total: resultados.length },
         error
       );
       throw error;
@@ -874,16 +851,11 @@ export class SuperXService {
    * Cancelar chaves Super X (resetar tudo)
    */
   async cancelarChaves(etapaId: string, arenaId: string): Promise<void> {
-    const timings: Record<string, number> = {};
-    const startTotal = Date.now();
-
     try {
-      let start = Date.now();
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
       );
-      timings["buscarEtapa"] = Date.now() - start;
 
       if (!etapa) throw new Error("Etapa não encontrada");
 
@@ -892,44 +864,25 @@ export class SuperXService {
       }
 
       // Executar todas as deleções em paralelo usando deletarPorEtapa (batch writes)
-      const startParalelo = Date.now();
-      const [gruposResult, partidasResult, estatisticasResult] =
-        await Promise.all([
-          (async () => {
-            const s = Date.now();
-            const count = await this.grupoRepository.deletarPorEtapa(
-              etapaId,
-              arenaId
-            );
-            return { time: Date.now() - s, count };
-          })(),
-          (async () => {
-            const s = Date.now();
-            const count =
-              await this.partidaReiDaPraiaRepository.deletarPorEtapa(
-                etapaId,
-                arenaId
-              );
-            return { time: Date.now() - s, count };
-          })(),
-          (async () => {
-            const s = Date.now();
-            const count =
-              await this.estatisticasJogadorRepository.deletarPorEtapa(
-                etapaId,
-                arenaId
-              );
-            return { time: Date.now() - s, count };
-          })(),
-        ]);
-
-      timings["deletarGrupos"] = gruposResult.time;
-      timings["deletarPartidas"] = partidasResult.time;
-      timings["deletarEstatisticas"] = estatisticasResult.time;
-      timings["deletarTodos_PARALELO"] = Date.now() - startParalelo;
+      await Promise.all([
+        (async () => {
+          await this.grupoRepository.deletarPorEtapa(etapaId, arenaId);
+        })(),
+        (async () => {
+          await this.partidaReiDaPraiaRepository.deletarPorEtapa(
+            etapaId,
+            arenaId
+          );
+        })(),
+        (async () => {
+          await this.estatisticasJogadorRepository.deletarPorEtapa(
+            etapaId,
+            arenaId
+          );
+        })(),
+      ]);
 
       // Atualizar etapa (sequencial pois depende das deleções)
-      start = Date.now();
       await Promise.all([
         this.etapaRepository.marcarChavesGeradas(etapaId, false),
         this.etapaRepository.atualizarStatus(
@@ -937,30 +890,17 @@ export class SuperXService {
           StatusEtapa.INSCRICOES_ENCERRADAS
         ),
       ]);
-      timings["atualizarEtapa"] = Date.now() - start;
-
-      timings["TOTAL"] = Date.now() - startTotal;
-      logger.info("⏱️ TIMING cancelarChaves SuperX", {
-        timings,
-        etapaId,
-        arenaId,
-      });
 
       logger.info("Chaves Super X canceladas", {
         etapaId,
         arenaId,
-        gruposRemovidos: gruposResult.count,
-        partidasRemovidas: partidasResult.count,
-        estatisticasRemovidas: estatisticasResult.count,
       });
     } catch (error: any) {
-      timings["TOTAL"] = Date.now() - startTotal;
       logger.error(
         "Erro ao cancelar chaves Super X",
         {
           etapaId,
           arenaId,
-          timings,
         },
         error
       );

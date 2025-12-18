@@ -82,8 +82,6 @@ export class EstatisticasJogadorService {
   async criarEmLote(
     dtos: CriarEstatisticasJogadorDTO[]
   ): Promise<EstatisticasJogador[]> {
-    const inicioTotal = Date.now();
-
     try {
       const batch = db.batch();
       const estatisticasArray: EstatisticasJogador[] = [];
@@ -133,28 +131,13 @@ export class EstatisticasJogadorService {
           ...estatisticas,
         });
       }
-
-      const inicioCommit = Date.now();
       await batch.commit();
-      const tempoCommit = Date.now() - inicioCommit;
-
-      const tempoTotal = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS criarEmLote (EstatisticasJogador)", {
-        quantidade: estatisticasArray.length,
-        etapaId: dtos[0]?.etapaId,
-        tempos: {
-          preparacao: tempoTotal - tempoCommit,
-          commit: tempoCommit,
-          TOTAL: tempoTotal,
-        },
-      });
 
       return estatisticasArray;
     } catch (error) {
       logger.error(
         "Erro ao criar estatísticas em lote",
-        { quantidade: dtos.length, tempoTotal: Date.now() - inicioTotal },
+        { quantidade: dtos.length },
         error as Error
       );
       throw error;

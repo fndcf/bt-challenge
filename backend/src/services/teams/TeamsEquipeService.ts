@@ -81,9 +81,6 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     estatisticas: any[];
     temFaseGrupos: boolean;
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     this.validarEtapaParaGeracaoEquipes(etapa);
 
     const variante = etapa.varianteTeams!;
@@ -92,7 +89,6 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     const numEquipes = inscricoes.length / variante;
 
     // 1. Distribuir jogadores em equipes
-    let inicio = Date.now();
     let jogadoresPorEquipe: JogadorEquipe[][];
 
     switch (tipoFormacao) {
@@ -114,14 +110,12 @@ export class TeamsEquipeService implements ITeamsEquipeService {
         );
         break;
     }
-    tempos["1_distribuirJogadores"] = Date.now() - inicio;
 
     // Com 6+ equipes, dividir em grupos
     const temFaseGrupos = numEquipes >= 6;
     const grupos = temFaseGrupos ? this.calcularGrupos(numEquipes) : null;
 
     // 2. Preparar DTOs de equipes
-    inicio = Date.now();
     const equipeDTOs: CriarEquipeDTO[] = jogadoresPorEquipe.map(
       (jogadores, index) => {
         const dto: CriarEquipeDTO = {
@@ -140,15 +134,11 @@ export class TeamsEquipeService implements ITeamsEquipeService {
         return dto;
       }
     );
-    tempos["2_prepararDTOs"] = Date.now() - inicio;
 
     // 3. Criar equipes no banco
-    inicio = Date.now();
     const equipes = await this.equipeRepository.criarEmLote(equipeDTOs);
-    tempos["3_criarEquipes"] = Date.now() - inicio;
 
     // 4. Criar estatísticas individuais para cada jogador EM LOTE
-    inicio = Date.now();
     const estatisticasDTOs = equipes.flatMap((equipe) =>
       equipe.jogadores.map((jogador) => ({
         etapaId: etapa.id,
@@ -165,18 +155,6 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     const estatisticas = await this.estatisticasService.criarEmLote(
       estatisticasDTOs
     );
-    tempos["4_criarEstatisticas"] = Date.now() - inicio;
-
-    tempos["TOTAL"] = Date.now() - inicioTotal;
-
-    logger.info("⏱️ TEMPOS gerarEquipes Teams", {
-      etapaId: etapa.id,
-      inscricoes: inscricoes.length,
-      equipes: equipes.length,
-      estatisticas: estatisticas.length,
-      temFaseGrupos,
-      tempos,
-    });
 
     return { equipes, estatisticas, temFaseGrupos };
   }
@@ -338,7 +316,9 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     }
 
     if (equipe.arenaId !== arenaId) {
-      throw new ValidationError("Você não tem permissão para editar esta equipe");
+      throw new ValidationError(
+        "Você não tem permissão para editar esta equipe"
+      );
     }
 
     if (!novoNome || novoNome.trim().length === 0) {
@@ -346,7 +326,9 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     }
 
     if (novoNome.trim().length > 100) {
-      throw new ValidationError("Nome da equipe não pode ter mais de 100 caracteres");
+      throw new ValidationError(
+        "Nome da equipe não pode ter mais de 100 caracteres"
+      );
     }
 
     await this.equipeRepository.atualizarEmLote([

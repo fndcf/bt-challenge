@@ -52,20 +52,14 @@ export class DuplaService implements IDuplaService {
     arenaId: string,
     inscricoes: Inscricao[]
   ): Promise<Dupla[]> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     try {
       // Obter IDs dos cabeças de chave
-      let inicio = Date.now();
       const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
         arenaId,
         etapaId
       );
-      tempos["obterCabecas"] = Date.now() - inicio;
 
       // Separar cabeças de chave dos jogadores normais
-      inicio = Date.now();
       const cabecas: Inscricao[] = [];
       const normais: Inscricao[] = [];
 
@@ -76,20 +70,16 @@ export class DuplaService implements IDuplaService {
           normais.push(inscricao);
         }
       }
-      tempos["separarCabecas"] = Date.now() - inicio;
 
       // Verificar estatísticas de combinações
-      inicio = Date.now();
       const stats = await historicoDuplaService.calcularEstatisticas(
         arenaId,
         etapaId
       );
-      tempos["calcularEstatisticas"] = Date.now() - inicio;
 
       let duplas: Dupla[];
 
       // Se todas combinações de cabeças já foram feitas, formar livremente
-      inicio = Date.now();
       if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
         duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
       } else {
@@ -101,10 +91,8 @@ export class DuplaService implements IDuplaService {
           normais
         );
       }
-      tempos["formarDuplas"] = Date.now() - inicio;
 
       // Registrar histórico de duplas formadas
-      inicio = Date.now();
       const historicosDTOs = duplas.map((dupla) => ({
         arenaId,
         etapaId,
@@ -118,24 +106,12 @@ export class DuplaService implements IDuplaService {
           cabecasIds.includes(dupla.jogador2Id),
       }));
       await historicoDuplaService.registrarEmLote(historicosDTOs);
-      tempos["registrarHistorico"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS formarDuplasComCabecasDeChave", {
-        etapaId,
-        inscricoes: inscricoes.length,
-        duplas: duplas.length,
-        cabecas: cabecas.length,
-        tempos,
-      });
 
       return duplas;
     } catch (error) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao formar duplas com cabeças",
-        { etapaId, arenaId, tempos },
+        { etapaId, arenaId },
         error as Error
       );
       throw error;

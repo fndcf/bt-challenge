@@ -326,17 +326,12 @@ export class EliminatoriaService implements IEliminatoriaService {
     arenaId: string,
     classificadosPorGrupo: number = 2
   ): Promise<{ confrontos: ConfrontoEliminatorio[] }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     try {
       // 1. Buscar grupos ordenados
       const grupos = await this.grupoRepo.buscarPorEtapaOrdenado(
         etapaId,
         arenaId
       );
-      tempos["buscarGrupos"] = Date.now() - inicio;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo encontrado");
@@ -379,12 +374,10 @@ export class EliminatoriaService implements IEliminatoriaService {
       }
 
       // 2. Coletar classificados de cada grupo
-      inicio = Date.now();
       const classificados = await this.coletarClassificados(
         grupos,
         classificadosPorGrupo
       );
-      tempos["2_coletarClassificados"] = Date.now() - inicio;
 
       if (classificados.length < 2) {
         throw new Error("Mínimo de 2 classificados necessário");
@@ -396,20 +389,15 @@ export class EliminatoriaService implements IEliminatoriaService {
         mapaClassificados.set(c.chave, c);
       }
 
-      // 3. Criar confrontos com base no bracket pré-definido (otimizado)
-      inicio = Date.now();
+      // 3. Criar confrontos com base no bracket pré-definido
       const confrontos = await this.criarConfrontosPredefinidos(
         etapaId,
         arenaId,
         configBracket,
         mapaClassificados
       );
-      tempos["3_criarConfrontos"] = Date.now() - inicio;
 
-      // 4. Marcar duplas como classificadas (otimizado com Promise.all)
-      inicio = Date.now();
-
-      // Marcar duplas em paralelo
+      // 4. Marcar duplas como classificadas
       await Promise.all(
         classificados.map((c) =>
           this.duplaRepo.marcarClassificada(c.dupla.id, true)
@@ -425,21 +413,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         jogadoresParaMarcar,
         true
       );
-      tempos["4_marcarClassificados"] = Date.now() - inicio;
 
       const byes = configBracket.pareamentos.filter(
         (p) => p.pos2 === "BYE"
       ).length;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS gerarFaseEliminatoria (Dupla Fixa)", {
-        tempos,
-        etapaId,
-        totalGrupos: grupos.length,
-        totalClassificados: classificados.length,
-        totalConfrontos: confrontos.length,
-      });
 
       logger.info("Fase eliminatória gerada (formato Copa do Mundo)", {
         etapaId,
@@ -640,16 +617,11 @@ export class EliminatoriaService implements IEliminatoriaService {
     arenaId: string,
     placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
   ): Promise<void> {
-    const timings: Record<string, number> = {};
-    const startTotal = Date.now();
-
     try {
-      let start = Date.now();
       const confronto = await this.confrontoRepo.buscarPorIdEArena(
         confrontoId,
         arenaId
       );
-      timings["buscarConfronto"] = Date.now() - start;
 
       if (!confronto) {
         throw new Error("Confronto não encontrado");
@@ -672,15 +644,12 @@ export class EliminatoriaService implements IEliminatoriaService {
 
       // Reverter estatísticas se for edição
       if (confronto.status === StatusConfrontoEliminatorio.FINALIZADA) {
-        start = Date.now();
         await this.reverterEstatisticasConfronto(confronto);
-        timings["2_reverterEstatisticas"] = Date.now() - start;
       }
 
       // Criar ou atualizar partida
       let partidaId = confronto.partidaId;
 
-      start = Date.now();
       if (!partidaId) {
         const partida = await this.partidaRepo.criar({
           etapaId: confronto.etapaId,
@@ -693,9 +662,7 @@ export class EliminatoriaService implements IEliminatoriaService {
           dupla2Nome: confronto.dupla2Nome!,
         });
         partidaId = partida.id;
-        timings["3a_criarPartida"] = Date.now() - start;
 
-        start = Date.now();
         await this.partidaRepo.registrarResultado(partidaId, {
           status: StatusPartida.FINALIZADA,
           setsDupla1: set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
@@ -704,7 +671,6 @@ export class EliminatoriaService implements IEliminatoriaService {
           vencedoraId,
           vencedoraNome,
         });
-        timings["3b_registrarResultadoPartida"] = Date.now() - start;
       } else {
         await this.partidaRepo.atualizar(partidaId, {
           setsDupla1: set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
@@ -713,16 +679,12 @@ export class EliminatoriaService implements IEliminatoriaService {
           vencedoraId,
           vencedoraNome,
         });
-        timings["3_atualizarPartida"] = Date.now() - start;
       }
 
       // Atualizar estatísticas dos jogadores
-      start = Date.now();
       await this.atualizarEstatisticasJogadores(confronto, set, vencedoraId);
-      timings["4_atualizarEstatisticas"] = Date.now() - start;
 
       // Atualizar confronto
-      start = Date.now();
       await this.confrontoRepo.registrarResultado(confrontoId, {
         partidaId,
         status: StatusConfrontoEliminatorio.FINALIZADA,
@@ -730,18 +692,9 @@ export class EliminatoriaService implements IEliminatoriaService {
         vencedoraNome,
         placar: `${set.gamesDupla1}-${set.gamesDupla2}`,
       });
-      timings["5_atualizarConfronto"] = Date.now() - start;
 
       // Avançar vencedor para próxima fase
-      start = Date.now();
       await this.avancarVencedor(confronto, vencedoraId, vencedoraNome);
-      timings["6_avancarVencedor"] = Date.now() - start;
-
-      timings["TOTAL"] = Date.now() - startTotal;
-      logger.info("⏱️ TIMING registrarResultadoEliminatorio", {
-        timings,
-        confrontoId,
-      });
 
       logger.info("Resultado eliminatório registrado", {
         confrontoId,
@@ -1167,24 +1120,18 @@ export class EliminatoriaService implements IEliminatoriaService {
     etapaId: string,
     arenaId: string
   ): Promise<void> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     try {
-      // 1. Buscar confrontos
+      //  Buscar confrontos
       const confrontos = await this.confrontoRepo.buscarPorEtapa(
         etapaId,
         arenaId
       );
-      tempos["buscarConfrontos"] = Date.now() - inicio;
 
       if (confrontos.length === 0) {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
       }
 
-      // 2. Reverter estatísticas de partidas finalizadas
-      inicio = Date.now();
+      //  Reverter estatísticas de partidas finalizadas
       let partidasRevertidas = 0;
       for (const confronto of confrontos) {
         if (confronto.status === StatusConfrontoEliminatorio.FINALIZADA) {
@@ -1192,40 +1139,30 @@ export class EliminatoriaService implements IEliminatoriaService {
           partidasRevertidas++;
         }
       }
-      tempos["2_reverterEstatisticas"] = Date.now() - inicio;
 
-      // 3. Buscar e deletar partidas eliminatórias
-      inicio = Date.now();
+      //  Buscar e deletar partidas eliminatórias
       const partidasEliminatorias = await this.partidaRepo.buscarPorTipo(
         etapaId,
         arenaId,
         "eliminatoria"
       );
-      tempos["3a_buscarPartidas"] = Date.now() - inicio;
 
-      inicio = Date.now();
       if (partidasEliminatorias.length > 0) {
         await this.partidaRepo.deletarEmLote(
           partidasEliminatorias.map((p) => p.id)
         );
       }
-      tempos["3b_deletarPartidas"] = Date.now() - inicio;
 
-      // 4. Deletar confrontos
-      inicio = Date.now();
+      //  Deletar confrontos
       await this.confrontoRepo.deletarPorEtapa(etapaId, arenaId);
-      tempos["4_deletarConfrontos"] = Date.now() - inicio;
 
-      // 5. Buscar duplas classificadas
-      inicio = Date.now();
+      //  Buscar duplas classificadas
       const duplasClassificadas = await this.duplaRepo.buscarClassificadas(
         etapaId,
         arenaId
       );
-      tempos["5a_buscarDuplasClassificadas"] = Date.now() - inicio;
 
-      // 6. Desmarcar duplas como classificadas - OTIMIZADO: paralelo
-      inicio = Date.now();
+      // 6. Desmarcar duplas como classificadas
       const desmarcarPromises = duplasClassificadas.flatMap((dupla) => [
         this.duplaRepo.marcarClassificada(dupla.id, false),
         estatisticasJogadorService.marcarComoClassificado(
@@ -1240,23 +1177,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         ),
       ]);
       await Promise.all(desmarcarPromises);
-      tempos["5b_desmarcarClassificadas"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS cancelarFaseEliminatoria", {
-        etapaId,
-        confrontos: confrontos.length,
-        partidasRemovidas: partidasEliminatorias.length,
-        partidasRevertidas,
-        duplasAtualizadas: duplasClassificadas.length,
-        tempos,
-      });
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao cancelar fase eliminatória",
-        { etapaId, arenaId, tempos },
+        { etapaId, arenaId },
         error
       );
       throw error;

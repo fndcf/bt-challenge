@@ -109,24 +109,17 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     precisaDecider: boolean;
     confrontoFinalizado: boolean;
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     // Buscar partida
     const partida = await this.partidaRepository.buscarPorId(partidaId);
-    tempos["1_buscarPartida"] = Date.now() - inicio;
     if (!partida) {
       throw new NotFoundError("Partida não encontrada");
     }
 
     // Buscar confronto e partidas em paralelo
-    inicio = Date.now();
     const [confronto, partidasConfronto] = await Promise.all([
       this.confrontoRepository.buscarPorId(partida.confrontoId),
       this.partidaRepository.buscarPorConfrontoOrdenadas(partida.confrontoId),
     ]);
-    tempos["2_buscarConfrontoEPartidas"] = Date.now() - inicio;
     if (!confronto) {
       throw new NotFoundError("Confronto não encontrado");
     }
@@ -137,13 +130,10 @@ export class TeamsResultadoService implements ITeamsResultadoService {
 
     // Se já tinha resultado, reverter estatísticas
     if (partida.status === StatusPartida.FINALIZADA) {
-      inicio = Date.now();
       await this.reverterEstatisticasPartida(partida);
-      tempos["3_reverterEstatisticas"] = Date.now() - inicio;
     }
 
     // Registrar resultado
-    inicio = Date.now();
     await this.partidaRepository.registrarResultado(
       partidaId,
       dto.placar,
@@ -152,17 +142,14 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       vencedoraEquipeId,
       vencedoraEquipeNome
     );
-    tempos["4_registrarResultado"] = Date.now() - inicio;
 
     // Atualizar estatísticas dos jogadores
-    inicio = Date.now();
     await this.atualizarEstatisticasJogadores(
       partida,
       dto.placar,
       vencedoraEquipeId,
       confronto
     );
-    tempos["5_atualizarEstatisticas"] = Date.now() - inicio;
 
     // Atualizar lista com resultado recém-registrado
     const partidasAtualizadas = partidasConfronto.map((p) =>
@@ -196,14 +183,12 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     ).length;
 
     // Atualizar confronto
-    inicio = Date.now();
     await this.confrontoRepository.atualizar(confronto.id, {
       jogosEquipe1,
       jogosEquipe2,
       partidasFinalizadas,
       totalPartidas: partidasAtualizadas.length,
     });
-    tempos["6_atualizarConfronto"] = Date.now() - inicio;
 
     // Construir confronto atualizado localmente
     const confrontoAtualizado: ConfrontoEquipe = {
@@ -225,17 +210,18 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       status: StatusPartida.FINALIZADA,
     };
 
-    inicio = Date.now();
     let precisaDecider = await this.verificarPrecisaDecider(
       confrontoAtualizado,
       partidasAtualizadas
     );
-    tempos["7_verificarDecider"] = Date.now() - inicio;
 
     // Se precisa decider e ainda não existe, gerar automaticamente
-    if (precisaDecider && !confrontoAtualizado.temDecider && this.partidaService) {
+    if (
+      precisaDecider &&
+      !confrontoAtualizado.temDecider &&
+      this.partidaService
+    ) {
       try {
-        inicio = Date.now();
         const etapa = await this.etapaRepository.buscarPorId(partida.etapaId);
         if (etapa) {
           await this.partidaService.gerarDecider(confrontoAtualizado, etapa);
@@ -245,7 +231,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
           });
           precisaDecider = false;
         }
-        tempos["8_gerarDecider"] = Date.now() - inicio;
       } catch (error) {
         logger.error("Erro ao gerar decider automaticamente", {
           confrontoId: confronto.id,
@@ -255,30 +240,18 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     }
 
     // Verificar se confronto está finalizado
-    inicio = Date.now();
     const confrontoFinalizado = await this.verificarConfrontoFinalizado(
       confrontoAtualizado,
       partidasAtualizadas
     );
-    tempos["9_verificarFinalizado"] = Date.now() - inicio;
 
     let confrontoFinal = confrontoAtualizado;
     if (confrontoFinalizado) {
-      inicio = Date.now();
       await this.finalizarConfronto(confrontoAtualizado);
-      confrontoFinal =
-        (await this.confrontoRepository.buscarPorId(confronto.id))!;
-      tempos["10_finalizarConfronto"] = Date.now() - inicio;
+      confrontoFinal = (await this.confrontoRepository.buscarPorId(
+        confronto.id
+      ))!;
     }
-
-    tempos["TOTAL"] = Date.now() - inicioTotal;
-
-    logger.info("⏱️ TEMPOS registrarResultadoPartida Teams v3", {
-      partidaId,
-      confrontoId: confronto.id,
-      confrontoFinalizado,
-      tempos,
-    });
 
     return {
       partida: partidaAtualizada,
@@ -300,10 +273,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     erros: Array<{ partidaId: string; erro: string }>;
     confrontosFinalizados: string[];
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     if (resultados.length === 0) {
       return { processados: 0, erros: [], confrontosFinalizados: [] };
     }
@@ -313,12 +282,10 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     let processados = 0;
 
     // 1. Buscar todas as partidas
-    inicio = Date.now();
     const partidaIds = resultados.map((r) => r.partidaId);
     const partidas = await Promise.all(
       partidaIds.map((id) => this.partidaRepository.buscarPorId(id))
     );
-    tempos["1_buscarPartidas"] = Date.now() - inicio;
 
     // Mapear partidas por ID
     const partidasMap = new Map<string, PartidaTeams>();
@@ -355,12 +322,10 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     }
 
     // 3. Buscar todos os confrontos únicos
-    inicio = Date.now();
     const confrontoIds = Array.from(resultadosPorConfronto.keys());
     const confrontos = await Promise.all(
       confrontoIds.map((id) => this.confrontoRepository.buscarPorId(id))
     );
-    tempos["2_buscarConfrontos"] = Date.now() - inicio;
 
     const confrontosMap = new Map<string, ConfrontoEquipe>();
     for (let i = 0; i < confrontoIds.length; i++) {
@@ -370,7 +335,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     }
 
     // 4. Processar cada confronto
-    inicio = Date.now();
     for (const [confrontoId, partidasDoConfronto] of resultadosPorConfronto) {
       const confronto = confrontosMap.get(confrontoId);
       if (!confronto) {
@@ -403,25 +367,11 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         }
       }
     }
-    tempos["3_processarConfrontos"] = Date.now() - inicio;
 
     // 5. Recalcular classificação uma única vez
     if (processados > 0 && this.classificacaoService) {
-      inicio = Date.now();
       await this.classificacaoService.recalcularClassificacao(etapaId, arenaId);
-      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
     }
-
-    tempos["TOTAL"] = Date.now() - inicioTotal;
-
-    logger.info("⏱️ TEMPOS registrarResultadosEmLote Teams v5", {
-      totalResultados: resultados.length,
-      processados,
-      erros: erros.length,
-      confrontosProcessados: resultadosPorConfronto.size,
-      confrontosFinalizados: confrontosFinalizados.length,
-      tempos,
-    });
 
     return { processados, erros, confrontosFinalizados };
   }
@@ -454,8 +404,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     const equipe1Nome = partida.equipe1Nome || confronto.equipe1Nome;
     const equipe2Nome = partida.equipe2Nome || confronto.equipe2Nome;
 
-    const vencedoraEquipeId =
-      setsDupla1 > setsDupla2 ? equipe1Id! : equipe2Id!;
+    const vencedoraEquipeId = setsDupla1 > setsDupla2 ? equipe1Id! : equipe2Id!;
     const vencedoraEquipeNome =
       setsDupla1 > setsDupla2 ? equipe1Nome! : equipe2Nome!;
 
@@ -468,10 +417,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     vencedoraEquipeId: string,
     confronto: ConfrontoEquipe
   ): Promise<void> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     // Calcular totais
     let gamesVencidosDupla1 = 0;
     let gamesPerdidosDupla1 = 0;
@@ -497,7 +442,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     ).length;
 
     // Buscar estatísticas de jogadores
-    inicio = Date.now();
     const todosJogadorIds = [
       ...partida.dupla1.map((j) => j.id),
       ...partida.dupla2.map((j) => j.id),
@@ -507,10 +451,8 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         todosJogadorIds,
         partida.etapaId
       );
-    tempos["1_buscarEstatisticas"] = Date.now() - inicio;
 
     // Preparar atualizações
-    inicio = Date.now();
     const atualizacoesJogadores: Array<{
       estatisticaId: string;
       dto: {
@@ -559,7 +501,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         atualizacoesJogadores
       );
     }
-    tempos["2_atualizarJogadores"] = Date.now() - inicio;
 
     // Atualizar equipes
     if (!equipe1Id || !equipe2Id) {
@@ -574,7 +515,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       return;
     }
 
-    inicio = Date.now();
     await this.equipeRepository.incrementarEstatisticasEmLote([
       {
         id: equipe1Id,
@@ -595,16 +535,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         },
       },
     ]);
-    tempos["3_incrementarEquipes"] = Date.now() - inicio;
-
-    tempos["TOTAL"] = Date.now() - inicioTotal;
-
-    logger.info("⏱️ TEMPOS atualizarEstatisticasJogadores Teams v3", {
-      partidaId: partida.id,
-      jogadoresDupla1: partida.dupla1.length,
-      jogadoresDupla2: partida.dupla2.length,
-      tempos,
-    });
   }
 
   private async reverterEstatisticasPartida(
@@ -667,10 +597,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
   }
 
   private async finalizarConfronto(confronto: ConfrontoEquipe): Promise<void> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     const vencedoraId =
       confronto.jogosEquipe1 > confronto.jogosEquipe2
         ? confronto.equipe1Id
@@ -685,7 +611,6 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         : confronto.equipe1Id;
 
     if (confronto.fase === FaseEtapa.GRUPOS) {
-      inicio = Date.now();
       await Promise.all([
         this.confrontoRepository.registrarResultado(
           confronto.id,
@@ -705,25 +630,19 @@ export class TeamsResultadoService implements ITeamsResultadoService {
           },
         ]),
       ]);
-      tempos["1_registrarEIncrementar"] = Date.now() - inicio;
 
       if (this.classificacaoService) {
-        inicio = Date.now();
         await this.classificacaoService.recalcularClassificacao(
           confronto.etapaId,
           confronto.arenaId
         );
-        tempos["2_recalcularClassificacao"] = Date.now() - inicio;
 
-        inicio = Date.now();
         await this.classificacaoService.verificarEPreencherFaseEliminatoria(
           confronto.etapaId,
           confronto.arenaId
         );
-        tempos["3_verificarEliminatoria"] = Date.now() - inicio;
       }
     } else if (confronto.fase === FaseEtapa.SEMIFINAL) {
-      inicio = Date.now();
       await this.confrontoRepository.registrarResultado(
         confronto.id,
         confronto.jogosEquipe1,
@@ -731,19 +650,15 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         vencedoraId,
         vencedoraNome
       );
-      tempos["1_registrarResultado"] = Date.now() - inicio;
 
       if (this.classificacaoService) {
-        inicio = Date.now();
         await this.classificacaoService.preencherProximoConfronto(
           confronto,
           vencedoraId,
           vencedoraNome
         );
-        tempos["2_preencherProximo"] = Date.now() - inicio;
       }
     } else {
-      inicio = Date.now();
       await this.confrontoRepository.registrarResultado(
         confronto.id,
         confronto.jogosEquipe1,
@@ -751,21 +666,15 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         vencedoraId,
         vencedoraNome
       );
-      tempos["1_registrarResultado"] = Date.now() - inicio;
     }
-
-    tempos["TOTAL"] = Date.now() - inicioTotal;
-
-    logger.info("⏱️ TEMPOS finalizarConfronto Teams v4", {
-      confrontoId: confronto.id,
-      fase: confronto.fase,
-      tempos,
-    });
   }
 
   private async processarResultadosConfronto(
     confronto: ConfrontoEquipe,
-    partidasComPlacar: Array<{ partida: PartidaTeams; placar: SetPlacarTeams[] }>
+    partidasComPlacar: Array<{
+      partida: PartidaTeams;
+      placar: SetPlacarTeams[];
+    }>
   ): Promise<{ confrontoFinalizado: boolean }> {
     const atualizacoesJogadores: Array<{
       estatisticaId: string;

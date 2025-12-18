@@ -409,66 +409,34 @@ export class TeamsService {
    * Cancela chaves, deletando equipes, confrontos, partidas e estatísticas
    */
   async cancelarChaves(etapaId: string, arenaId: string): Promise<void> {
-    const timings: Record<string, number> = {};
-    const startTotal = Date.now();
-
     // Import necessário para estatísticas
     const { estatisticasJogadorRepository } = await import(
       "../repositories/firebase/EstatisticasJogadorRepository"
     );
 
     // Executar todas as deleções em paralelo (são independentes)
-    const startParalelo = Date.now();
-    const [
-      partidasResult,
-      confrontosResult,
-      equipesResult,
-      estatisticasResult,
-    ] = await Promise.all([
+    await Promise.all([
       (async () => {
-        const start = Date.now();
         await this.partidaRepository.deletarPorEtapa(etapaId, arenaId);
-        return Date.now() - start;
       })(),
       (async () => {
-        const start = Date.now();
         await this.confrontoRepository.deletarPorEtapa(etapaId, arenaId);
-        return Date.now() - start;
       })(),
       (async () => {
-        const start = Date.now();
         await this.equipeRepository.deletarPorEtapa(etapaId, arenaId);
-        return Date.now() - start;
       })(),
       (async () => {
-        const start = Date.now();
         await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
-        return Date.now() - start;
       })(),
     ]);
 
-    timings["deletarPartidas"] = partidasResult;
-    timings["deletarConfrontos"] = confrontosResult;
-    timings["deletarEquipes"] = equipesResult;
-    timings["deletarEstatisticas"] = estatisticasResult;
-    timings["deletarTodos_PARALELO"] = Date.now() - startParalelo;
-
     // Atualizar etapa para refletir que chaves foram canceladas
-    const start = Date.now();
     const { db } = await import("../config/firebase");
     const { Timestamp } = await import("firebase-admin/firestore");
     await db.collection("etapas").doc(etapaId).update({
       chavesGeradas: false,
       status: StatusEtapa.INSCRICOES_ENCERRADAS,
       atualizadoEm: Timestamp.now(),
-    });
-    timings["atualizarEtapa"] = Date.now() - start;
-
-    timings["TOTAL"] = Date.now() - startTotal;
-    logger.info("⏱️ TIMING cancelarChaves TEAMS", {
-      timings,
-      etapaId,
-      arenaId,
     });
     logger.info("Chaves TEAMS canceladas", { etapaId, arenaId });
   }

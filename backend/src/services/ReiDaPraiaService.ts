@@ -75,12 +75,8 @@ export class ReiDaPraiaService {
     grupos: Grupo[];
     partidas: PartidaReiDaPraia[];
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     try {
       // 1. Buscar e validar etapa
-      let inicio = Date.now();
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
@@ -108,59 +104,36 @@ export class ReiDaPraiaService {
           `Etapa configurada para ${etapa.maxJogadores} jogadores, mas possui ${etapa.totalInscritos}`
         );
       }
-      tempos["1_validarEtapa"] = Date.now() - inicio;
 
       // 2. Buscar inscrições via repository
-      inicio = Date.now();
       const inscricoes = await this.inscricaoRepository.buscarConfirmadas(
         etapaId,
         arenaId
       );
-      tempos["2_buscarInscricoes"] = Date.now() - inicio;
 
       // 3. Distribuir jogadores em grupos
-      inicio = Date.now();
       const jogadores = await this.distribuirJogadoresEmGrupos(
         etapaId,
         arenaId,
         inscricoes
       );
-      tempos["3_distribuirJogadores"] = Date.now() - inicio;
 
       // 4. Criar grupos
-      inicio = Date.now();
       const grupos = await this.criarGrupos(etapaId, arenaId, jogadores);
-      tempos["4_criarGrupos"] = Date.now() - inicio;
 
       // 5. Gerar partidas
-      inicio = Date.now();
       const partidas = await this.gerarPartidas(etapaId, arenaId, grupos);
-      tempos["5_gerarPartidas"] = Date.now() - inicio;
 
       // 6. Marcar chaves como geradas
-      inicio = Date.now();
       await this.etapaRepository.marcarChavesGeradas(etapaId, true);
-      tempos["6_marcarChavesGeradas"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS gerarChaves Rei da Praia", {
-        etapaId,
-        inscritos: inscricoes.length,
-        grupos: grupos.length,
-        partidas: partidas.length,
-        tempos,
-      });
 
       return { jogadores, grupos, partidas };
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao gerar chaves rei da praia",
         {
           etapaId,
           arenaId,
-          tempos,
         },
         error
       );
@@ -528,23 +501,17 @@ export class ReiDaPraiaService {
     processados: number;
     erros: Array<{ partidaId: string; erro: string }>;
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-
     const erros: Array<{ partidaId: string; erro: string }> = [];
     let processados = 0;
 
     try {
       // 1. Buscar todas as partidas em paralelo
-      let inicio = Date.now();
       const partidasPromises = resultados.map((r) =>
         this.partidaReiDaPraiaRepository.buscarPorIdEArena(r.partidaId, arenaId)
       );
       const partidas = await Promise.all(partidasPromises);
-      tempos["1_buscarPartidas"] = Date.now() - inicio;
 
       // 2. Coletar todos os jogadorIds únicos e buscar estatísticas
-      inicio = Date.now();
       const jogadorIdsSet = new Set<string>();
       for (const partida of partidas) {
         if (partida) {
@@ -562,10 +529,8 @@ export class ReiDaPraiaService {
         this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
       ]);
       const eliminatoriaGerada = confrontos.length > 0;
-      tempos["2_buscarEstatisticasEVerificar"] = Date.now() - inicio;
 
-      // 3. Processar cada resultado - OTIMIZADO com FieldValue.increment
-      inicio = Date.now();
+      // 3. Processar cada resultado
       const gruposParaRecalcular = new Set<string>();
 
       // 3.1 Validar e preparar dados
@@ -736,10 +701,7 @@ export class ReiDaPraiaService {
         }
       }
 
-      tempos["3_processarResultados"] = Date.now() - inicio;
-
-      // 4. Recalcular classificação de todos os grupos afetados - OTIMIZADO: paralelo
-      inicio = Date.now();
+      // 4. Recalcular classificação de todos os grupos afetados
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {
           try {
@@ -754,17 +716,6 @@ export class ReiDaPraiaService {
         }
       );
       await Promise.all(recalcPromises);
-      tempos["4_recalcularClassificacao"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS registrarResultadosEmLote (Rei da Praia)", {
-        etapaId,
-        total: resultados.length,
-        processados,
-        erros: erros.length,
-        tempos,
-      });
 
       return {
         message:
@@ -775,10 +726,9 @@ export class ReiDaPraiaService {
         erros,
       };
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao registrar resultados em lote Rei da Praia",
-        { etapaId, total: resultados.length, tempos },
+        { etapaId, total: resultados.length },
         error
       );
       throw error;
@@ -946,17 +896,12 @@ export class ReiDaPraiaService {
     duplas: Dupla[];
     confrontos: ConfrontoEliminatorio[];
   }> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     try {
       // 1. Buscar grupos completos via repository
       const grupos = await this.grupoRepository.buscarCompletos(
         etapaId,
         arenaId
       );
-      tempos["1_buscarGruposCompletos"] = Date.now() - inicio;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo completo encontrado");
@@ -969,7 +914,6 @@ export class ReiDaPraiaService {
       }
 
       // 2. Buscar classificados de cada grupo
-      inicio = Date.now();
       const todosClassificados: EstatisticasJogador[] = [];
 
       for (const grupo of grupos) {
@@ -990,10 +934,8 @@ export class ReiDaPraiaService {
           ...(classificados as unknown as EstatisticasJogador[])
         );
       }
-      tempos["2_buscarClassificados"] = Date.now() - inicio;
 
-      // 3. Marcar jogadores como classificados (em lote - otimizado)
-      inicio = Date.now();
+      // 3. Marcar jogadores como classificados
       const jogadoresParaMarcar = todosClassificados.map((j) => ({
         jogadorId: j.jogadorId,
         etapaId,
@@ -1002,10 +944,8 @@ export class ReiDaPraiaService {
         jogadoresParaMarcar,
         true
       );
-      tempos["3_marcarClassificados"] = Date.now() - inicio;
 
       // 4. Formar duplas fixas baseado no tipo de chaveamento
-      inicio = Date.now();
       let duplas: Dupla[];
 
       switch (tipoChaveamento) {
@@ -1040,35 +980,19 @@ export class ReiDaPraiaService {
         default:
           throw new Error(`Tipo de chaveamento inválido: ${tipoChaveamento}`);
       }
-      tempos["4_formarDuplas"] = Date.now() - inicio;
 
       // 5. Gerar confrontos eliminatórios
-      inicio = Date.now();
       const confrontos = await this.gerarConfrontosEliminatorios(
         etapaId,
         arenaId,
         duplas
       );
-      tempos["5_gerarConfrontos"] = Date.now() - inicio;
 
       // 6. Atualizar status da etapa via repository
-      inicio = Date.now();
       await this.etapaRepository.atualizarStatus(
         etapaId,
         StatusEtapa.FASE_ELIMINATORIA
       );
-      tempos["6_atualizarStatusEtapa"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS gerarFaseEliminatoria (Rei da Praia)", {
-        etapaId,
-        totalGrupos: grupos.length,
-        totalClassificados: todosClassificados.length,
-        totalDuplas: duplas.length,
-        totalConfrontos: confrontos.length,
-        tempos,
-      });
 
       return { duplas, confrontos };
     } catch (error: any) {
@@ -1587,17 +1511,12 @@ export class ReiDaPraiaService {
     etapaId: string,
     arenaId: string
   ): Promise<void> {
-    const tempos: Record<string, number> = {};
-    const inicioTotal = Date.now();
-    let inicio = Date.now();
-
     try {
       // 1. Buscar etapa
       const etapa = await this.etapaRepository.buscarPorIdEArena(
         etapaId,
         arenaId
       );
-      tempos["1_buscarEtapa"] = Date.now() - inicio;
 
       if (!etapa) {
         throw new Error("Etapa não encontrada");
@@ -1608,19 +1527,16 @@ export class ReiDaPraiaService {
       }
 
       // 2. Buscar confrontos e partidas em paralelo
-      inicio = Date.now();
       const [confrontos, partidasEliminatorias] = await Promise.all([
         this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
         this.partidaRepository.buscarPorTipo(etapaId, arenaId, "eliminatoria"),
       ]);
-      tempos["2_buscarConfrontosEPartidas"] = Date.now() - inicio;
 
       if (confrontos.length === 0) {
         throw new Error("Nenhuma fase eliminatória encontrada para esta etapa");
       }
 
       // 3. Reverter estatísticas de partidas finalizadas
-      inicio = Date.now();
       let partidasRevertidas = 0;
 
       if (partidasEliminatorias.length > 0) {
@@ -1644,10 +1560,8 @@ export class ReiDaPraiaService {
         const duplasMap = new Map(
           duplasArray.filter(Boolean).map((d) => [d!.id, d!])
         );
-        tempos["3a_buscarDuplas"] = Date.now() - inicio;
 
         // Reverter estatísticas em paralelo
-        inicio = Date.now();
         const reversaoPromises: Promise<void>[] = [];
 
         for (const partida of partidasEliminatorias) {
@@ -1734,67 +1648,42 @@ export class ReiDaPraiaService {
         }
 
         await Promise.all(reversaoPromises);
-        tempos["3b_reverterEstatisticas"] = Date.now() - inicio;
 
         // 4. Excluir partidas eliminatórias
-        inicio = Date.now();
         await this.partidaRepository.deletarEliminatoriasPorEtapa(
           etapaId,
           arenaId
         );
-        tempos["4_deletarPartidas"] = Date.now() - inicio;
       }
 
       // 5. Excluir confrontos e duplas em paralelo
-      inicio = Date.now();
-      const [confrontosRemovidos, duplasRemovidas] = await Promise.all([
+      await Promise.all([
         this.confrontoRepository.deletarPorEtapa(etapaId, arenaId),
         this.duplaRepository.deletarPorEtapa(etapaId, arenaId),
       ]);
-      tempos["5_deletarConfrontosEDuplas"] = Date.now() - inicio;
 
       // 6. Buscar e desmarcar jogadores classificados
-      inicio = Date.now();
       const estatisticas =
         await this.estatisticasJogadorRepository.buscarPorEtapa(
           etapaId,
           arenaId
         );
-      tempos["6a_buscarEstatisticas"] = Date.now() - inicio;
-
-      inicio = Date.now();
       const desmarcarPromises = estatisticas.map((est) =>
         this.estatisticasJogadorRepository.atualizar(est.id, {
           posicaoGrupo: undefined,
         })
       );
       await Promise.all(desmarcarPromises);
-      tempos["6b_desmarcarClassificados"] = Date.now() - inicio;
 
       // 7. Voltar status da etapa
-      inicio = Date.now();
       await this.etapaRepository.atualizarStatus(
         etapaId,
         StatusEtapa.CHAVES_GERADAS
       );
-      tempos["7_atualizarStatusEtapa"] = Date.now() - inicio;
-
-      tempos["TOTAL"] = Date.now() - inicioTotal;
-
-      logger.info("⏱️ TEMPOS cancelarFaseEliminatoria (Rei da Praia)", {
-        etapaId,
-        confrontosRemovidos,
-        partidasRemovidas: partidasEliminatorias.length,
-        partidasRevertidas,
-        duplasRemovidas,
-        jogadoresDesmarcados: estatisticas.length,
-        tempos,
-      });
     } catch (error: any) {
-      tempos["TOTAL_COM_ERRO"] = Date.now() - inicioTotal;
       logger.error(
         "Erro ao cancelar fase eliminatória",
-        { etapaId, arenaId, tempos },
+        { etapaId, arenaId },
         error
       );
       throw error;

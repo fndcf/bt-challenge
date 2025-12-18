@@ -285,12 +285,7 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     dupla1JogadorIds: [string, string],
     dupla2JogadorIds: [string, string]
   ): Promise<PartidaTeams> {
-    const timings: Record<string, number> = {};
-    const startTotal = Date.now();
-
-    let start = Date.now();
     const partida = await this.partidaRepository.buscarPorId(partidaId);
-    timings["1_buscarPartida"] = Date.now() - start;
 
     if (!partida) {
       throw new NotFoundError("Partida não encontrada");
@@ -312,35 +307,28 @@ export class TeamsPartidaService implements ITeamsPartidaService {
       logger.warn("Partida sem IDs das equipes, buscando do confronto", {
         partidaId,
       });
-      start = Date.now();
       const confronto = await this.confrontoRepository.buscarPorId(
         partida.confrontoId
       );
-      timings["2a_buscarConfronto"] = Date.now() - start;
 
       if (!confronto) {
         throw new NotFoundError("Confronto não encontrado");
       }
       equipe1Id = confronto.equipe1Id;
       equipe2Id = confronto.equipe2Id;
-
-      start = Date.now();
       await this.partidaRepository.atualizar(partidaId, {
         equipe1Id,
         equipe1Nome: confronto.equipe1Nome,
         equipe2Id,
         equipe2Nome: confronto.equipe2Nome,
       });
-      timings["2b_atualizarPartidaIds"] = Date.now() - start;
     }
 
     // Buscar equipes em paralelo
-    start = Date.now();
     const [equipe1, equipe2] = await Promise.all([
       this.equipeRepository.buscarPorId(equipe1Id),
       this.equipeRepository.buscarPorId(equipe2Id),
     ]);
-    timings["3_buscarEquipes"] = Date.now() - start;
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -369,17 +357,14 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     });
 
     // Buscar confronto e partidas para validação
-    start = Date.now();
     const confronto = await this.confrontoRepository.buscarPorId(
       partida.confrontoId
     );
     if (!confronto) {
       throw new NotFoundError("Confronto não encontrado");
     }
-    timings["4a_buscarConfronto"] = Date.now() - start;
 
     // Buscar outras partidas do confronto
-    start = Date.now();
     const partidasIds = confronto.partidas.filter((id) => id !== partidaId);
     const partidasPromises = partidasIds.map((id) =>
       this.partidaRepository.buscarPorId(id)
@@ -387,10 +372,8 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     const partidasDoConfronto = (await Promise.all(partidasPromises)).filter(
       (p) => p !== null
     ) as PartidaTeams[];
-    timings["4b_buscarPartidasConfronto"] = Date.now() - start;
 
     // Validações
-    start = Date.now();
     await Promise.all([
       this.validarDuplasUnicasComDados(
         partidasDoConfronto,
@@ -405,10 +388,8 @@ export class TeamsPartidaService implements ITeamsPartidaService {
           )
         : Promise.resolve(),
     ]);
-    timings["4c_validacoes"] = Date.now() - start;
 
     // Atualizar partida
-    start = Date.now();
     await this.partidaRepository.atualizar(partidaId, {
       dupla1: dupla1Jogadores.map((j) => ({
         id: j.id,
@@ -423,16 +404,10 @@ export class TeamsPartidaService implements ITeamsPartidaService {
         genero: j.genero,
       })),
     });
-    timings["6_atualizarPartidaJogadores"] = Date.now() - start;
 
-    start = Date.now();
     const partidaAtualizada = (await this.partidaRepository.buscarPorId(
       partidaId
     )) as PartidaTeams;
-    timings["7_buscarPartidaFinal"] = Date.now() - start;
-
-    timings["TOTAL"] = Date.now() - startTotal;
-    logger.info("⏱️ TIMING definirJogadoresPartida", { timings, partidaId });
 
     return partidaAtualizada;
   }
@@ -444,32 +419,24 @@ export class TeamsPartidaService implements ITeamsPartidaService {
     confronto: ConfrontoEquipe,
     etapa: Etapa
   ): Promise<PartidaTeams> {
-    const timings: Record<string, number> = {};
-    const startTotal = Date.now();
-
     const variante = etapa.varianteTeams!;
 
     if (variante !== VarianteTeams.TEAMS_4) {
       throw new ValidationError("Decider só é permitido para TEAMS_4");
     }
-
-    let start = Date.now();
     const existeDecider = await this.partidaRepository.existeDecider(
       confronto.id
     );
-    timings["1_verificarExisteDecider"] = Date.now() - start;
 
     if (existeDecider) {
       throw new ValidationError("Decider já existe para este confronto");
     }
 
     // Buscar equipes em paralelo
-    start = Date.now();
     const [equipe1, equipe2] = await Promise.all([
       this.equipeRepository.buscarPorId(confronto.equipe1Id),
       this.equipeRepository.buscarPorId(confronto.equipe2Id),
     ]);
-    timings["2_buscarEquipes"] = Date.now() - start;
 
     if (!equipe1 || !equipe2) {
       throw new NotFoundError("Equipe não encontrada");
@@ -520,25 +487,13 @@ export class TeamsPartidaService implements ITeamsPartidaService {
       dupla2Jogadores
     );
 
-    start = Date.now();
     const [partida] = await this.partidaRepository.criarEmLote([partidaDTO]);
-    timings["3_criarPartida"] = Date.now() - start;
 
-    start = Date.now();
     await this.confrontoRepository.adicionarPartidasEmLote(confronto.id, [
       partida.id,
     ]);
-    timings["4_adicionarPartidaConfronto"] = Date.now() - start;
 
-    start = Date.now();
     await this.confrontoRepository.marcarTemDecider(confronto.id, true);
-    timings["5_marcarTemDecider"] = Date.now() - start;
-
-    timings["TOTAL"] = Date.now() - startTotal;
-    logger.info("⏱️ TIMING gerarDecider", {
-      timings,
-      confrontoId: confronto.id,
-    });
 
     return partida;
   }

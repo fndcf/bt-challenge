@@ -861,14 +861,9 @@ export class EtapaService {
    * Encerrar etapa e atribuir pontos
    */
   async encerrarEtapa(id: string, arenaId: string): Promise<void> {
-    const timings: Record<string, number> = {};
-    const startTotal = Date.now();
-
     try {
       // 1. Buscar etapa
-      const start1 = Date.now();
       const etapa = await this.buscarPorId(id, arenaId);
-      timings["1_buscarEtapa"] = Date.now() - start1;
 
       if (!etapa) {
         throw new Error("Etapa não encontrada");
@@ -888,19 +883,15 @@ export class EtapaService {
       });
 
       // 2. Buscar pontuação via repository
-      const start2 = Date.now();
       const pontuacao = await this.configRepository.buscarPontuacao();
-      timings["2_buscarPontuacao"] = Date.now() - start2;
 
       // CENÁRIO 0: TEAMS (equipes)
       if (etapa.formato === FormatoEtapa.TEAMS) {
         // 3. Buscar confrontos TEAMS
-        const start3 = Date.now();
         const confrontos = await this.confrontoEquipeRepository.buscarPorEtapa(
           id,
           arenaId
         );
-        timings["3_buscarConfrontosTeams"] = Date.now() - start3;
 
         if (confrontos.length === 0) {
           throw new Error("Nenhum confronto encontrado para esta etapa");
@@ -917,12 +908,10 @@ export class EtapaService {
         }
 
         // 4. Buscar equipes ordenadas por classificação
-        const start4 = Date.now();
         const equipes = await this.equipeRepository.buscarPorClassificacao(
           id,
           arenaId
         );
-        timings["4_buscarEquipes"] = Date.now() - start4;
 
         if (equipes.length === 0) {
           throw new Error("Nenhuma equipe encontrada para esta etapa");
@@ -940,9 +929,6 @@ export class EtapaService {
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
-          // 5. BATCH OTIMIZADO - Coletar todos jogadores e suas colocações
-          const start5 = Date.now();
-
           // Coletar todos os jogadorIds com suas colocações
           const jogadorColocacoes: Array<{
             jogadorId: string;
@@ -970,10 +956,8 @@ export class EtapaService {
               });
             }
           }
-          timings["5a_coletarJogadores"] = Date.now() - start5;
 
           // 5b. Buscar estatísticas de todos os jogadores em paralelo
-          const start5b = Date.now();
           const estatisticasPromises = jogadorColocacoes.map((j) =>
             this.estatisticasJogadorRepository
               .buscarPorJogadorEEtapa(j.jogadorId, id)
@@ -982,10 +966,8 @@ export class EtapaService {
           const jogadoresComEstatisticas = await Promise.all(
             estatisticasPromises
           );
-          timings["5b_buscarEstatisticas"] = Date.now() - start5b;
 
           // 5c. Preparar batch de atualizações
-          const start5c = Date.now();
           const pontuacoesBatch: AtualizarPontuacaoEmLoteDTO[] = [];
 
           for (const jogador of jogadoresComEstatisticas) {
@@ -1018,18 +1000,13 @@ export class EtapaService {
               pontuacoesBatch
             );
           }
-          timings["5c_batchPontuacoes"] = Date.now() - start5c;
 
           // 5e. Atualizar posições das equipes em lote
-          const start5e = Date.now();
           const posicoesEquipes = equipes.map((equipe, i) => ({
             id: equipe.id,
             posicao: i + 1,
           }));
           await this.equipeRepository.atualizarPosicoesEmLote(posicoesEquipes);
-          timings["5d_atualizarPosicoes"] = Date.now() - start5e;
-
-          timings["5_TOTAL_atribuirPontosTeams"] = Date.now() - start5;
         } else {
           logger.info(
             "Etapa TEAMS não conta pontos no ranking - pulando atribuição",
@@ -1045,12 +1022,7 @@ export class EtapaService {
         }
 
         // 6. Definir campeão
-        const start6 = Date.now();
         await this.etapaRepository.definirCampeao(id, campeao.id, campeao.nome);
-        timings["6_definirCampeao"] = Date.now() - start6;
-
-        timings["TOTAL"] = Date.now() - startTotal;
-        logger.info("⏱️ TIMING encerrarEtapa TEAMS", { timings, etapaId: id });
 
         logger.info("Etapa TEAMS encerrada", {
           etapaId: id,
@@ -1064,9 +1036,7 @@ export class EtapaService {
       }
 
       // 3. Buscar grupos via repository (para outros formatos)
-      const start3 = Date.now();
       const grupos = await this.grupoRepository.buscarPorEtapa(id, arenaId);
-      timings["3_buscarGrupos"] = Date.now() - start3;
 
       if (grupos.length === 0) {
         throw new Error("Nenhum grupo encontrado para esta etapa");
@@ -1083,12 +1053,10 @@ export class EtapaService {
         }
 
         // 4. Buscar jogadores ordenados por posição via repository
-        const start4 = Date.now();
         const jogadores =
           await this.estatisticasJogadorRepository.buscarPorGrupoOrdenado(
             grupo.id
           );
-        timings["4_buscarJogadoresSuperX"] = Date.now() - start4;
 
         if (jogadores.length === 0) {
           throw new Error("Nenhum jogador encontrado no grupo");
@@ -1106,9 +1074,6 @@ export class EtapaService {
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
-          // 5. Atribuir pontos aos jogadores Super X (BATCH OTIMIZADO)
-          const start5 = Date.now();
-
           // Preparar dados para batch
           const pontuacoesBatch = jogadores.map((jogador, i) => {
             const { colocacao, pontos: pts } =
@@ -1139,7 +1104,6 @@ export class EtapaService {
               pontos,
             });
           });
-          timings["5_atribuirPontosSuperX"] = Date.now() - start5;
         } else {
           logger.info(
             "Etapa Super X não conta pontos no ranking - pulando atribuição",
@@ -1155,19 +1119,11 @@ export class EtapaService {
         }
 
         // 6. Definir campeão
-        const start6 = Date.now();
         await this.etapaRepository.definirCampeao(
           id,
           campeao.jogadorId,
           campeao.jogadorNome
         );
-        timings["6_definirCampeao"] = Date.now() - start6;
-
-        timings["TOTAL"] = Date.now() - startTotal;
-        logger.info("⏱️ TIMING encerrarEtapa SUPER_X", {
-          timings,
-          etapaId: id,
-        });
 
         logger.info("Etapa Super X encerrada", {
           etapaId: id,
@@ -1191,11 +1147,9 @@ export class EtapaService {
         }
 
         // 4. Buscar duplas ordenadas por posição via repository
-        const start4 = Date.now();
         const duplas = await this.duplaRepository.buscarPorGrupoOrdenado(
           grupo.id
         );
-        timings["4_buscarDuplasGrupoUnico"] = Date.now() - start4;
 
         if (duplas.length === 0) {
           throw new Error("Nenhuma dupla encontrada no grupo");
@@ -1211,9 +1165,6 @@ export class EtapaService {
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
-          // 5. Atribuir pontos às duplas (grupo único) - BATCH OTIMIZADO
-          const start5 = Date.now();
-
           // 5a. Coletar todos os jogadorIds das duplas
           const jogadorIds: string[] = [];
           const jogadorColocacoes: Map<
@@ -1271,7 +1222,6 @@ export class EtapaService {
               colocacao,
             });
           });
-          timings["5_atribuirPontosGrupoUnico"] = Date.now() - start5;
         } else {
           logger.info(
             "Etapa não conta pontos no ranking - pulando atribuição",
@@ -1287,19 +1237,11 @@ export class EtapaService {
         }
 
         // 6. Definir campeão
-        const start6 = Date.now();
         await this.etapaRepository.definirCampeao(
           id,
           campeao.id,
           `${campeao.jogador1Nome} & ${campeao.jogador2Nome}`
         );
-        timings["6_definirCampeao"] = Date.now() - start6;
-
-        timings["TOTAL"] = Date.now() - startTotal;
-        logger.info("⏱️ TIMING encerrarEtapa GRUPO_UNICO", {
-          timings,
-          etapaId: id,
-        });
 
         logger.info("Etapa encerrada (grupo único)", {
           etapaId: id,
@@ -1314,13 +1256,11 @@ export class EtapaService {
 
       // CENÁRIO 3: COM ELIMINATÓRIA (múltiplos grupos)
       // 4. Buscar confronto da final via repository
-      const start4 = Date.now();
       const confrontosFinais = await this.confrontoRepository.buscarPorFase(
         id,
         arenaId,
         TipoFase.FINAL
       );
-      timings["4_buscarConfrontoFinal"] = Date.now() - start4;
 
       if (confrontosFinais.length === 0) {
         throw new Error("Não há fase eliminatória para esta etapa");
@@ -1334,9 +1274,6 @@ export class EtapaService {
 
       // Só atribuir pontos se a etapa conta para o ranking
       if (contaPontosRanking) {
-        // 5. BATCH OTIMIZADO - Buscar todos os confrontos em paralelo
-        const start5 = Date.now();
-
         const [
           confrontosSemi,
           confrontosQuartas,
@@ -1360,10 +1297,8 @@ export class EtapaService {
           ),
           this.duplaRepository.buscarPorEtapa(id, arenaId),
         ]);
-        timings["5_buscarConfrontosParalelo"] = Date.now() - start5;
 
         // 6. Coletar todas as duplas e suas colocações
-        const start6 = Date.now();
         const duplaColocacoes: Map<
           string,
           { pontos: number; colocacao: string }
@@ -1444,19 +1379,15 @@ export class EtapaService {
             });
           }
         }
-        timings["6_coletarColocacoes"] = Date.now() - start6;
 
         // 7. Buscar todas as duplas em paralelo para obter jogadorIds
-        const start7 = Date.now();
         const duplaIds = Array.from(duplaColocacoes.keys());
         const duplasPromises = duplaIds.map((duplaId) =>
           this.duplaRepository.buscarPorId(duplaId)
         );
         const duplasResolvidas = await Promise.all(duplasPromises);
-        timings["7_buscarDuplasParalelo"] = Date.now() - start7;
 
         // 8. Coletar jogadorIds e suas colocações
-        const start8 = Date.now();
         const jogadorColocacoes: Map<
           string,
           { pontos: number; colocacao: string }
@@ -1481,10 +1412,8 @@ export class EtapaService {
             colocacao: colocacaoInfo.colocacao,
           });
         }
-        timings["8_coletarJogadores"] = Date.now() - start8;
 
         // 9. Buscar todas as estatísticas em paralelo
-        const start9 = Date.now();
         const estatisticasPromises = jogadorIds.map((jogadorId) =>
           this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
             jogadorId,
@@ -1492,10 +1421,8 @@ export class EtapaService {
           )
         );
         const estatisticas = await Promise.all(estatisticasPromises);
-        timings["9_buscarEstatisticasParalelo"] = Date.now() - start9;
 
         // 10. Preparar e executar batch write
-        const start10 = Date.now();
         const pontuacoesBatch = estatisticas
           .filter((est) => est !== null)
           .map((est) => {
@@ -1510,7 +1437,6 @@ export class EtapaService {
         await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(
           pontuacoesBatch
         );
-        timings["10_batchWritePontuacoes"] = Date.now() - start10;
       } else {
         logger.info(
           "Etapa não conta pontos no ranking - pulando atribuição (eliminatória)",
@@ -1521,7 +1447,6 @@ export class EtapaService {
       }
 
       // 11. Definir campeão
-      const start11 = Date.now();
       if (confrontoFinal.vencedoraId) {
         await this.etapaRepository.definirCampeao(
           id,
@@ -1529,13 +1454,6 @@ export class EtapaService {
           confrontoFinal.vencedoraNome || "Campeão"
         );
       }
-      timings["11_definirCampeao"] = Date.now() - start11;
-
-      timings["TOTAL"] = Date.now() - startTotal;
-      logger.info("⏱️ TIMING encerrarEtapa COM_ELIMINATORIA", {
-        timings,
-        etapaId: id,
-      });
 
       logger.info("Etapa encerrada (com eliminatória)", {
         etapaId: id,
