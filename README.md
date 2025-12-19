@@ -7,7 +7,7 @@ Sistema completo para gerenciamento de torneios de Beach Tennis com suporte a m�
 Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach Tennis, permitindo:
 
 - Cadastro de jogadores por categoria e nível
-- Dois formatos de torneio: **Dupla Fixa** e **Rei da Praia**
+- Quatro formatos de torneio: **Dupla Fixa**, **Rei da Praia**, **Super X** e **TEAMS**
 - Geração automática de grupos e chaves eliminatórias
 - Sistema de pontuação individual
 - Rankings dinâmicos
@@ -15,20 +15,62 @@ Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach 
 - Suporte para múltiplas arenas (multi-tenancy)
 - Página pública por arena com visualização de etapas
 
+## Formatos de Torneio
+
+### Dupla Fixa
+
+Formato tradicional onde duplas são formadas via sorteio e permanecem juntas durante toda a etapa.
+
+- Fase de grupos(ou grupo único) + Fase eliminatória
+- Configurável: número de duplas por grupo e classificados por grupo
+
+**Critérios de desempate:** Pontos → Saldo Games → Confronto direto\* → Games vencidos → Sorteio
+
+### Rei da Praia
+
+Jogadores individuais formam duplas rotativas a cada partida dentro de grupos de 4.
+
+- Cada jogador joga 3 partidas com parceiros diferentes
+- Fase de grupos + Fase eliminatória com duplas fixas formadas pelos classificados
+- Opções de chaveamento: Melhores com Melhores, Pareamento por Ranking, Sorteio Aleatório
+
+**Critérios de desempate:** Pontos → Vitórias → Saldo Games → Games vencidos → Sorteio
+
+### Super X (Super 8, Super 12)
+
+Similar ao Rei da Praia, mas com grupo único e sem fase eliminatória.
+
+- Super 8: 8 jogadores, 7 rodadas
+- Super 12: 12 jogadores, 11 rodadas
+- Tabela de rodadas com duplas rotativas pré-definidas
+
+**Critérios de desempate:** Pontos → Saldo Games → Games vencidos → Sorteio
+
+### TEAMS
+
+Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
+
+- Fase de grupos entre equipes (ou grupo único) + Fase eliminatória
+- Confrontos entre equipes com múltiplos jogos (2 ou 3 jogos por confronto)
+- Formação de equipes: Mesmo Nível, Balanceado ou Manual
+- Suporta de 2 a 8 grupos
+
+**Critérios de desempate:** Pontos → Saldo Jogos → Saldo Games → Confronto direto\* → Games vencidos → Sorteio
+
+> \*Confronto direto é aplicado apenas quando exatamente 2 duplas/equipes estão empatadas.
+
 ## Funcionalidades
 
 ### Para Administradores
 
 - Cadastro e gestão de jogadores (com status ativo/inativo)
-- Criação de etapas com dois formatos:
-  - **Dupla Fixa**: Duplas permanecem juntas durante toda a etapa
-  - **Rei da Praia**: Jogadores individuais formam duplas rotativas
+- Criação de etapas com quatro formatos de torneio
 - Geração automática de grupos e chaves
 - Registro de resultados (placar por games)
 - Gerenciamento de cabeças de chave
 - Controle de inscrições
 - Fase de grupos + Fase eliminatória
-- Sistema de desempate (vitórias, saldo de games, confronto direto)
+- Dashboard com estatísticas
 
 ### Para Jogadores/Espectadores
 
@@ -63,12 +105,15 @@ Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach 
 | Axios             | 1.6    | HTTP Client             |
 | React Query       | 3.39   | Cache e estado servidor |
 | Firebase          | 10.7   | Autenticação cliente    |
+| Lucide React      | 0.555  | Ícones                  |
+| Jest              | 30.2   | Testes unitários        |
 
 ### Infraestrutura
 
 - Firebase Firestore (Database)
 - Firebase Authentication
-- Firebase Hosting
+- Firebase Hosting (Frontend)
+- Firebase Cloud Functions (Backend)
 
 ## Requisitos
 
@@ -180,6 +225,8 @@ challenge-bt/
 │   │   │   └── interfaces/     # Contratos/interfaces
 │   │   ├── routes/             # Rotas da API
 │   │   ├── services/           # Lógica de negócio
+│   │   │   └── teams/          # Services específicos do formato TEAMS
+│   │   │       └── strategies/ # Estratégias de eliminatória por nº de grupos
 │   │   └── utils/              # Logger, errors, helpers
 │   ├── package.json
 │   └── tsconfig.json
@@ -222,6 +269,7 @@ O backend segue os princípios SOLID com arquitetura em camadas:
 #### Padrões Utilizados
 
 - **Repository Pattern**: Interfaces (`IEtapaRepository`, `IJogadorRepository`) com implementações Firebase
+- **Strategy Pattern**: Estratégias de eliminatória por número de grupos (TEAMS)
 - **Dependency Injection**: Container de serviços (`ServiceContainer`)
 - **Error Handling**: Classes de erro customizadas (`AppError`, `ValidationError`, `NotFoundError`)
 - **Structured Logging**: Logger profissional com suporte a Cloud Logging
@@ -253,6 +301,21 @@ npm run test:watch
 npm run test:coverage
 ```
 
+### Frontend
+
+```bash
+cd frontend
+
+# Rodar testes
+npm test
+
+# Rodar testes em watch mode
+npm run test:watch
+
+# Gerar coverage
+npm run test:coverage
+```
+
 ### Scripts Disponíveis
 
 #### Backend
@@ -264,14 +327,18 @@ npm run test:coverage
 | `npm start`             | Iniciar versão compilada        |
 | `npm test`              | Rodar testes                    |
 | `npm run test:coverage` | Testes com coverage             |
+| `npm run lint`          | Verificar código com ESLint     |
+| `npm run lint:fix`      | Corrigir problemas de lint      |
 
 #### Frontend
 
-| Script            | Descrição                       |
-| ----------------- | ------------------------------- |
-| `npm run dev`     | Iniciar em modo desenvolvimento |
-| `npm run build`   | Build de produção               |
-| `npm run preview` | Preview do build                |
+| Script                  | Descrição                       |
+| ----------------------- | ------------------------------- |
+| `npm run dev`           | Iniciar em modo desenvolvimento |
+| `npm run build`         | Build de produção               |
+| `npm run preview`       | Preview do build                |
+| `npm test`              | Rodar testes                    |
+| `npm run test:coverage` | Testes com coverage             |
 
 ## Deploy
 
@@ -281,10 +348,10 @@ O projeto está configurado para deploy no Firebase (Hosting + Functions).
 
 #### URLs de Produção
 
-| Componente | URL |
-| ---------- | --- |
-| Frontend   | https://torneio-challenge.web.app |
-| Backend    | https://us-central1-torneio-challenge.cloudfunctions.net/api |
+| Componente | URL                                 |
+| ---------- | ----------------------------------- |
+| Frontend   | https://torneio-challenge.web.app   |
+| Backend    | https://api-ghad5wrd3a-uc.a.run.app |
 
 #### Comandos de Deploy
 
@@ -298,10 +365,10 @@ cd frontend && npm run build
 # Deploy completo (na raiz do projeto)
 firebase deploy
 
-# Deploy apenas do hosting
+# Deploy apenas do hosting (frontend)
 firebase deploy --only hosting
 
-# Deploy apenas das functions
+# Deploy apenas das functions (backend)
 firebase deploy --only functions
 ```
 
@@ -327,6 +394,8 @@ Os arquivos de configuração do Firebase estão na raiz do projeto:
 - [x] CRUD de etapas
 - [x] Formato Dupla Fixa
 - [x] Formato Rei da Praia
+- [x] Formato Super X (Super 8, Super 12)
+- [x] Formato TEAMS (Teams 4, Teams 6)
 - [x] Geração de grupos
 - [x] Geração de chaves eliminatórias
 - [x] Registro de resultados
@@ -337,10 +406,10 @@ Os arquivos de configuração do Firebase estão na raiz do projeto:
 - [x] Visualizador de grupos (GruposViewer)
 - [x] Visualizador de chaves (BracketViewer)
 - [x] Rankings
+- [x] Testes unitários (backend e frontend)
 
 ### Em Desenvolvimento
 
-- [ ] Novo formato de torneio chamado "TEAMS"
 - [ ] Jogadores se inscrevem sozinhos
 - [ ] Sistema de pagamento de inscrições
 - [ ] Notificações
