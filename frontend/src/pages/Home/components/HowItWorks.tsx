@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import * as S from "../Home.styles";
+import * as S from "../../Home/Home.styles";
 
 interface StepData {
   number: number;

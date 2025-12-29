@@ -1,10 +1,10 @@
-# Challenge BT - Sistema de Torneio de Beach Tennis
+# Dupley - Sistema de Torneios
 
-Sistema completo para gerenciamento de torneios de Beach Tennis com suporte a múltiplas arenas.
+Sistema completo para gerenciamento de torneios com suporte a múltiplas arenas.
 
 ## Sobre
 
-Challenge BT é uma plataforma completa para gerenciamento de torneios de Beach Tennis, permitindo:
+Dupley é uma plataforma completa para gerenciamento de torneios, permitindo:
 
 - Cadastro de jogadores por categoria e nível
 - Quatro formatos de torneio: **Dupla Fixa**, **Rei da Praia**, **Super X** e **TEAMS**
@@ -451,4 +451,4 @@ MIT License
 
 ---
 
-**Feito para a comunidade de Beach Tennis**
+**Feito para a comunidade**

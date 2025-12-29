@@ -281,6 +281,73 @@ describe("SuperXSchedules", () => {
       expect(resultado.valido).toBe(true);
       expect(resultado.erros).toHaveLength(0);
     });
+
+    it("deve detectar número incorreto de rodadas", () => {
+      // Mockando SUPER_X_SCHEDULES temporariamente para testar erro
+      const originalSchedule = SUPER_X_SCHEDULES[8];
+
+      // Schedule com rodadas faltando (apenas 5 em vez de 7)
+      const scheduleIncompleto = originalSchedule.slice(0, 5);
+      (SUPER_X_SCHEDULES as any)[8] = scheduleIncompleto;
+
+      const resultado = validarSchedule(8);
+
+      // Restaurar schedule original
+      (SUPER_X_SCHEDULES as any)[8] = originalSchedule;
+
+      expect(resultado.valido).toBe(false);
+      expect(resultado.erros.length).toBeGreaterThan(0);
+      expect(resultado.erros[0]).toContain("rodadas");
+    });
+
+    it("deve detectar jogadores faltando em uma rodada", () => {
+      const originalSchedule = SUPER_X_SCHEDULES[8];
+
+      // Schedule com jogadores faltando na primeira rodada (só 4 jogadores em vez de 8)
+      const scheduleComJogadoresFaltando: RodadaSuperX[] = [
+        {
+          rodada: 1,
+          partidas: [
+            { dupla1: [0, 1], dupla2: [2, 3] }, // Só 4 jogadores
+          ],
+        },
+        ...originalSchedule.slice(1),
+      ];
+      (SUPER_X_SCHEDULES as any)[8] = scheduleComJogadoresFaltando;
+
+      const resultado = validarSchedule(8);
+
+      // Restaurar schedule original
+      (SUPER_X_SCHEDULES as any)[8] = originalSchedule;
+
+      expect(resultado.valido).toBe(false);
+      expect(resultado.erros.some((e) => e.includes("jogadores"))).toBe(true);
+    });
+
+    it("deve detectar índice de jogador inválido", () => {
+      const originalSchedule = SUPER_X_SCHEDULES[8];
+
+      // Schedule com índice inválido (jogador 99 não existe)
+      const scheduleComIndiceInvalido: RodadaSuperX[] = [
+        {
+          rodada: 1,
+          partidas: [
+            { dupla1: [0, 1], dupla2: [2, 3] },
+            { dupla1: [4, 5], dupla2: [6, 99] }, // 99 é inválido para Super 8
+          ],
+        },
+        ...originalSchedule.slice(1),
+      ];
+      (SUPER_X_SCHEDULES as any)[8] = scheduleComIndiceInvalido;
+
+      const resultado = validarSchedule(8);
+
+      // Restaurar schedule original
+      (SUPER_X_SCHEDULES as any)[8] = originalSchedule;
+
+      expect(resultado.valido).toBe(false);
+      expect(resultado.erros.some((e) => e.includes("inválido"))).toBe(true);
+    });
   });
 
   describe("Integridade das estruturas", () => {

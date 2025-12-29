@@ -6,8 +6,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HeroSection } from "@/pages/Home/components/HeroSection";
-import { FeaturesGrid } from "@/pages/Home/components/FeaturesGrid";
-import { CTAButtons } from "@/pages/Home/components/CTAButtons";
+import { FeaturesSection } from "@/pages/Home/components/FeaturesSection";
 import { HowItWorks } from "@/pages/Home/components/HowItWorks";
 import Home from "@/pages/Home";
 
@@ -21,6 +20,17 @@ jest.mock("@/components/layout/Footer", () => ({
   Footer: () => <footer data-testid="footer">Footer</footer>,
 }));
 
+// Mock dos componentes pesados para testes isolados
+jest.mock("@/pages/Home/components/FormatosSection", () => ({
+  FormatosSection: () => (
+    <div data-testid="formatos-section">FormatosSection</div>
+  ),
+}));
+
+jest.mock("@/pages/Home/components/GaleriaSection", () => ({
+  GaleriaSection: () => <div data-testid="galeria-section">GaleriaSection</div>,
+}));
+
 // Wrapper para componentes que usam react-router
 const renderWithRouter = (component: React.ReactElement) => {
   return render(<MemoryRouter>{component}</MemoryRouter>);
@@ -31,91 +41,100 @@ const renderWithRouter = (component: React.ReactElement) => {
 // ============================================
 
 describe("HeroSection", () => {
-  it("deve renderizar o título Challenge BT", () => {
-    render(<HeroSection />);
+  it("deve renderizar o título Dupley", () => {
+    renderWithRouter(<HeroSection />);
 
-    expect(screen.getByText("Challenge BT")).toBeInTheDocument();
+    expect(screen.getByText("Dupley")).toBeInTheDocument();
   });
 
   it("deve renderizar o subtítulo", () => {
-    render(<HeroSection />);
+    renderWithRouter(<HeroSection />);
 
     expect(
-      screen.getByText("Sistema de Gerenciamento de Torneios de Beach Tennis")
-    ).toBeInTheDocument();
-  });
-});
-
-// ============================================
-// TESTES DO COMPONENTE FeaturesGrid
-// ============================================
-
-describe("FeaturesGrid", () => {
-  it("deve renderizar todas as 4 funcionalidades", () => {
-    render(<FeaturesGrid />);
-
-    expect(screen.getByText("Gestão de Jogadores")).toBeInTheDocument();
-    expect(screen.getByText("Torneios")).toBeInTheDocument();
-    expect(screen.getByText("Rankings")).toBeInTheDocument();
-    expect(screen.getByText("Multi-Arena")).toBeInTheDocument();
-  });
-
-  it("deve renderizar as descrições das funcionalidades", () => {
-    render(<FeaturesGrid />);
-
-    expect(
-      screen.getByText("Cadastro e organização de jogadores por gênero e nível")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Criação automática de chaves e grupos")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Sistema de pontuação e estatísticas")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Suporte para múltiplas arenas")
+      screen.getByText(/A plataforma completa para gerenciar seus torneios/)
     ).toBeInTheDocument();
   });
 
-  it("deve renderizar os ícones das funcionalidades", () => {
-    render(<FeaturesGrid />);
-
-    expect(screen.getByText("👥")).toBeInTheDocument();
-    expect(screen.getByText("🏆")).toBeInTheDocument();
-    expect(screen.getByText("📊")).toBeInTheDocument();
-    expect(screen.getByText("🏟️")).toBeInTheDocument();
-  });
-});
-
-// ============================================
-// TESTES DO COMPONENTE CTAButtons
-// ============================================
-
-describe("CTAButtons", () => {
   it("deve renderizar botão de criar arena", () => {
-    renderWithRouter(<CTAButtons />);
+    renderWithRouter(<HeroSection />);
 
     expect(screen.getByText("Criar Minha Arena")).toBeInTheDocument();
   });
 
   it("deve renderizar botão de login", () => {
-    renderWithRouter(<CTAButtons />);
+    renderWithRouter(<HeroSection />);
 
-    expect(screen.getByText("Já tenho uma Arena")).toBeInTheDocument();
+    expect(screen.getByText("Fazer Login")).toBeInTheDocument();
   });
 
   it("deve ter link correto para criar arena", () => {
-    renderWithRouter(<CTAButtons />);
+    renderWithRouter(<HeroSection />);
 
     const criarArenaLink = screen.getByText("Criar Minha Arena").closest("a");
     expect(criarArenaLink).toHaveAttribute("href", "/register");
   });
 
   it("deve ter link correto para login", () => {
-    renderWithRouter(<CTAButtons />);
+    renderWithRouter(<HeroSection />);
 
-    const loginLink = screen.getByText("Já tenho uma Arena").closest("a");
+    const loginLink = screen.getByText("Fazer Login").closest("a");
     expect(loginLink).toHaveAttribute("href", "/login");
+  });
+});
+
+// ============================================
+// TESTES DO COMPONENTE FeaturesSection
+// ============================================
+
+describe("FeaturesSection", () => {
+  it("deve renderizar o título da seção", () => {
+    render(<FeaturesSection />);
+
+    expect(screen.getByText("Funcionalidades")).toBeInTheDocument();
+  });
+
+  it("deve renderizar todas as 6 funcionalidades", () => {
+    render(<FeaturesSection />);
+
+    expect(screen.getByText("Gestão de Jogadores")).toBeInTheDocument();
+    expect(screen.getByText("Geração Automática")).toBeInTheDocument();
+    expect(screen.getByText("Rankings Dinâmicos")).toBeInTheDocument();
+    expect(screen.getByText("Multi-Arena")).toBeInTheDocument();
+    expect(screen.getByText("Página Pública")).toBeInTheDocument();
+    expect(screen.getByText("Estatísticas")).toBeInTheDocument();
+  });
+
+  it("deve renderizar as descrições das funcionalidades", () => {
+    render(<FeaturesSection />);
+
+    expect(screen.getByText(/Cadastre jogadores por nível/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Grupos e chaves eliminatórias gerados automaticamente/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sistema de pontuação automático/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Gerencie várias arenas independentes/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Cada arena tem sua página pública/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Histórico completo de participações/)
+    ).toBeInTheDocument();
+  });
+
+  it("deve renderizar os cards de funcionalidades", () => {
+    render(<FeaturesSection />);
+
+    // Verifica que os 6 cards são renderizados verificando os títulos
+    expect(screen.getByText("Gestão de Jogadores")).toBeInTheDocument();
+    expect(screen.getByText("Geração Automática")).toBeInTheDocument();
+    expect(screen.getByText("Rankings Dinâmicos")).toBeInTheDocument();
+    expect(screen.getByText("Multi-Arena")).toBeInTheDocument();
+    expect(screen.getByText("Página Pública")).toBeInTheDocument();
+    expect(screen.getByText("Estatísticas")).toBeInTheDocument();
   });
 });
 
@@ -188,31 +207,29 @@ describe("Home - Renderização da Página", () => {
     it("deve renderizar HeroSection com título", () => {
       renderPage();
 
-      expect(screen.getByText("Challenge BT")).toBeInTheDocument();
+      expect(screen.getByText("Dupley")).toBeInTheDocument();
     });
 
     it("deve renderizar HeroSection com subtítulo", () => {
       renderPage();
 
       expect(
-        screen.getByText("Sistema de Gerenciamento de Torneios de Beach Tennis")
+        screen.getByText(/A plataforma completa para gerenciar seus torneios/)
       ).toBeInTheDocument();
     });
 
-    it("deve renderizar FeaturesGrid com funcionalidades", () => {
+    it("deve renderizar FeaturesSection com funcionalidades", () => {
       renderPage();
 
       expect(screen.getByText("Gestão de Jogadores")).toBeInTheDocument();
-      expect(screen.getByText("Torneios")).toBeInTheDocument();
-      expect(screen.getByText("Rankings")).toBeInTheDocument();
       expect(screen.getByText("Multi-Arena")).toBeInTheDocument();
     });
 
-    it("deve renderizar CTAButtons", () => {
+    it("deve renderizar botões CTA", () => {
       renderPage();
 
       expect(screen.getByText("Criar Minha Arena")).toBeInTheDocument();
-      expect(screen.getByText("Já tenho uma Arena")).toBeInTheDocument();
+      expect(screen.getByText("Fazer Login")).toBeInTheDocument();
     });
 
     it("deve renderizar HowItWorks", () => {
@@ -225,6 +242,18 @@ describe("Home - Renderização da Página", () => {
       renderPage();
 
       expect(screen.getByTestId("footer")).toBeInTheDocument();
+    });
+
+    it("deve renderizar FormatosSection (mockado)", () => {
+      renderPage();
+
+      expect(screen.getByTestId("formatos-section")).toBeInTheDocument();
+    });
+
+    it("deve renderizar GaleriaSection (mockado)", () => {
+      renderPage();
+
+      expect(screen.getByTestId("galeria-section")).toBeInTheDocument();
     });
   });
 
@@ -239,7 +268,7 @@ describe("Home - Renderização da Página", () => {
     it("deve ter link correto para login", () => {
       renderPage();
 
-      const loginLink = screen.getByText("Já tenho uma Arena").closest("a");
+      const loginLink = screen.getByText("Fazer Login").closest("a");
       expect(loginLink).toHaveAttribute("href", "/login");
     });
   });

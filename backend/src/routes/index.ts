@@ -15,7 +15,7 @@ const router = Router();
  */
 router.get("/", (_req: Request, res: Response) => {
   res.json({
-    message: "Challenge BT API",
+    message: "Dupley API",
     version: "1.0.0",
     status: "online",
     endpoints: {

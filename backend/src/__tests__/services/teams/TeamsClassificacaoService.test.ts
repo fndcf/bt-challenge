@@ -91,6 +91,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -111,6 +112,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -128,6 +130,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -145,6 +148,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -153,7 +157,7 @@ describe("TeamsClassificacaoService", () => {
       expect(resultado[2].nome).toBe("Equipe 3"); // 15 games
     });
 
-    it("deve usar nome como último critério de desempate", async () => {
+    it("deve usar sorteio como último critério de desempate", async () => {
       const equipes = [
         criarEquipe({ id: "e1", nome: "Zebra", pontos: 6, saldoJogos: 2, saldoGames: 10, gamesVencidos: 20 }),
         criarEquipe({ id: "e2", nome: "Alpha", pontos: 6, saldoJogos: 2, saldoGames: 10, gamesVencidos: 20 }),
@@ -162,12 +166,14 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
-      expect(resultado[0].nome).toBe("Alpha");
-      expect(resultado[1].nome).toBe("Beta");
-      expect(resultado[2].nome).toBe("Zebra");
+      // Quando todos os critérios são iguais, usa sorteio
+      // Apenas verificamos que todas as equipes estão no resultado
+      expect(resultado).toHaveLength(3);
+      expect(resultado.map((e) => e.nome).sort()).toEqual(["Alpha", "Beta", "Zebra"]);
     });
 
     it("deve atualizar posições em lote", async () => {
@@ -178,6 +184,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -190,6 +197,7 @@ describe("TeamsClassificacaoService", () => {
     it("deve retornar lista vazia se não houver equipes", async () => {
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue([]);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 

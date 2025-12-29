@@ -135,7 +135,7 @@ describe("Login - Renderização da Página", () => {
     it("deve renderizar o logo", () => {
       renderPage();
 
-      expect(screen.getByText("Challenge BT")).toBeInTheDocument();
+      expect(screen.getByText("Dupley")).toBeInTheDocument();
     });
 
     it("deve renderizar o texto do header", () => {

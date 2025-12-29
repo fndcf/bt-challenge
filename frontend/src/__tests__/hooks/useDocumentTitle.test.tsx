@@ -19,13 +19,13 @@ describe("useDocumentTitle", () => {
   it("deve atualizar o título do documento", () => {
     renderHook(() => useDocumentTitle("Nova Página"));
 
-    expect(document.title).toBe("Nova Página | Challenge BT");
+    expect(document.title).toBe("Nova Página | Dupley");
   });
 
   it("deve restaurar o título original ao desmontar", () => {
     const { unmount } = renderHook(() => useDocumentTitle("Nova Página"));
 
-    expect(document.title).toBe("Nova Página | Challenge BT");
+    expect(document.title).toBe("Nova Página | Dupley");
 
     unmount();
 
@@ -37,22 +37,22 @@ describe("useDocumentTitle", () => {
       initialProps: { title: "Página 1" },
     });
 
-    expect(document.title).toBe("Página 1 | Challenge BT");
+    expect(document.title).toBe("Página 1 | Dupley");
 
     rerender({ title: "Página 2" });
 
-    expect(document.title).toBe("Página 2 | Challenge BT");
+    expect(document.title).toBe("Página 2 | Dupley");
   });
 
   it("deve funcionar com títulos contendo caracteres especiais", () => {
     renderHook(() => useDocumentTitle("Página de Ação & Aventura"));
 
-    expect(document.title).toBe("Página de Ação & Aventura | Challenge BT");
+    expect(document.title).toBe("Página de Ação & Aventura | Dupley");
   });
 
   it("deve funcionar com título vazio", () => {
     renderHook(() => useDocumentTitle(""));
 
-    expect(document.title).toBe("| Challenge BT");
+    expect(document.title).toBe("| Dupley");
   });
 });

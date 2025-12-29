@@ -189,7 +189,7 @@ describe("ArenaPublica - Renderização", () => {
     it("deve renderizar subtítulo do header", () => {
       renderWithRouter(<ArenaPublica />);
 
-      expect(screen.getByText("Torneios e Desafios de Beach Tennis")).toBeInTheDocument();
+      expect(screen.getByText(/Torneios e Desafios/)).toBeInTheDocument();
     });
 
     it("deve renderizar botão de login admin", () => {

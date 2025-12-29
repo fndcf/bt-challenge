@@ -21,7 +21,7 @@ describe("Footer", () => {
 
     it("deve mostrar o nome da empresa", () => {
       render(<Footer />);
-      expect(screen.getByText(/Challenge BT/)).toBeInTheDocument();
+      expect(screen.getByText(/Dupley/)).toBeInTheDocument();
     });
 
     it("deve mostrar FCF Solutions", () => {
@@ -33,7 +33,7 @@ describe("Footer", () => {
       render(<Footer />);
       const currentYear = new Date().getFullYear();
       expect(
-        screen.getByText(`© ${currentYear} Challenge BT - Powered by FCF Solutions`)
+        screen.getByText(`© ${currentYear} Dupley - Powered by FCF Solutions`)
       ).toBeInTheDocument();
     });
   });

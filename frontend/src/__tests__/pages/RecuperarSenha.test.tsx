@@ -31,7 +31,13 @@ jest.mock("@/pages/RecuperarSenha/hooks/useRecuperarSenha", () => ({
 
 // Mock dos componentes filhos
 jest.mock("@/pages/RecuperarSenha/components/RecoveryForm", () => ({
-  RecoveryForm: ({ email, emailError, loading, onEmailChange, onSubmit }: any) => (
+  RecoveryForm: ({
+    email,
+    emailError,
+    loading,
+    onEmailChange,
+    onSubmit,
+  }: any) => (
     <form data-testid="recovery-form" onSubmit={onSubmit}>
       <input
         data-testid="email-input"
@@ -92,7 +98,7 @@ describe("RecuperarSenha - Renderização", () => {
     it("deve renderizar o logo", () => {
       renderWithRouter(<RecuperarSenha />);
 
-      expect(screen.getByText("Challenge BT")).toBeInTheDocument();
+      expect(screen.getByText("Dupley")).toBeInTheDocument();
     });
 
     it("deve renderizar o título de recuperação quando email não enviado", () => {
@@ -126,7 +132,9 @@ describe("RecuperarSenha - Renderização", () => {
 
       renderWithRouter(<RecuperarSenha />);
 
-      expect(screen.queryByText("← Voltar para o login")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("← Voltar para o login")
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -166,7 +174,9 @@ describe("RecuperarSenha - Renderização", () => {
       renderWithRouter(<RecuperarSenha />);
 
       expect(screen.getByTestId("success-view")).toBeInTheDocument();
-      expect(screen.getByText("Email enviado para: teste@email.com")).toBeInTheDocument();
+      expect(
+        screen.getByText("Email enviado para: teste@email.com")
+      ).toBeInTheDocument();
     });
   });
 
@@ -334,7 +344,9 @@ describe("RecuperarSenha - Renderização", () => {
 
       renderWithRouter(<RecuperarSenha />);
 
-      expect(screen.getByTestId("email-error")).toHaveTextContent("Email inválido");
+      expect(screen.getByTestId("email-error")).toHaveTextContent(
+        "Email inválido"
+      );
     });
   });
 });

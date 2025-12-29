@@ -50,7 +50,7 @@ export const RegisterArena: React.FC = () => {
               onChange={(e) => handleChange("nome", e.target.value)}
               $hasError={!!errors.nome}
               disabled={loading}
-              placeholder="Ex: Arena Azul Beach Tennis"
+              placeholder="Ex: Arena Azul"
             />
             {errors.nome && <S.ErrorText>{errors.nome}</S.ErrorText>}
           </S.FormGroup>

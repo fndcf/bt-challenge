@@ -720,5 +720,187 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
         ).toBeInTheDocument();
       });
     });
+
+    it("deve mostrar erro para 4x3 (inválido)", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[0], { target: { value: "4" } });
+      fireEvent.change(inputs[1], { target: { value: "3" } });
+
+      fireEvent.click(screen.getByText("Salvar Resultado"));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Set com 4 games: placar deve ser 4-0, 4-1 ou 4-2/)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar erro para 5x2 (inválido)", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[0], { target: { value: "5" } });
+      fireEvent.change(inputs[1], { target: { value: "2" } });
+
+      fireEvent.click(screen.getByText("Salvar Resultado"));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Set com 5 games: placar deve ser 5-3 ou 5-4/)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar erro para placar 0x0 (via submit forçado)", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[0], { target: { value: "0" } });
+      fireEvent.change(inputs[1], { target: { value: "0" } });
+
+      // Forçar submit via form
+      const form = document.querySelector("form");
+      if (form) {
+        fireEvent.submit(form);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText(/O placar não pode ser 0 x 0/)).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar erro quando placar vazio e submit forçado", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      // Forçar submit via form sem preencher nada
+      const form = document.querySelector("form");
+      if (form) {
+        fireEvent.submit(form);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText(/O placar deve ser preenchido/)).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar erro quando apenas dupla1 preenchida e submit forçado", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[0], { target: { value: "6" } });
+
+      // Forçar submit via form
+      const form = document.querySelector("form");
+      if (form) {
+        fireEvent.submit(form);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText(/Preencha o placar da segunda dupla/)).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar erro quando apenas dupla2 preenchida e submit forçado", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[1], { target: { value: "6" } });
+
+      // Forçar submit via form
+      const form = document.querySelector("form");
+      if (form) {
+        fireEvent.submit(form);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText(/Preencha o placar da primeira dupla/)).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar erro quando placar empatado e submit forçado", async () => {
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[0], { target: { value: "5" } });
+      fireEvent.change(inputs[1], { target: { value: "5" } });
+
+      // Forçar submit via form
+      const form = document.querySelector("form");
+      if (form) {
+        fireEvent.submit(form);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText(/Não há um vencedor definido/)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("erro genérico do service", () => {
+    it("deve mostrar erro genérico quando service falha sem mensagem", async () => {
+      mockRegistrarResultadoEliminatorio.mockRejectedValue({});
+
+      render(
+        <ModalRegistrarResultadoEliminatorio
+          confronto={mockConfrontoNovo}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />
+      );
+
+      const inputs = screen.getAllByRole("spinbutton");
+      fireEvent.change(inputs[0], { target: { value: "6" } });
+      fireEvent.change(inputs[1], { target: { value: "4" } });
+
+      fireEvent.click(screen.getByText("Salvar Resultado"));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Erro ao registrar resultado/)).toBeInTheDocument();
+      });
+    });
   });
 });

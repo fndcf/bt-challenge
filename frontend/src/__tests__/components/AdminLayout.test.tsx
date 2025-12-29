@@ -40,7 +40,7 @@ const AdminLayout: React.FC = () => {
   const menuItems = [
     { path: "/admin", label: "Dashboard", exact: true },
     { path: "/admin/jogadores", label: "Jogadores" },
-    { path: "/admin/etapas", label: "Challenges" },
+    { path: "/admin/etapas", label: "Etapas" },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -70,7 +70,7 @@ const AdminLayout: React.FC = () => {
           {sidebarOpen ? "←" : "→"}
         </button>
 
-        <div data-testid="logo">Challenge BT</div>
+        <div data-testid="logo">Dupley</div>
 
         <nav data-testid="nav">
           {menuItems.map((item) => (
@@ -125,7 +125,10 @@ const AdminLayout: React.FC = () => {
           >
             Cancelar
           </button>
-          <button data-testid="btn-confirmar-logout" onClick={handleConfirmarLogout}>
+          <button
+            data-testid="btn-confirmar-logout"
+            onClick={handleConfirmarLogout}
+          >
             Sair
           </button>
         </div>
@@ -171,7 +174,7 @@ describe("AdminLayout", () => {
 
     it("deve renderizar o logo", () => {
       renderWithRouter();
-      expect(screen.getByText("Challenge BT")).toBeInTheDocument();
+      expect(screen.getByText("Dupley")).toBeInTheDocument();
     });
 
     it("deve renderizar área principal", () => {
@@ -196,9 +199,9 @@ describe("AdminLayout", () => {
       expect(screen.getByText("Jogadores")).toBeInTheDocument();
     });
 
-    it("deve renderizar link Challenges", () => {
+    it("deve renderizar link Etapas", () => {
       renderWithRouter();
-      expect(screen.getByText("Challenges")).toBeInTheDocument();
+      expect(screen.getByText("Etapas")).toBeInTheDocument();
     });
 
     it("deve mostrar link da página pública quando arena existe", () => {
@@ -271,7 +274,9 @@ describe("AdminLayout", () => {
       fireEvent.pointerDown(logoutButton);
 
       // Modal deve aparecer
-      expect(screen.getByTestId("modal-confirmacao-logout")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("modal-confirmacao-logout")
+      ).toBeInTheDocument();
       expect(screen.getByText("Sair do Sistema")).toBeInTheDocument();
       expect(
         screen.getByText("Deseja realmente sair do painel administrativo?")

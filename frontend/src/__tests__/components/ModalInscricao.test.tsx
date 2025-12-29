@@ -4,6 +4,7 @@
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GeneroJogador, NivelJogador, StatusJogador } from "@/types/jogador";
+import { FormatoEtapa } from "@/types/etapa";
 
 // Mock dos services
 const mockListar = jest.fn();
@@ -825,6 +826,410 @@ describe("ModalInscricao", () => {
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
       expect(screen.getByDisplayValue("Feminino")).toBeInTheDocument();
+    });
+  });
+
+  describe("etapa mista (TEAMS/DUPLA_FIXA)", () => {
+    const mockJogadoresMistos = [
+      {
+        id: "jogador-masc-1",
+        nome: "João Masculino",
+        email: "joao@email.com",
+        telefone: "(11) 99999-0001",
+        nivel: NivelJogador.INTERMEDIARIO,
+        genero: GeneroJogador.MASCULINO,
+        status: StatusJogador.ATIVO,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "jogador-masc-2",
+        nome: "Pedro Masculino",
+        email: "pedro@email.com",
+        telefone: "(11) 99999-0002",
+        nivel: NivelJogador.INTERMEDIARIO,
+        genero: GeneroJogador.MASCULINO,
+        status: StatusJogador.ATIVO,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "jogador-fem-1",
+        nome: "Maria Feminina",
+        email: "maria@email.com",
+        telefone: "(11) 99999-0003",
+        nivel: NivelJogador.INTERMEDIARIO,
+        genero: GeneroJogador.FEMININO,
+        status: StatusJogador.ATIVO,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "jogador-fem-2",
+        nome: "Ana Feminina",
+        email: "ana@email.com",
+        telefone: "(11) 99999-0004",
+        nivel: NivelJogador.INTERMEDIARIO,
+        genero: GeneroJogador.FEMININO,
+        status: StatusJogador.ATIVO,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    it("deve mostrar contador de gênero em etapa mista TEAMS", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadoresMistos });
+      mockListarInscricoes.mockResolvedValue([]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.TEAMS}
+          maxJogadores={4}
+          totalInscritos={0}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Proporção de gênero/)).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar contador de gênero em etapa mista DUPLA_FIXA", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadoresMistos });
+      mockListarInscricoes.mockResolvedValue([]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.DUPLA_FIXA}
+          maxJogadores={4}
+          totalInscritos={0}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Proporção de gênero/)).toBeInTheDocument();
+      });
+    });
+
+    it("deve limitar seleção de jogadores masculinos em etapa mista", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadoresMistos });
+      mockListarInscricoes.mockResolvedValue([
+        { jogadorId: "jogador-inscrito-masc", jogadorGenero: GeneroJogador.MASCULINO },
+      ]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.TEAMS}
+          maxJogadores={4}
+          totalInscritos={1}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("João Masculino")).toBeInTheDocument();
+      });
+
+      // Tentar selecionar mais masculinos do que o permitido (max é 2 em etapa mista de 4)
+      fireEvent.click(screen.getByText("João Masculino"));
+
+      // Já tem 1 inscrito + 1 selecionado = 2, deveria alertar ao tentar mais um
+      fireEvent.click(screen.getByText("Pedro Masculino"));
+
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/Limite de jogadores masculinos atingido/)
+      );
+    });
+
+    it("deve limitar seleção de jogadoras femininas em etapa mista", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadoresMistos });
+      mockListarInscricoes.mockResolvedValue([
+        { jogadorId: "jogador-inscrito-fem", jogadorGenero: GeneroJogador.FEMININO },
+      ]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.TEAMS}
+          maxJogadores={4}
+          totalInscritos={1}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Maria Feminina")).toBeInTheDocument();
+      });
+
+      // Tentar selecionar mais femininas do que o permitido (max é 2 em etapa mista de 4)
+      fireEvent.click(screen.getByText("Maria Feminina"));
+
+      // Já tem 1 inscrita + 1 selecionada = 2, deveria alertar ao tentar mais uma
+      fireEvent.click(screen.getByText("Ana Feminina"));
+
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/Limite de jogadoras femininas atingido/)
+      );
+    });
+
+    it("deve mostrar gênero do jogador em etapa mista", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadoresMistos });
+      mockListarInscricoes.mockResolvedValue([]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.TEAMS}
+          maxJogadores={8}
+          totalInscritos={0}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("João Masculino")).toBeInTheDocument();
+      });
+
+      // Deve mostrar indicadores de gênero
+      expect(screen.getAllByText(/♂ M/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/♀ F/).length).toBeGreaterThan(0);
+    });
+
+    it("deve permitir selecionar gênero no formulário de cadastro em etapa mista", async () => {
+      mockListar.mockResolvedValue({ jogadores: [] });
+      mockListarInscricoes.mockResolvedValue([]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.TEAMS}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText("Carregando jogadores...")).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Cadastrar Novo"));
+
+      // Deve ter select para gênero
+      expect(screen.getByText("Etapa mista: selecione o gênero do jogador")).toBeInTheDocument();
+
+      // Deve ter opções masculino e feminino - usar getAllByRole para pegar todos os selects
+      const selects = screen.getAllByRole("combobox");
+      expect(selects.length).toBeGreaterThan(0);
+
+      // O primeiro select é o de gênero
+      const generoSelect = selects[0];
+
+      // Mudar para feminino
+      fireEvent.change(generoSelect, { target: { value: GeneroJogador.FEMININO } });
+    });
+  });
+
+  describe("etapa sem nível (nível livre)", () => {
+    it("deve permitir selecionar nível no formulário quando etapa não tem nível definido", async () => {
+      mockListar.mockResolvedValue({ jogadores: [] });
+      mockListarInscricoes.mockResolvedValue([]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaNivel={undefined}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText("Carregando jogadores...")).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Cadastrar Novo"));
+
+      // Deve ter select para nível
+      expect(screen.getByText("Etapa nível livre: selecione o nível do jogador")).toBeInTheDocument();
+
+      // Deve ter opções de níveis - usar getAllByRole para pegar todos os selects
+      const selects = screen.getAllByRole("combobox");
+      expect(selects.length).toBeGreaterThan(0);
+
+      // O select é o de nível (único combobox quando não é etapa mista)
+      const nivelSelect = selects[0];
+
+      // Mudar para avançado
+      fireEvent.change(nivelSelect, { target: { value: NivelJogador.AVANCADO } });
+    });
+
+    it("deve mostrar mensagem correta quando não há jogadores em etapa sem nível", async () => {
+      mockListar.mockResolvedValue({ jogadores: [] });
+      mockListarInscricoes.mockResolvedValue([]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaNivel={undefined}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Nenhum jogador cadastrado")).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar mensagem correta quando todos jogadores estão inscritos em etapa sem nível", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadores.slice(0, 1) }); // apenas 1 jogador
+      mockListarInscricoes.mockResolvedValue([
+        { jogadorId: "jogador-1", etapaId: "etapa-1" },
+      ]);
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaNivel={undefined}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Todos os jogadores já estão inscritos!")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("erros e casos de borda", () => {
+    it("deve mostrar erro quando falha ao carregar inscrições", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadores });
+      mockListarInscricoes.mockRejectedValue(new Error("Erro ao carregar inscrições"));
+
+      render(<ModalInscricao {...defaultProps} />);
+
+      // Deve continuar funcionando mesmo com erro nas inscrições
+      await waitFor(() => {
+        expect(screen.getByText("João Silva")).toBeInTheDocument();
+      });
+    });
+
+    it("deve mostrar mensagem de sucesso parcial quando algumas inscrições falham", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadores });
+      mockListarInscricoes.mockResolvedValue([]);
+      // Retorna menos inscrições do que foram selecionadas (simulando falha parcial)
+      mockInscreverJogadores.mockResolvedValue([{ id: "inscricao-1" }]);
+
+      render(<ModalInscricao {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("João Silva")).toBeInTheDocument();
+      });
+
+      // Seleciona 2 jogadores
+      fireEvent.click(screen.getByText("João Silva"));
+      fireEvent.click(screen.getByText("Pedro Santos"));
+
+      expect(screen.getByText("2 jogador(es) selecionado(s)")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText("Inscrever"));
+
+      await waitFor(() => {
+        // Deve mostrar mensagem de sucesso parcial
+        expect(window.alert).toHaveBeenCalledWith(
+          expect.stringMatching(/inscrito\(s\) com sucesso!.*falharam/s)
+        );
+      });
+    });
+
+    it("deve não fechar o modal ao clicar no overlay durante loading", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadores });
+      mockListarInscricoes.mockResolvedValue([]);
+      mockInscreverJogadores.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 2000))
+      );
+
+      const onClose = jest.fn();
+      const { container } = render(
+        <ModalInscricao {...defaultProps} onClose={onClose} />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("João Silva")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("João Silva"));
+      fireEvent.click(screen.getByText("Inscrever"));
+
+      // Tenta clicar no overlay durante o loading
+      const overlay = container.firstChild;
+      if (overlay) {
+        fireEvent.click(overlay);
+      }
+
+      // Não deve ter chamado onClose pois está em loading
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("deve desabilitar botão fechar durante loading de cadastro", async () => {
+      mockListar.mockResolvedValue({ jogadores: [] });
+      mockListarInscricoes.mockResolvedValue([]);
+      mockCriar.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 2000))
+      );
+
+      render(<ModalInscricao {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText("Carregando jogadores...")).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Cadastrar Novo"));
+
+      const nomeInput = screen.getByPlaceholderText("Nome completo");
+      fireEvent.change(nomeInput, { target: { value: "Novo Jogador" } });
+
+      fireEvent.click(screen.getByText("Cadastrar Jogador"));
+
+      // Botão fechar deve estar desabilitado
+      const closeButton = screen.getByText("×");
+      expect(closeButton).toBeDisabled();
+    });
+
+    it("deve desabilitar botão cancelar durante loading de inscrição", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadores });
+      mockListarInscricoes.mockResolvedValue([]);
+      mockInscreverJogadores.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 2000))
+      );
+
+      render(<ModalInscricao {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("João Silva")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("João Silva"));
+      fireEvent.click(screen.getByText("Inscrever"));
+
+      // Botão cancelar deve estar desabilitado
+      const cancelButton = screen.getByText("Cancelar");
+      expect(cancelButton).toBeDisabled();
+    });
+  });
+
+  describe("hint de quantidade de inscritos", () => {
+    it("deve mostrar hint quando todos jogadores de um nível estão inscritos", async () => {
+      mockListar.mockResolvedValue({ jogadores: mockJogadores.slice(0, 2) });
+      mockListarInscricoes.mockResolvedValue([
+        { jogadorId: "jogador-1", etapaId: "etapa-1" },
+        { jogadorId: "jogador-2", etapaId: "etapa-1" },
+      ]);
+
+      render(<ModalInscricao {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/já inscrito\(s\) nesta etapa/)).toBeInTheDocument();
+      });
     });
   });
 });

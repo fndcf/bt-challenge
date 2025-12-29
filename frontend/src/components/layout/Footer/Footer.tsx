@@ -22,9 +22,7 @@ const FooterContainer = styled.footer`
 export default function Footer() {
   return (
     <FooterContainer>
-      <p>
-        © {new Date().getFullYear()} Challenge BT - Powered by FCF Solutions
-      </p>
+      <p>© {new Date().getFullYear()} Dupley - Powered by FCF Solutions</p>
     </FooterContainer>
   );
 }

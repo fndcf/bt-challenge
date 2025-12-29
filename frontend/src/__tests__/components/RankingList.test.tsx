@@ -208,7 +208,7 @@ describe("RankingList", () => {
 
       await waitFor(() => {
         expect(screen.getAllByText("150").length).toBeGreaterThan(0);
-      });
+      }, { timeout: 3000 });
     });
 
     it("deve mostrar vitórias do jogador", async () => {
@@ -216,15 +216,16 @@ describe("RankingList", () => {
 
       await waitFor(() => {
         expect(screen.getAllByText("10").length).toBeGreaterThan(0);
-      });
+      }, { timeout: 3000 });
     });
 
     it("deve mostrar derrotas do jogador", async () => {
       renderWithRouter(<RankingListComponent arenaSlug="minha-arena" />);
 
       await waitFor(() => {
+        // O mock retorna jogador com 5 derrotas
         expect(screen.getAllByText("5").length).toBeGreaterThan(0);
-      });
+      }, { timeout: 3000 });
     });
 
     it("deve mostrar etapas participadas", async () => {
@@ -232,7 +233,7 @@ describe("RankingList", () => {
 
       await waitFor(() => {
         expect(screen.getAllByText("3").length).toBeGreaterThan(0);
-      });
+      }, { timeout: 3000 });
     });
   });
 

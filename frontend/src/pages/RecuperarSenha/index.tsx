@@ -30,7 +30,7 @@ export const RecuperarSenha: React.FC = () => {
     <S.PageContainer>
       <S.RecoveryContainer>
         <S.Header>
-          <S.Logo>Challenge BT</S.Logo>
+          <S.Logo>Dupley</S.Logo>
           <S.HeaderText>
             {emailEnviado ? "Verifique seu email" : "Recuperação de senha"}
           </S.HeaderText>

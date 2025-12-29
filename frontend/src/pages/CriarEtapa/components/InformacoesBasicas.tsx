@@ -4,7 +4,11 @@
 
 import React from "react";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import { FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/types/etapa";
+import {
+  FormatoEtapa,
+  TipoFormacaoEquipe,
+  TipoFormacaoDupla,
+} from "@/types/etapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface InformacoesBasicasProps {
@@ -54,17 +58,24 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
 
   // TEAMS com "Mesmo Nível" requer seleção de nível
-  const teamsMesmoNivel = isTeams && tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL;
+  const teamsMesmoNivel =
+    isTeams && tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL;
 
   // Dupla Fixa com "Balanceado" permite todos os níveis
-  const duplaFixaBalanceado = isDuplaFixa && tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
+  const duplaFixaBalanceado =
+    isDuplaFixa && tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
 
   // Nível obrigatório: apenas Dupla Fixa (exceto Balanceado) e TEAMS com Mesmo Nível
   // Nível opcional: Super X, TEAMS (exceto Mesmo Nível), Dupla Fixa Balanceada, Rei da Praia
-  const nivelObrigatorio = (isDuplaFixa && !duplaFixaBalanceado) || teamsMesmoNivel;
+  const nivelObrigatorio =
+    (isDuplaFixa && !duplaFixaBalanceado) || teamsMesmoNivel;
 
   // Permitir "Todos os níveis" para Super X, TEAMS (exceto MESMO_NIVEL), Dupla Fixa Balanceada e Rei da Praia
-  const permiteTodosNiveis = isSuperX || (isTeams && !teamsMesmoNivel) || duplaFixaBalanceado || isReiDaPraia;
+  const permiteTodosNiveis =
+    isSuperX ||
+    (isTeams && !teamsMesmoNivel) ||
+    duplaFixaBalanceado ||
+    isReiDaPraia;
 
   return (
     <S.Card>
@@ -104,7 +115,9 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
           >
             <option value={GeneroJogador.MASCULINO}>Masculino</option>
             <option value={GeneroJogador.FEMININO}>Feminino</option>
-            {(isTeams || isDuplaFixa) && <option value={GeneroJogador.MISTO}>Misto</option>}
+            {(isTeams || isDuplaFixa) && (
+              <option value={GeneroJogador.MISTO}>Misto</option>
+            )}
           </S.Select>
           <S.HelperText>
             {helperGenero ||
@@ -148,7 +161,7 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
             disabled={disabled}
             value={local}
             onChange={(e) => onLocalChange(e.target.value)}
-            placeholder="Ex: Quadras Arena Beach Tennis"
+            placeholder="Ex: Quadras Arena"
           />
         </S.Field>
       </S.FieldsContainer>

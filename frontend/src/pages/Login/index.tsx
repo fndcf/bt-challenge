@@ -29,7 +29,7 @@ export const Login: React.FC = () => {
     <S.PageContainer>
       <S.LoginContainer>
         <S.Header>
-          <S.Logo>Challenge BT</S.Logo>
+          <S.Logo>Dupley</S.Logo>
           <S.HeaderText>
             Faça login para acessar o painel administrativo
           </S.HeaderText>

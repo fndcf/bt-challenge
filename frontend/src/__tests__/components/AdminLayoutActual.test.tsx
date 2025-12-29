@@ -56,14 +56,14 @@ describe("AdminLayout", () => {
   describe("renderização básica", () => {
     it("deve renderizar o logo", () => {
       renderWithRouter();
-      expect(screen.getByText("Challenge BT")).toBeInTheDocument();
+      expect(screen.getByText("Dupley")).toBeInTheDocument();
     });
 
     it("deve renderizar os itens de menu", () => {
       renderWithRouter();
       expect(screen.getByText("Dashboard")).toBeInTheDocument();
       expect(screen.getByText("Jogadores")).toBeInTheDocument();
-      expect(screen.getByText("Challenges")).toBeInTheDocument();
+      expect(screen.getByText("Etapas")).toBeInTheDocument();
     });
 
     it("deve renderizar o botão de sair", () => {
@@ -92,7 +92,7 @@ describe("AdminLayout", () => {
 
     it("deve navegar para etapas ao clicar", () => {
       renderWithRouter();
-      fireEvent.click(screen.getByText("Challenges"));
+      fireEvent.click(screen.getByText("Etapas"));
       expect(screen.getByText("Etapas Content")).toBeInTheDocument();
     });
 

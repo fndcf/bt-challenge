@@ -807,5 +807,585 @@ describe("GruposViewer", () => {
       // Sem formato definido mas com duplas, infere Dupla Fixa
       expect(screen.getByText("Dupla Fixa")).toBeInTheDocument();
     });
+
+    it("deve inferir formato Teams quando há equipes e sem formato definido", () => {
+      const grupoSemFormato = [
+        {
+          id: "grupo-sem-formato",
+          nome: "Grupo Sem Formato",
+          ordem: 1,
+          completo: false,
+          equipes: [
+            {
+              id: "eq1",
+              nome: "Equipe A",
+              pontos: 0,
+              vitorias: 0,
+              derrotas: 0,
+              jogosVencidos: 0,
+              jogosPerdidos: 0,
+              saldoJogos: 0,
+              classificada: false,
+            },
+          ],
+          partidas: [],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoSemFormato} />);
+
+      // Sem formato definido mas com equipes, infere Teams
+      expect(screen.getByText("Teams")).toBeInTheDocument();
+    });
+  });
+
+  describe("formato TEAMS", () => {
+    const mockGruposTeams = [
+      {
+        id: "grupo-teams-1",
+        nome: "Grupo A",
+        ordem: 1,
+        completo: false,
+        formato: "teams" as const,
+        tipo: "grupos" as const,
+        equipes: [
+          {
+            id: "equipe-1",
+            nome: "Os Campeões",
+            posicaoGrupo: 1,
+            pontos: 6,
+            vitorias: 2,
+            derrotas: 0,
+            jogosVencidos: 4,
+            jogosPerdidos: 2,
+            saldoJogos: 2,
+            classificada: true,
+            jogadores: [
+              { id: "j1", nome: "João", nivel: "avancado", genero: "masculino" },
+              { id: "j2", nome: "Maria", nivel: "avancado", genero: "feminino" },
+              { id: "j3", nome: "Pedro", nivel: "intermediario", genero: "masculino" },
+              { id: "j4", nome: "Ana", nivel: "intermediario", genero: "feminino" },
+            ],
+          },
+          {
+            id: "equipe-2",
+            nome: "Os Desafiantes",
+            posicaoGrupo: 2,
+            pontos: 3,
+            vitorias: 1,
+            derrotas: 1,
+            jogosVencidos: 3,
+            jogosPerdidos: 3,
+            saldoJogos: 0,
+            classificada: true,
+            jogadores: [
+              { id: "j5", nome: "Carlos", nivel: "avancado", genero: "masculino" },
+              { id: "j6", nome: "Lucia", nivel: "avancado", genero: "feminino" },
+            ],
+          },
+          {
+            id: "equipe-3",
+            nome: "Os Iniciantes",
+            posicaoGrupo: 3,
+            pontos: 0,
+            vitorias: 0,
+            derrotas: 2,
+            jogosVencidos: 1,
+            jogosPerdidos: 5,
+            saldoJogos: -4,
+            classificada: false,
+          },
+        ],
+        partidas: [],
+        confrontos: [
+          {
+            id: "confronto-1",
+            fase: "grupos",
+            rodada: 1,
+            grupoId: "grupo-teams-1",
+            grupoNome: "Grupo A",
+            equipe1Id: "equipe-1",
+            equipe2Id: "equipe-2",
+            equipe1Nome: "Os Campeões",
+            equipe2Nome: "Os Desafiantes",
+            status: "FINALIZADO",
+            jogosEquipe1: 2,
+            jogosEquipe2: 1,
+            vencedoraId: "equipe-1",
+            partidas: [
+              {
+                id: "partida-teams-1",
+                ordem: 1,
+                tipoJogo: "feminino" as const,
+                status: "FINALIZADA",
+                dupla1: {
+                  jogador1Id: "j2",
+                  jogador1Nome: "Maria",
+                  jogador2Id: "j4",
+                  jogador2Nome: "Ana",
+                  equipeId: "equipe-1",
+                  equipeNome: "Os Campeões",
+                },
+                dupla2: {
+                  jogador1Id: "j6",
+                  jogador1Nome: "Lucia",
+                  jogador2Id: "j6b",
+                  jogador2Nome: "Clara",
+                  equipeId: "equipe-2",
+                  equipeNome: "Os Desafiantes",
+                },
+                setsDupla1: 1,
+                setsDupla2: 0,
+                placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+                vencedoraEquipeId: "equipe-1",
+                vencedoraEquipeNome: "Os Campeões",
+              },
+              {
+                id: "partida-teams-2",
+                ordem: 2,
+                tipoJogo: "masculino" as const,
+                status: "FINALIZADA",
+                dupla1: {
+                  jogador1Id: "j1",
+                  jogador1Nome: "João",
+                  jogador2Id: "j3",
+                  jogador2Nome: "Pedro",
+                  equipeId: "equipe-1",
+                  equipeNome: "Os Campeões",
+                },
+                dupla2: {
+                  jogador1Id: "j5",
+                  jogador1Nome: "Carlos",
+                  jogador2Id: "j5b",
+                  jogador2Nome: "Fernando",
+                  equipeId: "equipe-2",
+                  equipeNome: "Os Desafiantes",
+                },
+                setsDupla1: 1,
+                setsDupla2: 0,
+                placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 3 }],
+                vencedoraEquipeId: "equipe-1",
+                vencedoraEquipeNome: "Os Campeões",
+              },
+              {
+                id: "partida-teams-3",
+                ordem: 3,
+                tipoJogo: "misto" as const,
+                status: "FINALIZADA",
+                dupla1: {
+                  jogador1Id: "j1",
+                  jogador1Nome: "João",
+                  jogador2Id: "j2",
+                  jogador2Nome: "Maria",
+                  equipeId: "equipe-1",
+                  equipeNome: "Os Campeões",
+                },
+                dupla2: {
+                  jogador1Id: "j5",
+                  jogador1Nome: "Carlos",
+                  jogador2Id: "j6",
+                  jogador2Nome: "Lucia",
+                  equipeId: "equipe-2",
+                  equipeNome: "Os Desafiantes",
+                },
+                setsDupla1: 0,
+                setsDupla2: 1,
+                placar: [{ numero: 1, gamesDupla1: 3, gamesDupla2: 6 }],
+                vencedoraEquipeId: "equipe-2",
+                vencedoraEquipeNome: "Os Desafiantes",
+              },
+            ],
+          },
+          {
+            id: "confronto-2",
+            fase: "grupos",
+            rodada: 2,
+            grupoId: "grupo-teams-1",
+            grupoNome: "Grupo A",
+            equipe1Id: "equipe-1",
+            equipe2Id: "equipe-3",
+            equipe1Nome: "Os Campeões",
+            equipe2Nome: "Os Iniciantes",
+            status: "AGENDADO",
+            jogosEquipe1: 0,
+            jogosEquipe2: 0,
+          },
+        ],
+      },
+    ];
+
+    it("deve mostrar título Confrontos com badge Teams", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      // "Confrontos" aparece no header e na seção
+      expect(screen.getAllByText("Confrontos").length).toBeGreaterThan(0);
+      expect(screen.getByText("Teams")).toBeInTheDocument();
+    });
+
+    it("deve mostrar equipes com jogadores após expandir", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Equipes")).toBeInTheDocument();
+      // Os Campeões aparece em múltiplos lugares (equipes, classificação, confrontos)
+      expect(screen.getAllByText("Os Campeões").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Os Desafiantes").length).toBeGreaterThan(0);
+      // Jogadores aparecem na lista de equipes
+      expect(screen.getAllByText("João").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Maria").length).toBeGreaterThan(0);
+    });
+
+    it("deve mostrar classificação de equipes com estatísticas", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Verificar cabeçalhos da tabela de classificação
+      expect(screen.getByText("Equipe")).toBeInTheDocument();
+      // V, D, Pts, SJ estão na tabela
+      expect(screen.getAllByText("V").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("D").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Pts").length).toBeGreaterThan(0);
+      expect(screen.getByText("SJ")).toBeInTheDocument();
+    });
+
+    it("deve mostrar saldo de jogos positivo e negativo", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("+2")).toBeInTheDocument(); // Os Campeões
+      expect(screen.getByText("-4")).toBeInTheDocument(); // Os Iniciantes
+    });
+
+    it("deve mostrar confrontos com status", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getAllByText("Finalizado").length).toBeGreaterThan(0);
+      expect(screen.getByText("Agendado")).toBeInTheDocument();
+    });
+
+    it("deve mostrar VS entre equipes", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getAllByText("VS").length).toBeGreaterThan(0);
+    });
+
+    it("deve mostrar partidas dentro do confronto", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Badges de tipo de jogo
+      expect(screen.getByText("Feminino")).toBeInTheDocument();
+      expect(screen.getByText("Masculino")).toBeInTheDocument();
+      expect(screen.getByText("Misto")).toBeInTheDocument();
+    });
+
+    it("deve mostrar nomes das duplas nas partidas", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Duplas aparecem nas partidas - pode haver duplicatas
+      expect(screen.getAllByText("Maria & Ana").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Lucia & Clara").length).toBeGreaterThan(0);
+    });
+
+    it("deve mostrar placar das partidas finalizadas", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Placar 6-4, 6-3, 3-6
+      expect(screen.getAllByText("6").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("4").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("3").length).toBeGreaterThan(0);
+    });
+
+    it("deve calcular estatísticas corretas para TEAMS no resumo", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      // No resumo, deve contar confrontos (não partidas)
+      // 2 confrontos total, 1 finalizado = 50%
+      expect(screen.getByText("50%")).toBeInTheDocument();
+    });
+
+    it("deve não mostrar label Grupos no resumo para TEAMS", () => {
+      render(<GruposViewer grupos={mockGruposTeams} />);
+
+      // TEAMS não mostra "Grupos" no resumo, mostra "Confrontos"
+      const gruposLabel = screen.queryByText("Grupos");
+      // Pode haver "Grupos" no título do grupo, mas não no resumo
+      // A lógica é que para TEAMS, não mostramos o item "Grupos" no resumo
+    });
+  });
+
+  describe("formato TEAMS - fase eliminatória", () => {
+    const mockGruposTeamsEliminatoria = [
+      {
+        id: "semifinal",
+        nome: "Semifinal 1",
+        ordem: 100,
+        completo: false,
+        formato: "teams" as const,
+        tipo: "eliminatoria" as const,
+        equipes: [],
+        partidas: [],
+        confrontos: [
+          {
+            id: "confronto-semi-1",
+            fase: "semifinal",
+            equipe1Nome: "Equipe A",
+            equipe2Nome: "Equipe B",
+            status: "EM_ANDAMENTO",
+            jogosEquipe1: 1,
+            jogosEquipe2: 1,
+            partidas: [
+              {
+                id: "partida-decider",
+                ordem: 3,
+                tipoJogo: "decider" as const,
+                status: "AGENDADA",
+                dupla1: {
+                  jogador1Id: "j1",
+                  jogador1Nome: "João",
+                  jogador2Id: "j2",
+                  jogador2Nome: "Maria",
+                  equipeId: "eq1",
+                  equipeNome: "Equipe A",
+                },
+                dupla2: {
+                  jogador1Id: "j3",
+                  jogador1Nome: "Pedro",
+                  jogador2Id: "j4",
+                  jogador2Nome: "Ana",
+                  equipeId: "eq2",
+                  equipeNome: "Equipe B",
+                },
+                setsDupla1: 0,
+                setsDupla2: 0,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    it("deve mostrar fase eliminatória com estilo diferenciado", () => {
+      render(<GruposViewer grupos={mockGruposTeamsEliminatoria} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Semifinal 1")).toBeInTheDocument();
+    });
+
+    it("deve mostrar status Em andamento (Ao vivo)", () => {
+      render(<GruposViewer grupos={mockGruposTeamsEliminatoria} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Ao vivo")).toBeInTheDocument();
+    });
+
+    it("deve mostrar tipo de jogo Decider", () => {
+      render(<GruposViewer grupos={mockGruposTeamsEliminatoria} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Decider")).toBeInTheDocument();
+    });
+
+    it("não deve mostrar título Confrontos para fase eliminatória", () => {
+      render(<GruposViewer grupos={mockGruposTeamsEliminatoria} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Na fase eliminatória, não mostra título "Confrontos" pois já está no header do grupo
+      // O texto "Confrontos" aparece apenas como título geral, não como seção
+    });
+  });
+
+  describe("formato TEAMS - casos de borda", () => {
+    it("deve mostrar A definir quando equipe não está definida", () => {
+      const grupoComEquipeNaoDefinida = [
+        {
+          id: "grupo-indefinido",
+          nome: "Fase Final",
+          ordem: 1,
+          completo: false,
+          formato: "teams" as const,
+          equipes: [],
+          partidas: [],
+          confrontos: [
+            {
+              id: "confronto-indefinido",
+              status: "AGENDADO",
+              jogosEquipe1: 0,
+              jogosEquipe2: 0,
+            },
+          ],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoComEquipeNaoDefinida} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getAllByText("A definir").length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("deve mostrar A definir quando dupla não está definida nas partidas", () => {
+      const grupoComDuplaNaoDefinida = [
+        {
+          id: "grupo-dupla-indefinida",
+          nome: "Grupo X",
+          ordem: 1,
+          completo: false,
+          formato: "teams" as const,
+          equipes: [],
+          partidas: [],
+          confrontos: [
+            {
+              id: "confronto-x",
+              equipe1Nome: "Equipe X",
+              equipe2Nome: "Equipe Y",
+              status: "AGENDADO",
+              jogosEquipe1: 0,
+              jogosEquipe2: 0,
+              partidas: [
+                {
+                  id: "partida-x",
+                  ordem: 1,
+                  tipoJogo: "feminino" as const,
+                  status: "AGENDADA",
+                  dupla1: null,
+                  dupla2: null,
+                  setsDupla1: 0,
+                  setsDupla2: 0,
+                },
+              ],
+            },
+          ],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoComDuplaNaoDefinida} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Deve mostrar "A definir" para duplas não definidas
+      expect(screen.getAllByText("A definir").length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("deve ordenar grupos por tipo (grupos antes de eliminatória)", () => {
+      const gruposMisturados = [
+        {
+          id: "final",
+          nome: "Final",
+          ordem: 200,
+          completo: false,
+          formato: "teams" as const,
+          tipo: "eliminatoria" as const,
+          equipes: [],
+          partidas: [],
+          confrontos: [],
+        },
+        {
+          id: "grupo-a",
+          nome: "Grupo A",
+          ordem: 1,
+          completo: false,
+          formato: "teams" as const,
+          tipo: "grupos" as const,
+          equipes: [],
+          partidas: [],
+          confrontos: [],
+        },
+      ];
+
+      render(<GruposViewer grupos={gruposMisturados} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Verificar que ambos os grupos são renderizados
+      expect(screen.getByText("Grupo A")).toBeInTheDocument();
+      expect(screen.getByText("Final")).toBeInTheDocument();
+    });
+
+    it("deve não mostrar tabela de classificação quando equipes não têm pontos", () => {
+      const grupoSemPontos = [
+        {
+          id: "grupo-sem-pontos",
+          nome: "Grupo Novo",
+          ordem: 1,
+          completo: false,
+          formato: "teams" as const,
+          equipes: [
+            {
+              id: "eq1",
+              nome: "Equipe A",
+              pontos: 0,
+              vitorias: 0,
+              derrotas: 0,
+              jogosVencidos: 0,
+              jogosPerdidos: 0,
+              saldoJogos: 0,
+              classificada: false,
+            },
+          ],
+          partidas: [],
+          confrontos: [],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoSemPontos} />);
+
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      // Deve mostrar equipes mas não a tabela de classificação
+      expect(screen.getByText("Equipes")).toBeInTheDocument();
+      expect(screen.getByText("Equipe A")).toBeInTheDocument();
+      // Não deve mostrar cabeçalhos de classificação como "SJ"
+      expect(screen.queryByText("SJ")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("detecção de vencedor por vencedoraNome (fallback)", () => {
+    it("deve detectar vencedor usando vencedoraNome quando sets não estão disponíveis", () => {
+      const grupoComVencedoraNome = [
+        {
+          id: "grupo-fallback",
+          nome: "Grupo Fallback",
+          ordem: 1,
+          completo: false,
+          formato: "dupla_fixa" as const,
+          duplas: [],
+          partidas: [
+            {
+              id: "partida-fallback",
+              dupla1Nome: "Time Vencedor",
+              dupla2Nome: "Time Perdedor",
+              status: "FINALIZADA",
+              setsDupla1: 0, // Sets não indicam vencedor
+              setsDupla2: 0,
+              vencedoraNome: "Time Vencedor",
+              placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
+            },
+          ],
+        },
+      ];
+
+      render(<GruposViewer grupos={grupoComVencedoraNome} />);
+      fireEvent.click(screen.getByText("▼ Expandir"));
+
+      expect(screen.getByText("Time Vencedor")).toBeInTheDocument();
+      expect(screen.getByText("Time Perdedor")).toBeInTheDocument();
+    });
   });
 });

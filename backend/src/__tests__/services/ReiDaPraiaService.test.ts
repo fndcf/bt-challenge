@@ -1438,7 +1438,7 @@ describe("ReiDaPraiaService", () => {
       expect(estatisticasJogadorService.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(1, "j2", TEST_ETAPA_ID, 1);
     });
 
-    it("deve ordenar por saldo de sets quando games vencidos iguais", async () => {
+    it("deve usar sorteio quando todos os criterios são iguais", async () => {
       const partida = {
         id: "partida-1",
         grupoId: "grupo-1",
@@ -1465,12 +1465,12 @@ describe("ReiDaPraiaService", () => {
       (estatisticasJogadorService.buscarPorJogadoresEtapa as jest.Mock).mockResolvedValue(estatisticasMap);
       (estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement as jest.Mock).mockResolvedValue(undefined);
 
-      // Jogadores com mesmos pontos, vitórias, saldo de games e games vencidos, mas diferentes saldos de sets
+      // Jogadores com mesmos pontos, vitórias, saldo de games e games vencidos (critérios de desempate iguais)
       (estatisticasJogadorService.buscarPorGrupo as jest.Mock).mockResolvedValue([
-        { jogadorId: "j1", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12, saldoSetsGrupo: 1 },
-        { jogadorId: "j2", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12, saldoSetsGrupo: 3 }, // Melhor saldo de sets
-        { jogadorId: "j3", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12, saldoSetsGrupo: 2 },
-        { jogadorId: "j4", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12, saldoSetsGrupo: 0 },
+        { jogadorId: "j1", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12 },
+        { jogadorId: "j2", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12 },
+        { jogadorId: "j3", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12 },
+        { jogadorId: "j4", pontosGrupo: 6, vitoriasGrupo: 2, saldoGamesGrupo: 4, gamesVencidosGrupo: 12 },
       ]);
       mockPartidaReiDaPraiaRepository.contarFinalizadasPorGrupo.mockResolvedValue(3);
 
@@ -1483,8 +1483,9 @@ describe("ReiDaPraiaService", () => {
 
       await service.registrarResultadosEmLote(TEST_ETAPA_ID, TEST_ARENA_ID, resultados);
 
-      // j2 deve ser o primeiro por ter melhor saldo de sets
-      expect(estatisticasJogadorService.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(1, "j2", TEST_ETAPA_ID, 1);
+      // Quando todos os critérios são iguais, usa sorteio
+      // Verificamos apenas que todos os jogadores tiveram posição atualizada
+      expect(estatisticasJogadorService.atualizarPosicaoGrupo).toHaveBeenCalledTimes(4);
     });
   });
 

@@ -300,7 +300,7 @@ const AdminLayout: React.FC = () => {
   const menuItems = [
     { path: "/admin", label: "Dashboard", exact: true },
     { path: "/admin/jogadores", label: "Jogadores" },
-    { path: "/admin/etapas", label: "Challenges" },
+    { path: "/admin/etapas", label: "Etapas" },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -328,7 +328,7 @@ const AdminLayout: React.FC = () => {
         </ToggleButton>
 
         <SidebarHeader>
-          <LogoText $show={sidebarOpen}>Challenge BT</LogoText>
+          <LogoText $show={sidebarOpen}>Dupley</LogoText>
         </SidebarHeader>
 
         <Nav>

@@ -1,32 +1,27 @@
 /**
- * Responsabilidade única: Orquestrar componentes da landing page
+ * Responsabilidade: Orquestrar componentes da página Home (Landing Page)
  */
 
 import React from "react";
 import { useDocumentTitle } from "@/hooks";
-import { HeroSection } from "./components/HeroSection";
-import { FeaturesGrid } from "./components/FeaturesGrid";
-import { CTAButtons } from "./components/CTAButtons";
-import { HowItWorks } from "./components/HowItWorks";
+import { HeroSection } from "../Home/components/HeroSection";
+import { FormatosSection } from "../Home/components/FormatosSection";
+import { GaleriaSection } from "../Home/components/GaleriaSection";
+import { FeaturesSection } from "../Home/components/FeaturesSection";
 import { Footer } from "@/components/layout/Footer";
 import * as S from "./Home.styles";
+import HowItWorks from "../Home/components/HowItWorks";
 
 export const Home: React.FC = () => {
-  useDocumentTitle("Início");
+  useDocumentTitle("Dupley - Gerencie seus torneios");
 
   return (
     <S.Container>
-      {/* Hero Section */}
-      <S.Hero>
-        <HeroSection />
-        <FeaturesGrid />
-        <CTAButtons />
-      </S.Hero>
-
-      {/* How It Works Section */}
+      <HeroSection />
+      <FormatosSection />
+      <GaleriaSection />
+      <FeaturesSection />
       <HowItWorks />
-
-      {/* Footer */}
       <Footer />
     </S.Container>
   );

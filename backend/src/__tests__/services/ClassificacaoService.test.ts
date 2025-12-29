@@ -415,13 +415,12 @@ describe("ClassificacaoService", () => {
       );
     });
 
-    it("deve desempatar por saldo de sets quando confronto direto não existe", async () => {
+    it("deve usar sorteio quando confronto direto não existe e games vencidos iguais", async () => {
       const duplas = [
         createDuplaFixture({
           id: "dupla-1",
           pontos: 6,
           saldoGames: 5,
-          saldoSets: 1, // Menor saldo de sets
           gamesVencidos: 20,
           jogador1Id: "j1",
           jogador2Id: "j2",
@@ -431,7 +430,6 @@ describe("ClassificacaoService", () => {
           id: "dupla-2",
           pontos: 6,
           saldoGames: 5,
-          saldoSets: 3, // Maior saldo de sets - deve ficar primeiro
           gamesVencidos: 20,
           jogador1Id: "j3",
           jogador2Id: "j4",
@@ -447,21 +445,17 @@ describe("ClassificacaoService", () => {
 
       await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
 
-      // Dupla-2 deve ser primeiro por maior saldo de sets
-      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenNthCalledWith(
-        1,
-        "dupla-2",
-        1
-      );
+      // Quando todos os critérios são iguais (pontos, saldoGames, confronto direto, gamesVencidos), usa sorteio
+      // Verificamos apenas que todas as duplas tiveram posição atualizada
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledTimes(2);
     });
 
-    it("deve desempatar por games vencidos quando saldo de sets igual", async () => {
+    it("deve desempatar por games vencidos quando pontos e saldo de games iguais", async () => {
       const duplas = [
         createDuplaFixture({
           id: "dupla-1",
           pontos: 6,
           saldoGames: 5,
-          saldoSets: 2,
           gamesVencidos: 18, // Menos games vencidos
           jogador1Id: "j1",
           jogador2Id: "j2",
@@ -471,7 +465,6 @@ describe("ClassificacaoService", () => {
           id: "dupla-2",
           pontos: 6,
           saldoGames: 5,
-          saldoSets: 2,
           gamesVencidos: 25, // Mais games vencidos - deve ficar primeiro
           jogador1Id: "j3",
           jogador2Id: "j4",

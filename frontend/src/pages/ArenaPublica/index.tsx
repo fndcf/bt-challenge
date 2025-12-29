@@ -55,7 +55,7 @@ const ArenaPublica: React.FC = () => {
         <S.HeaderContent>
           <S.ArenaInfo>
             <h1>{arena.nome}</h1>
-            <p>Torneios e Desafios de Beach Tennis</p>
+            <p>Torneios e Desafios </p>
           </S.ArenaInfo>
           <S.LoginButton to="/login">Área do Admin</S.LoginButton>
         </S.HeaderContent>
@@ -67,8 +67,8 @@ const ArenaPublica: React.FC = () => {
         <S.WelcomeCard>
           <S.WelcomeTitle>Bem-vindo à {arena.nome}!</S.WelcomeTitle>
           <S.WelcomeText>
-            Confira as etapas disponíveis e participe dos nossos torneios de
-            Beach Tennis. Acompanhe os resultados e desafie outros jogadores!
+            Confira as etapas disponíveis e participe dos nossos torneios.
+            Acompanhe os resultados e desafie outros jogadores!
           </S.WelcomeText>
         </S.WelcomeCard>
 

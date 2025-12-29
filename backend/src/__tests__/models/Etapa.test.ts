@@ -64,7 +64,7 @@ describe("CriarEtapaSchema", () => {
       }
     });
 
-    it("deve exigir nivel para REI_DA_PRAIA", () => {
+    it("não deve exigir nivel para REI_DA_PRAIA (permite todos os níveis)", () => {
       const resultado = CriarEtapaSchema.safeParse({
         ...etapaBaseValida,
         formato: FormatoEtapa.REI_DA_PRAIA,
@@ -73,12 +73,7 @@ describe("CriarEtapaSchema", () => {
         maxJogadores: 16,
         jogadoresPorGrupo: 4,
       });
-      expect(resultado.success).toBe(false);
-      if (!resultado.success) {
-        expect(
-          resultado.error.issues.some((i) => i.path.includes("nivel"))
-        ).toBe(true);
-      }
+      expect(resultado.success).toBe(true);
     });
 
     it("não deve exigir nivel para SUPER_X", () => {

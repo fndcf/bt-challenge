@@ -96,14 +96,26 @@ describe("WelcomeBanner", () => {
   });
 
   it("deve renderizar nome da arena quando fornecido", () => {
-    render(<WelcomeBanner userName="Maria" arenaName="Arena Teste" arenaSlug="arena-teste" />);
+    render(
+      <WelcomeBanner
+        userName="Maria"
+        arenaName="Arena Teste"
+        arenaSlug="arena-teste"
+      />
+    );
 
     expect(screen.getByText("Bem-vindo(a), Maria!")).toBeInTheDocument();
     expect(screen.getByText("Arena Teste")).toBeInTheDocument();
   });
 
   it("deve renderizar link correto quando arenaSlug é fornecido", () => {
-    render(<WelcomeBanner userName="Pedro" arenaName="Minha Arena" arenaSlug="minha-arena" />);
+    render(
+      <WelcomeBanner
+        userName="Pedro"
+        arenaName="Minha Arena"
+        arenaSlug="minha-arena"
+      />
+    );
 
     expect(screen.getByText("/minha-arena")).toBeInTheDocument();
   });
@@ -140,7 +152,7 @@ describe("QuickActions", () => {
       screen.getByText("Adicione novos jogadores à arena")
     ).toBeInTheDocument();
 
-    expect(screen.getByText("Criar Challenge")).toBeInTheDocument();
+    expect(screen.getByText("Criar Etapa")).toBeInTheDocument();
     expect(
       screen.getByText("Inicie uma nova etapa de torneio")
     ).toBeInTheDocument();
@@ -155,7 +167,7 @@ describe("QuickActions", () => {
     const cadastrarLink = screen.getByText("Cadastrar Jogador").closest("a");
     expect(cadastrarLink).toHaveAttribute("href", "/admin/jogadores/novo");
 
-    const criarChallengeLink = screen.getByText("Criar Challenge").closest("a");
+    const criarChallengeLink = screen.getByText("Criar Etapa").closest("a");
     expect(criarChallengeLink).toHaveAttribute("href", "/admin/etapas/criar");
 
     const paginaPublicaLink = screen.getByText("Página Pública").closest("a");

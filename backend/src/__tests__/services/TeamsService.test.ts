@@ -1244,6 +1244,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -1266,6 +1267,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -2457,6 +2459,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -2472,6 +2475,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -2479,7 +2483,7 @@ describe("TeamsService", () => {
       expect(result[1].id).toBe("e1");
     });
 
-    it("deve ordenar por nome quando todos criterios iguais", async () => {
+    it("deve usar sorteio quando todos criterios iguais", async () => {
       const equipes = [
         { id: "e1", nome: "Zebra", pontos: 3, saldoJogos: 1, saldoGames: 5, gamesVencidos: 10 },
         { id: "e2", nome: "Aguia", pontos: 3, saldoJogos: 1, saldoGames: 5, gamesVencidos: 10 },
@@ -2487,11 +2491,14 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
-      expect(result[0].id).toBe("e2"); // Aguia vem antes de Zebra
-      expect(result[1].id).toBe("e1");
+      // Quando todos os critérios são iguais, usa sorteio
+      // Apenas verificamos que ambas as equipes estão no resultado
+      expect(result).toHaveLength(2);
+      expect(result.map((e: any) => e.id).sort()).toEqual(["e1", "e2"]);
     });
   });
 

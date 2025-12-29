@@ -25,7 +25,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ arenaSlug }) => {
       color: "#134e5e",
     },
     {
-      label: "Criar Challenge",
+      label: "Criar Etapa",
       description: "Inicie uma nova etapa de torneio",
       link: "/admin/etapas/criar",
       color: "#f093fb",

@@ -12,6 +12,7 @@ import { JogadoresList } from "./components/JogadoresList";
 import { BracketViewer } from "@/components/visualizadores/BracketViewer";
 import { GruposViewer } from "@/components/visualizadores/GruposViewer";
 import * as S from "./EtapaDetalhe.styles";
+import { Footer } from "@/components/layout/Footer";
 
 export const EtapaDetalhe: React.FC = () => {
   const { slug, etapaId } = useParams<{ slug: string; etapaId: string }>();
@@ -89,6 +90,7 @@ export const EtapaDetalhe: React.FC = () => {
           </S.Main>
         </S.Layout>
       </S.Container>
+      <Footer />
     </S.Page>
   );
 };
