@@ -8,7 +8,7 @@
 
 import { Inscricao } from "../models/Inscricao";
 import { Dupla } from "../models/Dupla";
-import { NivelJogador } from "../models/Jogador";
+import { NivelJogador, GeneroJogador } from "../models/Jogador";
 import { TipoFormacaoDupla } from "../models/Etapa";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { duplaRepository } from "../repositories/firebase/DuplaRepository";
@@ -26,7 +26,8 @@ export interface IDuplaService {
     etapaNome: string,
     arenaId: string,
     inscricoes: Inscricao[],
-    tipoFormacao?: TipoFormacaoDupla
+    tipoFormacao?: TipoFormacaoDupla,
+    generoEtapa?: GeneroJogador
   ): Promise<Dupla[]>;
 
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<Dupla[]>;
@@ -49,27 +50,42 @@ export class DuplaService implements IDuplaService {
   /**
    * Formar duplas respeitando cabeças de chave
    * @param tipoFormacao - Se BALANCEADO, pareia Avançado+Iniciante e Intermediários entre si
+   * @param generoEtapa - Se MISTO, forma duplas com 1 masculino + 1 feminino
    */
   async formarDuplasComCabecasDeChave(
     etapaId: string,
     etapaNome: string,
     arenaId: string,
     inscricoes: Inscricao[],
-    tipoFormacao?: TipoFormacaoDupla
+    tipoFormacao?: TipoFormacaoDupla,
+    generoEtapa?: GeneroJogador
   ): Promise<Dupla[]> {
     try {
       let duplas: Dupla[];
 
+      const isMisto = generoEtapa === GeneroJogador.MISTO;
+
       logger.info("Formando duplas", {
         etapaId,
         tipoFormacao,
+        generoEtapa,
+        isMisto,
         tipoFormacaoBalanceado: TipoFormacaoDupla.BALANCEADO,
         isBalanceado: tipoFormacao === TipoFormacaoDupla.BALANCEADO,
         totalInscricoes: inscricoes.length,
       });
 
-      // Se formação balanceada, usar algoritmo específico
-      if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
+      // Se etapa mista, formar duplas 1M+1F respeitando tipoFormacao (balanceado ou mesmo nivel)
+      if (isMisto) {
+        duplas = await this.formarDuplasMisto(
+          etapaId,
+          arenaId,
+          inscricoes,
+          tipoFormacao
+        );
+      }
+      // Se formação balanceada (não misto), usar algoritmo específico
+      else if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
         duplas = await this.formarDuplasBalanceadas(
           etapaId,
           arenaId,
@@ -245,6 +261,223 @@ export class DuplaService implements IDuplaService {
       iniciantesOriginais: inscricoes.filter(
         (i) => i.jogadorNivel === NivelJogador.INICIANTE
       ).length,
+    });
+
+    return this.repository.criarEmLote(duplaDTOs);
+  }
+
+  /**
+   * Formar duplas mistas (1 masculino + 1 feminino)
+   * Combina com lógica de nível quando tipoFormacao é especificado
+   *
+   * Se BALANCEADO: prioriza avançado(M) + iniciante(F) ou avançado(F) + iniciante(M)
+   * Se MESMO_NIVEL ou não especificado: pareia mesmo nível mas gêneros opostos
+   */
+  private async formarDuplasMisto(
+    etapaId: string,
+    arenaId: string,
+    inscricoes: Inscricao[],
+    tipoFormacao?: TipoFormacaoDupla
+  ): Promise<Dupla[]> {
+    if (inscricoes.length % 2 !== 0) {
+      throw new Error("Número ímpar de jogadores");
+    }
+
+    // Separar por gênero
+    const masculinos = inscricoes.filter(
+      (i) => i.jogadorGenero === GeneroJogador.MASCULINO
+    );
+    const femininos = inscricoes.filter(
+      (i) => i.jogadorGenero === GeneroJogador.FEMININO
+    );
+
+    if (masculinos.length !== femininos.length) {
+      throw new Error(
+        `Etapa mista requer mesmo número de masculinos (${masculinos.length}) e femininos (${femininos.length})`
+      );
+    }
+
+    logger.info("Distribuição de gêneros para formação mista", {
+      etapaId,
+      masculinos: masculinos.length,
+      femininos: femininos.length,
+      tipoFormacao,
+    });
+
+    const duplaDTOs: Array<Partial<Dupla>> = [];
+
+    if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
+      // Formação balanceada mista: prioriza níveis opostos + gêneros opostos
+      // Separar por nível E gênero
+      const avancadosM = embaralhar(
+        masculinos.filter((i) => i.jogadorNivel === NivelJogador.AVANCADO)
+      );
+      const avancadosF = embaralhar(
+        femininos.filter((i) => i.jogadorNivel === NivelJogador.AVANCADO)
+      );
+      const intermediariosM = embaralhar(
+        masculinos.filter((i) => i.jogadorNivel === NivelJogador.INTERMEDIARIO)
+      );
+      const intermediariosF = embaralhar(
+        femininos.filter((i) => i.jogadorNivel === NivelJogador.INTERMEDIARIO)
+      );
+      const iniciantesM = embaralhar(
+        masculinos.filter((i) => i.jogadorNivel === NivelJogador.INICIANTE)
+      );
+      const iniciantesF = embaralhar(
+        femininos.filter((i) => i.jogadorNivel === NivelJogador.INICIANTE)
+      );
+
+      logger.info("Distribuição por nível e gênero (balanceado misto)", {
+        etapaId,
+        avancadosM: avancadosM.length,
+        avancadosF: avancadosF.length,
+        intermediariosM: intermediariosM.length,
+        intermediariosF: intermediariosF.length,
+        iniciantesM: iniciantesM.length,
+        iniciantesF: iniciantesF.length,
+      });
+
+      // 1. Avançado(M) + Iniciante(F)
+      while (avancadosM.length > 0 && iniciantesF.length > 0) {
+        const av = avancadosM.pop()!;
+        const ini = iniciantesF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av, ini));
+      }
+
+      // 2. Avançado(F) + Iniciante(M)
+      while (avancadosF.length > 0 && iniciantesM.length > 0) {
+        const av = avancadosF.pop()!;
+        const ini = iniciantesM.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av, ini));
+      }
+
+      // 3. Avançado(M) + Intermediário(F)
+      while (avancadosM.length > 0 && intermediariosF.length > 0) {
+        const av = avancadosM.pop()!;
+        const inter = intermediariosF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av, inter));
+      }
+
+      // 4. Avançado(F) + Intermediário(M)
+      while (avancadosF.length > 0 && intermediariosM.length > 0) {
+        const av = avancadosF.pop()!;
+        const inter = intermediariosM.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av, inter));
+      }
+
+      // 5. Intermediário(M) + Iniciante(F)
+      while (intermediariosM.length > 0 && iniciantesF.length > 0) {
+        const inter = intermediariosM.pop()!;
+        const ini = iniciantesF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, inter, ini));
+      }
+
+      // 6. Intermediário(F) + Iniciante(M)
+      while (intermediariosF.length > 0 && iniciantesM.length > 0) {
+        const inter = intermediariosF.pop()!;
+        const ini = iniciantesM.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, inter, ini));
+      }
+
+      // 7. Intermediário(M) + Intermediário(F)
+      while (intermediariosM.length > 0 && intermediariosF.length > 0) {
+        const interM = intermediariosM.pop()!;
+        const interF = intermediariosF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, interM, interF));
+      }
+
+      // 8. Avançado(M) + Avançado(F) (se sobrar avançados)
+      while (avancadosM.length > 0 && avancadosF.length > 0) {
+        const avM = avancadosM.pop()!;
+        const avF = avancadosF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, avM, avF));
+      }
+
+      // 9. Iniciante(M) + Iniciante(F) (se sobrar iniciantes)
+      while (iniciantesM.length > 0 && iniciantesF.length > 0) {
+        const iniM = iniciantesM.pop()!;
+        const iniF = iniciantesF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, iniM, iniF));
+      }
+
+      // 10. Restantes (caso raro - parear qualquer M com qualquer F)
+      const restantesM = [...avancadosM, ...intermediariosM, ...iniciantesM];
+      const restantesF = [...avancadosF, ...intermediariosF, ...iniciantesF];
+      while (restantesM.length > 0 && restantesF.length > 0) {
+        const m = restantesM.pop()!;
+        const f = restantesF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, m, f));
+      }
+    } else {
+      // Formação mesmo nível mista: pareia mesmo nível + gêneros opostos
+      // Separar por nível E gênero
+      const avancadosM = embaralhar(
+        masculinos.filter((i) => i.jogadorNivel === NivelJogador.AVANCADO)
+      );
+      const avancadosF = embaralhar(
+        femininos.filter((i) => i.jogadorNivel === NivelJogador.AVANCADO)
+      );
+      const intermediariosM = embaralhar(
+        masculinos.filter((i) => i.jogadorNivel === NivelJogador.INTERMEDIARIO)
+      );
+      const intermediariosF = embaralhar(
+        femininos.filter((i) => i.jogadorNivel === NivelJogador.INTERMEDIARIO)
+      );
+      const iniciantesM = embaralhar(
+        masculinos.filter((i) => i.jogadorNivel === NivelJogador.INICIANTE)
+      );
+      const iniciantesF = embaralhar(
+        femininos.filter((i) => i.jogadorNivel === NivelJogador.INICIANTE)
+      );
+
+      logger.info("Distribuição por nível e gênero (mesmo nível misto)", {
+        etapaId,
+        avancadosM: avancadosM.length,
+        avancadosF: avancadosF.length,
+        intermediariosM: intermediariosM.length,
+        intermediariosF: intermediariosF.length,
+        iniciantesM: iniciantesM.length,
+        iniciantesF: iniciantesF.length,
+      });
+
+      // 1. Avançado(M) + Avançado(F)
+      while (avancadosM.length > 0 && avancadosF.length > 0) {
+        const avM = avancadosM.pop()!;
+        const avF = avancadosF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, avM, avF));
+      }
+
+      // 2. Intermediário(M) + Intermediário(F)
+      while (intermediariosM.length > 0 && intermediariosF.length > 0) {
+        const interM = intermediariosM.pop()!;
+        const interF = intermediariosF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, interM, interF));
+      }
+
+      // 3. Iniciante(M) + Iniciante(F)
+      while (iniciantesM.length > 0 && iniciantesF.length > 0) {
+        const iniM = iniciantesM.pop()!;
+        const iniF = iniciantesF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, iniM, iniF));
+      }
+
+      // 4. Restantes - parear níveis adjacentes (M com F)
+      const restantesM = [...avancadosM, ...intermediariosM, ...iniciantesM];
+      const restantesF = [...avancadosF, ...intermediariosF, ...iniciantesF];
+
+      // Parear avançado com intermediário, intermediário com iniciante, etc.
+      while (restantesM.length > 0 && restantesF.length > 0) {
+        const m = restantesM.pop()!;
+        const f = restantesF.pop()!;
+        duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, m, f));
+      }
+    }
+
+    logger.info("Duplas mistas formadas", {
+      etapaId,
+      total: duplaDTOs.length,
+      tipoFormacao,
     });
 
     return this.repository.criarEmLote(duplaDTOs);

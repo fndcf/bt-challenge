@@ -641,8 +641,8 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
     }
   };
 
-  // Verificar se é etapa TEAMS mista (requer 50% de cada gênero)
-  const isTeamsMisto = etapaFormato === FormatoEtapa.TEAMS && isMisto;
+  // Verificar se é etapa mista (TEAMS ou DUPLA_FIXA) - requer 50% de cada gênero
+  const isEtapaMista = (etapaFormato === FormatoEtapa.TEAMS || etapaFormato === FormatoEtapa.DUPLA_FIXA) && isMisto;
   const maxPorGenero = maxJogadores / 2;
 
   // Contar inscritos por gênero (já inscritos + selecionados)
@@ -745,8 +745,8 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         return;
       }
 
-      // Validar proporção de gênero para etapas TEAMS mistas
-      if (isTeamsMisto) {
+      // Validar proporção de gênero para etapas mistas (TEAMS e DUPLA_FIXA)
+      if (isEtapaMista) {
         if (jogador.genero === GeneroJogador.MASCULINO) {
           if (contadorGenero.masculinosTotal >= maxPorGenero) {
             alert(
@@ -875,7 +875,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
             </WarningBox>
           )}
 
-          {isTeamsMisto && (
+          {isEtapaMista && (
             <GeneroCounter>
               <span style={{ fontWeight: 600, color: "#374151" }}>Proporção de gênero (50%/50%):</span>
               <GeneroCounterItem

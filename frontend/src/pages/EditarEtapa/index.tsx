@@ -130,6 +130,8 @@ export const EditarEtapa: React.FC = () => {
             nivel={formData.nivel}
             local={formData.local || ""}
             formato={etapa.formato}
+            tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
+            tipoFormacaoDupla={etapa.tipoFormacaoDupla}
             disabled={chavesGeradas}
             disabledGenero={chavesGeradas || temInscritos}
             disabledNivel={chavesGeradas || temInscritos}

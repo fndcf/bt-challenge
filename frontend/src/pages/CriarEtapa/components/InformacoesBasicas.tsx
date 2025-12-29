@@ -103,12 +103,12 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
           >
             <option value={GeneroJogador.MASCULINO}>Masculino</option>
             <option value={GeneroJogador.FEMININO}>Feminino</option>
-            {isTeams && <option value={GeneroJogador.MISTO}>Misto</option>}
+            {(isTeams || isDuplaFixa) && <option value={GeneroJogador.MISTO}>Misto</option>}
           </S.Select>
           <S.HelperText>
             {helperGenero ||
-              (isTeams
-                ? "Misto: equipes com jogadores de ambos os gêneros"
+              (isTeams || isDuplaFixa
+                ? "Misto: duplas com 1 masculino + 1 feminino"
                 : "Apenas jogadores deste gênero poderão se inscrever")}
           </S.HelperText>
         </S.Field>

@@ -250,8 +250,8 @@ export class EtapaService {
         throw new Error("Jogador já está inscrito nesta etapa");
       }
 
-      // Validar proporção de gênero para etapas TEAMS mistas
-      if (etapa.formato === FormatoEtapa.TEAMS && isMisto) {
+      // Validar proporção de gênero para etapas mistas (TEAMS e DUPLA_FIXA)
+      if ((etapa.formato === FormatoEtapa.TEAMS || etapa.formato === FormatoEtapa.DUPLA_FIXA) && isMisto) {
         const inscricoesAtuais =
           await this.inscricaoRepository.buscarConfirmadas(etapaId, arenaId);
 
@@ -426,8 +426,9 @@ export class EtapaService {
             continue;
           }
 
-          // Validar proporção de gênero para TEAMS misto
-          if (isTeams && isMisto) {
+          // Validar proporção de gênero para etapas mistas (TEAMS e DUPLA_FIXA)
+          const isDuplaFixa = etapa.formato === FormatoEtapa.DUPLA_FIXA;
+          if ((isTeams || isDuplaFixa) && isMisto) {
             const maxPorGenero = etapa.maxJogadores / 2;
 
             if (jogador.genero === GeneroJogador.MASCULINO) {
