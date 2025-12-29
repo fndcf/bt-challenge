@@ -4,13 +4,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos } from "@/types/etapa";
+import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos, TipoFormacaoDupla } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
 
 export interface CriarEtapaFormData extends CriarEtapaDTO {
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  tipoFormacaoDupla?: TipoFormacaoDupla;
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
   tipoFormacaoEquipe?: TipoFormacaoEquipe;
@@ -88,6 +89,7 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   genero: GeneroJogador.MASCULINO,
   formato: FormatoEtapa.DUPLA_FIXA,
   tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES,
+  tipoFormacaoDupla: TipoFormacaoDupla.MESMO_NIVEL,
   varianteSuperX: VarianteSuperX.SUPER_8,
   varianteTeams: VarianteTeams.TEAMS_4,
   tipoFormacaoEquipe: TipoFormacaoEquipe.BALANCEADO,
@@ -632,11 +634,16 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
           delete dadosFormatados.varianteTeams;
           delete dadosFormatados.tipoFormacaoEquipe;
         } else {
-          // Dupla Fixa: remover campos específicos de outros formatos
+          // Dupla Fixa: incluir tipoFormacaoDupla, remover campos de outros formatos
+          dadosFormatados.tipoFormacaoDupla = formData.tipoFormacaoDupla || TipoFormacaoDupla.MESMO_NIVEL;
           delete dadosFormatados.tipoChaveamento;
           delete dadosFormatados.varianteSuperX;
           delete dadosFormatados.varianteTeams;
           delete dadosFormatados.tipoFormacaoEquipe;
+          // Se for balanceado, não precisa de nível obrigatório
+          if (dadosFormatados.tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO && !formData.nivel) {
+            delete dadosFormatados.nivel;
+          }
         }
 
         const etapaService = getEtapaService();

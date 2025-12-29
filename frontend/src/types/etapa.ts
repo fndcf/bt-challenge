@@ -48,6 +48,12 @@ export enum VarianteSuperX {
   SUPER_12 = 12,
 }
 
+// Tipos de formação de duplas (DUPLA_FIXA)
+export enum TipoFormacaoDupla {
+  MESMO_NIVEL = "mesmo_nivel", // Sorteio aleatório entre jogadores do mesmo nível
+  BALANCEADO = "balanceado", // Avançado + Iniciante, Intermediário + Intermediário
+}
+
 export interface Etapa {
   id: string;
   slug?: string;
@@ -58,6 +64,7 @@ export interface Etapa {
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  tipoFormacaoDupla?: TipoFormacaoDupla; // Usado apenas para formato DUPLA_FIXA
   varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
   varianteTeams?: VarianteTeams; // Usado apenas para formato TEAMS
   tipoFormacaoEquipe?: TipoFormacaoEquipe; // Usado apenas para formato TEAMS
@@ -90,6 +97,7 @@ export interface CriarEtapaDTO {
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  tipoFormacaoDupla?: TipoFormacaoDupla; // Usado apenas para formato DUPLA_FIXA
   varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
   varianteTeams?: VarianteTeams; // Usado apenas para formato TEAMS
   tipoFormacaoEquipe?: TipoFormacaoEquipe; // Usado apenas para formato TEAMS
@@ -110,6 +118,7 @@ export interface AtualizarEtapaDTO {
   nivel?: NivelJogador;
   genero?: GeneroJogador;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  tipoFormacaoDupla?: TipoFormacaoDupla;
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
   tipoFormacaoEquipe?: TipoFormacaoEquipe;

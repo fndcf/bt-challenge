@@ -4,7 +4,7 @@
 
 import React from "react";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import { FormatoEtapa, TipoFormacaoEquipe } from "@/types/etapa";
+import { FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/types/etapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface InformacoesBasicasProps {
@@ -15,6 +15,7 @@ export interface InformacoesBasicasProps {
   local: string;
   formato?: FormatoEtapa;
   tipoFormacaoEquipe?: TipoFormacaoEquipe; // Para TEAMS: determinar se nível é obrigatório
+  tipoFormacaoDupla?: TipoFormacaoDupla; // Para DUPLA_FIXA: determinar se nível é obrigatório
   disabled?: boolean;
   disabledGenero?: boolean;
   disabledNivel?: boolean;
@@ -35,6 +36,7 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   local,
   formato,
   tipoFormacaoEquipe,
+  tipoFormacaoDupla,
   disabled = false,
   disabledGenero = false,
   disabledNivel = false,
@@ -48,16 +50,20 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
 }) => {
   const isSuperX = formato === FormatoEtapa.SUPER_X;
   const isTeams = formato === FormatoEtapa.TEAMS;
+  const isDuplaFixa = formato === FormatoEtapa.DUPLA_FIXA;
 
   // TEAMS com "Mesmo Nível" requer seleção de nível
   const teamsMesmoNivel = isTeams && tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL;
 
-  // Nível obrigatório: outros formatos ou TEAMS com "Mesmo Nível"
-  // Nível opcional: Super X ou TEAMS com outros tipos de formação
-  const nivelObrigatorio = !isSuperX && !isTeams || teamsMesmoNivel;
+  // Dupla Fixa com "Balanceado" permite todos os níveis
+  const duplaFixaBalanceado = isDuplaFixa && tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
 
-  // Permitir "Todos os níveis" para Super X e TEAMS (exceto MESMO_NIVEL)
-  const permiteTodosNiveis = isSuperX || (isTeams && !teamsMesmoNivel);
+  // Nível obrigatório: formatos sem opção de balanceamento, ou quando "Mesmo Nível" selecionado
+  // Nível opcional: Super X, TEAMS (exceto Mesmo Nível), Dupla Fixa Balanceada
+  const nivelObrigatorio = (!isSuperX && !isTeams && !duplaFixaBalanceado) || teamsMesmoNivel;
+
+  // Permitir "Todos os níveis" para Super X, TEAMS (exceto MESMO_NIVEL) e Dupla Fixa Balanceada
+  const permiteTodosNiveis = isSuperX || (isTeams && !teamsMesmoNivel) || duplaFixaBalanceado;
 
   return (
     <S.Card>

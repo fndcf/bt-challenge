@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import { FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos } from "@/types/etapa";
+import { FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos, TipoFormacaoDupla } from "@/types/etapa";
 import * as S from "../CriarEtapa.styles";
 
 export interface ConfiguracoesJogadoresProps {
@@ -14,12 +14,14 @@ export interface ConfiguracoesJogadoresProps {
   varianteTeams?: VarianteTeams;
   tipoFormacaoEquipe?: TipoFormacaoEquipe;
   tipoFormacaoJogos?: TipoFormacaoJogos;
+  tipoFormacaoDupla?: TipoFormacaoDupla;
   onMaxJogadoresChange: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
   onVarianteTeamsChange?: (value: VarianteTeams) => void;
   onTipoFormacaoEquipeChange?: (value: TipoFormacaoEquipe) => void;
   onTipoFormacaoJogosChange?: (value: TipoFormacaoJogos) => void;
+  onTipoFormacaoDuplaChange?: (value: TipoFormacaoDupla) => void;
 }
 
 export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
@@ -30,12 +32,14 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   varianteTeams,
   tipoFormacaoEquipe,
   tipoFormacaoJogos,
+  tipoFormacaoDupla,
   onMaxJogadoresChange,
   onContaPontosRankingChange,
   onVarianteSuperXChange,
   onVarianteTeamsChange,
   onTipoFormacaoEquipeChange,
   onTipoFormacaoJogosChange,
+  onTipoFormacaoDuplaChange,
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -96,6 +100,13 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
     }
   };
 
+  const handleTipoFormacaoDuplaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as TipoFormacaoDupla;
+    if (onTipoFormacaoDuplaChange) {
+      onTipoFormacaoDuplaChange(value);
+    }
+  };
+
   const handleVarianteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = parseInt(e.target.value) as VarianteSuperX;
     if (onVarianteSuperXChange) {
@@ -108,12 +119,37 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   // Para Super X e TEAMS, o campo de jogadores é somente leitura (controlado pela variante)
   const isSuperX = formato === FormatoEtapa.SUPER_X;
   const isTeams = formato === FormatoEtapa.TEAMS;
+  const isDuplaFixa = formato === FormatoEtapa.DUPLA_FIXA;
 
   return (
     <S.Card>
       <S.CardTitle>Configurações</S.CardTitle>
 
       <S.FieldsContainer>
+        {/* Seletor de Tipo de Formação - apenas para Dupla Fixa */}
+        {isDuplaFixa && (
+          <S.Field>
+            <S.Label>Tipo de Formação de Duplas *</S.Label>
+            <S.Select
+              required
+              value={tipoFormacaoDupla || TipoFormacaoDupla.MESMO_NIVEL}
+              onChange={handleTipoFormacaoDuplaChange}
+            >
+              <option value={TipoFormacaoDupla.MESMO_NIVEL}>
+                Mesmo Nível (jogadores do mesmo nível)
+              </option>
+              <option value={TipoFormacaoDupla.BALANCEADO}>
+                Balanceado (Avançado + Iniciante, Intermediários entre si)
+              </option>
+            </S.Select>
+            <S.HelperText>
+              {tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO
+                ? "Permite misturar jogadores de diferentes níveis"
+                : "Todas as duplas terão jogadores do mesmo nível"}
+            </S.HelperText>
+          </S.Field>
+        )}
+
         {/* Seletor de Variante - apenas para Super X */}
         {isSuperX && (
           <S.Field>

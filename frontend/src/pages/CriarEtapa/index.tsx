@@ -85,6 +85,7 @@ export const CriarEtapa: React.FC = () => {
           local={formData.local || ""}
           formato={formData.formato}
           tipoFormacaoEquipe={formData.tipoFormacaoEquipe}
+          tipoFormacaoDupla={formData.tipoFormacaoDupla}
           onNomeChange={(nome) => handleChange("nome", nome)}
           onDescricaoChange={(descricao) =>
             handleChange("descricao", descricao)
@@ -116,6 +117,7 @@ export const CriarEtapa: React.FC = () => {
           varianteTeams={formData.varianteTeams}
           tipoFormacaoEquipe={formData.tipoFormacaoEquipe}
           tipoFormacaoJogos={formData.tipoFormacaoJogos}
+          tipoFormacaoDupla={formData.tipoFormacaoDupla}
           onMaxJogadoresChange={(value) => handleChange("maxJogadores", value)}
           onContaPontosRankingChange={(value) =>
             handleChange("contaPontosRanking", value)
@@ -131,6 +133,9 @@ export const CriarEtapa: React.FC = () => {
           }
           onTipoFormacaoJogosChange={(value) =>
             handleChange("tipoFormacaoJogos", value)
+          }
+          onTipoFormacaoDuplaChange={(value) =>
+            handleChange("tipoFormacaoDupla", value)
           }
         />
 

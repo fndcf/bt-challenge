@@ -114,12 +114,13 @@ export class ChaveService implements IChaveService {
       // Buscar inscrições
       const inscricoes = await etapaService.listarInscricoes(etapaId, arenaId);
 
-      // Formar duplas
+      // Formar duplas (passa tipoFormacaoDupla se houver)
       const duplas = await this.duplas.formarDuplasComCabecasDeChave(
         etapaId,
         etapa.nome,
         arenaId,
-        inscricoes
+        inscricoes,
+        etapa.tipoFormacaoDupla
       );
 
       // Criar estatísticas dos jogadores

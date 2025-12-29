@@ -8,6 +8,8 @@
 
 import { Inscricao } from "../models/Inscricao";
 import { Dupla } from "../models/Dupla";
+import { NivelJogador } from "../models/Jogador";
+import { TipoFormacaoDupla } from "../models/Etapa";
 import { IDuplaRepository } from "../repositories/interfaces/IDuplaRepository";
 import { duplaRepository } from "../repositories/firebase/DuplaRepository";
 import cabecaDeChaveService from "./CabecaDeChaveService";
@@ -23,7 +25,8 @@ export interface IDuplaService {
     etapaId: string,
     etapaNome: string,
     arenaId: string,
-    inscricoes: Inscricao[]
+    inscricoes: Inscricao[],
+    tipoFormacao?: TipoFormacaoDupla
   ): Promise<Dupla[]>;
 
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<Dupla[]>;
@@ -45,54 +48,73 @@ export class DuplaService implements IDuplaService {
 
   /**
    * Formar duplas respeitando cabeças de chave
+   * @param tipoFormacao - Se BALANCEADO, pareia Avançado+Iniciante e Intermediários entre si
    */
   async formarDuplasComCabecasDeChave(
     etapaId: string,
     etapaNome: string,
     arenaId: string,
-    inscricoes: Inscricao[]
+    inscricoes: Inscricao[],
+    tipoFormacao?: TipoFormacaoDupla
   ): Promise<Dupla[]> {
     try {
-      // Obter IDs dos cabeças de chave
+      let duplas: Dupla[];
+
+      logger.info("Formando duplas", {
+        etapaId,
+        tipoFormacao,
+        tipoFormacaoBalanceado: TipoFormacaoDupla.BALANCEADO,
+        isBalanceado: tipoFormacao === TipoFormacaoDupla.BALANCEADO,
+        totalInscricoes: inscricoes.length,
+      });
+
+      // Se formação balanceada, usar algoritmo específico
+      if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
+        duplas = await this.formarDuplasBalanceadas(
+          etapaId,
+          arenaId,
+          inscricoes
+        );
+      } else {
+        // Formação padrão: proteger cabeças de chave
+        const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
+          arenaId,
+          etapaId
+        );
+
+        const cabecas: Inscricao[] = [];
+        const normais: Inscricao[] = [];
+
+        for (const inscricao of inscricoes) {
+          if (cabecasIds.includes(inscricao.jogadorId)) {
+            cabecas.push(inscricao);
+          } else {
+            normais.push(inscricao);
+          }
+        }
+
+        const stats = await historicoDuplaService.calcularEstatisticas(
+          arenaId,
+          etapaId
+        );
+
+        if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
+          duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
+        } else {
+          duplas = await this.formarDuplasProtegendoCabecas(
+            etapaId,
+            arenaId,
+            cabecas,
+            normais
+          );
+        }
+      }
+
+      // Registrar histórico de duplas formadas
       const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
         arenaId,
         etapaId
       );
-
-      // Separar cabeças de chave dos jogadores normais
-      const cabecas: Inscricao[] = [];
-      const normais: Inscricao[] = [];
-
-      for (const inscricao of inscricoes) {
-        if (cabecasIds.includes(inscricao.jogadorId)) {
-          cabecas.push(inscricao);
-        } else {
-          normais.push(inscricao);
-        }
-      }
-
-      // Verificar estatísticas de combinações
-      const stats = await historicoDuplaService.calcularEstatisticas(
-        arenaId,
-        etapaId
-      );
-
-      let duplas: Dupla[];
-
-      // Se todas combinações de cabeças já foram feitas, formar livremente
-      if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
-        duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
-      } else {
-        // Formar protegendo cabeças de chave
-        duplas = await this.formarDuplasProtegendoCabecas(
-          etapaId,
-          arenaId,
-          cabecas,
-          normais
-        );
-      }
-
-      // Registrar histórico de duplas formadas
       const historicosDTOs = duplas.map((dupla) => ({
         arenaId,
         etapaId,
@@ -116,6 +138,116 @@ export class DuplaService implements IDuplaService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Formar duplas balanceadas priorizando mescla de níveis diferentes
+   *
+   * Ordem de prioridade:
+   * 1. Avançado + Iniciante
+   * 2. Avançado + Intermediário (se sobrar avançados)
+   * 3. Intermediário + Iniciante (se sobrar iniciantes)
+   * 4. Intermediário + Intermediário
+   * 5. Avançado + Avançado (último caso)
+   * 6. Iniciante + Iniciante (último caso)
+   */
+  private async formarDuplasBalanceadas(
+    etapaId: string,
+    arenaId: string,
+    inscricoes: Inscricao[]
+  ): Promise<Dupla[]> {
+    if (inscricoes.length % 2 !== 0) {
+      throw new Error("Número ímpar de jogadores");
+    }
+
+    // Separar jogadores por nível (arrays mutáveis para ir removendo)
+    const avancados = embaralhar(
+      inscricoes.filter((i) => i.jogadorNivel === NivelJogador.AVANCADO)
+    );
+    const intermediarios = embaralhar(
+      inscricoes.filter((i) => i.jogadorNivel === NivelJogador.INTERMEDIARIO)
+    );
+    const iniciantes = embaralhar(
+      inscricoes.filter((i) => i.jogadorNivel === NivelJogador.INICIANTE)
+    );
+
+    const duplaDTOs: Array<Partial<Dupla>> = [];
+
+    logger.info("Distribuição de níveis para formação balanceada", {
+      etapaId,
+      avancados: avancados.length,
+      intermediarios: intermediarios.length,
+      iniciantes: iniciantes.length,
+    });
+
+    // 1. Avançado + Iniciante (prioridade máxima)
+    let countAvIni = 0;
+    while (avancados.length > 0 && iniciantes.length > 0) {
+      const av = avancados.pop()!;
+      const ini = iniciantes.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av, ini));
+      countAvIni++;
+    }
+    logger.info("Duplas Avançado+Iniciante formadas", { count: countAvIni });
+
+    // 2. Avançado + Intermediário (se sobrar avançados)
+    while (avancados.length > 0 && intermediarios.length > 0) {
+      const av = avancados.pop()!;
+      const inter = intermediarios.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av, inter));
+    }
+
+    // 3. Intermediário + Iniciante (se sobrar iniciantes)
+    while (intermediarios.length > 0 && iniciantes.length > 0) {
+      const inter = intermediarios.pop()!;
+      const ini = iniciantes.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, inter, ini));
+    }
+
+    // 4. Intermediário + Intermediário
+    while (intermediarios.length >= 2) {
+      const inter1 = intermediarios.pop()!;
+      const inter2 = intermediarios.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, inter1, inter2));
+    }
+
+    // 5. Avançado + Avançado (último caso)
+    while (avancados.length >= 2) {
+      const av1 = avancados.pop()!;
+      const av2 = avancados.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, av1, av2));
+    }
+
+    // 6. Iniciante + Iniciante (último caso)
+    while (iniciantes.length >= 2) {
+      const ini1 = iniciantes.pop()!;
+      const ini2 = iniciantes.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, ini1, ini2));
+    }
+
+    // 7. Se sobrar um de cada nível diferente, parear (caso raro)
+    const restantes = [...avancados, ...intermediarios, ...iniciantes];
+    while (restantes.length >= 2) {
+      const j1 = restantes.pop()!;
+      const j2 = restantes.pop()!;
+      duplaDTOs.push(this.montarDuplaDTO(etapaId, arenaId, j1, j2));
+    }
+
+    logger.info("Duplas balanceadas formadas", {
+      etapaId,
+      total: duplaDTOs.length,
+      avancadosOriginais: inscricoes.filter(
+        (i) => i.jogadorNivel === NivelJogador.AVANCADO
+      ).length,
+      intermediariosOriginais: inscricoes.filter(
+        (i) => i.jogadorNivel === NivelJogador.INTERMEDIARIO
+      ).length,
+      iniciantesOriginais: inscricoes.filter(
+        (i) => i.jogadorNivel === NivelJogador.INICIANTE
+      ).length,
+    });
+
+    return this.repository.criarEmLote(duplaDTOs);
   }
 
   /**

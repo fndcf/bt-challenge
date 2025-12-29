@@ -104,12 +104,11 @@ export class EtapaService {
         ? Math.ceil(totalDuplas / dadosValidados.jogadoresPorGrupo)
         : 1;
 
-      // Log para debug
-      logger.info("Criando etapa - contaPontosRanking", {
-        valorRecebido: data.contaPontosRanking,
-        valorValidado: dadosValidados.contaPontosRanking,
-        tipoRecebido: typeof data.contaPontosRanking,
-        tipoValidado: typeof dadosValidados.contaPontosRanking,
+      // Log para debug - tipoFormacaoDupla
+      logger.info("DEBUG tipoFormacaoDupla", {
+        recebido: data.tipoFormacaoDupla,
+        validado: dadosValidados.tipoFormacaoDupla,
+        formato: dadosValidados.formato,
       });
 
       // Usar repository para criar
@@ -122,6 +121,7 @@ export class EtapaService {
         genero: dadosValidados.genero,
         formato: dadosValidados.formato,
         tipoChaveamento: dadosValidados.tipoChaveamento,
+        tipoFormacaoDupla: dadosValidados.tipoFormacaoDupla, // Para DUPLA_FIXA balanceada
         varianteSuperX: dadosValidados.varianteSuperX,
         // Campos TEAMS
         varianteTeams: dadosValidados.varianteTeams,

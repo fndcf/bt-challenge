@@ -66,6 +66,12 @@ export enum TipoChaveamentoReiDaPraia {
   SORTEIO_ALEATORIO = "sorteio_aleatorio",
 }
 
+// Tipos de formação de duplas (DUPLA_FIXA)
+export enum TipoFormacaoDupla {
+  MESMO_NIVEL = "mesmo_nivel", // Sorteio aleatório entre jogadores do mesmo nível
+  BALANCEADO = "balanceado", // Avançado + Iniciante, Intermediário + Intermediário
+}
+
 /**
  * Interface da Etapa
  */
@@ -80,6 +86,7 @@ export interface Etapa {
   genero: GeneroJogador;
   formato: FormatoEtapa;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
+  tipoFormacaoDupla?: TipoFormacaoDupla; // Usado apenas para formato DUPLA_FIXA
   varianteSuperX?: VarianteSuperX; // Usado apenas para formato SUPER_X
 
   // Campos específicos para formato TEAMS
@@ -136,6 +143,7 @@ const CriarEtapaSchemaBase = z.object({
   }),
   formato: z.nativeEnum(FormatoEtapa).default(FormatoEtapa.DUPLA_FIXA),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),
+  tipoFormacaoDupla: z.nativeEnum(TipoFormacaoDupla).optional(), // Apenas para DUPLA_FIXA
   varianteSuperX: z.nativeEnum(VarianteSuperX).optional(), // Apenas para SUPER_X
   // Campos específicos para TEAMS
   varianteTeams: z.nativeEnum(VarianteTeams).optional(), // Apenas para TEAMS
@@ -157,10 +165,16 @@ const CriarEtapaSchemaBase = z.object({
 // Criar Etapa - Com validações condicionais
 export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
   (data, ctx) => {
-    // Validação: nivel é obrigatório para DUPLA_FIXA e REI_DA_PRAIA (não para SUPER_X e TEAMS)
+    // Validação: nivel é obrigatório para DUPLA_FIXA (se não for balanceado) e REI_DA_PRAIA
+    // Não obrigatório para: SUPER_X, TEAMS, e DUPLA_FIXA com formação balanceada
+    const isDuplaFixaBalanceada =
+      data.formato === FormatoEtapa.DUPLA_FIXA &&
+      data.tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
+
     if (
       data.formato !== FormatoEtapa.SUPER_X &&
       data.formato !== FormatoEtapa.TEAMS &&
+      !isDuplaFixaBalanceada &&
       !data.nivel
     ) {
       ctx.addIssue({
@@ -317,6 +331,7 @@ export const AtualizarEtapaSchema = z.object({
   genero: z.nativeEnum(GeneroJogador).optional(),
   formato: z.nativeEnum(FormatoEtapa).optional(),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),
+  tipoFormacaoDupla: z.nativeEnum(TipoFormacaoDupla).optional(),
   varianteSuperX: z.nativeEnum(VarianteSuperX).optional(),
   // Campos TEAMS
   varianteTeams: z.nativeEnum(VarianteTeams).optional(),

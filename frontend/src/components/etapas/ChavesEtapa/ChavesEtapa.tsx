@@ -5,6 +5,7 @@ import { Dupla, Grupo, Partida } from "@/types/chave";
 import { FaseEliminatoria } from "../FaseEliminatoria";
 import { LoadingOverlay } from "@/components/ui";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
+import { getNivelLabel } from "@/utils/formatters";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -644,7 +645,9 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                                   {dupla.jogador1Nome} & {dupla.jogador2Nome}
                                 </JogadoresNome>
                                 <NivelText>
-                                  Nível: {dupla.jogador1Nivel}
+                                  {dupla.jogador1Nivel !== dupla.jogador2Nivel
+                                    ? `Nível: ${getNivelLabel(dupla.jogador1Nivel).toLowerCase()} + ${getNivelLabel(dupla.jogador2Nivel).toLowerCase()}`
+                                    : `Nível: ${getNivelLabel(dupla.jogador1Nivel).toLowerCase()}`}
                                 </NivelText>
                               </DuplaInfo>
 
