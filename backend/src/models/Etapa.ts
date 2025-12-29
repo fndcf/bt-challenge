@@ -165,21 +165,28 @@ const CriarEtapaSchemaBase = z.object({
 // Criar Etapa - Com validações condicionais
 export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
   (data, ctx) => {
-    // Validação: nivel é obrigatório para DUPLA_FIXA (se não for balanceado) e REI_DA_PRAIA
-    // Não obrigatório para: SUPER_X, TEAMS, e DUPLA_FIXA com formação balanceada
+    // Validação: nivel é obrigatório APENAS para:
+    // - DUPLA_FIXA (se não for balanceado e não for misto)
+    // - TEAMS com formação MESMO_NIVEL
+    // Nível OPCIONAL para: SUPER_X, REI_DA_PRAIA, TEAMS (exceto MESMO_NIVEL), DUPLA_FIXA balanceada/mista
     const isDuplaFixaBalanceada =
       data.formato === FormatoEtapa.DUPLA_FIXA &&
       data.tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
 
+    const isDuplaFixaMista =
+      data.formato === FormatoEtapa.DUPLA_FIXA &&
+      data.genero === GeneroJogador.MISTO;
+
+    // Para DUPLA_FIXA (não balanceada e não mista), nível é obrigatório
     if (
-      data.formato !== FormatoEtapa.SUPER_X &&
-      data.formato !== FormatoEtapa.TEAMS &&
+      data.formato === FormatoEtapa.DUPLA_FIXA &&
       !isDuplaFixaBalanceada &&
+      !isDuplaFixaMista &&
       !data.nivel
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Nível é obrigatório para este formato",
+        message: "Nível é obrigatório para Dupla Fixa (exceto Balanceado ou Misto)",
         path: ["nivel"],
       });
     }

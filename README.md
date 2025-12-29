@@ -23,6 +23,12 @@ Formato tradicional onde duplas são formadas via sorteio e permanecem juntas du
 
 - Fase de grupos(ou grupo único) + Fase eliminatória
 - Configurável: número de duplas por grupo e classificados por grupo
+- **Tipos de formação de duplas:**
+  - **Mesmo Nível**: Sorteio entre jogadores do mesmo nível selecionado
+  - **Balanceado**: Pareamento avançado + iniciante (permite todos os níveis)
+- **Suporte a Misto**: Etapas mistas com duplas 1 masculino + 1 feminino
+  - Inscrições validam 50% de cada gênero
+  - Formação de duplas respeita gênero + nível (balanceado ou mesmo nível)
 
 **Critérios de desempate:** Pontos → Saldo Games → Confronto direto\* → Games vencidos → Sorteio
 
@@ -33,6 +39,7 @@ Jogadores individuais formam duplas rotativas a cada partida dentro de grupos de
 - Cada jogador joga 3 partidas com parceiros diferentes
 - Fase de grupos + Fase eliminatória com duplas fixas formadas pelos classificados
 - Opções de chaveamento: Melhores com Melhores, Pareamento por Ranking, Sorteio Aleatório
+- **Suporte a "Todos os níveis"**: Permite jogadores de qualquer nível na mesma etapa
 
 **Critérios de desempate:** Pontos → Vitórias → Saldo Games → Games vencidos → Sorteio
 
