@@ -229,7 +229,7 @@ export const GaleriaSection: React.FC = () => {
     <S.GaleriaSection>
       <S.GaleriaSectionTitle>Veja o Sistema em Ação</S.GaleriaSectionTitle>
       <S.GaleriaSectionSubtitle>
-        Conheca as principais telas e funcionalidades do Dupley
+        Conheça as principais telas e funcionalidades do Dupley
       </S.GaleriaSectionSubtitle>
 
       <S.GaleriaTabs>
