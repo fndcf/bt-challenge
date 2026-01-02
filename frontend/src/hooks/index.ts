@@ -31,3 +31,9 @@ export { useClickOutside } from "./useClickOutside";
 export { useMediaQuery } from "./useMediaQuery";
 export { useClipboard } from "./useClipboard";
 export { useDocumentTitle } from "./useDocumentTitle";
+
+// Autenticação
+export {
+  useTokenRefresh,
+  refreshTokenManually,
+} from "./useTokenRefresh";

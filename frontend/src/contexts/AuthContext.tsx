@@ -1,5 +1,6 @@
 /**
  * Responsabilidade única: Gerenciar estado de autenticação
+ * Inclui renovação automática de token para evitar expiração
  */
 
 import React, {
@@ -7,6 +8,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import {
@@ -21,6 +23,7 @@ import { auth } from "../config/firebase";
 import { User, AuthState } from "../types";
 import { getErrorMessage } from "../utils/errorHandler";
 import logger from "../utils/logger";
+import { useTokenRefresh } from "../hooks/useTokenRefresh";
 
 interface AuthContextType extends AuthState {
   login: (
@@ -31,6 +34,7 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  refreshToken: () => Promise<string | null>;
   isAuthenticated: boolean;
 }
 
@@ -59,6 +63,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Callback quando o refresh de token falha
+   */
+  const handleRefreshError = useCallback((error: Error) => {
+    logger.error("Token refresh failed, logging out", { error: error.message });
+    setUser(null);
+    localStorage.removeItem("authToken");
+  }, []);
+
+  /**
+   * Hook de renovação automática de token
+   * Renova a cada 50 minutos e quando a janela ganha foco
+   */
+  const { refreshToken } = useTokenRefresh({
+    enabled: !!user, // Só ativa quando há usuário logado
+    onRefreshError: handleRefreshError,
+  });
 
   /**
    * Login com email e senha
@@ -240,6 +262,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     register,
     resetPassword,
+    refreshToken,
     isAuthenticated: !!user,
   };
 

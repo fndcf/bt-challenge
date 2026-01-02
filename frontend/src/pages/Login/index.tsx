@@ -2,14 +2,22 @@
  * Responsabilidade única: Orquestrar componentes da página de login
  */
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useDocumentTitle } from "@/hooks";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLogin } from "./hooks/useLogin";
 import { LoginForm } from "./components/LoginForm";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import * as S from "./Login.styles";
+
+// Timeout máximo para verificação de sessão (3 segundos)
+const AUTH_CHECK_TIMEOUT = 3000;
 
 export const Login: React.FC = () => {
   useDocumentTitle("Login");
+
+  const { loading: authLoading, isAuthenticated } = useAuth();
+  const [authCheckTimedOut, setAuthCheckTimedOut] = useState(false);
 
   const {
     values,
@@ -24,6 +32,39 @@ export const Login: React.FC = () => {
     setRememberMe,
     toggleShowPassword,
   } = useLogin();
+
+  // Timeout para evitar loading infinito
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authLoading) {
+        setAuthCheckTimedOut(true);
+      }
+    }, AUTH_CHECK_TIMEOUT);
+
+    return () => clearTimeout(timer);
+  }, [authLoading]);
+
+  // Reset timeout quando loading terminar
+  useEffect(() => {
+    if (!authLoading) {
+      setAuthCheckTimedOut(false);
+    }
+  }, [authLoading]);
+
+  // Mostra loading apenas se:
+  // 1. Está verificando auth E não deu timeout
+  // 2. OU já está autenticado (vai redirecionar)
+  const shouldShowLoading = (authLoading && !authCheckTimedOut) || (isAuthenticated && !authCheckTimedOut);
+
+  if (shouldShowLoading) {
+    return (
+      <S.PageContainer>
+        <S.LoginContainer>
+          <LoadingSpinner message="Verificando sessão..." />
+        </S.LoginContainer>
+      </S.PageContainer>
+    );
+  }
 
   return (
     <S.PageContainer>
