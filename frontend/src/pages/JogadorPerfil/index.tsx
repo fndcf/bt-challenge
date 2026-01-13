@@ -29,6 +29,8 @@ export const JogadorPerfil: React.FC = () => {
     totalEtapas,
     totalVitorias,
     totalDerrotas,
+    totalGamesVencidos,
+    totalGamesPerdidos,
     posicaoAtual,
     getInitials,
   } = useJogadorPerfil(slug, jogadorId);
@@ -96,6 +98,8 @@ export const JogadorPerfil: React.FC = () => {
             totalVitorias={totalVitorias}
             totalDerrotas={totalDerrotas}
             totalEtapas={totalEtapas}
+            totalGamesVencidos={totalGamesVencidos}
+            totalGamesPerdidos={totalGamesPerdidos}
           />
 
           {/* Histórico de Participações */}

@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDocumentTitle } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLogin } from "./hooks/useLogin";
@@ -16,6 +17,7 @@ const AUTH_CHECK_TIMEOUT = 3000;
 export const Login: React.FC = () => {
   useDocumentTitle("Login");
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const { loading: authLoading, isAuthenticated } = useAuth();
   const [authCheckTimedOut, setAuthCheckTimedOut] = useState(false);
 
@@ -32,6 +34,16 @@ export const Login: React.FC = () => {
     setRememberMe,
     toggleShowPassword,
   } = useLogin();
+
+  // Verificar se há mensagem de erro na URL (ex: após logout forçado)
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setErrorMessage(decodeURIComponent(errorParam));
+      // Limpar o parâmetro da URL para não mostrar novamente em refresh
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setErrorMessage, setSearchParams]);
 
   // Timeout para evitar loading infinito
   useEffect(() => {

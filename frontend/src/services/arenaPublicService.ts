@@ -44,6 +44,8 @@ export interface JogadorPublico {
   grupoNome?: string;
   vitorias?: number;
   derrotas?: number;
+  gamesVencidos?: number;
+  gamesPerdidos?: number;
   saldoGames?: number;
   classificado?: boolean;
   etapasParticipadas?: number;

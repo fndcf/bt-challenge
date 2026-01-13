@@ -27,6 +27,8 @@ export interface UseJogadorPerfilReturn {
   totalEtapas: number;
   totalVitorias: number;
   totalDerrotas: number;
+  totalGamesVencidos: number;
+  totalGamesPerdidos: number;
   posicaoAtual: number;
 
   // Funções utilitárias
@@ -94,6 +96,8 @@ export const useJogadorPerfil = (
   const totalEtapas = estatisticas?.etapasParticipadas || 0;
   const totalVitorias = estatisticas?.vitorias || 0;
   const totalDerrotas = estatisticas?.derrotas || 0;
+  const totalGamesVencidos = estatisticas?.gamesVencidos || 0;
+  const totalGamesPerdidos = estatisticas?.gamesPerdidos || 0;
   const posicaoAtual = estatisticas?.posicaoRanking || 0;
 
   /**
@@ -178,6 +182,8 @@ export const useJogadorPerfil = (
     totalEtapas,
     totalVitorias,
     totalDerrotas,
+    totalGamesVencidos,
+    totalGamesPerdidos,
     posicaoAtual,
 
     // Funções utilitárias

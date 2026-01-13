@@ -50,6 +50,8 @@ describe("useJogadorPerfil", () => {
     derrotas: 5,
     etapasParticipadas: 10,
     posicaoRanking: 3,
+    gamesVencidos: 120,
+    gamesPerdidos: 80,
   };
 
   const mockHistorico = [
@@ -219,6 +221,8 @@ describe("useJogadorPerfil", () => {
       expect(result.current.totalDerrotas).toBe(5);
       expect(result.current.totalEtapas).toBe(10);
       expect(result.current.posicaoAtual).toBe(3);
+      expect(result.current.totalGamesVencidos).toBe(120);
+      expect(result.current.totalGamesPerdidos).toBe(80);
     });
 
     it("deve processar nome do jogador", async () => {
@@ -272,6 +276,8 @@ describe("useJogadorPerfil", () => {
       expect(result.current.totalDerrotas).toBe(0);
       expect(result.current.totalEtapas).toBe(0);
       expect(result.current.posicaoAtual).toBe(0);
+      expect(result.current.totalGamesVencidos).toBe(0);
+      expect(result.current.totalGamesPerdidos).toBe(0);
     });
 
     it("deve usar jogadorNome quando nome não existe", async () => {
@@ -423,6 +429,8 @@ describe("useJogadorPerfil", () => {
       expect(result.current.totalEtapas).toBeDefined();
       expect(result.current.totalVitorias).toBeDefined();
       expect(result.current.totalDerrotas).toBeDefined();
+      expect(result.current.totalGamesVencidos).toBeDefined();
+      expect(result.current.totalGamesPerdidos).toBeDefined();
       expect(result.current.posicaoAtual).toBeDefined();
 
       // Funções

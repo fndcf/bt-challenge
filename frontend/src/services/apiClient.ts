@@ -83,6 +83,20 @@ class ApiClient {
           return this.handleError(error);
         }
 
+        // Verificar se é erro de usuário não cadastrado (não adianta fazer refresh)
+        const errorMessage = error.response?.data?.error || "";
+        const isUserNotRegistered =
+          errorMessage.includes("não cadastrado") ||
+          errorMessage.includes("não encontrado") ||
+          errorMessage.includes("Usuário não encontrado");
+
+        if (isUserNotRegistered) {
+          logger.warn("User not registered in system, forcing logout");
+          const message = "Sua conta não está mais ativa. Por favor, registre-se novamente.";
+          await this.forceLogout(message);
+          return Promise.reject(new Error(message));
+        }
+
         // Marcar que já estamos tentando retry
         originalRequest._retry = true;
 
@@ -149,6 +163,30 @@ class ApiClient {
     // Evitar redirecionamento se já estiver na página de login
     if (!window.location.pathname.includes("/login")) {
       window.location.href = "/login";
+    }
+  }
+
+  /**
+   * Força logout completo (Firebase + localStorage) e redireciona
+   * Usado quando o usuário existe no Firebase Auth mas não no Firestore
+   */
+  private async forceLogout(errorMessage?: string) {
+    try {
+      // Importar dinamicamente para evitar dependência circular
+      const { auth } = await import("../config/firebase");
+      const { signOut } = await import("firebase/auth");
+      await signOut(auth);
+    } catch (e) {
+      // Ignora erro se não conseguir fazer signOut
+      logger.warn("Could not sign out from Firebase", { error: e });
+    }
+    localStorage.removeItem("authToken");
+    // Redirecionar para login com mensagem de erro
+    if (!window.location.pathname.includes("/login")) {
+      const errorParam = errorMessage
+        ? `?error=${encodeURIComponent(errorMessage)}`
+        : "";
+      window.location.href = `/login${errorParam}`;
     }
   }
 

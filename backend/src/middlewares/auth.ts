@@ -44,7 +44,11 @@ export const requireAuth = async (
       .get();
 
     if (!adminDoc.exists) {
-      throw new UnauthorizedError("Usuário não encontrado");
+      // Erro específico: usuário existe no Auth mas não no Firestore
+      // Isso pode acontecer se o admin foi deletado manualmente do Firestore
+      const error = new UnauthorizedError("Usuário não cadastrado no sistema");
+      (error as any).code = "auth/user-not-registered";
+      throw error;
     }
 
     const adminData = adminDoc.data();

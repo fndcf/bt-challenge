@@ -594,6 +594,22 @@ const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
                       </StatItem>
                     )}
 
+                    {(jogador.gamesVencidos !== undefined ||
+                      jogador.gamesPerdidos !== undefined) && (
+                      <StatItem>
+                        <StatValue>
+                          <span style={{ color: "#16a34a" }}>
+                            {jogador.gamesVencidos ?? 0}
+                          </span>
+                          <span style={{ color: "#6b7280" }}>/</span>
+                          <span style={{ color: "#dc2626" }}>
+                            {jogador.gamesPerdidos ?? 0}
+                          </span>
+                        </StatValue>
+                        <StatLabel>Games</StatLabel>
+                      </StatItem>
+                    )}
+
                     {(jogador.pontos !== undefined ||
                       jogador.ranking !== undefined) && (
                       <StatItem>

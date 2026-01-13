@@ -67,11 +67,18 @@ jest.mock("@/pages/JogadorPerfil/components/ProfileHeader", () => ({
 }));
 
 jest.mock("@/pages/JogadorPerfil/components/StatsGrid", () => ({
-  StatsGrid: ({ totalVitorias, totalDerrotas, totalEtapas }: any) => (
+  StatsGrid: ({
+    totalVitorias,
+    totalDerrotas,
+    totalEtapas,
+    totalGamesVencidos,
+    totalGamesPerdidos,
+  }: any) => (
     <div data-testid="stats-grid">
       <span>Vitórias: {totalVitorias}</span>
       <span>Derrotas: {totalDerrotas}</span>
       <span>Etapas: {totalEtapas}</span>
+      <span>Games: {totalGamesVencidos}/{totalGamesPerdidos}</span>
     </div>
   ),
 }));
@@ -135,6 +142,8 @@ describe("JogadorPerfil - Renderização", () => {
     totalEtapas: 10,
     totalVitorias: 25,
     totalDerrotas: 5,
+    totalGamesVencidos: 120,
+    totalGamesPerdidos: 80,
     posicaoAtual: 3,
     getInitials: (name: string) => {
       const parts = name.split(" ");
@@ -267,6 +276,7 @@ describe("JogadorPerfil - Renderização", () => {
       expect(screen.getByTestId("stats-grid")).toHaveTextContent("Vitórias: 25");
       expect(screen.getByTestId("stats-grid")).toHaveTextContent("Derrotas: 5");
       expect(screen.getByTestId("stats-grid")).toHaveTextContent("Etapas: 10");
+      expect(screen.getByTestId("stats-grid")).toHaveTextContent("Games: 120/80");
     });
 
     it("deve exibir nível e gênero no ProfileHeader", () => {

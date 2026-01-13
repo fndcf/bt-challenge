@@ -40,6 +40,19 @@ export const HistoricoCard: React.FC<HistoricoCardProps> = ({
                 {item.derrotas !== undefined && (
                   <div>Derrotas: {item.derrotas}</div>
                 )}
+                {(item.gamesVencidos !== undefined ||
+                  item.gamesPerdidos !== undefined) && (
+                  <div>
+                    Games:{" "}
+                    <span style={{ color: "#16a34a", fontWeight: 600 }}>
+                      {item.gamesVencidos ?? 0}
+                    </span>
+                    <span style={{ color: "#6b7280" }}>/</span>
+                    <span style={{ color: "#dc2626", fontWeight: 600 }}>
+                      {item.gamesPerdidos ?? 0}
+                    </span>
+                  </div>
+                )}
                 {item.pontos !== undefined && <div>Pontos: {item.pontos}</div>}
               </S.HistoricoDetalhes>
             </S.HistoricoItem>

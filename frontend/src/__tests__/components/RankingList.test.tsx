@@ -252,17 +252,17 @@ describe("RankingList", () => {
   });
 
   describe("paginação", () => {
-    it("deve navegar para próxima página", async () => {
-      const manyJogadores = Array.from({ length: 25 }, (_, i) => ({
-        id: `jogador-${i}`,
-        jogadorId: `jog-${i}`,
-        jogadorNome: `Jogador ${i + 1}`,
-        pontos: 150 - i,
-        vitorias: 10,
-        derrotas: 5,
-        etapasParticipadas: 3,
-      }));
+    const manyJogadores = Array.from({ length: 25 }, (_, i) => ({
+      id: `jogador-${i}`,
+      jogadorId: `jog-${i}`,
+      jogadorNome: `Jogador ${i + 1}`,
+      pontos: 150 - i,
+      vitorias: 10,
+      derrotas: 5,
+      etapasParticipadas: 3,
+    }));
 
+    it("deve navegar para próxima página", async () => {
       mockBuscarRanking.mockResolvedValue(manyJogadores);
 
       renderWithRouter(
@@ -273,30 +273,27 @@ describe("RankingList", () => {
         />
       );
 
-      await waitFor(() => {
-        expect(screen.getAllByText("Próxima →").length).toBeGreaterThan(0);
-      });
+      // Aguardar carregamento completo
+      await waitFor(
+        () => {
+          expect(screen.getAllByText("Próxima →").length).toBeGreaterThan(0);
+        },
+        { timeout: 5000 }
+      );
 
       // Clicar em próxima
       const proximaButtons = screen.getAllByText("Próxima →");
       fireEvent.click(proximaButtons[0]);
 
-      await waitFor(() => {
-        expect(screen.getAllByText(/Página 2/).length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(screen.getAllByText(/Página 2/).length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("deve navegar para página anterior", async () => {
-      const manyJogadores = Array.from({ length: 25 }, (_, i) => ({
-        id: `jogador-${i}`,
-        jogadorId: `jog-${i}`,
-        jogadorNome: `Jogador ${i + 1}`,
-        pontos: 150 - i,
-        vitorias: 10,
-        derrotas: 5,
-        etapasParticipadas: 3,
-      }));
-
       mockBuscarRanking.mockResolvedValue(manyJogadores);
 
       renderWithRouter(
@@ -307,38 +304,38 @@ describe("RankingList", () => {
         />
       );
 
-      await waitFor(() => {
-        expect(screen.getAllByText("Próxima →").length).toBeGreaterThan(0);
-      });
+      // Aguardar carregamento completo
+      await waitFor(
+        () => {
+          expect(screen.getAllByText("Próxima →").length).toBeGreaterThan(0);
+        },
+        { timeout: 5000 }
+      );
 
       // Ir para página 2
       const proximaButtons = screen.getAllByText("Próxima →");
       fireEvent.click(proximaButtons[0]);
 
-      await waitFor(() => {
-        expect(screen.getAllByText(/Página 2/).length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(screen.getAllByText(/Página 2/).length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       // Voltar para página 1
       const anteriorButtons = screen.getAllByText("← Anterior");
       fireEvent.click(anteriorButtons[0]);
 
-      await waitFor(() => {
-        expect(screen.getAllByText(/Página 1/).length).toBeGreaterThan(0);
-      });
+      await waitFor(
+        () => {
+          expect(screen.getAllByText(/Página 1/).length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("deve desabilitar anterior na primeira página", async () => {
-      const manyJogadores = Array.from({ length: 25 }, (_, i) => ({
-        id: `jogador-${i}`,
-        jogadorId: `jog-${i}`,
-        jogadorNome: `Jogador ${i + 1}`,
-        pontos: 150 - i,
-        vitorias: 10,
-        derrotas: 5,
-        etapasParticipadas: 3,
-      }));
-
       mockBuscarRanking.mockResolvedValue(manyJogadores);
 
       renderWithRouter(
@@ -349,10 +346,13 @@ describe("RankingList", () => {
         />
       );
 
-      await waitFor(() => {
-        const anteriorButtons = screen.getAllByText("← Anterior");
-        expect(anteriorButtons[0]).toBeDisabled();
-      });
+      await waitFor(
+        () => {
+          const anteriorButtons = screen.getAllByText("← Anterior");
+          expect(anteriorButtons[0]).toBeDisabled();
+        },
+        { timeout: 5000 }
+      );
     });
   });
 
