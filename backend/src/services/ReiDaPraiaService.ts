@@ -1336,6 +1336,14 @@ export class ReiDaPraiaService {
 
   /**
    * Gerar confrontos eliminatórios via repository
+   *
+   * Usa sistema de seeding estilo torneio profissional:
+   * - Seed 1 vs Seed N (última)
+   * - Seed 2 vs Seed N-1
+   * - etc.
+   *
+   * E distribui em lados opostos da chave para que
+   * as melhores duplas só se encontrem na final.
    */
   private async gerarConfrontosEliminatorios(
     etapaId: string,
@@ -1345,22 +1353,7 @@ export class ReiDaPraiaService {
     const totalDuplas = duplas.length;
     const proximaPotencia = Math.pow(2, Math.ceil(Math.log2(totalDuplas)));
     const byes = proximaPotencia - totalDuplas;
-    const confrontosReais = (totalDuplas - byes) / 2;
-
-    /**
-     * NOVA LÓGICA DE DISTRIBUIÇÃO INTELIGENTE
-     *
-     * Objetivo: Evitar que duplas fortes (primeiras do array) se enfrentem antes da final
-     *
-     * Estratégia:
-     * - Posições ímpares (Q1, Q3): Duplas FORTES (com BYE se houver)
-     * - Posições pares (Q2, Q4): Jogos entre duplas FRACAS/MÉDIAS
-     *
-     * Isso garante que quando usar pareamento sequencial (1-2, 3-4):
-     * - S1: Forte (Q1) vs Fraca (Q2)
-     * - S2: Forte (Q3) vs Média (Q4)
-     * - FINAL: Forte vs Forte
-     */
+    const totalConfrontos = proximaPotencia / 2;
 
     // FASE 1: Coletar dados de todos os confrontos a criar
     type ConfrontoParaCriar = {
@@ -1373,60 +1366,64 @@ export class ReiDaPraiaService {
     };
 
     const confrontosParaCriar: ConfrontoParaCriar[] = [];
-    let ordem = 1;
-    let byeIndex = 0;
-    let jogoIndex = 0;
 
-    const totalConfrontos = proximaPotencia / 2;
+    /**
+     * LÓGICA DE SEEDING PROFISSIONAL
+     *
+     * Para 4 duplas (quartas direto para semi):
+     * - Q1: Seed 1 vs Seed 4 (melhor vs pior)
+     * - Q2: Seed 3 vs Seed 2 (3º vs 2º)
+     * Resultado: Se seeds vencem, Semi será 1 vs 3 e 4 vs 2
+     * E Final será 1 vs 2
+     *
+     * Para 8 duplas:
+     * Lado A: Seed 1 vs 8, Seed 4 vs 5
+     * Lado B: Seed 2 vs 7, Seed 3 vs 6
+     *
+     * Generalizado: usar bracket positions padrão de torneio
+     */
+
+    // Gerar posições de bracket padrão (seeding de torneio)
+    const bracketPositions = this.gerarBracketPositions(proximaPotencia);
+
+    logger.info("DEBUG: Bracket positions geradas", {
+      proximaPotencia,
+      totalDuplas,
+      bracketPositions: JSON.stringify(bracketPositions),
+    });
 
     for (let i = 0; i < totalConfrontos; i++) {
-      const posicaoImpar = i % 2 === 0; // Q1, Q3, Q5, Q7 (0, 2, 4, 6)
+      const [pos1, pos2] = bracketPositions[i];
+      const seed1Index = pos1 - 1; // posições são 1-indexed
+      const seed2Index = pos2 - 1;
 
-      if (posicaoImpar && byeIndex < byes) {
-        // BYE para dupla forte
+      // Se algum seed não existe, é BYE
+      if (seed1Index >= totalDuplas) {
+        // Seed 1 não existe - BYE para seed 2
         confrontosParaCriar.push({
           tipo: "bye",
-          ordem: ordem++,
-          dupla1: duplas[byeIndex],
-          dupla1Index: byeIndex,
+          ordem: i + 1,
+          dupla1: duplas[seed2Index],
+          dupla1Index: seed2Index,
         });
-        byeIndex++;
-      } else if (jogoIndex < confrontosReais) {
+      } else if (seed2Index >= totalDuplas) {
+        // Seed 2 não existe - BYE para seed 1
+        confrontosParaCriar.push({
+          tipo: "bye",
+          ordem: i + 1,
+          dupla1: duplas[seed1Index],
+          dupla1Index: seed1Index,
+        });
+      } else {
         // Jogo real
-        const duplasRestantes = totalDuplas - byes;
-        const metadeRestantes = Math.floor(duplasRestantes / 2);
-
-        let seed1Index: number;
-        let seed2Index: number;
-
-        if (jogoIndex < metadeRestantes) {
-          seed1Index = byes + jogoIndex;
-          seed2Index = totalDuplas - 1 - jogoIndex;
-        } else {
-          const offsetMeio = jogoIndex - metadeRestantes;
-          seed1Index = byes + metadeRestantes + offsetMeio;
-          seed2Index =
-            byes + duplasRestantes - 1 - metadeRestantes - offsetMeio;
-        }
-
         confrontosParaCriar.push({
           tipo: "jogo",
-          ordem: ordem++,
+          ordem: i + 1,
           dupla1: duplas[seed1Index],
           dupla1Index: seed1Index,
           dupla2: duplas[seed2Index],
           dupla2Index: seed2Index,
         });
-        jogoIndex++;
-      } else if (byeIndex < byes) {
-        // BYE restante (casos com 3 BYEs)
-        confrontosParaCriar.push({
-          tipo: "bye",
-          ordem: ordem++,
-          dupla1: duplas[byeIndex],
-          dupla1Index: byeIndex,
-        });
-        byeIndex++;
       }
     }
 
@@ -1493,18 +1490,69 @@ export class ReiDaPraiaService {
     // Executar todos os registros de BYE em paralelo
     await Promise.all(byePromises);
 
-    logger.info(
-      "Confrontos eliminatórios gerados com distribuição inteligente",
-      {
-        etapaId,
-        totalDuplas,
-        totalByes: byes,
-        totalJogos: confrontosReais,
-        totalConfrontos: confrontosFinais.length,
-      }
-    );
+    const jogosReais = confrontosParaCriar.filter(
+      (c) => c.tipo === "jogo"
+    ).length;
+
+    logger.info("Confrontos eliminatórios gerados com seeding profissional", {
+      etapaId,
+      totalDuplas,
+      totalByes: byes,
+      totalJogos: jogosReais,
+      totalConfrontos: confrontosFinais.length,
+    });
 
     return confrontosFinais;
+  }
+
+  /**
+   * Gerar posições de bracket para torneio
+   *
+   * Retorna os confrontos na ordem correta para que:
+   * - Jogos adjacentes se enfrentem na próxima fase
+   * - Seed 1 e Seed 2 só se encontrem na final
+   *
+   * Exemplos:
+   * - 4 duplas: [[1,4], [3,2]] → Semi: 1vs3, Final: 1vs2
+   * - 8 duplas: [[1,8], [4,5], [3,6], [2,7]] → Semi: 1vs4, 3vs2, Final: 1vs2
+   */
+  private gerarBracketPositions(tamanho: number): [number, number][] {
+    // Tabela direta de confrontos para cada tamanho de bracket
+    // Chave = número total de participantes
+    const confrontosTable: Record<number, [number, number][]> = {
+      2: [[1, 2]],
+      4: [
+        [1, 4],
+        [3, 2],
+      ],
+      8: [
+        [1, 8],
+        [4, 5],
+        [3, 6],
+        [2, 7],
+      ],
+      16: [
+        [1, 16],
+        [8, 9],
+        [4, 13],
+        [5, 12],
+        [3, 14],
+        [6, 11],
+        [2, 15],
+        [7, 10],
+      ],
+    };
+
+    if (confrontosTable[tamanho]) {
+      return confrontosTable[tamanho];
+    }
+
+    // Fallback: confrontos sequenciais (não ideal, mas funciona)
+    const resultado: [number, number][] = [];
+    for (let i = 1; i <= tamanho / 2; i++) {
+      resultado.push([i, tamanho + 1 - i]);
+    }
+    return resultado;
   }
 
   /**

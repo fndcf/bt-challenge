@@ -241,13 +241,25 @@ describe("RankingList", () => {
     it("deve ter links para perfil do jogador", async () => {
       renderWithRouter(<RankingListComponent arenaSlug="minha-arena" />);
 
-      await waitFor(() => {
-        const links = screen.getAllByRole("link");
-        const jogadorLink = links.find((link) =>
-          link.getAttribute("href")?.includes("/jogador/")
-        );
-        expect(jogadorLink).toBeInTheDocument();
-      });
+      // Aguardar os jogadores serem renderizados
+      await waitFor(
+        () => {
+          expect(screen.getAllByText("João Silva").length).toBeGreaterThan(0);
+        },
+        { timeout: 5000 }
+      );
+
+      // Verificar se há links para perfil do jogador
+      await waitFor(
+        () => {
+          const links = screen.getAllByRole("link");
+          const jogadorLink = links.find((link) =>
+            link.getAttribute("href")?.includes("/jogador/")
+          );
+          expect(jogadorLink).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
   });
 

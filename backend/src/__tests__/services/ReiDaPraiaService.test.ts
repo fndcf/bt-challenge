@@ -1489,4 +1489,224 @@ describe("ReiDaPraiaService", () => {
     });
   });
 
+  describe("gerarBracketPositions - seeding profissional", () => {
+    it("deve gerar bracket correto para 4 duplas (Seed 1 e 2 só na final)", async () => {
+      mockGrupoRepository.buscarCompletos.mockResolvedValue([
+        { id: "grupo-1", nome: "Grupo A" },
+        { id: "grupo-2", nome: "Grupo B" },
+      ]);
+
+      // 2 grupos = 4 classificados = 2 duplas... precisamos de 4 duplas
+      // Vamos usar 4 grupos para ter 4 duplas
+      mockGrupoRepository.buscarCompletos.mockResolvedValue([
+        { id: "grupo-1", nome: "Grupo A" },
+        { id: "grupo-2", nome: "Grupo B" },
+        { id: "grupo-3", nome: "Grupo C" },
+        { id: "grupo-4", nome: "Grupo D" },
+      ]);
+
+      (estatisticasJogadorService.buscarClassificados as jest.Mock)
+        .mockResolvedValueOnce([
+          { jogadorId: "j1", jogadorNome: "Jogador 1", posicaoGrupo: 1, grupoId: "grupo-1", pontosGrupo: 9 },
+          { jogadorId: "j2", jogadorNome: "Jogador 2", posicaoGrupo: 2, grupoId: "grupo-1", pontosGrupo: 6 },
+        ])
+        .mockResolvedValueOnce([
+          { jogadorId: "j3", jogadorNome: "Jogador 3", posicaoGrupo: 1, grupoId: "grupo-2", pontosGrupo: 9 },
+          { jogadorId: "j4", jogadorNome: "Jogador 4", posicaoGrupo: 2, grupoId: "grupo-2", pontosGrupo: 6 },
+        ])
+        .mockResolvedValueOnce([
+          { jogadorId: "j5", jogadorNome: "Jogador 5", posicaoGrupo: 1, grupoId: "grupo-3", pontosGrupo: 6 },
+          { jogadorId: "j6", jogadorNome: "Jogador 6", posicaoGrupo: 2, grupoId: "grupo-3", pontosGrupo: 3 },
+        ])
+        .mockResolvedValueOnce([
+          { jogadorId: "j7", jogadorNome: "Jogador 7", posicaoGrupo: 1, grupoId: "grupo-4", pontosGrupo: 6 },
+          { jogadorId: "j8", jogadorNome: "Jogador 8", posicaoGrupo: 2, grupoId: "grupo-4", pontosGrupo: 3 },
+        ]);
+
+      // Capturar as duplas criadas para validar a ordem
+      const duplasCreadas: any[] = [];
+      mockDuplaRepository.criar.mockImplementation((dto: any) => {
+        const dupla = {
+          id: `dupla-${duplasCreadas.length + 1}`,
+          ...dto,
+        };
+        duplasCreadas.push(dupla);
+        return Promise.resolve(dupla);
+      });
+
+      // Capturar os confrontos para validar seeding
+      let confrontosCriados: any[] = [];
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) => {
+        confrontosCriados = dtos.map((dto: any, idx: number) => ({
+          id: `confronto-${idx + 1}`,
+          ...dto,
+          status: StatusConfrontoEliminatorio.AGENDADA,
+        }));
+        return Promise.resolve(confrontosCriados);
+      });
+
+      await service.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+      );
+
+      // 4 duplas = 2 confrontos na primeira fase
+      expect(confrontosCriados).toHaveLength(2);
+
+      // Validar seeding: Para 4 duplas deve ser [[1,4], [3,2]]
+      // Jogo 1: Seed 1 (dupla-1) vs Seed 4 (dupla-4)
+      // Jogo 2: Seed 3 (dupla-3) vs Seed 2 (dupla-2)
+      // Assim: Semi A = vencedor J1 vs vencedor J2 → potencialmente 1 vs 3
+      // Final = Semi A vs Semi B → potencialmente 1 vs 2
+
+      // Confronto 1: dupla índice 0 (Seed 1) vs dupla índice 3 (Seed 4)
+      expect(confrontosCriados[0].dupla1Id).toBe("dupla-1");
+      expect(confrontosCriados[0].dupla2Id).toBe("dupla-4");
+
+      // Confronto 2: dupla índice 2 (Seed 3) vs dupla índice 1 (Seed 2)
+      expect(confrontosCriados[1].dupla1Id).toBe("dupla-3");
+      expect(confrontosCriados[1].dupla2Id).toBe("dupla-2");
+    });
+
+    it("deve gerar bracket correto para 8 duplas (Seeds 1 e 2 em lados opostos)", async () => {
+      // 8 grupos para ter 8 duplas
+      mockGrupoRepository.buscarCompletos.mockResolvedValue(
+        Array.from({ length: 8 }, (_, i) => ({
+          id: `grupo-${i + 1}`,
+          nome: `Grupo ${String.fromCharCode(65 + i)}`,
+        }))
+      );
+
+      // Mock classificados para cada grupo
+      for (let i = 0; i < 8; i++) {
+        (estatisticasJogadorService.buscarClassificados as jest.Mock)
+          .mockResolvedValueOnce([
+            { jogadorId: `j${i * 2 + 1}`, jogadorNome: `Jogador ${i * 2 + 1}`, posicaoGrupo: 1, grupoId: `grupo-${i + 1}`, pontosGrupo: 9 - i },
+            { jogadorId: `j${i * 2 + 2}`, jogadorNome: `Jogador ${i * 2 + 2}`, posicaoGrupo: 2, grupoId: `grupo-${i + 1}`, pontosGrupo: 6 - i },
+          ]);
+      }
+
+      const duplasCreadas: any[] = [];
+      mockDuplaRepository.criar.mockImplementation((dto: any) => {
+        const dupla = {
+          id: `dupla-${duplasCreadas.length + 1}`,
+          ...dto,
+        };
+        duplasCreadas.push(dupla);
+        return Promise.resolve(dupla);
+      });
+
+      let confrontosCriados: any[] = [];
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) => {
+        confrontosCriados = dtos.map((dto: any, idx: number) => ({
+          id: `confronto-${idx + 1}`,
+          ...dto,
+          status: StatusConfrontoEliminatorio.AGENDADA,
+        }));
+        return Promise.resolve(confrontosCriados);
+      });
+
+      await service.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+      );
+
+      // 8 duplas = 4 confrontos na primeira fase
+      expect(confrontosCriados).toHaveLength(4);
+
+      // Validar seeding profissional para 8 duplas: [[1,8], [4,5], [3,6], [2,7]]
+      // Jogo 1: Seed 1 vs Seed 8 → dupla-1 vs dupla-8
+      // Jogo 2: Seed 4 vs Seed 5 → dupla-4 vs dupla-5
+      // Jogo 3: Seed 3 vs Seed 6 → dupla-3 vs dupla-6
+      // Jogo 4: Seed 2 vs Seed 7 → dupla-2 vs dupla-7
+
+      // Semi A = vencedor J1 vs vencedor J2 → potencialmente 1 vs 4
+      // Semi B = vencedor J3 vs vencedor J4 → potencialmente 3 vs 2
+      // Final = Semi A vs Semi B → potencialmente 1 vs 2
+
+      expect(confrontosCriados[0].dupla1Id).toBe("dupla-1");
+      expect(confrontosCriados[0].dupla2Id).toBe("dupla-8");
+
+      expect(confrontosCriados[1].dupla1Id).toBe("dupla-4");
+      expect(confrontosCriados[1].dupla2Id).toBe("dupla-5");
+
+      expect(confrontosCriados[2].dupla1Id).toBe("dupla-3");
+      expect(confrontosCriados[2].dupla2Id).toBe("dupla-6");
+
+      expect(confrontosCriados[3].dupla1Id).toBe("dupla-2");
+      expect(confrontosCriados[3].dupla2Id).toBe("dupla-7");
+    });
+
+    it("deve garantir que Seed 1 e Seed 2 estão em lados opostos do bracket para 8 duplas", async () => {
+      // Este teste valida que os confrontos estão organizados de forma que
+      // Seed 1 e Seed 2 só possam se encontrar na FINAL
+
+      mockGrupoRepository.buscarCompletos.mockResolvedValue(
+        Array.from({ length: 8 }, (_, i) => ({
+          id: `grupo-${i + 1}`,
+          nome: `Grupo ${String.fromCharCode(65 + i)}`,
+        }))
+      );
+
+      for (let i = 0; i < 8; i++) {
+        (estatisticasJogadorService.buscarClassificados as jest.Mock)
+          .mockResolvedValueOnce([
+            { jogadorId: `j${i * 2 + 1}`, jogadorNome: `Jogador ${i * 2 + 1}`, posicaoGrupo: 1, grupoId: `grupo-${i + 1}`, pontosGrupo: 9 },
+            { jogadorId: `j${i * 2 + 2}`, jogadorNome: `Jogador ${i * 2 + 2}`, posicaoGrupo: 2, grupoId: `grupo-${i + 1}`, pontosGrupo: 6 },
+          ]);
+      }
+
+      const duplasCreadas: any[] = [];
+      mockDuplaRepository.criar.mockImplementation((dto: any) => {
+        const dupla = {
+          id: `dupla-${duplasCreadas.length + 1}`,
+          ...dto,
+        };
+        duplasCreadas.push(dupla);
+        return Promise.resolve(dupla);
+      });
+
+      let confrontosCriados: any[] = [];
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) => {
+        confrontosCriados = dtos.map((dto: any, idx: number) => ({
+          id: `confronto-${idx + 1}`,
+          ordem: dto.ordem,
+          dupla1Id: dto.dupla1Id,
+          dupla2Id: dto.dupla2Id,
+          status: StatusConfrontoEliminatorio.AGENDADA,
+        }));
+        return Promise.resolve(confrontosCriados);
+      });
+
+      await service.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+      );
+
+      // Verificar que Seed 1 (dupla-1) está no Lado A (jogos 1 e 2)
+      const ladoA = [confrontosCriados[0], confrontosCriados[1]];
+      const ladoB = [confrontosCriados[2], confrontosCriados[3]];
+
+      const seed1NoLadoA = ladoA.some(c => c.dupla1Id === "dupla-1" || c.dupla2Id === "dupla-1");
+      const seed2NoLadoB = ladoB.some(c => c.dupla1Id === "dupla-2" || c.dupla2Id === "dupla-2");
+
+      expect(seed1NoLadoA).toBe(true);
+      expect(seed2NoLadoB).toBe(true);
+
+      // Seed 1 NÃO deve estar no Lado B
+      const seed1NoLadoB = ladoB.some(c => c.dupla1Id === "dupla-1" || c.dupla2Id === "dupla-1");
+      expect(seed1NoLadoB).toBe(false);
+
+      // Seed 2 NÃO deve estar no Lado A
+      const seed2NoLadoA = ladoA.some(c => c.dupla1Id === "dupla-2" || c.dupla2Id === "dupla-2");
+      expect(seed2NoLadoA).toBe(false);
+    });
+  });
+
 });
