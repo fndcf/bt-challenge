@@ -147,7 +147,7 @@ describe("Auth Middlewares", () => {
 
       expect(mockNext).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: "Usuário não encontrado",
+          message: "Usuário não cadastrado no sistema",
         })
       );
     });

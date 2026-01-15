@@ -1618,12 +1618,17 @@ export class EstatisticasJogadorService {
     // Converter para array e ordenar
     const ranking = Array.from(jogadoresMap.values());
 
+    // Critérios de desempate em ordem:
+    // 1. Pontos (maior melhor)
+    // 2. Vitórias (maior melhor)
+    // 3. Saldo de Games (maior melhor)
+    // 4. Games Vencidos (maior melhor)
     ranking.sort((a, b) => {
       if (a.pontos !== b.pontos) return b.pontos - a.pontos;
+      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
       if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
       if (a.gamesVencidos !== b.gamesVencidos)
         return b.gamesVencidos - a.gamesVencidos;
-      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
       return 0;
     });
 
@@ -1695,12 +1700,17 @@ export class EstatisticasJogadorService {
     // Converter para array e ordenar
     const ranking = Array.from(jogadoresMap.values());
 
+    // Critérios de desempate em ordem:
+    // 1. Pontos (maior melhor)
+    // 2. Vitórias (maior melhor)
+    // 3. Saldo de Games (maior melhor)
+    // 4. Games Vencidos (maior melhor)
     ranking.sort((a, b) => {
       if (a.pontos !== b.pontos) return b.pontos - a.pontos;
+      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
       if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
       if (a.gamesVencidos !== b.gamesVencidos)
         return b.gamesVencidos - a.gamesVencidos;
-      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
       return 0;
     });
 

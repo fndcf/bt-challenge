@@ -1209,8 +1209,8 @@ describe("EstatisticasJogadorService", () => {
       const result = await service.buscarRankingGlobalAgregado(TEST_ARENA_ID, 10);
 
       expect(result).toHaveLength(2);
-      // Mesmo pontos, ordenar por saldoGames
-      expect(result[0].jogadorNome).toBe("Jogador 2"); // Maior saldo games
+      // Mesmo pontos, ordenar por vitórias
+      expect(result[0].jogadorNome).toBe("Jogador 2"); // Mais vitórias (4 vs 2)
       expect(result[1].jogadorNome).toBe("Jogador 1");
     });
   });
@@ -1713,7 +1713,9 @@ describe("EstatisticasJogadorService", () => {
   });
 
   describe("buscarRankingPorNivel - desempates", () => {
-    it("deve desempatar por games vencidos quando saldo de games igual", async () => {
+    // Ordem de desempate: 1. Pontos, 2. Vitórias, 3. Saldo de Games, 4. Games Vencidos
+
+    it("deve desempatar por vitórias quando pontos iguais", async () => {
       const estatisticas = [
         {
           etapaId: "etapa-1",
@@ -1721,9 +1723,133 @@ describe("EstatisticasJogadorService", () => {
           jogadorNome: "Jogador 1",
           jogadorNivel: NivelJogador.AVANCADO,
           pontos: 10,
-          saldoGames: 20,
+          vitorias: 3, // Menor
+          saldoGames: 25, // Maior (mas vitórias tem prioridade)
+          gamesVencidos: 60,
+          jogos: 5,
+          derrotas: 2,
+          setsVencidos: 8,
+          setsPerdidos: 3,
+          saldoSets: 5,
+          gamesPerdidos: 35,
+        },
+        {
+          etapaId: "etapa-1",
+          jogadorId: "j2",
+          jogadorNome: "Jogador 2",
+          jogadorNivel: NivelJogador.AVANCADO,
+          pontos: 10, // Mesmo
+          vitorias: 4, // Maior
+          saldoGames: 20, // Menor
+          gamesVencidos: 50,
+          jogos: 5,
+          derrotas: 1,
+          setsVencidos: 8,
+          setsPerdidos: 3,
+          saldoSets: 5,
+          gamesPerdidos: 30,
+        },
+      ];
+
+      // Mock para buscarEtapasQueContamPontos
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
+        })
+        .mockResolvedValueOnce({
+          docs: [],
+        })
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
+
+      const result = await service.buscarRankingPorNivel(
+        TEST_ARENA_ID,
+        NivelJogador.AVANCADO,
+        10
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0].jogadorNome).toBe("Jogador 2"); // Mais vitórias (4 vs 3)
+      expect(result[1].jogadorNome).toBe("Jogador 1");
+    });
+
+    it("deve desempatar por saldo de games quando pontos e vitórias iguais", async () => {
+      const estatisticas = [
+        {
+          etapaId: "etapa-1",
+          jogadorId: "j1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.AVANCADO,
+          pontos: 10,
+          vitorias: 4, // Mesmo
+          saldoGames: 15, // Menor
+          gamesVencidos: 50,
+          jogos: 5,
+          derrotas: 1,
+          setsVencidos: 8,
+          setsPerdidos: 3,
+          saldoSets: 5,
+          gamesPerdidos: 35,
+        },
+        {
+          etapaId: "etapa-1",
+          jogadorId: "j2",
+          jogadorNome: "Jogador 2",
+          jogadorNivel: NivelJogador.AVANCADO,
+          pontos: 10, // Mesmo
+          vitorias: 4, // Mesmo
+          saldoGames: 20, // Maior
+          gamesVencidos: 50,
+          jogos: 5,
+          derrotas: 1,
+          setsVencidos: 8,
+          setsPerdidos: 3,
+          saldoSets: 5,
+          gamesPerdidos: 30,
+        },
+      ];
+
+      // Mock para buscarEtapasQueContamPontos
+      mockGet
+        .mockResolvedValueOnce({
+          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
+        })
+        .mockResolvedValueOnce({
+          docs: [],
+        })
+        .mockResolvedValueOnce({
+          docs: estatisticas.map((e, i) => ({
+            id: `estat-${i}`,
+            data: () => e,
+          })),
+        });
+
+      const result = await service.buscarRankingPorNivel(
+        TEST_ARENA_ID,
+        NivelJogador.AVANCADO,
+        10
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0].jogadorNome).toBe("Jogador 2"); // Maior saldo de games (20 vs 15)
+      expect(result[1].jogadorNome).toBe("Jogador 1");
+    });
+
+    it("deve desempatar por games vencidos quando pontos, vitórias e saldo de games iguais", async () => {
+      const estatisticas = [
+        {
+          etapaId: "etapa-1",
+          jogadorId: "j1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.AVANCADO,
+          pontos: 10,
+          vitorias: 4, // Mesmo
+          saldoGames: 20, // Mesmo
           gamesVencidos: 50, // Menor
-          vitorias: 4,
           jogos: 5,
           derrotas: 1,
           setsVencidos: 8,
@@ -1737,9 +1863,9 @@ describe("EstatisticasJogadorService", () => {
           jogadorNome: "Jogador 2",
           jogadorNivel: NivelJogador.AVANCADO,
           pontos: 10, // Mesmo
+          vitorias: 4, // Mesmo
           saldoGames: 20, // Mesmo
           gamesVencidos: 60, // Maior
-          vitorias: 4,
           jogos: 5,
           derrotas: 1,
           setsVencidos: 8,
@@ -1771,69 +1897,7 @@ describe("EstatisticasJogadorService", () => {
       );
 
       expect(result).toHaveLength(2);
-      expect(result[0].jogadorNome).toBe("Jogador 2"); // Mais games vencidos
-      expect(result[1].jogadorNome).toBe("Jogador 1");
-    });
-
-    it("deve desempatar por vitórias quando games vencidos igual", async () => {
-      const estatisticas = [
-        {
-          etapaId: "etapa-1",
-          jogadorId: "j1",
-          jogadorNome: "Jogador 1",
-          jogadorNivel: NivelJogador.AVANCADO,
-          pontos: 10,
-          saldoGames: 20,
-          gamesVencidos: 50,
-          vitorias: 3, // Menor
-          jogos: 5,
-          derrotas: 2,
-          setsVencidos: 8,
-          setsPerdidos: 3,
-          saldoSets: 5,
-          gamesPerdidos: 30,
-        },
-        {
-          etapaId: "etapa-1",
-          jogadorId: "j2",
-          jogadorNome: "Jogador 2",
-          jogadorNivel: NivelJogador.AVANCADO,
-          pontos: 10, // Mesmo
-          saldoGames: 20, // Mesmo
-          gamesVencidos: 50, // Mesmo
-          vitorias: 4, // Maior
-          jogos: 5,
-          derrotas: 1,
-          setsVencidos: 8,
-          setsPerdidos: 3,
-          saldoSets: 5,
-          gamesPerdidos: 30,
-        },
-      ];
-
-      // Mock para buscarEtapasQueContamPontos
-      mockGet
-        .mockResolvedValueOnce({
-          docs: [{ id: "etapa-1", data: () => ({ contaPontosRanking: true }) }],
-        })
-        .mockResolvedValueOnce({
-          docs: [],
-        })
-        .mockResolvedValueOnce({
-          docs: estatisticas.map((e, i) => ({
-            id: `estat-${i}`,
-            data: () => e,
-          })),
-        });
-
-      const result = await service.buscarRankingPorNivel(
-        TEST_ARENA_ID,
-        NivelJogador.AVANCADO,
-        10
-      );
-
-      expect(result).toHaveLength(2);
-      expect(result[0].jogadorNome).toBe("Jogador 2"); // Mais vitórias
+      expect(result[0].jogadorNome).toBe("Jogador 2"); // Mais games vencidos (60 vs 50)
       expect(result[1].jogadorNome).toBe("Jogador 1");
     });
   });
