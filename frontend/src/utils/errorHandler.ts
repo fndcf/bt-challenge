@@ -40,7 +40,7 @@ const errorMessages: Record<string, string> = {
   "auth/email-already-in-use": "Email já está em uso",
   "auth/weak-password": "Senha muito fraca. Use no mínimo 6 caracteres",
   "auth/invalid-email": "Email inválido",
-  "auth/user-disabled": "Usuário desabilitado",
+  "auth/user-disabled": "Sua conta está aguardando ativação pelo administrador",
   "auth/too-many-requests": "Muitas tentativas. Tente novamente mais tarde",
   "auth/network-request-failed": "Erro de conexão. Verifique sua internet",
   "auth/invalid-credential": "Email ou senha incorretos",

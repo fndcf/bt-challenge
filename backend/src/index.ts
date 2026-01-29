@@ -7,6 +7,10 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import * as functions from "firebase-functions";
+/**
+import * as functionsV1 from "firebase-functions/v1";
+import { auth as adminAuth } from "./config/firebase";
+*/
 import routes from "./routes";
 import { errorHandler } from "./middlewares/errorHandler";
 import logger from "./utils/logger";
@@ -21,7 +25,7 @@ app.use(
   cors({
     origin: true, // Permite todas as origens em produção (Firebase Hosting gerencia isso)
     credentials: true,
-  })
+  }),
 );
 
 /**
@@ -70,8 +74,30 @@ export const api = functions.https.onRequest(
     timeoutSeconds: 30,
     memory: "512MiB",
   },
-  app
+  app,
 );
+
+/**
+ * Trigger: desabilitar novos usuários automaticamente.
+ * O administrador habilita manualmente pelo Firebase Console.
+ 
+export const onUserCreated = functionsV1.auth.user().onCreate(async (user) => {
+  try {
+    await adminAuth.updateUser(user.uid, { disabled: true });
+    logger.info("Novo usuário criado e desabilitado automaticamente", {
+      uid: user.uid,
+      email: user.email,
+    });
+  } catch (error: any) {
+    logger.error(
+      "Erro ao desabilitar novo usuário",
+      { uid: user.uid, email: user.email },
+      error
+    );
+  }
+});
+
+*/
 
 /**
  * Iniciar servidor local (apenas em desenvolvimento)
