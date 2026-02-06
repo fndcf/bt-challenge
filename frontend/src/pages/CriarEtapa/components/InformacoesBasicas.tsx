@@ -15,7 +15,7 @@ export interface InformacoesBasicasProps {
   nome: string;
   descricao: string;
   genero: GeneroJogador;
-  nivel?: NivelJogador;
+  nivel?: NivelJogador | null;
   local: string;
   formato?: FormatoEtapa;
   tipoFormacaoEquipe?: TipoFormacaoEquipe; // Para TEAMS: determinar se nível é obrigatório

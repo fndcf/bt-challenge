@@ -2013,6 +2013,92 @@ class EtapaController extends BaseController {
       });
     }
   }
+
+  // ==================== SUBSTITUIÇÃO DE JOGADOR ====================
+
+  /**
+   * Substituir jogador em uma etapa
+   * POST /api/etapas/:id/substituir-jogador
+   */
+  async substituirJogador(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+      const { jogadorAntigoId, jogadorNovoId } = req.body;
+
+      if (!jogadorAntigoId || !jogadorNovoId) {
+        ResponseHelper.badRequest(
+          res,
+          "jogadorAntigoId e jogadorNovoId são obrigatórios"
+        );
+        return;
+      }
+
+      logger.info("Substituindo jogador na etapa", {
+        etapaId: id,
+        jogadorAntigoId,
+        jogadorNovoId,
+      });
+
+      const substituicaoService = (
+        await import("../services/SubstituicaoService")
+      ).default;
+      const resultado = await substituicaoService.substituirJogador(
+        id,
+        arenaId,
+        jogadorAntigoId,
+        jogadorNovoId
+      );
+
+      logger.info("Jogador substituído com sucesso", {
+        etapaId: id,
+        jogadorAntigoId,
+        jogadorNovoId,
+      });
+
+      ResponseHelper.success(res, resultado, resultado.mensagem);
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "substituir jogador", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Buscar jogadores disponíveis para substituição
+   * GET /api/etapas/:id/jogadores-disponiveis
+   */
+  async buscarJogadoresDisponiveis(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const substituicaoService = (
+        await import("../services/SubstituicaoService")
+      ).default;
+      const jogadores = await substituicaoService.buscarJogadoresDisponiveis(
+        id,
+        arenaId
+      );
+
+      ResponseHelper.success(res, jogadores);
+    } catch (error: any) {
+      this.handleGenericError(res, error, "buscar jogadores disponíveis", {
+        etapaId: req.params.id,
+      });
+    }
+  }
 }
 
 export default new EtapaController();

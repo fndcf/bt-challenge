@@ -340,6 +340,76 @@ class EtapaService implements IEtapaService {
       throw new Error(appError.message);
     }
   }
+
+  /**
+   * Substituir jogador em uma etapa
+   */
+  async substituirJogador(
+    etapaId: string,
+    jogadorAntigoId: string,
+    jogadorNovoId: string
+  ): Promise<{
+    sucesso: boolean;
+    mensagem: string;
+    jogadorAntigoId: string;
+    jogadorAntigoNome: string;
+    jogadorNovoId: string;
+    jogadorNovoNome: string;
+  }> {
+    try {
+      const resultado = await apiClient.post<{
+        sucesso: boolean;
+        mensagem: string;
+        jogadorAntigoId: string;
+        jogadorAntigoNome: string;
+        jogadorNovoId: string;
+        jogadorNovoNome: string;
+      }>(`${this.baseURL}/${etapaId}/substituir-jogador`, {
+        jogadorAntigoId,
+        jogadorNovoId,
+      });
+
+      logger.info("Jogador substituído", {
+        etapaId,
+        jogadorAntigoId,
+        jogadorNovoId,
+        jogadorAntigoNome: resultado.jogadorAntigoNome,
+        jogadorNovoNome: resultado.jogadorNovoNome,
+      });
+
+      return resultado;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.substituirJogador");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Buscar jogadores disponíveis para substituição
+   * (jogadores da arena que não estão na etapa)
+   */
+  async buscarJogadoresDisponiveis(etapaId: string): Promise<
+    Array<{
+      id: string;
+      nome: string;
+      nivel: string;
+      genero: string;
+    }>
+  > {
+    try {
+      return await apiClient.get<
+        Array<{
+          id: string;
+          nome: string;
+          nivel: string;
+          genero: string;
+        }>
+      >(`${this.baseURL}/${etapaId}/jogadores-disponiveis`);
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.buscarJogadoresDisponiveis");
+      throw new Error(appError.message);
+    }
+  }
 }
 
 export default new EtapaService();

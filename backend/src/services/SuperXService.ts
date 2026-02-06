@@ -13,6 +13,8 @@ import { StatusEtapa, FaseEtapa } from "../models/Etapa";
 import { Inscricao } from "../models/Inscricao";
 import { Grupo } from "../models/Grupo";
 import { StatusPartida } from "../models/Partida";
+import { Jogador } from "../models/Jogador";
+import { BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
 
 // Utilitários compartilhados
@@ -902,6 +904,132 @@ export class SuperXService {
           etapaId,
           arenaId,
         },
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Substituir jogador em uma etapa Super X
+   * Só permite se nenhuma partida foi jogada
+   */
+  async substituirJogador(
+    etapaId: string,
+    arenaId: string,
+    jogadorAntigoId: string,
+    jogadorNovo: Jogador
+  ): Promise<void> {
+    try {
+      logger.info("Iniciando substituição de jogador no Super X", {
+        etapaId,
+        jogadorAntigoId,
+        jogadorNovoId: jogadorNovo.id,
+      });
+
+      // 1. Buscar estatísticas do jogador antigo
+      const estatisticaAntigo =
+        await this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
+          jogadorAntigoId,
+          etapaId
+        );
+
+      if (!estatisticaAntigo) {
+        throw new BadRequestError("Jogador antigo não encontrado na etapa");
+      }
+
+      if (!estatisticaAntigo.grupoId) {
+        throw new BadRequestError("Jogador antigo não está em nenhum grupo");
+      }
+
+      const grupoId = estatisticaAntigo.grupoId;
+
+      // 2. Verificar se alguma partida já foi jogada (Super X tem apenas 1 grupo)
+      const partidasDoGrupo =
+        await this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId);
+
+      const partidasJogadas = partidasDoGrupo.filter(
+        (p) => p.status !== StatusPartida.AGENDADA
+      );
+
+      if (partidasJogadas.length > 0) {
+        throw new BadRequestError(
+          "Não é possível substituir jogador pois já existem partidas jogadas"
+        );
+      }
+
+      // 3. Criar estatísticas para o jogador novo
+      await estatisticasJogadorService.criar({
+        etapaId,
+        arenaId,
+        jogadorId: jogadorNovo.id,
+        jogadorNome: jogadorNovo.nome,
+        jogadorNivel: jogadorNovo.nivel,
+        jogadorGenero: jogadorNovo.genero,
+        grupoId: estatisticaAntigo.grupoId,
+        grupoNome: estatisticaAntigo.grupoNome,
+      });
+
+      // 4. Atualizar o array duplas do Grupo
+      const grupo = await this.grupoRepository.buscarPorId(grupoId);
+      if (grupo) {
+        const novasDuplas = grupo.duplas.map((id) =>
+          id === jogadorAntigoId ? jogadorNovo.id : id
+        );
+        await this.grupoRepository.atualizar(grupoId, { duplas: novasDuplas });
+      }
+
+      // 5. Atualizar as partidas
+      for (const partida of partidasDoGrupo) {
+        const atualizacao: Partial<PartidaReiDaPraia> = {};
+
+        if (partida.jogador1AId === jogadorAntigoId) {
+          atualizacao.jogador1AId = jogadorNovo.id;
+          atualizacao.jogador1ANome = jogadorNovo.nome;
+        }
+        if (partida.jogador1BId === jogadorAntigoId) {
+          atualizacao.jogador1BId = jogadorNovo.id;
+          atualizacao.jogador1BNome = jogadorNovo.nome;
+        }
+        if (partida.jogador2AId === jogadorAntigoId) {
+          atualizacao.jogador2AId = jogadorNovo.id;
+          atualizacao.jogador2ANome = jogadorNovo.nome;
+        }
+        if (partida.jogador2BId === jogadorAntigoId) {
+          atualizacao.jogador2BId = jogadorNovo.id;
+          atualizacao.jogador2BNome = jogadorNovo.nome;
+        }
+
+        if (Object.keys(atualizacao).length > 0) {
+          const j1aNome = atualizacao.jogador1ANome || partida.jogador1ANome;
+          const j1bNome = atualizacao.jogador1BNome || partida.jogador1BNome;
+          const j2aNome = atualizacao.jogador2ANome || partida.jogador2ANome;
+          const j2bNome = atualizacao.jogador2BNome || partida.jogador2BNome;
+
+          atualizacao.dupla1Nome = `${j1aNome} / ${j1bNome}`;
+          atualizacao.dupla2Nome = `${j2aNome} / ${j2bNome}`;
+
+          await this.partidaReiDaPraiaRepository.atualizar(
+            partida.id,
+            atualizacao
+          );
+        }
+      }
+
+      // 6. Deletar estatísticas do jogador antigo
+      await this.estatisticasJogadorRepository.deletar(estatisticaAntigo.id);
+
+      logger.info("Substituição de jogador concluída no Super X", {
+        etapaId,
+        grupoId,
+        jogadorAntigoId,
+        jogadorNovoId: jogadorNovo.id,
+        partidasAtualizadas: partidasDoGrupo.length,
+      });
+    } catch (error: any) {
+      logger.error(
+        "Erro ao substituir jogador no Super X",
+        { etapaId, jogadorAntigoId, jogadorNovoId: jogadorNovo.id },
         error
       );
       throw error;

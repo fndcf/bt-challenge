@@ -77,6 +77,7 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 - Gerenciamento de cabeças de chave
 - Controle de inscrições
 - Fase de grupos + Fase eliminatória
+- **Substituição de jogadores** após geração de chaves (antes de partidas iniciadas)
 - Dashboard com estatísticas
 
 ### Para Jogadores/Espectadores
@@ -86,6 +87,33 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 - Estatísticas individuais
 - Acompanhamento de etapas em andamento
 - Página pública da arena
+
+## Substituição de Jogadores
+
+Funcionalidade que permite substituir jogadores após a geração de chaves, desde que nenhuma partida tenha sido jogada.
+
+### Como funciona
+
+1. Após gerar as chaves da etapa, o botão "Substituir Jogador" fica disponível
+2. Selecione o jogador a ser substituído (coluna esquerda)
+3. Selecione o novo jogador (coluna direita)
+4. Confirme a substituição
+
+### Regras
+
+- **Só é permitido antes de qualquer partida ser jogada** - Assim que uma partida for registrada, a substituição é bloqueada para todos os jogadores
+- **Filtro por gênero** - Somente jogadores do mesmo gênero da etapa são exibidos (exceto etapas mistas)
+- **Filtro por nível** - Somente jogadores do mesmo nível são exibidos (exceto formações balanceadas)
+- **Jogador substituto não pode estar na etapa** - Só aparecem jogadores que não estão inscritos
+
+### O que é atualizado
+
+| Formato     | Entidades Atualizadas                                 |
+| ----------- | ----------------------------------------------------- |
+| Dupla Fixa  | Dupla, Partidas, Estatísticas, Inscrições             |
+| Rei da Praia| Grupo (duplas), Partidas, Estatísticas, Inscrições    |
+| Super X     | Grupo (duplas), Partidas, Estatísticas, Inscrições    |
+| TEAMS       | Equipe (jogadores), Partidas, Estatísticas, Inscrições|
 
 ## Tecnologias
 
@@ -203,14 +231,16 @@ Aplicação disponível em `http://localhost:3000`
 
 ### Endpoints da API
 
-| Método | Endpoint                  | Descrição               |
-| ------ | ------------------------- | ----------------------- |
-| GET    | `/api/health`             | Health check            |
-| GET    | `/api/arenas`             | Listar arenas           |
-| GET    | `/api/jogadores`          | Listar jogadores        |
-| GET    | `/api/etapas`             | Listar etapas           |
-| GET    | `/api/partidas`           | Listar partidas         |
-| GET    | `/api/public/arena/:slug` | Dados públicos da arena |
+| Método | Endpoint                                 | Descrição                            |
+| ------ | ---------------------------------------- | ------------------------------------ |
+| GET    | `/api/health`                            | Health check                         |
+| GET    | `/api/arenas`                            | Listar arenas                        |
+| GET    | `/api/jogadores`                         | Listar jogadores                     |
+| GET    | `/api/etapas`                            | Listar etapas                        |
+| GET    | `/api/partidas`                          | Listar partidas                      |
+| GET    | `/api/public/arena/:slug`                | Dados públicos da arena              |
+| POST   | `/api/etapas/:id/substituir-jogador`     | Substituir jogador na etapa          |
+| GET    | `/api/etapas/:id/jogadores-disponiveis`  | Jogadores disponíveis p/ substituição|
 
 ## Estrutura do Projeto
 
@@ -413,6 +443,7 @@ Os arquivos de configuração do Firebase estão na raiz do projeto:
 - [x] Visualizador de grupos (GruposViewer)
 - [x] Visualizador de chaves (BracketViewer)
 - [x] Rankings
+- [x] Substituição de jogadores (todos os formatos)
 - [x] Testes unitários (backend e frontend)
 
 ### Em Desenvolvimento

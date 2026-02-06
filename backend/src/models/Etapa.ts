@@ -334,7 +334,7 @@ export type CriarEtapaDTO = z.infer<typeof CriarEtapaSchemaBase>;
 export const AtualizarEtapaSchema = z.object({
   nome: z.string().min(3).max(100).optional(),
   descricao: z.string().max(500).optional(),
-  nivel: z.nativeEnum(NivelJogador).optional(),
+  nivel: z.nativeEnum(NivelJogador).nullable().optional(), // null = "Todos os níveis"
   genero: z.nativeEnum(GeneroJogador).optional(),
   formato: z.nativeEnum(FormatoEtapa).optional(),
   tipoChaveamento: z.nativeEnum(TipoChaveamentoReiDaPraia).optional(),

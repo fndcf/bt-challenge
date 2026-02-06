@@ -14,8 +14,10 @@ import { Timestamp } from "firebase-admin/firestore";
 import { StatusEtapa, FaseEtapa } from "../models/Etapa";
 import { Dupla } from "../models/Dupla";
 import { Grupo } from "../models/Grupo";
-import { Partida } from "../models/Partida";
+import { Partida, StatusPartida } from "../models/Partida";
+import { Jogador } from "../models/Jogador";
 import { ConfrontoEliminatorio, TipoFase } from "../models/Eliminatoria";
+import { BadRequestError } from "../utils/errors";
 
 // Services especializados
 import duplaService, { IDuplaService } from "./DuplaService";
@@ -34,6 +36,11 @@ import etapaService from "./EtapaService";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
 import historicoDuplaService from "./HistoricoDuplaService";
 import logger from "../utils/logger";
+
+// Repositories para substituição
+import { duplaRepository } from "../repositories/firebase/DuplaRepository";
+import { PartidaRepository } from "../repositories/firebase/PartidaRepository";
+import { EstatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
 
 /**
  * Interface para injeção de dependência
@@ -414,6 +421,120 @@ export class ChaveService implements IChaveService {
       const batch = db.batch();
       snapshot.docs.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
+    }
+  }
+
+  /**
+   * Substituir jogador em uma etapa Dupla Fixa
+   * Só permite se nenhuma partida da dupla foi jogada
+   */
+  async substituirJogador(
+    etapaId: string,
+    arenaId: string,
+    jogadorAntigoId: string,
+    jogadorNovo: Jogador
+  ): Promise<void> {
+    const partidaRepository = new PartidaRepository();
+    const estatisticasRepository = new EstatisticasJogadorRepository();
+
+    try {
+      logger.info("Iniciando substituição de jogador na Dupla Fixa", {
+        etapaId,
+        jogadorAntigoId,
+        jogadorNovoId: jogadorNovo.id,
+      });
+
+      // 1. Buscar a dupla do jogador antigo
+      const dupla = await duplaRepository.buscarPorJogador(etapaId, jogadorAntigoId);
+      if (!dupla) {
+        throw new BadRequestError("Jogador antigo não encontrado em nenhuma dupla");
+      }
+
+      // 2. Verificar se alguma partida da dupla já foi jogada
+      const partidasDaDupla = await partidaRepository.buscarPorDupla(etapaId, dupla.id);
+      const partidasJogadas = partidasDaDupla.filter(
+        (p) => p.status !== StatusPartida.AGENDADA
+      );
+
+      if (partidasJogadas.length > 0) {
+        throw new BadRequestError(
+          "Não é possível substituir jogador pois já existem partidas jogadas"
+        );
+      }
+
+      // 3. Determinar qual posição o jogador ocupa na dupla
+      const isJogador1 = dupla.jogador1Id === jogadorAntigoId;
+
+      // 4. Atualizar a dupla com o novo jogador
+      const atualizacaoDupla: Partial<Dupla> = {};
+      if (isJogador1) {
+        atualizacaoDupla.jogador1Id = jogadorNovo.id;
+        atualizacaoDupla.jogador1Nome = jogadorNovo.nome;
+        atualizacaoDupla.jogador1Nivel = jogadorNovo.nivel;
+        atualizacaoDupla.jogador1Genero = jogadorNovo.genero;
+      } else {
+        atualizacaoDupla.jogador2Id = jogadorNovo.id;
+        atualizacaoDupla.jogador2Nome = jogadorNovo.nome;
+        atualizacaoDupla.jogador2Nivel = jogadorNovo.nivel;
+        atualizacaoDupla.jogador2Genero = jogadorNovo.genero;
+      }
+
+      await duplaRepository.atualizar(dupla.id, atualizacaoDupla);
+
+      // 5. Atualizar o nome da dupla nas partidas
+      const novoNomeDupla = isJogador1
+        ? `${jogadorNovo.nome} & ${dupla.jogador2Nome}`
+        : `${dupla.jogador1Nome} & ${jogadorNovo.nome}`;
+
+      for (const partida of partidasDaDupla) {
+        const atualizacaoPartida: Partial<Partida> = {};
+
+        if (partida.dupla1Id === dupla.id) {
+          atualizacaoPartida.dupla1Nome = novoNomeDupla;
+        } else if (partida.dupla2Id === dupla.id) {
+          atualizacaoPartida.dupla2Nome = novoNomeDupla;
+        }
+
+        if (Object.keys(atualizacaoPartida).length > 0) {
+          await partidaRepository.atualizar(partida.id, atualizacaoPartida);
+        }
+      }
+
+      // 6. Criar estatísticas para o jogador novo
+      await estatisticasJogadorService.criar({
+        etapaId,
+        arenaId,
+        jogadorId: jogadorNovo.id,
+        jogadorNome: jogadorNovo.nome,
+        jogadorNivel: jogadorNovo.nivel,
+        jogadorGenero: jogadorNovo.genero,
+        grupoId: dupla.grupoId,
+        grupoNome: dupla.grupoNome,
+      });
+
+      // 7. Deletar estatísticas do jogador antigo
+      const estatisticaAntigo = await estatisticasRepository.buscarPorJogadorEEtapa(
+        jogadorAntigoId,
+        etapaId
+      );
+      if (estatisticaAntigo) {
+        await estatisticasRepository.deletar(estatisticaAntigo.id);
+      }
+
+      logger.info("Substituição de jogador concluída na Dupla Fixa", {
+        etapaId,
+        duplaId: dupla.id,
+        jogadorAntigoId,
+        jogadorNovoId: jogadorNovo.id,
+        partidasAtualizadas: partidasDaDupla.length,
+      });
+    } catch (error: any) {
+      logger.error(
+        "Erro ao substituir jogador na Dupla Fixa",
+        { etapaId, jogadorAntigoId, jogadorNovoId: jogadorNovo.id },
+        error
+      );
+      throw error;
     }
   }
 }

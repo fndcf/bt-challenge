@@ -53,4 +53,29 @@ export interface IEtapaService {
    * Operações de Status
    */
   encerrarEtapa(id: string): Promise<void>;
+
+  /**
+   * Substituição de Jogador
+   */
+  substituirJogador(
+    etapaId: string,
+    jogadorAntigoId: string,
+    jogadorNovoId: string
+  ): Promise<{
+    sucesso: boolean;
+    mensagem: string;
+    jogadorAntigoId: string;
+    jogadorAntigoNome: string;
+    jogadorNovoId: string;
+    jogadorNovoNome: string;
+  }>;
+
+  buscarJogadoresDisponiveis(etapaId: string): Promise<
+    Array<{
+      id: string;
+      nome: string;
+      nivel: string;
+      genero: string;
+    }>
+  >;
 }

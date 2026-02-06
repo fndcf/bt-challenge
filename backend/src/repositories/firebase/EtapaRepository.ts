@@ -3,7 +3,7 @@
  */
 
 import { db } from "../../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import {
   Etapa,
   CriarEtapaDTO,
@@ -130,10 +130,15 @@ export class EtapaRepository implements IEtapaRepository {
       atualizadoEm: Timestamp.now(),
     };
 
-    // Remover undefined
+    // Tratar campos null e undefined
     Object.keys(updateData).forEach((key) => {
       if (updateData[key] === undefined) {
+        // Remove campos undefined (não foram enviados)
         delete updateData[key];
+      } else if (updateData[key] === null) {
+        // Campos null devem ser removidos do documento (FieldValue.delete())
+        // Isso é usado para "limpar" campos como nivel = null (Todos os níveis)
+        updateData[key] = FieldValue.delete();
       }
     });
 

@@ -23,7 +23,11 @@ import {
   TipoFormacaoJogos,
   RegistrarResultadoTeamsDTO,
   SetPlacarTeams,
+  StatusConfronto,
+  JogadorEquipe,
 } from "../models/Teams";
+import { Jogador } from "../models/Jogador";
+import { BadRequestError } from "../utils/errors";
 import { Etapa, StatusEtapa, FaseEtapa } from "../models/Etapa";
 import { NivelJogador, GeneroJogador } from "../models/Jogador";
 import { IEquipeRepository } from "../repositories/interfaces/IEquipeRepository";
@@ -334,6 +338,137 @@ export class TeamsService {
     arenaId: string
   ): Promise<void> {
     return this.equipeService.renomearEquipe(equipeId, novoNome, arenaId);
+  }
+
+  // ==================== SUBSTITUIÇÃO ====================
+
+  /**
+   * Substitui um jogador em uma equipe
+   * Só permitido se nenhum confronto foi iniciado
+   */
+  async substituirJogador(
+    etapaId: string,
+    arenaId: string,
+    jogadorAntigoId: string,
+    jogadorNovo: Jogador
+  ): Promise<void> {
+    logger.info("Iniciando substituição de jogador no formato TEAMS", {
+      etapaId,
+      arenaId,
+      jogadorAntigoId,
+      jogadorNovoId: jogadorNovo.id,
+    });
+
+    // 1. Encontrar equipe que contém o jogador antigo
+    const equipes = await this.equipeRepository.buscarPorEtapa(etapaId, arenaId);
+    const equipeComJogador = equipes.find((e) =>
+      e.jogadores.some((j) => j.id === jogadorAntigoId)
+    );
+
+    if (!equipeComJogador) {
+      throw new BadRequestError("Jogador não encontrado em nenhuma equipe desta etapa");
+    }
+
+    // 2. Verificar se nenhum confronto foi iniciado
+    const confrontos = await this.confrontoRepository.buscarPorEtapa(etapaId, arenaId);
+    const algumConfrontoIniciado = confrontos.some(
+      (c) => c.status !== StatusConfronto.AGENDADO
+    );
+
+    if (algumConfrontoIniciado) {
+      throw new BadRequestError(
+        "Não é possível substituir jogador após início de algum confronto"
+      );
+    }
+
+    // 3. Encontrar o jogador antigo na equipe para pegar seus dados
+    const jogadorAntigo = equipeComJogador.jogadores.find(
+      (j) => j.id === jogadorAntigoId
+    )!;
+
+    // 4. Criar novo JogadorEquipe
+    const novoJogadorEquipe: JogadorEquipe = {
+      id: jogadorNovo.id,
+      nome: jogadorNovo.nome,
+      nivel: jogadorNovo.nivel,
+      genero: jogadorNovo.genero,
+    };
+
+    // 5. Atualizar array de jogadores na equipe
+    const novosJogadores = equipeComJogador.jogadores.map((j) =>
+      j.id === jogadorAntigoId ? novoJogadorEquipe : j
+    );
+
+    await this.equipeRepository.atualizarEmLote([
+      { id: equipeComJogador.id, dados: { jogadores: novosJogadores } },
+    ]);
+
+    // 6. Atualizar partidas que tenham o jogador definido
+    const partidas = await this.partidaRepository.buscarPorEtapa(etapaId, arenaId);
+
+    for (const partida of partidas) {
+      let atualizar = false;
+      let novaDupla1 = partida.dupla1;
+      let novaDupla2 = partida.dupla2;
+
+      // Verificar dupla1
+      if (partida.dupla1 && partida.dupla1.some((j) => j.id === jogadorAntigoId)) {
+        novaDupla1 = partida.dupla1.map((j) =>
+          j.id === jogadorAntigoId ? novoJogadorEquipe : j
+        );
+        atualizar = true;
+      }
+
+      // Verificar dupla2
+      if (partida.dupla2 && partida.dupla2.some((j) => j.id === jogadorAntigoId)) {
+        novaDupla2 = partida.dupla2.map((j) =>
+          j.id === jogadorAntigoId ? novoJogadorEquipe : j
+        );
+        atualizar = true;
+      }
+
+      if (atualizar) {
+        await this.partidaRepository.atualizar(partida.id, {
+          dupla1: novaDupla1,
+          dupla2: novaDupla2,
+        });
+      }
+    }
+
+    // 7. Criar estatísticas para o jogador novo
+    await this.estatisticasService.criar({
+      etapaId,
+      arenaId,
+      jogadorId: jogadorNovo.id,
+      jogadorNome: jogadorNovo.nome,
+      jogadorNivel: jogadorNovo.nivel,
+      jogadorGenero: jogadorNovo.genero,
+      grupoId: equipeComJogador.id,
+      grupoNome: equipeComJogador.nome,
+    });
+
+    // 8. Deletar estatísticas do jogador antigo
+    const { estatisticasJogadorRepository } = await import(
+      "../repositories/firebase/EstatisticasJogadorRepository"
+    );
+    const estatisticaAntiga = await estatisticasJogadorRepository.buscarPorJogadorEEtapa(
+      jogadorAntigoId,
+      etapaId
+    );
+
+    if (estatisticaAntiga) {
+      await estatisticasJogadorRepository.deletar(estatisticaAntiga.id);
+    }
+
+    logger.info("Substituição de jogador no formato TEAMS concluída", {
+      etapaId,
+      equipeId: equipeComJogador.id,
+      equipeNome: equipeComJogador.nome,
+      jogadorAntigoId,
+      jogadorAntigoNome: jogadorAntigo.nome,
+      jogadorNovoId: jogadorNovo.id,
+      jogadorNovoNome: jogadorNovo.nome,
+    });
   }
 
   // ==================== CANCELAR / RESETAR ====================

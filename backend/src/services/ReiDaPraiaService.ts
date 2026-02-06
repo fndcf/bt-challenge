@@ -3,6 +3,8 @@
  */
 
 import { StatusEtapa, FaseEtapa } from "../models/Etapa";
+import { Jogador } from "../models/Jogador";
+import { BadRequestError } from "../utils/errors";
 import { Inscricao } from "../models/Inscricao";
 import { Grupo } from "../models/Grupo";
 import { StatusPartida } from "../models/Partida";
@@ -112,10 +114,12 @@ export class ReiDaPraiaService {
       );
 
       // Distribuir jogadores em grupos
+      // Se etapa não tem nível definido, usa distribuição balanceada
       const jogadores = await this.distribuirJogadoresEmGrupos(
         etapaId,
         arenaId,
-        inscricoes
+        inscricoes,
+        !etapa.nivel // true = usar distribuição balanceada
       );
 
       // Criar grupos
@@ -143,11 +147,13 @@ export class ReiDaPraiaService {
 
   /**
    * Distribuir jogadores em grupos de 4
+   * @param balanceado - Se true, distribui equilibrando níveis diferentes em cada grupo
    */
   private async distribuirJogadoresEmGrupos(
     etapaId: string,
     arenaId: string,
-    inscricoes: Inscricao[]
+    inscricoes: Inscricao[],
+    balanceado: boolean = false
   ): Promise<EstatisticasJogador[]> {
     try {
       const jogadores: EstatisticasJogador[] = [];
@@ -176,30 +182,75 @@ export class ReiDaPraiaService {
         );
       }
 
-      // Embaralhar
-      const cabecasEmbaralhadas = embaralhar([...inscricoesCabecas]);
-      const normaisEmbaralhados = embaralhar([...inscricoesNormais]);
-
-      // Distribuir cabeças primeiro (1 por grupo)
-      const gruposComCabecas: Inscricao[][] = [];
+      // Inicializar grupos vazios
+      const gruposFormados: Inscricao[][] = [];
       for (let i = 0; i < numGrupos; i++) {
-        const grupo: Inscricao[] = [];
-        if (i < cabecasEmbaralhadas.length) {
-          grupo.push(cabecasEmbaralhadas[i]);
-        }
-        gruposComCabecas.push(grupo);
+        gruposFormados.push([]);
+      }
+
+      // Distribuir cabeças primeiro (1 por grupo, embaralhadas)
+      const cabecasEmbaralhadas = embaralhar([...inscricoesCabecas]);
+      for (let i = 0; i < cabecasEmbaralhadas.length; i++) {
+        gruposFormados[i].push(cabecasEmbaralhadas[i]);
       }
 
       // Distribuir jogadores normais
-      let indexNormal = 0;
-      while (indexNormal < normaisEmbaralhados.length) {
-        for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
-          if (
-            gruposComCabecas[grupoIndex].length < 4 &&
-            indexNormal < normaisEmbaralhados.length
-          ) {
-            gruposComCabecas[grupoIndex].push(normaisEmbaralhados[indexNormal]);
-            indexNormal++;
+      if (balanceado) {
+        // DISTRIBUIÇÃO BALANCEADA: separar por nível e distribuir round-robin
+        const avancados = embaralhar(
+          inscricoesNormais.filter((i) => i.jogadorNivel === "avancado")
+        );
+        const intermediarios = embaralhar(
+          inscricoesNormais.filter((i) => i.jogadorNivel === "intermediario")
+        );
+        const iniciantes = embaralhar(
+          inscricoesNormais.filter((i) => i.jogadorNivel === "iniciante")
+        );
+
+        logger.info("Distribuição balanceada por nível", {
+          etapaId,
+          avancados: avancados.length,
+          intermediarios: intermediarios.length,
+          iniciantes: iniciantes.length,
+          numGrupos,
+        });
+
+        // Função para distribuir um array de jogadores nos grupos round-robin
+        const distribuirRoundRobin = (jogadoresNivel: Inscricao[]) => {
+          let grupoIndex = 0;
+          for (const jogador of jogadoresNivel) {
+            // Encontrar próximo grupo com espaço (< 4 jogadores)
+            let tentativas = 0;
+            while (gruposFormados[grupoIndex].length >= 4 && tentativas < numGrupos) {
+              grupoIndex = (grupoIndex + 1) % numGrupos;
+              tentativas++;
+            }
+            if (gruposFormados[grupoIndex].length < 4) {
+              gruposFormados[grupoIndex].push(jogador);
+              grupoIndex = (grupoIndex + 1) % numGrupos;
+            }
+          }
+        };
+
+        // Distribuir cada nível de forma round-robin
+        // Ordem: iniciantes primeiro, depois intermediários, depois avançados
+        // Isso garante que os jogadores mais fortes fiquem bem distribuídos no final
+        distribuirRoundRobin(iniciantes);
+        distribuirRoundRobin(intermediarios);
+        distribuirRoundRobin(avancados);
+      } else {
+        // DISTRIBUIÇÃO ALEATÓRIA (comportamento original)
+        const normaisEmbaralhados = embaralhar([...inscricoesNormais]);
+        let indexNormal = 0;
+        while (indexNormal < normaisEmbaralhados.length) {
+          for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
+            if (
+              gruposFormados[grupoIndex].length < 4 &&
+              indexNormal < normaisEmbaralhados.length
+            ) {
+              gruposFormados[grupoIndex].push(normaisEmbaralhados[indexNormal]);
+              indexNormal++;
+            }
           }
         }
       }
@@ -217,7 +268,7 @@ export class ReiDaPraiaService {
 
       for (let grupoIndex = 0; grupoIndex < numGrupos; grupoIndex++) {
         const nomeGrupo = `Grupo ${letras[grupoIndex]}`;
-        const jogadoresGrupo = gruposComCabecas[grupoIndex];
+        const jogadoresGrupo = gruposFormados[grupoIndex];
 
         for (const inscricao of jogadoresGrupo) {
           estatisticasDTOs.push({
@@ -1735,6 +1786,135 @@ export class ReiDaPraiaService {
       logger.error(
         "Erro ao cancelar fase eliminatória",
         { etapaId, arenaId },
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Substituir jogador em uma etapa Rei da Praia
+   * Só permite se nenhuma partida do grupo foi jogada
+   */
+  async substituirJogador(
+    etapaId: string,
+    arenaId: string,
+    jogadorAntigoId: string,
+    jogadorNovo: Jogador
+  ): Promise<void> {
+    try {
+      logger.info("Iniciando substituição de jogador no Rei da Praia", {
+        etapaId,
+        jogadorAntigoId,
+        jogadorNovoId: jogadorNovo.id,
+      });
+
+      // 1. Buscar estatísticas do jogador antigo
+      const estatisticaAntigo =
+        await this.estatisticasJogadorRepository.buscarPorJogadorEEtapa(
+          jogadorAntigoId,
+          etapaId
+        );
+
+      if (!estatisticaAntigo) {
+        throw new BadRequestError("Jogador antigo não encontrado na etapa");
+      }
+
+      if (!estatisticaAntigo.grupoId) {
+        throw new BadRequestError("Jogador antigo não está em nenhum grupo");
+      }
+
+      const grupoId = estatisticaAntigo.grupoId;
+
+      // 2. Verificar se alguma partida do grupo já foi jogada
+      const partidasDoGrupo =
+        await this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId);
+
+      const partidasJogadas = partidasDoGrupo.filter(
+        (p) => p.status !== StatusPartida.AGENDADA
+      );
+
+      if (partidasJogadas.length > 0) {
+        throw new BadRequestError(
+          "Não é possível substituir jogador pois já existem partidas jogadas neste grupo"
+        );
+      }
+
+      // 3. Criar estatísticas para o jogador novo
+      await estatisticasJogadorService.criar({
+        etapaId,
+        arenaId,
+        jogadorId: jogadorNovo.id,
+        jogadorNome: jogadorNovo.nome,
+        jogadorNivel: jogadorNovo.nivel,
+        jogadorGenero: jogadorNovo.genero,
+        grupoId: estatisticaAntigo.grupoId,
+        grupoNome: estatisticaAntigo.grupoNome,
+      });
+
+      // 4. Atualizar o array duplas do Grupo
+      const grupo = await this.grupoRepository.buscarPorId(grupoId);
+      if (grupo) {
+        const novasDuplas = grupo.duplas.map((id) =>
+          id === jogadorAntigoId ? jogadorNovo.id : id
+        );
+        await this.grupoRepository.atualizar(grupoId, { duplas: novasDuplas });
+      }
+
+      // 5. Atualizar as partidas do grupo
+      for (const partida of partidasDoGrupo) {
+        const atualizacao: Partial<PartidaReiDaPraia> = {};
+
+        // Verificar cada posição de jogador na partida
+        if (partida.jogador1AId === jogadorAntigoId) {
+          atualizacao.jogador1AId = jogadorNovo.id;
+          atualizacao.jogador1ANome = jogadorNovo.nome;
+        }
+        if (partida.jogador1BId === jogadorAntigoId) {
+          atualizacao.jogador1BId = jogadorNovo.id;
+          atualizacao.jogador1BNome = jogadorNovo.nome;
+        }
+        if (partida.jogador2AId === jogadorAntigoId) {
+          atualizacao.jogador2AId = jogadorNovo.id;
+          atualizacao.jogador2ANome = jogadorNovo.nome;
+        }
+        if (partida.jogador2BId === jogadorAntigoId) {
+          atualizacao.jogador2BId = jogadorNovo.id;
+          atualizacao.jogador2BNome = jogadorNovo.nome;
+        }
+
+        // Só atualiza se houve mudança
+        if (Object.keys(atualizacao).length > 0) {
+          // Recalcular nomes das duplas
+          const j1aNome = atualizacao.jogador1ANome || partida.jogador1ANome;
+          const j1bNome = atualizacao.jogador1BNome || partida.jogador1BNome;
+          const j2aNome = atualizacao.jogador2ANome || partida.jogador2ANome;
+          const j2bNome = atualizacao.jogador2BNome || partida.jogador2BNome;
+
+          atualizacao.dupla1Nome = `${j1aNome} / ${j1bNome}`;
+          atualizacao.dupla2Nome = `${j2aNome} / ${j2bNome}`;
+
+          await this.partidaReiDaPraiaRepository.atualizar(
+            partida.id,
+            atualizacao
+          );
+        }
+      }
+
+      // 6. Deletar estatísticas do jogador antigo
+      await this.estatisticasJogadorRepository.deletar(estatisticaAntigo.id);
+
+      logger.info("Substituição de jogador concluída no Rei da Praia", {
+        etapaId,
+        grupoId,
+        jogadorAntigoId,
+        jogadorNovoId: jogadorNovo.id,
+        partidasAtualizadas: partidasDoGrupo.length,
+      });
+    } catch (error: any) {
+      logger.error(
+        "Erro ao substituir jogador no Rei da Praia",
+        { etapaId, jogadorAntigoId, jogadorNovoId: jogadorNovo.id },
         error
       );
       throw error;

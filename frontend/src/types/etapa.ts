@@ -115,7 +115,7 @@ export interface CriarEtapaDTO {
 export interface AtualizarEtapaDTO {
   nome?: string;
   descricao?: string;
-  nivel?: NivelJogador;
+  nivel?: NivelJogador | null; // null = "Todos os níveis"
   genero?: GeneroJogador;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   tipoFormacaoDupla?: TipoFormacaoDupla;

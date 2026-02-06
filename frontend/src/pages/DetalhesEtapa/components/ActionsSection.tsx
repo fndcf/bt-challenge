@@ -16,6 +16,7 @@ interface ActionsSectionProps {
   onGerarChaves: () => Promise<void>;
   onApagarChaves: () => void;
   onVerChaves: () => void;
+  onSubstituirJogador?: () => void;
 }
 
 export const ActionsSection: React.FC<ActionsSectionProps> = ({
@@ -28,6 +29,7 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   onGerarChaves,
   onApagarChaves,
   onVerChaves,
+  onSubstituirJogador,
 }) => {
   const inscricoesAbertas = etapa.status === StatusEtapa.INSCRICOES_ABERTAS;
   const inscricoesEncerradas =
@@ -91,6 +93,13 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         {etapa.chavesGeradas && (
           <S.Button $variant="red" onClick={onApagarChaves}>
             <span>{isTeams ? "Apagar Equipes" : "Apagar Chaves"}</span>
+          </S.Button>
+        )}
+
+        {/* Substituir jogador */}
+        {etapa.chavesGeradas && onSubstituirJogador && (
+          <S.Button $variant="orange" onClick={onSubstituirJogador}>
+            <span>Substituir Jogador</span>
           </S.Button>
         )}
       </S.ActionsGrid>

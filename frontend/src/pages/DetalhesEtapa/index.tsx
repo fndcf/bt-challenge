@@ -12,6 +12,7 @@ import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia";
 import { ChavesSuperX } from "@/components/etapas/ChavesSuperX";
 import { ChavesTeams } from "@/components/etapas/ChavesTeams";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ModalSubstituirJogador } from "@/components/modals/ModalSubstituirJogador";
 import { Footer } from "@/components/layout/Footer";
 import { LoadingOverlay } from "@/components/ui";
 import { getEtapaService } from "@/services";
@@ -36,6 +37,9 @@ const DetalhesEtapa: React.FC = () => {
 
   // Estado do modal de formação manual
   const [modalFormacaoManualAberto, setModalFormacaoManualAberto] = useState(false);
+
+  // Estado do modal de substituição de jogador
+  const [modalSubstituicaoAberto, setModalSubstituicaoAberto] = useState(false);
 
   // Hook customizado gerencia todo o estado e lógica
   const {
@@ -231,6 +235,7 @@ const DetalhesEtapa: React.FC = () => {
               tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
             }, 100);
           }}
+          onSubstituirJogador={() => setModalSubstituicaoAberto(true)}
         />
 
         {/* Tabs */}
@@ -361,6 +366,19 @@ const DetalhesEtapa: React.FC = () => {
           inscricoes={etapa.inscricoes || []}
           varianteTeams={etapa.varianteTeams || 4}
           isMisto={etapa.isMisto}
+        />
+      )}
+
+      {modalSubstituicaoAberto && etapa && (
+        <ModalSubstituirJogador
+          isOpen={modalSubstituicaoAberto}
+          onClose={() => setModalSubstituicaoAberto(false)}
+          onSuccess={async () => {
+            await carregarEtapa();
+            setModalSubstituicaoAberto(false);
+          }}
+          etapaId={etapa.id}
+          inscricoes={etapa.inscricoes || []}
         />
       )}
 

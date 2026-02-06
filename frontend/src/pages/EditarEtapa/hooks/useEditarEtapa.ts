@@ -307,6 +307,9 @@ export const useEditarEtapa = (
 
         const dadosParaEnviar = {
           ...formData,
+          // Converter nivel undefined para null (para "Todos os níveis")
+          // null é enviado explicitamente para o backend remover o campo
+          nivel: formData.nivel === undefined ? null : formData.nivel,
           dataInicio: formData.dataInicio
             ? toISO(formData.dataInicio)
             : undefined,

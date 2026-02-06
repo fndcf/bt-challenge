@@ -382,6 +382,25 @@ router.delete("/:id/teams/resetar-partidas", (req, res) =>
   etapaController.resetarPartidasTeams(req, res)
 );
 
+// ==================== SUBSTITUIÇÃO DE JOGADOR ====================
+
+/**
+ * @route   POST /api/etapas/:id/substituir-jogador
+ * @desc    Substituir um jogador após chaves geradas (antes de partidas iniciadas)
+ * @body    { jogadorAntigoId: string, jogadorNovoId: string }
+ */
+router.post("/:id/substituir-jogador", (req, res) =>
+  etapaController.substituirJogador(req, res)
+);
+
+/**
+ * @route   GET /api/etapas/:id/jogadores-disponiveis
+ * @desc    Buscar jogadores disponíveis para substituição (não estão na etapa)
+ */
+router.get("/:id/jogadores-disponiveis", (req, res) =>
+  etapaController.buscarJogadoresDisponiveis(req, res)
+);
+
 // ==================== ROTAS GENÉRICAS (devem ficar por último) ====================
 
 /**
