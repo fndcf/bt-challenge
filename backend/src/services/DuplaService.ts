@@ -83,16 +83,8 @@ export class DuplaService implements IDuplaService {
           inscricoes,
           tipoFormacao
         );
-      }
-      // Se formação balanceada (não misto), usar algoritmo específico
-      else if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
-        duplas = await this.formarDuplasBalanceadas(
-          etapaId,
-          arenaId,
-          inscricoes
-        );
       } else {
-        // Formação padrão: proteger cabeças de chave
+        // Para BALANCEADO e padrão: sempre verificar cabeças de chave
         const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
           arenaId,
           etapaId
@@ -115,8 +107,14 @@ export class DuplaService implements IDuplaService {
         );
 
         if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
-          duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
+          // Todas combinações de cabeças esgotadas - usar formação específica
+          if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
+            duplas = await this.formarDuplasBalanceadas(etapaId, arenaId, inscricoes);
+          } else {
+            duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
+          }
         } else {
+          // Proteger cabeças de chave (igual para BALANCEADO e padrão)
           duplas = await this.formarDuplasProtegendoCabecas(
             etapaId,
             arenaId,
