@@ -65,70 +65,53 @@ export class DuplaService implements IDuplaService {
 
       const isMisto = generoEtapa === GeneroJogador.MISTO;
 
-      logger.info("Formando duplas", {
-        etapaId,
-        tipoFormacao,
-        generoEtapa,
-        isMisto,
-        tipoFormacaoBalanceado: TipoFormacaoDupla.BALANCEADO,
-        isBalanceado: tipoFormacao === TipoFormacaoDupla.BALANCEADO,
-        totalInscricoes: inscricoes.length,
-      });
+      // Buscar cabeças de chave
+      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
+        arenaId,
+        etapaId
+      );
 
-      // Se etapa mista, formar duplas 1M+1F respeitando tipoFormacao (balanceado ou mesmo nivel)
-      if (isMisto) {
-        duplas = await this.formarDuplasMisto(
-          etapaId,
-          arenaId,
-          inscricoes,
-          tipoFormacao
-        );
-      } else {
-        // Para BALANCEADO e padrão: sempre verificar cabeças de chave
-        const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
-          arenaId,
-          etapaId
-        );
+      const cabecas: Inscricao[] = [];
+      const normais: Inscricao[] = [];
 
-        const cabecas: Inscricao[] = [];
-        const normais: Inscricao[] = [];
-
-        for (const inscricao of inscricoes) {
-          if (cabecasIds.includes(inscricao.jogadorId)) {
-            cabecas.push(inscricao);
-          } else {
-            normais.push(inscricao);
-          }
-        }
-
-        const stats = await historicoDuplaService.calcularEstatisticas(
-          arenaId,
-          etapaId
-        );
-
-        if (stats.todasCombinacoesFeitas && cabecas.length >= 2) {
-          // Todas combinações de cabeças esgotadas - usar formação específica
-          if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
-            duplas = await this.formarDuplasBalanceadas(etapaId, arenaId, inscricoes);
-          } else {
-            duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
-          }
+      for (const inscricao of inscricoes) {
+        if (cabecasIds.includes(inscricao.jogadorId)) {
+          cabecas.push(inscricao);
         } else {
-          // Proteger cabeças de chave (igual para BALANCEADO e padrão)
+          normais.push(inscricao);
+        }
+      }
+
+      // Se etapa mista, formar duplas 1M+1F respeitando cabeças de chave
+      if (isMisto) {
+        if (cabecas.length > 0) {
+          duplas = await this.formarDuplasMistoProtegendoCabecas(
+            etapaId, arenaId, cabecas, normais
+          );
+        } else {
+          duplas = await this.formarDuplasMisto(
+            etapaId, arenaId, inscricoes, tipoFormacao
+          );
+        }
+      } else {
+        // Para BALANCEADO e padrão: SEMPRE proteger cabeças de chave
+        if (cabecas.length > 0) {
           duplas = await this.formarDuplasProtegendoCabecas(
             etapaId,
             arenaId,
             cabecas,
             normais
           );
+        } else {
+          if (tipoFormacao === TipoFormacaoDupla.BALANCEADO) {
+            duplas = await this.formarDuplasBalanceadas(etapaId, arenaId, inscricoes);
+          } else {
+            duplas = await this.formarDuplasLivre(etapaId, arenaId, inscricoes);
+          }
         }
       }
 
       // Registrar histórico de duplas formadas
-      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(
-        arenaId,
-        etapaId
-      );
       const historicosDTOs = duplas.map((dupla) => ({
         arenaId,
         etapaId,
@@ -535,6 +518,79 @@ export class DuplaService implements IDuplaService {
     }
 
     // Criar todas as duplas em uma única operação batch
+    return this.repository.criarEmLote(duplaDTOs);
+  }
+
+  /**
+   * Formar duplas mistas protegendo cabeças de chave
+   * Cada cabeça é pareada com um jogador normal do gênero oposto
+   */
+  private async formarDuplasMistoProtegendoCabecas(
+    etapaId: string,
+    arenaId: string,
+    cabecas: Inscricao[],
+    normais: Inscricao[]
+  ): Promise<Dupla[]> {
+    const totalJogadores = cabecas.length + normais.length;
+
+    if (totalJogadores % 2 !== 0) {
+      throw new Error("Número ímpar de jogadores");
+    }
+
+    // Separar cabeças por gênero
+    const cabecasM = embaralhar(
+      cabecas.filter((c) => c.jogadorGenero === GeneroJogador.MASCULINO)
+    );
+    const cabecasF = embaralhar(
+      cabecas.filter((c) => c.jogadorGenero === GeneroJogador.FEMININO)
+    );
+
+    // Separar normais por gênero
+    const normaisM = embaralhar(
+      normais.filter((n) => n.jogadorGenero === GeneroJogador.MASCULINO)
+    );
+    const normaisF = embaralhar(
+      normais.filter((n) => n.jogadorGenero === GeneroJogador.FEMININO)
+    );
+
+    // Validar: cada cabeça masculina precisa de uma normal feminina e vice-versa
+    if (cabecasM.length > normaisF.length) {
+      throw new Error(
+        `Impossível proteger cabeças: ${cabecasM.length} cabeças masculinas mas apenas ${normaisF.length} jogadoras normais femininas.`
+      );
+    }
+    if (cabecasF.length > normaisM.length) {
+      throw new Error(
+        `Impossível proteger cabeças: ${cabecasF.length} cabeças femininas mas apenas ${normaisM.length} jogadores normais masculinos.`
+      );
+    }
+
+    const duplaDTOs: Array<Partial<Dupla>> = [];
+
+    // Parear cabeças masculinas com normais femininas
+    for (let i = 0; i < cabecasM.length; i++) {
+      duplaDTOs.push(
+        this.montarDuplaDTO(etapaId, arenaId, cabecasM[i], normaisF[i])
+      );
+    }
+
+    // Parear cabeças femininas com normais masculinos
+    for (let i = 0; i < cabecasF.length; i++) {
+      duplaDTOs.push(
+        this.montarDuplaDTO(etapaId, arenaId, normaisM[i], cabecasF[i])
+      );
+    }
+
+    // Parear normais restantes entre si (M com F)
+    const normaisMRestantes = normaisM.slice(cabecasF.length);
+    const normaisFRestantes = normaisF.slice(cabecasM.length);
+
+    for (let i = 0; i < normaisMRestantes.length && i < normaisFRestantes.length; i++) {
+      duplaDTOs.push(
+        this.montarDuplaDTO(etapaId, arenaId, normaisMRestantes[i], normaisFRestantes[i])
+      );
+    }
+
     return this.repository.criarEmLote(duplaDTOs);
   }
 
