@@ -20,6 +20,17 @@ export interface IChaveService {
   gerarChaves(etapaId: string): Promise<ResultadoGeracaoChaves>;
 
   /**
+   * Formar duplas manualmente e gerar chaves (DUPLA FIXA)
+   * @param etapaId - ID da etapa
+   * @param formacoes - Array de pares de jogadores
+   * @returns Promise com resultado da geração
+   */
+  formarDuplasManual(
+    etapaId: string,
+    formacoes: { jogador1Id: string; jogador2Id: string }[]
+  ): Promise<ResultadoGeracaoChaves>;
+
+  /**
    * Excluir todas as chaves de uma etapa (duplas, grupos, partidas)
    * @param etapaId - ID da etapa
    * @returns Promise void

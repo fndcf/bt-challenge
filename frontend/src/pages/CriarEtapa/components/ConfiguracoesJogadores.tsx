@@ -141,9 +141,14 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
               <option value={TipoFormacaoDupla.BALANCEADO}>
                 Balanceado (Avançado + Iniciante, Intermediários entre si)
               </option>
+              <option value={TipoFormacaoDupla.MANUAL}>
+                Manual (organizador define as duplas)
+              </option>
             </S.Select>
             <S.HelperText>
-              {tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO
+              {tipoFormacaoDupla === TipoFormacaoDupla.MANUAL
+                ? "O organizador definirá as duplas manualmente antes de gerar chaves"
+                : tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO
                 ? "Permite misturar jogadores de diferentes níveis"
                 : "Todas as duplas terão jogadores do mesmo nível"}
             </S.HelperText>

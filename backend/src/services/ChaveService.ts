@@ -51,6 +51,12 @@ export interface IChaveService {
     arenaId: string
   ): Promise<{ duplas: Dupla[]; grupos: Grupo[]; partidas: Partida[] }>;
 
+  gerarChavesComDuplasManual(
+    etapaId: string,
+    arenaId: string,
+    formacoes: { jogador1Id: string; jogador2Id: string }[]
+  ): Promise<{ duplas: Dupla[]; grupos: Grupo[]; partidas: Partida[] }>;
+
   excluirChaves(etapaId: string, arenaId: string): Promise<void>;
 
   registrarResultadosEmLote(
@@ -190,6 +196,107 @@ export class ChaveService implements IChaveService {
       return { duplas, grupos, partidas };
     } catch (error: any) {
       logger.error("Erro ao gerar chaves", { etapaId, arenaId }, error);
+      throw error;
+    }
+  }
+
+
+  /**
+   * Gerar chaves com duplas formadas manualmente
+   *
+   * FLUXO:
+   * Validar etapa
+   * Usar duplas fornecidas pelo organizador (sem sorteio)
+   * Criar estatísticas dos jogadores
+   * Criar grupos (distribuindo duplas)
+   * Gerar partidas (todos contra todos)
+   * Atualizar status da etapa
+   */
+  async gerarChavesComDuplasManual(
+    etapaId: string,
+    arenaId: string,
+    formacoes: { jogador1Id: string; jogador2Id: string }[]
+  ): Promise<{ duplas: Dupla[]; grupos: Grupo[]; partidas: Partida[] }> {
+    try {
+      // Validar etapa
+      const etapa = await etapaService.buscarPorId(etapaId, arenaId);
+      if (!etapa) {
+        throw new Error("Etapa não encontrada");
+      }
+      this.validarEtapaParaGeracaoChaves(etapa);
+
+      // Buscar inscrições
+      const inscricoes = await etapaService.listarInscricoes(etapaId, arenaId);
+
+      // Formar duplas manualmente (sem sorteio)
+      const duplas = await this.duplas.formarDuplasManualmente(
+        etapaId,
+        etapa.nome,
+        arenaId,
+        inscricoes,
+        formacoes,
+        etapa.genero
+      );
+
+      // Criar estatísticas dos jogadores
+      const estatisticasDTOs = duplas.flatMap((dupla) => [
+        {
+          etapaId,
+          arenaId,
+          jogadorId: dupla.jogador1Id,
+          jogadorNome: dupla.jogador1Nome,
+          jogadorNivel: dupla.jogador1Nivel,
+          jogadorGenero: dupla.jogador1Genero,
+          grupoId: dupla.grupoId,
+          grupoNome: dupla.grupoNome,
+        },
+        {
+          etapaId,
+          arenaId,
+          jogadorId: dupla.jogador2Id,
+          jogadorNome: dupla.jogador2Nome,
+          jogadorNivel: dupla.jogador2Nivel,
+          jogadorGenero: dupla.jogador2Genero,
+          grupoId: dupla.grupoId,
+          grupoNome: dupla.grupoNome,
+        },
+      ]);
+      await estatisticasJogadorService.criarEmLote(estatisticasDTOs);
+
+      // Criar grupos
+      const grupos = await this.grupos.criarGrupos(
+        etapaId,
+        arenaId,
+        duplas,
+        etapa.jogadoresPorGrupo
+      );
+
+      // Gerar partidas
+      const partidas = await this.partidasGrupo.gerarPartidas(
+        etapaId,
+        arenaId,
+        grupos
+      );
+
+      // Atualizar status da etapa
+      await db.collection("etapas").doc(etapaId).update({
+        chavesGeradas: true,
+        dataGeracaoChaves: Timestamp.now(),
+        status: StatusEtapa.CHAVES_GERADAS,
+        atualizadoEm: Timestamp.now(),
+      });
+
+      logger.info("Chaves geradas com duplas manuais", {
+        etapaId,
+        inscritos: inscricoes.length,
+        duplas: duplas.length,
+        grupos: grupos.length,
+        partidas: partidas.length,
+      });
+
+      return { duplas, grupos, partidas };
+    } catch (error: any) {
+      logger.error("Erro ao gerar chaves com duplas manuais", { etapaId, arenaId }, error);
       throw error;
     }
   }

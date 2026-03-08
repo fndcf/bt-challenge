@@ -8,7 +8,7 @@ Dupley é uma plataforma completa para gerenciamento de torneios, permitindo:
 
 - Cadastro de jogadores por categoria e nível
 - Quatro formatos de torneio: **Dupla Fixa**, **Rei da Praia**, **Super X** e **TEAMS**
-- Geração automática de grupos e chaves eliminatórias
+- Geração automática de grupos e chaves eliminatórias (ou manual para Dupla Fixa e TEAMS)
 - Sistema de pontuação individual
 - Rankings dinâmicos
 - Histórico de etapas e estatísticas
@@ -26,6 +26,7 @@ Formato tradicional onde duplas são formadas via sorteio e permanecem juntas du
 - **Tipos de formação de duplas:**
   - **Mesmo Nível**: Sorteio entre jogadores do mesmo nível selecionado
   - **Balanceado**: Pareamento avançado + iniciante (permite todos os níveis)
+  - **Manual**: Organizador define as duplas manualmente antes de gerar chaves
 - **Suporte a Misto**: Etapas mistas com duplas 1 masculino + 1 feminino
   - Inscrições validam 50% de cada gênero
   - Formação de duplas respeita gênero + nível (balanceado ou mesmo nível)
@@ -239,6 +240,7 @@ Aplicação disponível em `http://localhost:3000`
 | GET    | `/api/etapas`                            | Listar etapas                        |
 | GET    | `/api/partidas`                          | Listar partidas                      |
 | GET    | `/api/public/arena/:slug`                | Dados públicos da arena              |
+| POST   | `/api/etapas/:id/formar-duplas-manual`   | Formar duplas manualmente (Dupla Fixa)|
 | POST   | `/api/etapas/:id/substituir-jogador`     | Substituir jogador na etapa          |
 | GET    | `/api/etapas/:id/jogadores-disponiveis`  | Jogadores disponíveis p/ substituição|
 
@@ -443,6 +445,7 @@ Os arquivos de configuração do Firebase estão na raiz do projeto:
 - [x] Visualizador de grupos (GruposViewer)
 - [x] Visualizador de chaves (BracketViewer)
 - [x] Rankings
+- [x] Formação manual de duplas (Dupla Fixa)
 - [x] Substituição de jogadores (todos os formatos)
 - [x] Testes unitários (backend e frontend)
 

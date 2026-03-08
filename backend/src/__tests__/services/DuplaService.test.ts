@@ -367,4 +367,230 @@ describe("DuplaService", () => {
       expect(mockDuplaRepository.criarEmLote).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("formarDuplasManualmente", () => {
+    const baseInscricoes = [
+      createInscricaoFixture({
+        id: "inscricao-1",
+        jogadorId: "jogador-1",
+        jogadorNome: "Jogador 1",
+        jogadorNivel: NivelJogador.INTERMEDIARIO,
+        jogadorGenero: GeneroJogador.MASCULINO,
+      }),
+      createInscricaoFixture({
+        id: "inscricao-2",
+        jogadorId: "jogador-2",
+        jogadorNome: "Jogador 2",
+        jogadorNivel: NivelJogador.INTERMEDIARIO,
+        jogadorGenero: GeneroJogador.MASCULINO,
+      }),
+      createInscricaoFixture({
+        id: "inscricao-3",
+        jogadorId: "jogador-3",
+        jogadorNome: "Jogador 3",
+        jogadorNivel: NivelJogador.INTERMEDIARIO,
+        jogadorGenero: GeneroJogador.MASCULINO,
+      }),
+      createInscricaoFixture({
+        id: "inscricao-4",
+        jogadorId: "jogador-4",
+        jogadorNome: "Jogador 4",
+        jogadorNivel: NivelJogador.INTERMEDIARIO,
+        jogadorGenero: GeneroJogador.MASCULINO,
+      }),
+    ];
+
+    it("deve lançar erro se número de duplas não corresponde ao esperado", async () => {
+      const formacoes = [
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-2" },
+      ];
+
+      await expect(
+        duplaService.formarDuplasManualmente(
+          TEST_ETAPA_ID,
+          "Etapa Teste",
+          TEST_ARENA_ID,
+          baseInscricoes,
+          formacoes // 1 dupla, mas esperado 2
+        )
+      ).rejects.toThrow("Número de duplas (1) não corresponde ao esperado (2)");
+    });
+
+    it("deve lançar erro se um jogador aparece em mais de uma dupla", async () => {
+      const formacoes = [
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-2" },
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-3" },
+      ];
+
+      await expect(
+        duplaService.formarDuplasManualmente(
+          TEST_ETAPA_ID,
+          "Etapa Teste",
+          TEST_ARENA_ID,
+          baseInscricoes,
+          formacoes
+        )
+      ).rejects.toThrow("Um jogador aparece em mais de uma dupla");
+    });
+
+    it("deve lançar erro se jogador não está nas inscrições", async () => {
+      const formacoes = [
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-inexistente" },
+        { jogador1Id: "jogador-3", jogador2Id: "jogador-4" },
+      ];
+
+      await expect(
+        duplaService.formarDuplasManualmente(
+          TEST_ETAPA_ID,
+          "Etapa Teste",
+          TEST_ARENA_ID,
+          baseInscricoes,
+          formacoes
+        )
+      ).rejects.toThrow("Jogador não encontrado nas inscrições");
+    });
+
+    it("deve lançar erro em etapa mista se dupla tiver jogadores do mesmo gênero", async () => {
+      const inscricoesMisto = [
+        createInscricaoFixture({
+          id: "inscricao-1",
+          jogadorId: "jogador-1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.MASCULINO,
+        }),
+        createInscricaoFixture({
+          id: "inscricao-2",
+          jogadorId: "jogador-2",
+          jogadorNome: "Jogador 2",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.MASCULINO,
+        }),
+        createInscricaoFixture({
+          id: "inscricao-3",
+          jogadorId: "jogador-3",
+          jogadorNome: "Jogador 3",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.FEMININO,
+        }),
+        createInscricaoFixture({
+          id: "inscricao-4",
+          jogadorId: "jogador-4",
+          jogadorNome: "Jogador 4",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.FEMININO,
+        }),
+      ];
+
+      const formacoes = [
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-2" },
+        { jogador1Id: "jogador-3", jogador2Id: "jogador-4" },
+      ];
+
+      await expect(
+        duplaService.formarDuplasManualmente(
+          TEST_ETAPA_ID,
+          "Etapa Teste",
+          TEST_ARENA_ID,
+          inscricoesMisto,
+          formacoes,
+          GeneroJogador.MISTO
+        )
+      ).rejects.toThrow("etapa mista requer 1 masculino + 1 feminino por dupla");
+    });
+
+    it("deve formar duplas manualmente com sucesso", async () => {
+      const formacoes = [
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-2" },
+        { jogador1Id: "jogador-3", jogador2Id: "jogador-4" },
+      ];
+
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
+      (historicoDuplaService.registrarEmLote as jest.Mock).mockResolvedValue(undefined);
+
+      mockDuplaRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createDuplaFixture({
+            id: `dupla-${idx + 1}`,
+            ...dto,
+          })
+        )
+      );
+
+      const result = await duplaService.formarDuplasManualmente(
+        TEST_ETAPA_ID,
+        "Etapa Teste",
+        TEST_ARENA_ID,
+        baseInscricoes,
+        formacoes
+      );
+
+      expect(mockDuplaRepository.criarEmLote).toHaveBeenCalledTimes(1);
+      expect(historicoDuplaService.registrarEmLote).toHaveBeenCalledTimes(1);
+      expect(result).toHaveLength(2);
+    });
+
+    it("deve formar duplas mistas manualmente com sucesso (1M + 1F)", async () => {
+      const inscricoesMisto = [
+        createInscricaoFixture({
+          id: "inscricao-1",
+          jogadorId: "jogador-1",
+          jogadorNome: "Jogador 1",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.MASCULINO,
+        }),
+        createInscricaoFixture({
+          id: "inscricao-2",
+          jogadorId: "jogador-2",
+          jogadorNome: "Jogador 2",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.FEMININO,
+        }),
+        createInscricaoFixture({
+          id: "inscricao-3",
+          jogadorId: "jogador-3",
+          jogadorNome: "Jogador 3",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.MASCULINO,
+        }),
+        createInscricaoFixture({
+          id: "inscricao-4",
+          jogadorId: "jogador-4",
+          jogadorNome: "Jogador 4",
+          jogadorNivel: NivelJogador.INTERMEDIARIO,
+          jogadorGenero: GeneroJogador.FEMININO,
+        }),
+      ];
+
+      const formacoes = [
+        { jogador1Id: "jogador-1", jogador2Id: "jogador-2" },
+        { jogador1Id: "jogador-3", jogador2Id: "jogador-4" },
+      ];
+
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
+      (historicoDuplaService.registrarEmLote as jest.Mock).mockResolvedValue(undefined);
+
+      mockDuplaRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createDuplaFixture({
+            id: `dupla-${idx + 1}`,
+            ...dto,
+          })
+        )
+      );
+
+      const result = await duplaService.formarDuplasManualmente(
+        TEST_ETAPA_ID,
+        "Etapa Teste",
+        TEST_ARENA_ID,
+        inscricoesMisto,
+        formacoes,
+        GeneroJogador.MISTO
+      );
+
+      expect(result).toHaveLength(2);
+      expect(mockDuplaRepository.criarEmLote).toHaveBeenCalledTimes(1);
+      expect(historicoDuplaService.registrarEmLote).toHaveBeenCalledTimes(1);
+    });
+  });
 });

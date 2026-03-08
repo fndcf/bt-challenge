@@ -4,12 +4,13 @@
 
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useEtapaChaves } from "@/hooks/useEtapaChaves";
-import { FormatoEtapa, TipoFormacaoEquipe } from "@/types/etapa";
+import { FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/types/etapa";
 
 // Mock dos services
 const mockChaveService = {
   gerarChaves: jest.fn(),
   excluirChaves: jest.fn(),
+  formarDuplasManual: jest.fn(),
 };
 
 const mockReiDaPraiaService = {
@@ -503,6 +504,146 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockTeamsService.formarEquipesManual).not.toHaveBeenCalled();
+    });
+  });
+
+  // ============================================
+  // DUPLAS MANUAIS (DUPLA FIXA com formação manual)
+  // ============================================
+
+  describe("isFormacaoManualDupla e isFormacaoManual para DUPLA_FIXA MANUAL", () => {
+    it("isFormacaoManualDupla deve ser true para DUPLA_FIXA com tipoFormacaoDupla MANUAL", () => {
+      const etapa = {
+        id: "etapa-dupla-manual",
+        formato: FormatoEtapa.DUPLA_FIXA,
+        tipoFormacaoDupla: TipoFormacaoDupla.MANUAL,
+        nome: "Etapa Dupla Manual",
+        totalInscritos: 8,
+        qtdGrupos: 1,
+      } as any;
+
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa, onSuccess: mockOnSuccess })
+      );
+
+      expect(result.current.isFormacaoManualDupla).toBe(true);
+    });
+
+    it("isFormacaoManual deve ser true para DUPLA_FIXA com tipoFormacaoDupla MANUAL", () => {
+      const etapa = {
+        id: "etapa-dupla-manual",
+        formato: FormatoEtapa.DUPLA_FIXA,
+        tipoFormacaoDupla: TipoFormacaoDupla.MANUAL,
+        nome: "Etapa Dupla Manual",
+        totalInscritos: 8,
+        qtdGrupos: 1,
+      } as any;
+
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa, onSuccess: mockOnSuccess })
+      );
+
+      expect(result.current.isFormacaoManual).toBe(true);
+    });
+  });
+
+  describe("handleGerarDuplasManual", () => {
+    const etapaDuplaManual = {
+      id: "etapa-dupla-manual",
+      nome: "Etapa Dupla Manual",
+      formato: FormatoEtapa.DUPLA_FIXA,
+      tipoFormacaoDupla: TipoFormacaoDupla.MANUAL,
+      totalInscritos: 8,
+      qtdGrupos: 1,
+    } as any;
+
+    const formacoesDupla = [
+      { jogador1Id: "j1", jogador2Id: "j2" },
+      { jogador1Id: "j3", jogador2Id: "j4" },
+      { jogador1Id: "j5", jogador2Id: "j6" },
+      { jogador1Id: "j7", jogador2Id: "j8" },
+    ];
+
+    it("deve chamar chaveService.formarDuplasManual com parâmetros corretos", async () => {
+      mockChaveService.formarDuplasManual.mockResolvedValue({});
+
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa: etapaDuplaManual, onSuccess: mockOnSuccess })
+      );
+
+      await act(async () => {
+        await result.current.handleGerarDuplasManual(formacoesDupla);
+      });
+
+      expect(mockChaveService.formarDuplasManual).toHaveBeenCalledWith(
+        "etapa-dupla-manual",
+        formacoesDupla
+      );
+    });
+
+    it("deve mostrar alerta de sucesso e chamar onSuccess", async () => {
+      mockChaveService.formarDuplasManual.mockResolvedValue({});
+
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa: etapaDuplaManual, onSuccess: mockOnSuccess })
+      );
+
+      await act(async () => {
+        await result.current.handleGerarDuplasManual(formacoesDupla);
+      });
+
+      expect(mockOnSuccess).toHaveBeenCalledWith("chaves");
+      expect(mockAlert).toHaveBeenCalledWith("Duplas formadas e chaves geradas com sucesso!");
+    });
+
+    it("deve mostrar erro quando formação de duplas manual falha", async () => {
+      mockChaveService.formarDuplasManual.mockRejectedValue(
+        new Error("Erro ao formar duplas")
+      );
+
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa: etapaDuplaManual, onSuccess: mockOnSuccess })
+      );
+
+      await expect(
+        act(async () => {
+          await result.current.handleGerarDuplasManual(formacoesDupla);
+        })
+      ).rejects.toThrow("Erro ao formar duplas");
+
+      expect(mockAlert).toHaveBeenCalledWith("Erro ao formar duplas");
+    });
+
+    it("não deve fazer nada se etapa não for DUPLA_FIXA", async () => {
+      const etapaNaoDupla = {
+        id: "etapa-teams",
+        formato: FormatoEtapa.TEAMS,
+        nome: "Etapa Teams",
+        totalInscritos: 8,
+        qtdGrupos: 1,
+      } as any;
+
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa: etapaNaoDupla, onSuccess: mockOnSuccess })
+      );
+
+      await act(async () => {
+        await result.current.handleGerarDuplasManual(formacoesDupla);
+      });
+
+      expect(mockChaveService.formarDuplasManual).not.toHaveBeenCalled();
+    });
+
+    it("não deve fazer nada se etapa for null", async () => {
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa: null, onSuccess: mockOnSuccess })
+      );
+
+      await act(async () => {
+        await result.current.handleGerarDuplasManual(formacoesDupla);
+      });
+
+      expect(mockChaveService.formarDuplasManual).not.toHaveBeenCalled();
     });
   });
 });

@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 
-export type AbaEtapa = "inscricoes" | "chaves" | "cabeças";
+export type AbaEtapa = "inscricoes" | "chaves" | "cabeças" | "duplas-manuais";
 
 export interface UseEtapaUIReturn {
   // Estado

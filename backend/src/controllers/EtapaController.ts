@@ -587,6 +587,57 @@ class EtapaController extends BaseController {
   }
 
   /**
+   * Formar duplas manualmente e gerar chaves (DUPLA FIXA)
+   * POST /api/etapas/:id/formar-duplas-manual
+   */
+  async formarDuplasManual(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+      const { formacoes } = req.body;
+
+      if (!Array.isArray(formacoes) || formacoes.length === 0) {
+        ResponseHelper.badRequest(res, "Formações de duplas são obrigatórias");
+        return;
+      }
+
+      logger.info("Formando duplas manualmente", {
+        etapaId: id,
+        totalDuplas: formacoes.length,
+      });
+
+      const resultado = await chaveService.gerarChavesComDuplasManual(
+        id,
+        arenaId,
+        formacoes
+      );
+
+      logger.info("Duplas formadas e chaves geradas com sucesso", {
+        etapaId: id,
+        totalDuplas: resultado.duplas.length,
+        totalGrupos: resultado.grupos.length,
+        totalPartidas: resultado.partidas.length,
+      });
+
+      ResponseHelper.success(
+        res,
+        resultado,
+        "Duplas formadas e chaves geradas com sucesso"
+      );
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "formar duplas manualmente", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
    * Excluir chaves de uma etapa
    * DELETE /api/etapas/:id/chaves
    */

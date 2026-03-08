@@ -47,8 +47,12 @@ interface UseDetalhesEtapaReturn {
   handleGerarChavesManual: (
     formacoes: FormacaoManualEquipeDTO[]
   ) => Promise<void>;
+  handleGerarDuplasManual: (
+    formacoes: { jogador1Id: string; jogador2Id: string }[]
+  ) => Promise<void>;
   handleApagarChaves: () => Promise<void>;
   isFormacaoManual: boolean;
+  isFormacaoManualDupla: boolean;
 
   // UI Handlers
   setAbaAtiva: (aba: AbaEtapa) => void;
@@ -118,8 +122,10 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   const {
     handleGerarChaves,
     handleGerarChavesManual,
+    handleGerarDuplasManual,
     handleApagarChaves,
     isFormacaoManual,
+    isFormacaoManualDupla,
   } = useEtapaChaves({
     etapa,
     onSuccess: onSuccessChaves,
@@ -159,8 +165,10 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
     // Actions - Chaves
     handleGerarChaves,
     handleGerarChavesManual,
+    handleGerarDuplasManual,
     handleApagarChaves,
     isFormacaoManual,
+    isFormacaoManualDupla,
 
     // UI Handlers
     setAbaAtiva,

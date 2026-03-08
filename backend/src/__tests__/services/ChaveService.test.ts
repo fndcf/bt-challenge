@@ -40,6 +40,7 @@ jest.mock("../../config/firebase", () => ({
 // Mock dos services especializados
 const mockDuplaService = {
   formarDuplasComCabecasDeChave: jest.fn(),
+  formarDuplasManualmente: jest.fn(),
   buscarPorEtapa: jest.fn(),
   deletarPorEtapa: jest.fn(),
 };
@@ -493,6 +494,112 @@ describe("ChaveService", () => {
         resultados
       );
       expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe("gerarChavesComDuplasManual", () => {
+    const formacoes = [
+      { jogador1Id: "j1", jogador2Id: "j2" },
+      { jogador1Id: "j3", jogador2Id: "j4" },
+      { jogador1Id: "j5", jogador2Id: "j6" },
+      { jogador1Id: "j7", jogador2Id: "j8" },
+    ];
+
+    it("deve lançar erro se etapa não encontrada", async () => {
+      (etapaService.buscarPorId as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        chaveService.gerarChavesComDuplasManual(TEST_ETAPA_ID, TEST_ARENA_ID, formacoes)
+      ).rejects.toThrow("Etapa não encontrada");
+    });
+
+    it("deve lançar erro se inscrições não estão encerradas", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ABERTAS,
+      });
+      (etapaService.buscarPorId as jest.Mock).mockResolvedValue(etapa);
+
+      await expect(
+        chaveService.gerarChavesComDuplasManual(TEST_ETAPA_ID, TEST_ARENA_ID, formacoes)
+      ).rejects.toThrow("Inscrições devem estar encerradas para gerar chaves");
+    });
+
+    it("deve lançar erro se chaves já foram geradas", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ENCERRADAS,
+        chavesGeradas: true,
+      });
+      (etapaService.buscarPorId as jest.Mock).mockResolvedValue(etapa);
+
+      await expect(
+        chaveService.gerarChavesComDuplasManual(TEST_ETAPA_ID, TEST_ARENA_ID, formacoes)
+      ).rejects.toThrow("Chaves já foram geradas para esta etapa");
+    });
+
+    it("deve gerar chaves com duplas manuais com sucesso", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.INSCRICOES_ENCERRADAS,
+        chavesGeradas: false,
+        totalInscritos: 8,
+        maxJogadores: 8,
+      });
+      (etapaService.buscarPorId as jest.Mock).mockResolvedValue(etapa);
+
+      const inscricoes = [
+        createInscricaoFixture({ jogadorId: "j1" }),
+        createInscricaoFixture({ jogadorId: "j2" }),
+        createInscricaoFixture({ jogadorId: "j3" }),
+        createInscricaoFixture({ jogadorId: "j4" }),
+        createInscricaoFixture({ jogadorId: "j5" }),
+        createInscricaoFixture({ jogadorId: "j6" }),
+        createInscricaoFixture({ jogadorId: "j7" }),
+        createInscricaoFixture({ jogadorId: "j8" }),
+      ];
+      (etapaService.listarInscricoes as jest.Mock).mockResolvedValue(inscricoes);
+
+      const duplas = [
+        createDuplaFixture({ id: "d1" }),
+        createDuplaFixture({ id: "d2" }),
+        createDuplaFixture({ id: "d3" }),
+        createDuplaFixture({ id: "d4" }),
+      ];
+      mockDuplaService.formarDuplasManualmente.mockResolvedValue(duplas);
+
+      (estatisticasJogadorService.criarEmLote as jest.Mock).mockResolvedValue(undefined);
+
+      const grupos = [
+        createGrupoFixture({ id: "g1" }),
+        createGrupoFixture({ id: "g2" }),
+      ];
+      mockGrupoService.criarGrupos.mockResolvedValue(grupos);
+
+      const partidas = [
+        createPartidaFixture({ id: "p1" }),
+        createPartidaFixture({ id: "p2" }),
+      ];
+      mockPartidaGrupoService.gerarPartidas.mockResolvedValue(partidas);
+
+      const result = await chaveService.gerarChavesComDuplasManual(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        formacoes
+      );
+
+      expect(result.duplas).toHaveLength(4);
+      expect(result.grupos).toHaveLength(2);
+      expect(result.partidas).toHaveLength(2);
+
+      expect(mockDuplaService.formarDuplasManualmente).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        etapa.nome,
+        TEST_ARENA_ID,
+        inscricoes,
+        formacoes,
+        etapa.genero
+      );
+      expect(mockGrupoService.criarGrupos).toHaveBeenCalled();
+      expect(mockPartidaGrupoService.gerarPartidas).toHaveBeenCalled();
+      expect(estatisticasJogadorService.criarEmLote).toHaveBeenCalledTimes(1);
     });
   });
 });

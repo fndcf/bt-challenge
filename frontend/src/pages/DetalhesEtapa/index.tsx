@@ -25,6 +25,7 @@ import { EtapaInfoCards } from "./components/EtapaInfoCards";
 import { InscricoesTab } from "./components/InscricoesTab";
 import { CabecasTab } from "./components/CabecasTab";
 import { ActionsSection } from "./components/ActionsSection";
+import { DuplasManuaisTab } from "./components/DuplasManuaisTab";
 
 // Estilos
 import * as S from "./DetalhesEtapa.styles";
@@ -60,12 +61,16 @@ const DetalhesEtapa: React.FC = () => {
     handleCancelarMultiplosInscricoes,
     handleGerarChaves,
     handleGerarChavesManual,
+    handleGerarDuplasManual,
     handleApagarChaves,
     isFormacaoManual,
+    isFormacaoManualDupla,
     setAbaAtiva,
     setModalInscricaoAberto,
     setModalConfirmacaoAberto,
   } = useDetalhesEtapa(id);
+
+  const isDuplaFixa = etapa?.formato === "dupla_fixa";
 
   // Estado de loading para ação de excluir - DEVE VIR ANTES DOS EARLY RETURNS
   const [loadingExcluir, setLoadingExcluir] = React.useState(false);
@@ -174,8 +179,11 @@ const DetalhesEtapa: React.FC = () => {
     try {
       setGlobalLoading(true);
       setGlobalLoadingMessage("Gerando chaves...");
+      // Se é DUPLA FIXA com formação manual, navega para a tab
+      if (isFormacaoManualDupla) {
+        setAbaAtiva("duplas-manuais");
       // Se é TEAMS com formação manual, abre o modal
-      if (isFormacaoManual) {
+      } else if (isFormacaoManual) {
         setModalFormacaoManualAberto(true);
       } else {
         await handleGerarChaves();
@@ -250,13 +258,22 @@ const DetalhesEtapa: React.FC = () => {
                 <S.TabBadge>{etapa.totalInscritos}</S.TabBadge>
               </S.Tab>
 
-              {/* Super X e TEAMS não tem cabeças de chave */}
-              {!isSuperX && !isTeams && (
+              {/* Super X, TEAMS e Dupla Fixa Manual não tem cabeças de chave */}
+              {!isSuperX && !isTeams && !isFormacaoManualDupla && (
                 <S.Tab
                   $active={abaAtiva === "cabeças"}
                   onClick={() => setAbaAtiva("cabeças")}
                 >
                   Cabeças de Chave
+                </S.Tab>
+              )}
+
+              {isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas && (
+                <S.Tab
+                  $active={abaAtiva === "duplas-manuais"}
+                  onClick={() => setAbaAtiva("duplas-manuais")}
+                >
+                  Duplas Manuais
                 </S.Tab>
               )}
 
@@ -286,6 +303,24 @@ const DetalhesEtapa: React.FC = () => {
           {abaAtiva === "cabeças" && !isSuperX && !isTeams && (
             <CabecasTab etapa={etapa} onUpdate={carregarEtapa} />
           )}
+
+          {abaAtiva === "duplas-manuais" && isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas && (
+            <DuplasManuaisTab
+              inscricoes={etapa.inscricoes || []}
+              isMisto={etapa.genero === "misto"}
+              onConfirm={async (formacoes) => {
+                setGlobalLoading(true);
+                setGlobalLoadingMessage("Gerando duplas e chaves...");
+                try {
+                  await handleGerarDuplasManual(formacoes);
+                } finally {
+                  setGlobalLoading(false);
+                  setGlobalLoadingMessage("");
+                }
+              }}
+            />
+          )}
+
 
           {abaAtiva === "chaves" && etapa.chavesGeradas && (
             <>

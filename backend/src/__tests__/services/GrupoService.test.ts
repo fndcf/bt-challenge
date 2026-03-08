@@ -400,4 +400,114 @@ describe("GrupoService", () => {
       ).rejects.toThrow("Falha ao criar grupos");
     });
   });
+
+  describe("criarGrupos - distribuição com shuffle", () => {
+    it("deve distribuir todas as duplas normais nos grupos mesmo após shuffle", async () => {
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1", jogador1Id: "jogador-1" }),
+        createDuplaFixture({ id: "dupla-2", jogador1Id: "jogador-2" }),
+        createDuplaFixture({ id: "dupla-3", jogador1Id: "jogador-3" }),
+        createDuplaFixture({ id: "dupla-4", jogador1Id: "jogador-4" }),
+        createDuplaFixture({ id: "dupla-5", jogador1Id: "jogador-5" }),
+        createDuplaFixture({ id: "dupla-6", jogador1Id: "jogador-6" }),
+        createDuplaFixture({ id: "dupla-7", jogador1Id: "jogador-7" }),
+        createDuplaFixture({ id: "dupla-8", jogador1Id: "jogador-8" }),
+        createDuplaFixture({ id: "dupla-9", jogador1Id: "jogador-9" }),
+      ];
+
+      // Sem cabeças de chave - todas as duplas passam pelo shuffle
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
+
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) => {
+        return dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
+        );
+      });
+
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
+
+      const result = await grupoService.criarGrupos(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        duplas,
+        3
+      );
+
+      // Verificar que todos os grupos foram criados
+      expect(mockGrupoRepository.criarEmLote).toHaveBeenCalledTimes(1);
+
+      // Verificar que atualizarEmLote foi chamado (para atribuir grupoId às duplas)
+      expect(mockDuplaRepository.atualizarEmLote).toHaveBeenCalledTimes(1);
+
+      // Verificar que atualizarEmLote recebeu exatamente 9 itens (todas as duplas)
+      const atualizarArgs = mockDuplaRepository.atualizarEmLote.mock.calls[0][0];
+      expect(atualizarArgs).toHaveLength(9);
+
+      // Verificar que cada dupla foi atribuída a um grupo (tem grupoId e grupoNome)
+      for (const item of atualizarArgs) {
+        expect(item.data).toHaveProperty("grupoId");
+        expect(item.data).toHaveProperty("grupoNome");
+        expect(item.data.grupoId).toBeDefined();
+        expect(item.data.grupoNome).toBeDefined();
+      }
+
+      // Verificar que o resultado contém grupos
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it("deve distribuir duplas normais entre grupos junto com cabeças de chave", async () => {
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1", jogador1Id: "cabeca-1" }),
+        createDuplaFixture({ id: "dupla-2", jogador1Id: "cabeca-2" }),
+        createDuplaFixture({ id: "dupla-3", jogador1Id: "jogador-3" }),
+        createDuplaFixture({ id: "dupla-4", jogador1Id: "jogador-4" }),
+        createDuplaFixture({ id: "dupla-5", jogador1Id: "jogador-5" }),
+        createDuplaFixture({ id: "dupla-6", jogador1Id: "jogador-6" }),
+      ];
+
+      // 2 cabeças de chave
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([
+        "cabeca-1",
+        "cabeca-2",
+      ]);
+
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
+        )
+      );
+
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
+
+      const result = await grupoService.criarGrupos(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        duplas,
+        3
+      );
+
+      // Verificar que atualizarEmLote atribuiu todas as 6 duplas
+      const atualizarArgs = mockDuplaRepository.atualizarEmLote.mock.calls[0][0];
+      expect(atualizarArgs).toHaveLength(6);
+
+      // Verificar que todas as duplas (cabeças + normais) foram distribuídas
+      const duplaIdsDistribuidos = atualizarArgs.map((item: any) => item.id);
+      expect(duplaIdsDistribuidos).toContain("dupla-1");
+      expect(duplaIdsDistribuidos).toContain("dupla-2");
+      expect(duplaIdsDistribuidos).toContain("dupla-3");
+      expect(duplaIdsDistribuidos).toContain("dupla-4");
+      expect(duplaIdsDistribuidos).toContain("dupla-5");
+      expect(duplaIdsDistribuidos).toContain("dupla-6");
+
+      expect(result).toHaveLength(2);
+    });
+  });
 });

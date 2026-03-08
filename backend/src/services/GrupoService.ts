@@ -102,7 +102,13 @@ export class GrupoService implements IGrupoService {
         grupoAtual = (grupoAtual + 1) % qtdGrupos;
       }
 
-      // Preencher vagas restantes com duplas normais
+      // Embaralhar duplas normais antes de distribuir nos grupos (Fisher-Yates)
+      for (let i = duplasNormais.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [duplasNormais[i], duplasNormais[j]] = [duplasNormais[j], duplasNormais[i]];
+      }
+
+      // Preencher vagas restantes com duplas normais (já embaralhadas)
       let indiceNormal = 0;
       for (let g = 0; g < qtdGrupos; g++) {
         const limiteGrupo = distribuicao[g];

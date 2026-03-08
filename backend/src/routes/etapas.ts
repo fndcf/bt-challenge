@@ -91,6 +91,14 @@ router.post("/:id/gerar-chaves", (req, res) =>
 );
 
 /**
+ * @route   POST /api/etapas/:id/formar-duplas-manual
+ * @desc    Formar duplas manualmente e gerar chaves (DUPLA FIXA)
+ */
+router.post("/:id/formar-duplas-manual", (req, res) =>
+  etapaController.formarDuplasManual(req, res)
+);
+
+/**
  * @route   DELETE /api/etapas/:id/chaves
  * @desc    Excluir chaves da etapa
  */

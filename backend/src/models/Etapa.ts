@@ -70,6 +70,7 @@ export enum TipoChaveamentoReiDaPraia {
 export enum TipoFormacaoDupla {
   MESMO_NIVEL = "mesmo_nivel", // Sorteio aleatório entre jogadores do mesmo nível
   BALANCEADO = "balanceado", // Avançado + Iniciante, Intermediário + Intermediário
+  MANUAL = "manual", // Organizador define as duplas manualmente
 }
 
 /**
@@ -169,9 +170,9 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
     // - DUPLA_FIXA (se não for balanceado e não for misto)
     // - TEAMS com formação MESMO_NIVEL
     // Nível OPCIONAL para: SUPER_X, REI_DA_PRAIA, TEAMS (exceto MESMO_NIVEL), DUPLA_FIXA balanceada/mista
-    const isDuplaFixaBalanceada =
+    const isDuplaFixaBalanceadaOuManual =
       data.formato === FormatoEtapa.DUPLA_FIXA &&
-      data.tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
+      (data.tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO || data.tipoFormacaoDupla === TipoFormacaoDupla.MANUAL);
 
     const isDuplaFixaMista =
       data.formato === FormatoEtapa.DUPLA_FIXA &&
@@ -180,7 +181,7 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
     // Para DUPLA_FIXA (não balanceada e não mista), nível é obrigatório
     if (
       data.formato === FormatoEtapa.DUPLA_FIXA &&
-      !isDuplaFixaBalanceada &&
+      !isDuplaFixaBalanceadaOuManual &&
       !isDuplaFixaMista &&
       !data.nivel
     ) {

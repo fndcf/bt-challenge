@@ -30,6 +30,15 @@ export interface IDuplaService {
     generoEtapa?: GeneroJogador
   ): Promise<Dupla[]>;
 
+  formarDuplasManualmente(
+    etapaId: string,
+    etapaNome: string,
+    arenaId: string,
+    inscricoes: Inscricao[],
+    formacoes: { jogador1Id: string; jogador2Id: string }[],
+    generoEtapa?: GeneroJogador
+  ): Promise<Dupla[]>;
+
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<Dupla[]>;
   buscarPorGrupo(grupoId: string): Promise<Dupla[]>;
   buscarPorJogador(etapaId: string, jogadorId: string): Promise<Dupla | null>;
@@ -589,6 +598,101 @@ export class DuplaService implements IDuplaService {
       jogador2Nivel: jogador2.jogadorNivel,
       jogador2Genero: jogador2.jogadorGenero,
     };
+  }
+
+
+  /**
+   * Formar duplas manualmente a partir de pares definidos pelo organizador
+   */
+  async formarDuplasManualmente(
+    etapaId: string,
+    etapaNome: string,
+    arenaId: string,
+    inscricoes: Inscricao[],
+    formacoes: { jogador1Id: string; jogador2Id: string }[],
+    generoEtapa?: GeneroJogador
+  ): Promise<Dupla[]> {
+    try {
+      // Criar mapa de inscrições para lookup rápido
+      const inscricoesMap = new Map<string, Inscricao>();
+      inscricoes.forEach((i) => inscricoesMap.set(i.jogadorId, i));
+
+      // Validações
+      if (formacoes.length !== Math.floor(inscricoes.length / 2)) {
+        throw new Error(
+          `Número de duplas (${formacoes.length}) não corresponde ao esperado (${Math.floor(inscricoes.length / 2)})`
+        );
+      }
+
+      // Verificar jogadores duplicados
+      const jogadoresUsados = new Set<string>();
+      for (const formacao of formacoes) {
+        if (jogadoresUsados.has(formacao.jogador1Id) || jogadoresUsados.has(formacao.jogador2Id)) {
+          throw new Error("Um jogador aparece em mais de uma dupla");
+        }
+        jogadoresUsados.add(formacao.jogador1Id);
+        jogadoresUsados.add(formacao.jogador2Id);
+
+        if (!inscricoesMap.has(formacao.jogador1Id) || !inscricoesMap.has(formacao.jogador2Id)) {
+          throw new Error("Jogador não encontrado nas inscrições");
+        }
+      }
+
+      const isMisto = generoEtapa === GeneroJogador.MISTO;
+
+      // Validar gênero para etapas mistas
+      if (isMisto) {
+        for (const formacao of formacoes) {
+          const j1 = inscricoesMap.get(formacao.jogador1Id)!;
+          const j2 = inscricoesMap.get(formacao.jogador2Id)!;
+          if (j1.jogadorGenero === j2.jogadorGenero) {
+            throw new Error(
+              `Dupla ${j1.jogadorNome} e ${j2.jogadorNome}: etapa mista requer 1 masculino + 1 feminino por dupla`
+            );
+          }
+        }
+      }
+
+      // Montar DTOs
+      const duplaDTOs: Array<Partial<Dupla>> = formacoes.map((formacao) => {
+        const j1 = inscricoesMap.get(formacao.jogador1Id)!;
+        const j2 = inscricoesMap.get(formacao.jogador2Id)!;
+        return this.montarDuplaDTO(etapaId, arenaId, j1, j2);
+      });
+
+      // Criar duplas no banco
+      const duplas = await this.repository.criarEmLote(duplaDTOs);
+
+      // Registrar histórico de duplas
+      const cabecasIds = await cabecaDeChaveService.obterIdsCabecas(arenaId, etapaId);
+      const historicosDTOs = duplas.map((dupla) => ({
+        arenaId,
+        etapaId,
+        etapaNome,
+        jogador1Id: dupla.jogador1Id,
+        jogador1Nome: dupla.jogador1Nome,
+        jogador2Id: dupla.jogador2Id,
+        jogador2Nome: dupla.jogador2Nome,
+        ambosForamCabecas:
+          cabecasIds.includes(dupla.jogador1Id) &&
+          cabecasIds.includes(dupla.jogador2Id),
+      }));
+      await historicoDuplaService.registrarEmLote(historicosDTOs);
+
+      logger.info("Duplas formadas manualmente", {
+        etapaId,
+        total: duplas.length,
+      });
+
+      return duplas;
+    } catch (error) {
+      logger.error(
+        "Erro ao formar duplas manualmente",
+        { etapaId, arenaId },
+        error as Error
+      );
+      throw error;
+    }
   }
 
   /**

@@ -47,6 +47,33 @@ class ChaveService implements IChaveService {
   }
 
   /**
+   * Formar duplas manualmente e gerar chaves (DUPLA FIXA)
+   */
+  async formarDuplasManual(
+    etapaId: string,
+    formacoes: { jogador1Id: string; jogador2Id: string }[]
+  ): Promise<ResultadoGeracaoChaves> {
+    try {
+      const response = await apiClient.post<ResultadoGeracaoChaves>(
+        `${this.baseURL}/${etapaId}/formar-duplas-manual`,
+        { formacoes }
+      );
+
+      logger.info("Duplas manuais formadas e chaves geradas", {
+        etapaId,
+        totalDuplas: response.duplas?.length || 0,
+        totalGrupos: response.grupos?.length || 0,
+        totalPartidas: response.partidas?.length || 0,
+      });
+
+      return response;
+    } catch (error) {
+      const appError = handleError(error, "ChaveService.formarDuplasManual");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
    * Excluir chaves de uma etapa (duplas, grupos, partidas)
    */
   async excluirChaves(etapaId: string): Promise<void> {

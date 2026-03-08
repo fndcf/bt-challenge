@@ -3,7 +3,7 @@
  */
 
 import { useCallback } from "react";
-import { Etapa, FormatoEtapa, TipoFormacaoEquipe } from "@/types/etapa";
+import { Etapa, FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/types/etapa";
 import { getChaveService, getReiDaPraiaService, getSuperXService, getTeamsService } from "@/services";
 import { FormacaoManualEquipeDTO } from "@/types/teams";
 import logger from "@/utils/logger";
@@ -18,8 +18,10 @@ export interface UseEtapaChavesParams {
 export interface UseEtapaChavesReturn {
   handleGerarChaves: () => Promise<void>;
   handleGerarChavesManual: (formacoes: FormacaoManualEquipeDTO[]) => Promise<void>;
+  handleGerarDuplasManual: (formacoes: { jogador1Id: string; jogador2Id: string }[]) => Promise<void>;
   handleApagarChaves: () => Promise<void>;
   isFormacaoManual: boolean;
+  isFormacaoManualDupla: boolean;
 }
 
 /**
@@ -35,7 +37,9 @@ export const useEtapaChaves = ({
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = etapa?.formato === FormatoEtapa.SUPER_X;
   const isTeams = etapa?.formato === FormatoEtapa.TEAMS;
-  const isFormacaoManual = isTeams && etapa?.tipoFormacaoEquipe === TipoFormacaoEquipe.MANUAL;
+  const isDuplaFixa = etapa?.formato === FormatoEtapa.DUPLA_FIXA;
+  const isFormacaoManualDupla = isDuplaFixa && etapa?.tipoFormacaoDupla === TipoFormacaoDupla.MANUAL;
+  const isFormacaoManual = (isTeams && etapa?.tipoFormacaoEquipe === TipoFormacaoEquipe.MANUAL) || isFormacaoManualDupla;
 
   /**
    * Gerar chaves
@@ -163,11 +167,35 @@ export const useEtapaChaves = ({
     }
   }, [etapa, isTeams, onSuccess]);
 
+  /**
+   * Gerar duplas manualmente (DUPLA FIXA com formação manual)
+   */
+  const handleGerarDuplasManual = useCallback(async (
+    formacoes: { jogador1Id: string; jogador2Id: string }[]
+  ) => {
+    if (!etapa || !isDuplaFixa) return;
+
+    try {
+      const chaveService = getChaveService();
+      await chaveService.formarDuplasManual(etapa.id, formacoes);
+
+      if (onSuccess) await onSuccess("chaves");
+
+      alert("Duplas formadas e chaves geradas com sucesso!");
+    } catch (err: any) {
+      logger.error("Erro ao formar duplas manualmente", { etapaId: etapa.id }, err);
+      alert(err.message || "Erro ao formar duplas");
+      throw err;
+    }
+  }, [etapa, isDuplaFixa, onSuccess]);
+
   return {
     handleGerarChaves,
     handleGerarChavesManual,
+    handleGerarDuplasManual,
     handleApagarChaves,
     isFormacaoManual,
+    isFormacaoManualDupla,
   };
 };
 

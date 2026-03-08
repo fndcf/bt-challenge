@@ -52,6 +52,7 @@ export enum VarianteSuperX {
 export enum TipoFormacaoDupla {
   MESMO_NIVEL = "mesmo_nivel", // Sorteio aleatório entre jogadores do mesmo nível
   BALANCEADO = "balanceado", // Avançado + Iniciante, Intermediário + Intermediário
+  MANUAL = "manual", // Organizador define as duplas manualmente
 }
 
 export interface Etapa {
