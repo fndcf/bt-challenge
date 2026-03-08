@@ -306,14 +306,11 @@ export class CabecaDeChaveService {
 
   /**
    * Obter IDs das cabeças de chave ativas
+   * NÃO engolir erros - se falhar, a geração de chaves deve parar
    */
   async obterIdsCabecas(arenaId: string, etapaId: string): Promise<string[]> {
-    try {
-      const cabecas = await this.listarAtivas(arenaId, etapaId);
-      return cabecas.map((c) => c.jogadorId);
-    } catch (error) {
-      return [];
-    }
+    const cabecas = await this.listarAtivas(arenaId, etapaId);
+    return cabecas.map((c) => c.jogadorId);
   }
 
   /**

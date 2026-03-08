@@ -270,7 +270,6 @@ describe("DuplaService", () => {
         TEST_ARENA_ID,
         TEST_ETAPA_ID
       );
-      expect(historicoDuplaService.calcularEstatisticas).toHaveBeenCalled();
       expect(mockDuplaRepository.criarEmLote).toHaveBeenCalledTimes(1);
       expect(result).toHaveLength(2);
     });

@@ -503,15 +503,12 @@ describe("CabecaDeChaveService", () => {
       expect(result).toEqual([]);
     });
 
-    it("deve retornar array vazio em caso de erro", async () => {
+    it("deve propagar erro ao falhar", async () => {
       mockGet.mockRejectedValue(new Error("Erro"));
 
-      const result = await cabecaDeChaveService.obterIdsCabecas(
-        TEST_ARENA_ID,
-        TEST_ETAPA_ID
-      );
-
-      expect(result).toEqual([]);
+      await expect(
+        cabecaDeChaveService.obterIdsCabecas(TEST_ARENA_ID, TEST_ETAPA_ID)
+      ).rejects.toThrow("Erro");
     });
   });
 

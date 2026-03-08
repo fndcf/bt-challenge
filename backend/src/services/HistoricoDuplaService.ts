@@ -239,34 +239,32 @@ export class HistoricoDuplaService {
     const combinacoesPossiveis =
       totalCabecas >= 2 ? (totalCabecas * (totalCabecas - 1)) / 2 : 0;
 
-    // Buscar combinações já realizadas
+    // Buscar combinações já realizadas (todas as etapas da arena)
     const combinacoesRealizadasSet = await this.obterCombinacoesRealizadas(
       arenaId
     );
-    const combinacoesRealizadas = combinacoesRealizadasSet.size;
 
-    // Calcular combinações restantes
-    const combinacoesRestantes = Math.max(
-      0,
-      combinacoesPossiveis - combinacoesRealizadas
-    );
-
-    // Todas foram feitas?
-    const todasCombinacoesFeitas = combinacoesRestantes === 0;
-
-    // Gerar lista de combinações disponíveis
+    // Gerar lista de combinações disponíveis dos cabeças ATUAIS
     const cabecasIds = cabecas.map((c) => c.jogadorId);
     const combinacoesDisponiveis: string[][] = [];
+    let combinacoesRealizadas = 0;
 
     for (let i = 0; i < cabecasIds.length; i++) {
       for (let j = i + 1; j < cabecasIds.length; j++) {
         const chave = this.normalizarChave(cabecasIds[i], cabecasIds[j]);
 
-        if (!combinacoesRealizadasSet.has(chave)) {
+        if (combinacoesRealizadasSet.has(chave)) {
+          combinacoesRealizadas++;
+        } else {
           combinacoesDisponiveis.push([cabecasIds[i], cabecasIds[j]]);
         }
       }
     }
+
+    // Calcular combinações restantes baseado na interseção real
+    const combinacoesRestantes = combinacoesDisponiveis.length;
+    const todasCombinacoesFeitas =
+      combinacoesPossiveis > 0 && combinacoesRestantes === 0;
 
     return {
       totalCabecas,

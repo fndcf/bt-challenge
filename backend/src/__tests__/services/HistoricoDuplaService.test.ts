@@ -316,7 +316,7 @@ describe("HistoricoDuplaService", () => {
       expect(result.totalCabecas).toBe(1);
       expect(result.combinacoesPossiveis).toBe(0);
       expect(result.combinacoesRealizadas).toBe(0);
-      expect(result.todasCombinacoesFeitas).toBe(true);
+      expect(result.todasCombinacoesFeitas).toBe(false);
     });
   });
 
