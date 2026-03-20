@@ -32,15 +32,14 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.STAGING_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.STAGING_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
-          VITE_API_URL: ${{ secrets.STAGING_API_URL }}
+          VITE_API_URL: /api
         run: |
           npm ci
-          npm run build
+          npm run build -- --mode staging
 
       - name: Deploy para Firebase (Staging)
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: w9jds/firebase-action@master
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.STAGING_FIREBASE_SERVICE_ACCOUNT }}
-          projectId: torneio-challenge-staging
-          channelId: live
+          args: deploy --project staging
+        env:
+          GCP_SA_KEY: ${{ secrets.STAGING_FIREBASE_SERVICE_ACCOUNT }}

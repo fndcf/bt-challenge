@@ -33,15 +33,14 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.PROD_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.PROD_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.PROD_FIREBASE_APP_ID }}
-          VITE_API_URL: ${{ secrets.PROD_API_URL }}
+          VITE_API_URL: /api
         run: |
           npm ci
           npm run build
 
       - name: Deploy para Firebase (Produção)
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: w9jds/firebase-action@master
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.PROD_FIREBASE_SERVICE_ACCOUNT }}
-          projectId: torneio-challenge
-          channelId: live
+          args: deploy --project default
+        env:
+          GCP_SA_KEY: ${{ secrets.PROD_FIREBASE_SERVICE_ACCOUNT }}
