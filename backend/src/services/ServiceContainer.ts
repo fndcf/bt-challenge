@@ -171,7 +171,7 @@ class ServiceContainer implements IServiceContainer {
     repository: IServiceContainer["repositories"][K]
   ): void {
     if (!this._repositories) {
-      this.repositories; // Inicializa
+      void this.repositories; // Inicializa
     }
     (this._repositories as any)[key] = repository;
   }
@@ -184,7 +184,7 @@ class ServiceContainer implements IServiceContainer {
     service: IServiceContainer["services"][K]
   ): void {
     if (!this._services) {
-      this.services; // Inicializa
+      void this.services; // Inicializa
     }
     (this._services as any)[key] = service;
   }
