@@ -1,5 +1,11 @@
 /**
  * Configuração do Firebase Admin SDK
+ *
+ * Ambientes suportados:
+ * - production: Firebase Functions injeta credenciais automaticamente
+ * - staging: Usa .env.staging com credenciais do projeto de staging
+ * - development: Usa .env.local com credenciais locais
+ * - emulators: Usa emuladores locais do Firebase (sem credenciais reais)
  */
 
 import admin from "firebase-admin";
@@ -7,9 +13,17 @@ import dotenv from "dotenv";
 import path from "path";
 import logger from "../utils/logger";
 
-// Em desenvolvimento, carregar .env.local (credenciais locais)
-// Em produção, Firebase Functions injeta as credenciais automaticamente
-dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
+// Carregar variáveis de ambiente por prioridade:
+// 1. .env.local (desenvolvimento com credenciais reais)
+// 2. .env.staging (ambiente de staging)
+// 3. .env (fallback)
+const nodeEnv = process.env.NODE_ENV || "development";
+
+if (nodeEnv === "staging") {
+  dotenv.config({ path: path.resolve(__dirname, "../../.env.staging") });
+} else {
+  dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
+}
 dotenv.config();
 
 /**
@@ -107,8 +121,25 @@ db.settings({
   ignoreUndefinedProperties: true,
 });
 
-logger.debug("Firestore configurado", {
-  ignoreUndefinedProperties: true,
-});
+/**
+ * Conectar aos emuladores do Firebase em desenvolvimento
+ * Ativado quando as variáveis FIRESTORE_EMULATOR_HOST ou
+ * FIREBASE_AUTH_EMULATOR_HOST estão definidas
+ */
+const useEmulators =
+  process.env.FIRESTORE_EMULATOR_HOST ||
+  process.env.FIREBASE_AUTH_EMULATOR_HOST;
+
+if (useEmulators) {
+  logger.info("Firebase Admin conectado aos emuladores locais", {
+    firestore: process.env.FIRESTORE_EMULATOR_HOST || "não configurado",
+    auth: process.env.FIREBASE_AUTH_EMULATOR_HOST || "não configurado",
+    storage: process.env.FIREBASE_STORAGE_EMULATOR_HOST || "não configurado",
+  });
+} else {
+  logger.debug("Firestore configurado", {
+    ignoreUndefinedProperties: true,
+  });
+}
 
 export default admin;

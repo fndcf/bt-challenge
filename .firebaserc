@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "torneio-challenge"
+    "default": "torneio-challenge",
+    "staging": "torneio-challenge-staging"
   }
 }

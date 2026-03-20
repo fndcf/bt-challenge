@@ -2,13 +2,23 @@
 node_modules/
 */node_modules/
 
-# Environment variables
+# Environment variables (NUNCA commitar arquivos com secrets)
 .env
 .env.local
+.env.staging
 .env.development.local
 .env.test.local
 .env.production
 .env.production.local
+backend/.env.local
+backend/.env.staging
+backend/.env.production
+frontend/.env
+frontend/.env.staging
+frontend/.env.production
+
+# Manter os .env.example (sem secrets) no git
+!*.env.example
 
 # Build outputs
 dist/
@@ -39,6 +49,9 @@ Thumbs.db
 .firebase/
 firebase-debug.log
 firestore-debug.log
+ui-debug.log
+firebase-export-metadata.json
+firestore-export/
 
 # TypeScript
 *.tsbuildinfo
@@ -46,3 +59,7 @@ firestore-debug.log
 # Testing
 coverage/
 .claude/settings.local.json
+
+# Claude Code temp files
+tmpclaude-*
+*/tmpclaude-*

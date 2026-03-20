@@ -47,9 +47,9 @@ export const storage = getStorage(app);
 
 // Conectar aos emuladores em desenvolvimento
 if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
-  connectAuthEmulator(auth, "http://localhost:9099");
-  connectFirestoreEmulator(db, "localhost", 8080);
-  connectStorageEmulator(storage, "localhost", 9199);
+  connectAuthEmulator(auth, "http://127.0.0.1:9099");
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  connectStorageEmulator(storage, "127.0.0.1", 9199);
 
   logger.info("Conectado aos emuladores do Firebase");
 }

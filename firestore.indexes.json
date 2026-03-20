@@ -1,0 +1,57 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "jogadores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jogadores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "nivel", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "challenges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "fase", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "duplas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "grupos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

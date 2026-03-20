@@ -21,9 +21,25 @@ const app = express();
  * Configurações de segurança
  */
 app.use(helmet());
+
+/**
+ * CORS - Em produção, restringe às origens permitidas
+ * Em desenvolvimento, aceita localhost
+ */
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+  : ["http://localhost:3000"];
+
 app.use(
   cors({
-    origin: true, // Permite todas as origens em produção (Firebase Hosting gerencia isso)
+    origin: (origin, callback) => {
+      // Permitir requests sem origin (ex: mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`Origin ${origin} não permitida pelo CORS`));
+    },
     credentials: true,
   }),
 );
