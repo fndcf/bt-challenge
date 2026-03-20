@@ -44,18 +44,6 @@ describe("uploadExcel middleware", () => {
     mockNext = jest.fn();
   });
 
-  it("deve rejeitar quando Content-Type não é multipart", () => {
-    mockReq.headers = { "content-type": "application/json" };
-
-    uploadExcel(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(ResponseHelper.badRequest).toHaveBeenCalledWith(
-      mockRes,
-      "Content-Type deve ser multipart/form-data"
-    );
-    expect(mockNext).not.toHaveBeenCalled();
-  });
-
   it("deve chamar next() quando arquivo válido é recebido", () => {
     uploadExcel(mockReq as Request, mockRes as Response, mockNext);
 

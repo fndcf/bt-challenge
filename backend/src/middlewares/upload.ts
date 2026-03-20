@@ -16,13 +16,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
  * Middleware para upload de arquivo Excel único
  */
 export const uploadExcel = (req: Request, res: Response, next: NextFunction) => {
-  const contentType = req.headers["content-type"] || "";
-
-  if (!contentType.includes("multipart/form-data")) {
-    ResponseHelper.badRequest(res, "Content-Type deve ser multipart/form-data");
-    return;
-  }
-
   // Cloud Functions Gen 2: body já está como buffer em req.rawBody ou req.body
   const rawBody = (req as any).rawBody || req.body;
 
