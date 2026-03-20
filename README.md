@@ -157,6 +157,7 @@ Funcionalidade que permite substituir jogadores após a geração de chaves, des
 - npm ou yarn
 - Conta no Firebase
 - Firebase CLI (`npm install -g firebase-tools`)
+- Java JDK 11+ (para emuladores Firebase)
 - Git
 
 ## Instalação
@@ -184,17 +185,28 @@ npm install
 
 ### Variáveis de Ambiente
 
-#### Backend (`backend/.env`)
+Copie os arquivos `.env.example` para os respectivos `.env.local`:
+
+```bash
+# Backend
+cp backend/.env.example backend/.env.local
+
+# Frontend
+cp frontend/.env.example frontend/.env.local
+```
+
+#### Backend (`backend/.env.local`)
 
 ```env
 PORT=5000
 NODE_ENV=development
 
-FIREBASE_PROJECT_ID=seu-project-id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk@seu-project.iam.gserviceaccount.com
+# Prefixo FB_ (FIREBASE_ é reservado pelo Firebase Functions)
+FB_PROJECT_ID=seu-project-id
+FB_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FB_CLIENT_EMAIL=firebase-adminsdk@seu-project.iam.gserviceaccount.com
 
-FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 #### Frontend (`frontend/.env`)
@@ -203,32 +215,78 @@ FRONTEND_URL=http://localhost:3000
 VITE_FIREBASE_API_KEY=sua-api-key
 VITE_FIREBASE_AUTH_DOMAIN=seu-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=seu-project-id
-VITE_FIREBASE_STORAGE_BUCKET=seu-project.appspot.com
+VITE_FIREBASE_STORAGE_BUCKET=seu-project.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789012
 VITE_FIREBASE_APP_ID=1:123456789012:web:abcdef123456
 
 VITE_API_URL=http://localhost:5000/api
 ```
 
+> **Nota**: As variáveis do backend usam prefixo `FB_` em vez de `FIREBASE_` porque o Firebase Functions reserva variáveis com esse prefixo.
+
+## Ambientes
+
+O projeto possui 3 ambientes:
+
+| Ambiente | Frontend | Backend | Banco de Dados |
+|----------|----------|---------|----------------|
+| **Emuladores (local)** | `localhost:3000` | `localhost:5000` | Emuladores Firebase (dados voláteis) |
+| **Staging** | `torneio-challenge-staging.web.app` | Cloud Functions (staging) | Firestore staging |
+| **Produção** | `torneio-challenge.web.app` | Cloud Functions (produção) | Firestore produção |
+
+### Fluxo de Trabalho
+
+```
+Desenvolvimento local (emuladores)
+  → Commit + push na develop
+    → CI roda testes + deploy staging automático
+      → Valida no staging
+        → Merge develop → main
+          → Aprovação manual → deploy produção
+```
+
 ## Executando o Projeto
 
-### Backend
+### Desenvolvimento Local (com emuladores)
 
+Recomendado para desenvolvimento isolado, sem afetar produção.
+
+**Terminal 1** - Emuladores Firebase:
+```bash
+firebase emulators:start
+```
+
+**Terminal 2** - Backend:
 ```bash
 cd backend
-npm run dev
+npm run dev:emulators
 ```
 
-Servidor disponível em `http://localhost:5000`
-
-### Frontend
-
+**Terminal 3** - Frontend:
 ```bash
 cd frontend
-npm run dev
+npm run dev:emulators
 ```
 
-Aplicação disponível em `http://localhost:3000`
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:5000`
+- Emulator UI: `http://127.0.0.1:4000`
+
+> **Nota**: Os emuladores começam vazios. Crie usuários em `http://127.0.0.1:4000/auth`.
+
+### Desenvolvimento Local (sem emuladores)
+
+Conecta ao Firestore de **staging** (nunca produção). Dados persistem no banco staging.
+
+```bash
+# Terminal 1 - Backend
+cd backend && npm run dev
+
+# Terminal 2 - Frontend
+cd frontend && npm run dev
+```
+
+> **Nota**: O `.env.local` do backend e o `.env` do frontend apontam para o projeto staging. Produção só é acessada via deploy (CI/CD).
 
 ### Endpoints da API
 
@@ -248,6 +306,12 @@ Aplicação disponível em `http://localhost:3000`
 
 ```
 challenge-bt/
+├── .github/
+│   └── workflows/              # CI/CD (GitHub Actions)
+│       ├── ci.yml              # Testes e lint
+│       ├── deploy-staging.yml  # Deploy automático no staging
+│       └── deploy-production.yml # Deploy com aprovação em produção
+│
 ├── backend/
 │   ├── src/
 │   │   ├── __tests__/          # Testes unitários
@@ -267,11 +331,13 @@ challenge-bt/
 │   │   │   └── teams/          # Services específicos do formato TEAMS
 │   │   │       └── strategies/ # Estratégias de eliminatória por nº de grupos
 │   │   └── utils/              # Logger, errors, helpers
+│   ├── .env.example            # Template de variáveis de ambiente
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── frontend/
 │   ├── src/
+│   │   ├── __tests__/          # Testes unitários
 │   │   ├── components/
 │   │   │   ├── auth/           # Componentes de autenticação
 │   │   │   ├── etapas/         # Componentes de etapas
@@ -286,11 +352,17 @@ challenge-bt/
 │   │   ├── services/           # Chamadas à API
 │   │   ├── types/              # Types TypeScript
 │   │   └── utils/              # Utilitários
+│   ├── .env.example            # Template de variáveis de ambiente
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── vite.config.ts
 │   └── index.html
 │
+├── .firebaserc                 # Projetos Firebase (default + staging)
+├── firebase.json               # Config hosting, functions, emuladores
+├── firestore.rules             # Regras de segurança do Firestore
+├── firestore.indexes.json      # Índices compostos do Firestore
+├── storage.rules               # Regras de segurança do Storage
 └── README.md
 ```
 
@@ -359,69 +431,79 @@ npm run test:coverage
 
 #### Backend
 
-| Script                  | Descrição                       |
-| ----------------------- | ------------------------------- |
-| `npm run dev`           | Iniciar em modo desenvolvimento |
-| `npm run build`         | Compilar TypeScript             |
-| `npm start`             | Iniciar versão compilada        |
-| `npm test`              | Rodar testes                    |
-| `npm run test:coverage` | Testes com coverage             |
-| `npm run lint`          | Verificar código com ESLint     |
-| `npm run lint:fix`      | Corrigir problemas de lint      |
+| Script                    | Descrição                                  |
+| ------------------------- | ------------------------------------------ |
+| `npm run dev`             | Iniciar em modo desenvolvimento            |
+| `npm run dev:emulators`   | Iniciar conectado aos emuladores Firebase  |
+| `npm run dev:staging`     | Iniciar com config de staging              |
+| `npm run build`           | Compilar TypeScript                        |
+| `npm start`               | Iniciar versão compilada                   |
+| `npm test`                | Rodar testes                               |
+| `npm run test:coverage`   | Testes com coverage                        |
+| `npm run test:ci`         | Testes para CI (sem watch)                 |
+| `npm run lint`            | Verificar código com ESLint                |
+| `npm run lint:fix`        | Corrigir problemas de lint                 |
+| `npm run deploy:staging`  | Build + deploy no staging                  |
+| `npm run deploy:prod`     | Build + deploy em produção                 |
 
 #### Frontend
 
-| Script                  | Descrição                       |
-| ----------------------- | ------------------------------- |
-| `npm run dev`           | Iniciar em modo desenvolvimento |
-| `npm run build`         | Build de produção               |
-| `npm run preview`       | Preview do build                |
-| `npm test`              | Rodar testes                    |
-| `npm run test:coverage` | Testes com coverage             |
+| Script                    | Descrição                                  |
+| ------------------------- | ------------------------------------------ |
+| `npm run dev`             | Iniciar em modo desenvolvimento            |
+| `npm run dev:emulators`   | Iniciar com emuladores Firebase            |
+| `npm run build`           | Build de produção                          |
+| `npm run build:staging`   | Build para staging                         |
+| `npm run preview`         | Preview do build                           |
+| `npm test`                | Rodar testes                               |
+| `npm run test:coverage`   | Testes com coverage                        |
+| `npm run deploy:staging`  | Build staging + deploy                     |
+| `npm run deploy:prod`     | Build produção + deploy                    |
 
 ## Deploy
 
-### Firebase
+### CI/CD (GitHub Actions)
 
-O projeto está configurado para deploy no Firebase (Hosting + Functions).
+O deploy é automatizado via GitHub Actions:
 
-#### URLs de Produção
+| Workflow | Trigger | Ambiente | Aprovação |
+|----------|---------|----------|-----------|
+| CI - Testes e Lint | Push `develop` / PRs | - | Automática |
+| Deploy Staging | Push `develop` | Staging | Automática |
+| Deploy Produção | Push `main` | Produção | Manual (reviewer) |
 
-| Componente | URL                                 |
-| ---------- | ----------------------------------- |
-| Frontend   | https://torneio-challenge.web.app   |
-| Backend    | https://api-ghad5wrd3a-uc.a.run.app |
+Os secrets estão configurados nos **GitHub Environments** (`staging` e `production`).
 
-#### Comandos de Deploy
+### Deploy Manual
 
 ```bash
-# Build do backend
-cd backend && npm run build
-
-# Build do frontend
-cd frontend && npm run build
-
-# Deploy completo (na raiz do projeto)
+# Deploy para staging
+firebase use staging
+cd backend && npm run build && cd ..
+cd frontend && npm run build:staging && cd ..
 firebase deploy
 
-# Deploy apenas do hosting (frontend)
-firebase deploy --only hosting
-
-# Deploy apenas das functions (backend)
-firebase deploy --only functions
+# Deploy para produção
+firebase use default
+cd backend && npm run build && cd ..
+cd frontend && npm run build && cd ..
+firebase deploy
 ```
 
-#### Configuração
+### Configuração Firebase
 
-Os arquivos de configuração do Firebase estão na raiz do projeto:
+| Arquivo | Descrição |
+|---------|-----------|
+| `.firebaserc` | Projetos Firebase (default + staging) |
+| `firebase.json` | Hosting, Functions, Emuladores, Firestore, Storage |
+| `firestore.rules` | Regras de segurança do Firestore |
+| `firestore.indexes.json` | Índices compostos do Firestore |
+| `storage.rules` | Regras de segurança do Storage |
 
-- `.firebaserc` - Projeto Firebase
-- `firebase.json` - Configuração de hosting e functions
+### Variáveis de Ambiente em Produção
 
-#### Variáveis de Ambiente em Produção
-
-- **Backend**: Em produção, o Firebase Functions injeta automaticamente as credenciais do Firebase Admin SDK
-- **Frontend**: Usar `frontend/.env.production` com `VITE_API_URL=/api`
+- **Backend**: Firebase Functions injeta credenciais automaticamente. Variáveis extras são lidas do `.env.staging` ou `.env.production` pelo Firebase Functions.
+- **Frontend**: Build com `--mode staging` ou `--mode production` carrega o `.env` correspondente. `VITE_API_URL=/api` usa o rewrite do Firebase Hosting.
 
 ## Status do Projeto
 
@@ -471,13 +553,25 @@ taskkill /PID <PID> /F
 
 ### Erro de CORS
 
-Verificar se `FRONTEND_URL` no backend corresponde à URL do frontend.
+Verificar se `ALLOWED_ORIGINS` no `.env.local` do backend inclui a URL do frontend.
 
 ### Firebase não conecta
 
-1. Verificar se as variáveis de ambiente estão corretas
+1. Verificar se as variáveis de ambiente estão corretas (`FB_PROJECT_ID`, `FB_PRIVATE_KEY`, `FB_CLIENT_EMAIL`)
 2. Verificar se o projeto Firebase existe
 3. Verificar se o Firestore está habilitado
+
+### Emuladores não iniciam
+
+1. Verificar se o Java está instalado: `java -version` (JDK 11+)
+2. Verificar se o Firebase CLI está atualizado: `firebase --version`
+3. Verificar se `storage.rules` existe na raiz do projeto
+
+### Deploy falha no GitHub Actions
+
+1. Verificar se os secrets estão configurados nos Environments (`staging` / `production`)
+2. Verificar se a service account tem role **Editor** no IAM do projeto
+3. Verificar se as APIs necessárias estão habilitadas (Cloud Functions, Cloud Build, Cloud Billing)
 
 ## Licença
 
