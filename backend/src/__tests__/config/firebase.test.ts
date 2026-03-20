@@ -130,9 +130,9 @@ describe("firebase.ts", () => {
       process.env.NODE_ENV = "development";
       delete process.env.FIREBASE_CONFIG;
       delete process.env.GCLOUD_PROJECT;
-      process.env.FIREBASE_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----";
-      process.env.FIREBASE_PROJECT_ID = "test-project-id";
-      process.env.FIREBASE_CLIENT_EMAIL = "test@test.iam.gserviceaccount.com";
+      process.env.FB_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----";
+      process.env.FB_PROJECT_ID = "test-project-id";
+      process.env.FB_CLIENT_EMAIL = "test@test.iam.gserviceaccount.com";
       (admin as any).apps = [];
 
       jest.isolateModules(() => {
@@ -158,9 +158,9 @@ describe("firebase.ts", () => {
       process.env.NODE_ENV = "development";
       delete process.env.FIREBASE_CONFIG;
       delete process.env.GCLOUD_PROJECT;
-      delete process.env.FIREBASE_PRIVATE_KEY;
-      delete process.env.FIREBASE_PROJECT_ID;
-      delete process.env.FIREBASE_CLIENT_EMAIL;
+      delete process.env.FB_PRIVATE_KEY;
+      delete process.env.FB_PROJECT_ID;
+      delete process.env.FB_CLIENT_EMAIL;
       (admin as any).apps = [];
 
       expect(() => {
