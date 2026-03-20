@@ -7,6 +7,7 @@ import { AuthRequest } from "../middlewares/auth";
 import { BaseController } from "./BaseController";
 import { ResponseHelper } from "../utils/responseHelper";
 import jogadorService from "../services/JogadorService";
+import excelJogadorService from "../services/ExcelJogadorService";
 import {
   CriarJogadorSchema,
   AtualizarJogadorSchema,
@@ -224,6 +225,87 @@ class JogadorController extends BaseController {
       this.handleGenericError(res, error, "contar jogadores por nível", {
         arenaId: req.user?.arenaId,
       });
+    }
+  }
+  /**
+   * Exportar jogadores para Excel
+   * GET /api/jogadores/exportar-excel
+   */
+  async exportarExcel(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+
+      logger.info("Exportando jogadores para Excel", { arenaId });
+
+      const buffer = await excelJogadorService.exportarParaExcel(arenaId);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="jogadores.xlsx"'
+      );
+      res.send(buffer);
+    } catch (error: any) {
+      logger.error("Erro ao exportar jogadores", { arenaId: req.user?.arenaId }, error);
+      this.handleGenericError(res, error, "exportar jogadores");
+    }
+  }
+
+  /**
+   * Importar jogadores de Excel
+   * POST /api/jogadores/importar-excel
+   */
+  async importarExcel(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId, uid } = req.user;
+      const file = req.file;
+
+      if (!file) {
+        ResponseHelper.badRequest(res, "Nenhum arquivo enviado");
+        return;
+      }
+
+      logger.info("Importando jogadores de Excel", {
+        arenaId,
+        fileName: file.originalname,
+        fileSize: file.size,
+      });
+
+      const resultado = await excelJogadorService.importarDeExcel(
+        arenaId,
+        uid,
+        file.buffer
+      );
+
+      ResponseHelper.success(
+        res,
+        resultado,
+        `${resultado.criados} jogador(es) importado(s) com sucesso`
+      );
+    } catch (error: any) {
+      logger.error("Erro ao importar jogadores", { arenaId: req.user?.arenaId }, error);
+
+      // Erros de validação retornam 400
+      if (
+        error.message?.includes("obrigatórias ausentes") ||
+        error.message?.includes("Erros de validação") ||
+        error.message?.includes("já existem na arena") ||
+        error.message?.includes("duplicados na planilha") ||
+        error.message?.includes("não contém dados") ||
+        error.message?.includes("vazia ou formato")
+      ) {
+        ResponseHelper.badRequest(res, error.message);
+        return;
+      }
+
+      this.handleGenericError(res, error, "importar jogadores");
     }
   }
 }

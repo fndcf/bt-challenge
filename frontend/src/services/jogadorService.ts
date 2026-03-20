@@ -2,6 +2,7 @@
  * Service para gerenciar jogadores usando apiClient
  */
 
+import axios from "axios";
 import { apiClient } from "./apiClient";
 import {
   Jogador,
@@ -179,6 +180,55 @@ class JogadorService implements IJogadorService {
     } catch (error) {
       handleError(error, "JogadorService.buscarDisponiveis");
       return [];
+    }
+  }
+  /**
+   * Exportar jogadores para Excel
+   */
+  async exportarExcel(): Promise<void> {
+    try {
+      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const token = localStorage.getItem("authToken");
+
+      const response = await axios.get(`${baseURL}${this.basePath}/exportar-excel`, {
+        responseType: "blob",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "jogadores.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      logger.info("Jogadores exportados para Excel");
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.exportarExcel");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Importar jogadores de Excel
+   */
+  async importarExcel(file: File): Promise<{ criados: number; jogadores: Jogador[] }> {
+    try {
+      const resultado = await apiClient.upload<{ criados: number; jogadores: Jogador[] }>(
+        `${this.basePath}/importar-excel`,
+        file
+      );
+
+      logger.info("Jogadores importados de Excel", { criados: resultado.criados });
+
+      return resultado;
+    } catch (error) {
+      const appError = handleError(error, "JogadorService.importarExcel");
+      throw new Error(appError.message);
     }
   }
 }

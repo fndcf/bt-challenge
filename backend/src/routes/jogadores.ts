@@ -1,6 +1,7 @@
 import { Router } from "express";
 import jogadorController from "../controllers/JogadorController";
 import { requireAuth } from "../middlewares/auth";
+import { uploadExcel } from "../middlewares/upload";
 
 const router = Router();
 
@@ -22,6 +23,24 @@ router.post("/", (req, res) => jogadorController.criar(req, res));
  * @access  Private
  */
 router.get("/", (req, res) => jogadorController.listar(req, res));
+
+/**
+ * @route   GET /api/jogadores/exportar-excel
+ * @desc    Exportar jogadores para Excel
+ * @access  Private
+ */
+router.get("/exportar-excel", (req, res) =>
+  jogadorController.exportarExcel(req, res)
+);
+
+/**
+ * @route   POST /api/jogadores/importar-excel
+ * @desc    Importar jogadores de Excel
+ * @access  Private
+ */
+router.post("/importar-excel", uploadExcel, (req, res) =>
+  jogadorController.importarExcel(req, res)
+);
 
 /**
  * @route   GET /api/jogadores/stats/total

@@ -56,6 +56,18 @@ export const Subtitle = styled.p`
   }
 `;
 
+export const HeaderActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    width: auto;
+  }
+`;
+
 export const NewButton = styled.button`
   display: flex;
   align-items: center;
@@ -74,6 +86,38 @@ export const NewButton = styled.button`
 
   &:hover {
     background: #1d4ed8;
+  }
+
+  @media (min-width: 768px) {
+    width: auto;
+  }
+`;
+
+export const SecondaryButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: white;
+  color: #374151;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   @media (min-width: 768px) {

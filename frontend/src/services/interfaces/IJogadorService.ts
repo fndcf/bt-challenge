@@ -65,4 +65,8 @@ export interface IJogadorService {
    * @returns Promise com lista de jogadores disponíveis
    */
   buscarDisponiveis(etapaId: string): Promise<Jogador[]>;
+
+  exportarExcel(): Promise<void>;
+
+  importarExcel(file: File): Promise<{ criados: number; jogadores: Jogador[] }>;
 }

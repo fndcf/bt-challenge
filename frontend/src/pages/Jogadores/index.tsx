@@ -2,9 +2,10 @@
  * Responsabilidade única: Orquestrar componentes da página de listagem de jogadores
  */
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useDocumentTitle } from "@/hooks";
 import { Footer } from "@/components/layout/Footer";
+import { ModalImportarJogadores } from "@/components/modals/ModalImportarJogadores";
 import { useListagemJogadores } from "./hooks/useListagemJogadores";
 import { PageHeader } from "./components/PageHeader";
 import { SearchBar } from "./components/SearchBar";
@@ -16,6 +17,7 @@ import * as S from "./Jogadores.styles";
 export const ListagemJogadores: React.FC = () => {
   useDocumentTitle("Jogadores");
   const alertRef = useRef<HTMLDivElement>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Hook centralizado com toda a lógica de negócio
   const {
@@ -44,6 +46,9 @@ export const ListagemJogadores: React.FC = () => {
     handlePaginaAnterior,
     handleProximaPagina,
     handleDeletarJogador,
+    exportando,
+    handleExportarExcel,
+    handleImportarExcel,
   } = useListagemJogadores();
 
   // Scroll para o alert quando aparecer mensagem
@@ -53,12 +58,19 @@ export const ListagemJogadores: React.FC = () => {
     }
   }, [errorMessage, successMessage]);
 
+  const handleImportSuccess = (criados: number) => {
+    setSuccessMessage(`${criados} jogador(es) importado(s) com sucesso`);
+  };
+
   return (
     <S.Container>
       {/* Header */}
       <PageHeader
         title="Jogadores"
         subtitle="Gerencie os jogadores da sua arena"
+        onExportar={handleExportarExcel}
+        onImportar={() => setShowImportModal(true)}
+        exportando={exportando}
       />
 
       {/* Mensagens de Sucesso */}
@@ -113,6 +125,15 @@ export const ListagemJogadores: React.FC = () => {
           onProximaPagina={handleProximaPagina}
         />
       )}
+
+      {/* Modal de Importação */}
+      <ModalImportarJogadores
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+        onImportar={handleImportarExcel}
+        onExportarModelo={handleExportarExcel}
+      />
 
       {/* Rodapé */}
       <Footer />

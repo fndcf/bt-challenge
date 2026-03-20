@@ -51,6 +51,11 @@ export interface UseListagemJogadoresReturn {
   // Ações
   carregarJogadores: () => void;
   handleDeletarJogador: (jogador: Jogador) => Promise<boolean>;
+
+  // Import/Export
+  exportando: boolean;
+  handleExportarExcel: () => Promise<void>;
+  handleImportarExcel: (file: File) => Promise<{ criados: number }>;
 }
 
 export const useListagemJogadores = (): UseListagemJogadoresReturn => {
@@ -62,6 +67,9 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
   // Mensagens
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Import/Export
+  const [exportando, setExportando] = useState(false);
 
   // Filtros
   const [busca, setBusca] = useState("");
@@ -262,6 +270,36 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
     setOffset(0);
   }, []);
 
+  /**
+   * Exportar jogadores para Excel
+   */
+  const handleExportarExcel = useCallback(async () => {
+    try {
+      setExportando(true);
+      setErrorMessage("");
+      const jogadorService = getJogadorService();
+      await jogadorService.exportarExcel();
+      setSuccessMessage("Jogadores exportados com sucesso");
+    } catch (error: any) {
+      setErrorMessage(error.message || "Erro ao exportar jogadores");
+    } finally {
+      setExportando(false);
+    }
+  }, []);
+
+  /**
+   * Importar jogadores de Excel
+   */
+  const handleImportarExcel = useCallback(
+    async (file: File): Promise<{ criados: number }> => {
+      const jogadorService = getJogadorService();
+      const resultado = await jogadorService.importarExcel(file);
+      carregarJogadores();
+      return resultado;
+    },
+    [carregarJogadores]
+  );
+
   return {
     // Estados principais
     jogadores,
@@ -299,6 +337,11 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
     // Ações
     carregarJogadores,
     handleDeletarJogador,
+
+    // Import/Export
+    exportando,
+    handleExportarExcel,
+    handleImportarExcel,
   };
 };
 
