@@ -27,10 +27,7 @@ jobs:
       - run: npm run lint
       - name: Run tests
         env:
-          NODE_ENV: test
-          FB_PROJECT_ID: test-project
-          FB_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----"
-          FB_CLIENT_EMAIL: test@test.iam.gserviceaccount.com
+          GCLOUD_PROJECT: test-project
         run: npm run test:ci
 
       - name: Upload cobertura backend
