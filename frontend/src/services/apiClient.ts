@@ -51,6 +51,13 @@ class ApiClient {
   }
 
   /**
+   * Retorna a baseURL configurada
+   */
+  getBaseURL(): string {
+    return this.client.defaults.baseURL || "";
+  }
+
+  /**
    * Configurar interceptors
    */
   private setupInterceptors() {

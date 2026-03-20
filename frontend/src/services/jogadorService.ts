@@ -187,10 +187,10 @@ class JogadorService implements IJogadorService {
    */
   async exportarExcel(): Promise<void> {
     try {
-      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const token = localStorage.getItem("authToken");
 
-      const response = await axios.get(`${baseURL}${this.basePath}/exportar-excel`, {
+      const response = await axios.get(`${this.basePath}/exportar-excel`, {
+        baseURL: apiClient.getBaseURL(),
         responseType: "blob",
         headers: {
           Authorization: token ? `Bearer ${token}` : "",
