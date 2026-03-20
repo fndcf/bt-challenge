@@ -57,40 +57,41 @@ const initializeFirebase = () => {
       return admin.app();
     }
 
-    // Em desenvolvimento, usar variáveis de ambiente locais
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY
-      ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+    // Em desenvolvimento/staging, usar variáveis de ambiente locais
+    // Prefixo FB_ em vez de FIREBASE_ (reservado pelo Firebase Functions)
+    const privateKey = process.env.FB_PRIVATE_KEY
+      ? process.env.FB_PRIVATE_KEY.replace(/\\n/g, "\n")
       : undefined;
 
     // Validar credenciais para desenvolvimento
     if (
       !privateKey ||
-      !process.env.FIREBASE_PROJECT_ID ||
-      !process.env.FIREBASE_CLIENT_EMAIL
+      !process.env.FB_PROJECT_ID ||
+      !process.env.FB_CLIENT_EMAIL
     ) {
       logger.critical("Credenciais do Firebase não configuradas", {
         hasPrivateKey: !!privateKey,
-        hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
-        hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+        hasProjectId: !!process.env.FB_PROJECT_ID,
+        hasClientEmail: !!process.env.FB_CLIENT_EMAIL,
       });
       throw new Error("Credenciais do Firebase não configuradas corretamente");
     }
 
     logger.debug("Inicializando Firebase Admin em modo desenvolvimento", {
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      projectId: process.env.FB_PROJECT_ID,
+      clientEmail: process.env.FB_CLIENT_EMAIL,
     });
 
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
+        projectId: process.env.FB_PROJECT_ID,
         privateKey: privateKey,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        clientEmail: process.env.FB_CLIENT_EMAIL,
       }),
     });
 
     logger.info("Firebase Admin inicializado com sucesso", {
-      projectId: process.env.FIREBASE_PROJECT_ID,
+      projectId: process.env.FB_PROJECT_ID,
       environment: process.env.NODE_ENV || "development",
     });
 
