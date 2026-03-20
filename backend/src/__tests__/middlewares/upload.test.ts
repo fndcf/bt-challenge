@@ -3,29 +3,26 @@
  */
 
 import { Request, Response, NextFunction } from "express";
+import { EventEmitter } from "events";
 
-// Mock do multer antes do import
-const mockSingle = jest.fn();
+// Mock do busboy
+const mockBusboyInstance = new EventEmitter();
+(mockBusboyInstance as any).end = jest.fn();
 
-class MockMulterError extends Error {
-  code: string;
-  constructor(code: string) {
-    super(`MulterError: ${code}`);
-    this.code = code;
-    this.name = "MulterError";
-  }
-}
-
-jest.mock("multer", () => {
-  const multer = () => ({
-    single: () => mockSingle,
-  });
-  multer.memoryStorage = jest.fn(() => ({}));
-  multer.MulterError = MockMulterError;
-  return multer;
+jest.mock("busboy", () => {
+  return jest.fn(() => mockBusboyInstance);
 });
 
+jest.mock("../../utils/responseHelper", () => ({
+  ResponseHelper: {
+    badRequest: jest.fn((res: Response, msg: string) => {
+      res.status(400).json({ error: msg });
+    }),
+  },
+}));
+
 import { uploadExcel } from "../../middlewares/upload";
+import { ResponseHelper } from "../../utils/responseHelper";
 
 describe("uploadExcel middleware", () => {
   let mockReq: Partial<Request>;
@@ -34,7 +31,12 @@ describe("uploadExcel middleware", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockReq = {};
+    mockBusboyInstance.removeAllListeners();
+
+    mockReq = {
+      headers: { "content-type": "multipart/form-data; boundary=---" },
+      body: Buffer.from("fake"),
+    };
     mockRes = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
@@ -42,34 +44,66 @@ describe("uploadExcel middleware", () => {
     mockNext = jest.fn();
   });
 
-  it("deve chamar next() quando upload é bem-sucedido", () => {
-    mockSingle.mockImplementation((_req: Request, _res: Response, cb: (err?: Error) => void) => {
-      cb();
-    });
+  it("deve rejeitar quando Content-Type não é multipart", () => {
+    mockReq.headers = { "content-type": "application/json" };
 
     uploadExcel(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(ResponseHelper.badRequest).toHaveBeenCalledWith(
+      mockRes,
+      "Content-Type deve ser multipart/form-data"
+    );
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it("deve chamar next() quando arquivo válido é recebido", () => {
+    uploadExcel(mockReq as Request, mockRes as Response, mockNext);
+
+    // Simular arquivo recebido via busboy
+    const fileStream = new EventEmitter();
+    mockBusboyInstance.emit("file", "file", fileStream, {
+      filename: "jogadores.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    fileStream.emit("data", Buffer.from("fake-xlsx-data"));
+    fileStream.emit("end");
+
+    mockBusboyInstance.emit("finish");
+
     expect(mockNext).toHaveBeenCalled();
+    expect((mockReq as any).file).toBeDefined();
+    expect((mockReq as any).file.originalname).toBe("jogadores.xlsx");
   });
 
-  it("deve retornar 400 quando arquivo é muito grande", () => {
-    mockSingle.mockImplementation((_req: Request, _res: Response, cb: (err?: Error) => void) => {
-      cb(new MockMulterError("LIMIT_FILE_SIZE"));
-    });
-
+  it("deve rejeitar quando nenhum arquivo é enviado", () => {
     uploadExcel(mockReq as Request, mockRes as Response, mockNext);
 
-    expect(mockRes.status).toHaveBeenCalledWith(400);
+    mockBusboyInstance.emit("finish");
+
+    expect(ResponseHelper.badRequest).toHaveBeenCalledWith(
+      mockRes,
+      "Nenhum arquivo enviado"
+    );
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("deve retornar 400 quando ocorre erro customizado", () => {
-    mockSingle.mockImplementation((_req: Request, _res: Response, cb: (err?: Error) => void) => {
-      cb(new Error("Formato de arquivo inválido"));
-    });
-
+  it("deve rejeitar quando arquivo excede tamanho máximo", () => {
     uploadExcel(mockReq as Request, mockRes as Response, mockNext);
 
-    expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockNext).not.toHaveBeenCalled();
+    const fileStream = new EventEmitter();
+    mockBusboyInstance.emit("file", "file", fileStream, {
+      filename: "jogadores.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    fileStream.emit("data", Buffer.from("data"));
+    fileStream.emit("limit");
+    fileStream.emit("end");
+
+    mockBusboyInstance.emit("finish");
+
+    expect(ResponseHelper.badRequest).toHaveBeenCalledWith(
+      mockRes,
+      "Arquivo muito grande. Tamanho máximo: 5MB"
+    );
   });
 });

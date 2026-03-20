@@ -46,9 +46,24 @@ app.use(
 
 /**
  * Parsing de requisições
+ * Pular para multipart/form-data (upload de arquivos usa busboy)
  */
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const contentType = req.headers["content-type"] || "";
+  if (contentType.includes("multipart/form-data")) {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const contentType = req.headers["content-type"] || "";
+  if (contentType.includes("multipart/form-data")) {
+    next();
+  } else {
+    express.urlencoded({ extended: true })(req, res, next);
+  }
+});
 
 /**
  * Health check
