@@ -299,6 +299,9 @@ class ApiClient {
     formData.append("file", file);
 
     const config: AxiosRequestConfig = {
+      headers: {
+        "Content-Type": undefined,
+      },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const progress = Math.round(

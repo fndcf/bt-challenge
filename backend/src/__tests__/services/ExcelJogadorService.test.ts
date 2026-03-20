@@ -13,8 +13,20 @@ jest.mock("../../utils/logger", () => ({
   },
 }));
 
+const mockBatchSet = jest.fn();
+const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
+const mockDocRef = { id: "batch-doc-id" };
+
 jest.mock("../../config/firebase", () => ({
-  db: { collection: jest.fn() },
+  db: {
+    collection: jest.fn(() => ({
+      doc: jest.fn(() => mockDocRef),
+    })),
+    batch: jest.fn(() => ({
+      set: mockBatchSet,
+      commit: mockBatchCommit,
+    })),
+  },
   auth: { verifyIdToken: jest.fn() },
 }));
 
@@ -180,9 +192,6 @@ describe("ExcelJogadorService", () => {
         temMais: false,
       });
 
-      const jogadorCriado = createJogadorFixture({ id: "new-1", nome: "Carlos Souza" });
-      mockedJogadorService.criar.mockResolvedValue(jogadorCriado);
-
       const resultado = await excelJogadorService.importarDeExcel(
         TEST_ARENA_ID,
         TEST_ADMIN_ID,
@@ -190,17 +199,18 @@ describe("ExcelJogadorService", () => {
       );
 
       expect(resultado.criados).toBe(2);
-      expect(mockedJogadorService.criar).toHaveBeenCalledTimes(2);
+      expect(mockBatchSet).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalledTimes(1);
 
-      // Verificar primeiro jogador
-      expect(mockedJogadorService.criar).toHaveBeenCalledWith(
-        TEST_ARENA_ID,
-        TEST_ADMIN_ID,
+      // Verificar primeiro jogador no batch
+      expect(mockBatchSet).toHaveBeenCalledWith(
+        mockDocRef,
         expect.objectContaining({
           nome: "Carlos Souza",
           genero: GeneroJogador.MASCULINO,
           nivel: NivelJogador.INICIANTE,
-          status: StatusJogador.ATIVO,
+          arenaId: TEST_ARENA_ID,
+          criadoPor: TEST_ADMIN_ID,
         })
       );
     });
@@ -220,9 +230,6 @@ describe("ExcelJogadorService", () => {
         offset: 0,
         temMais: false,
       });
-
-      const jogadorCriado = createJogadorFixture({ id: "new-1" });
-      mockedJogadorService.criar.mockResolvedValue(jogadorCriado);
 
       const resultado = await excelJogadorService.importarDeExcel(
         TEST_ARENA_ID,
@@ -248,9 +255,6 @@ describe("ExcelJogadorService", () => {
         offset: 0,
         temMais: false,
       });
-
-      const jogadorCriado = createJogadorFixture({ id: "new-1" });
-      mockedJogadorService.criar.mockResolvedValue(jogadorCriado);
 
       const resultado = await excelJogadorService.importarDeExcel(
         TEST_ARENA_ID,

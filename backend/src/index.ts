@@ -46,23 +46,19 @@ app.use(
 
 /**
  * Parsing de requisições
- * Pular para multipart/form-data (upload de arquivos usa busboy)
+ * Pular json/urlencoded para multipart (busboy lida com upload)
  */
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const contentType = req.headers["content-type"] || "";
-  if (contentType.includes("multipart/form-data")) {
-    next();
-  } else {
-    express.json()(req, res, next);
+  if ((req.headers["content-type"] || "").includes("multipart/form-data")) {
+    return next();
   }
+  express.json()(req, res, next);
 });
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const contentType = req.headers["content-type"] || "";
-  if (contentType.includes("multipart/form-data")) {
-    next();
-  } else {
-    express.urlencoded({ extended: true })(req, res, next);
+  if ((req.headers["content-type"] || "").includes("multipart/form-data")) {
+    return next();
   }
+  express.urlencoded({ extended: true })(req, res, next);
 });
 
 /**

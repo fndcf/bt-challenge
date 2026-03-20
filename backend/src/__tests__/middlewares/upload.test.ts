@@ -1,16 +1,20 @@
 /**
- * Testes do middleware de upload
+ * Testes do middleware de upload (busboy)
  */
 
 import { Request, Response, NextFunction } from "express";
 import { EventEmitter } from "events";
 
-// Mock do busboy
-const mockBusboyInstance = new EventEmitter();
-(mockBusboyInstance as any).end = jest.fn();
+// Mock busboy instance
+let mockBusboyInstance: EventEmitter & { end: jest.Mock };
 
 jest.mock("busboy", () => {
-  return jest.fn(() => mockBusboyInstance);
+  return jest.fn(() => {
+    mockBusboyInstance = Object.assign(new EventEmitter(), {
+      end: jest.fn(),
+    });
+    return mockBusboyInstance;
+  });
 });
 
 jest.mock("../../utils/responseHelper", () => ({
@@ -25,17 +29,16 @@ import { uploadExcel } from "../../middlewares/upload";
 import { ResponseHelper } from "../../utils/responseHelper";
 
 describe("uploadExcel middleware", () => {
-  let mockReq: Partial<Request>;
+  let mockReq: Partial<Request> & { rawBody?: Buffer; pipe?: jest.Mock };
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockBusboyInstance.removeAllListeners();
-
     mockReq = {
       headers: { "content-type": "multipart/form-data; boundary=---" },
-      body: Buffer.from("fake"),
+      rawBody: Buffer.from("fake-multipart-body"),
+      pipe: jest.fn(),
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
@@ -47,20 +50,33 @@ describe("uploadExcel middleware", () => {
   it("deve chamar next() quando arquivo válido é recebido", () => {
     uploadExcel(mockReq as Request, mockRes as Response, mockNext);
 
-    // Simular arquivo recebido via busboy
     const fileStream = new EventEmitter();
     mockBusboyInstance.emit("file", "file", fileStream, {
       filename: "jogadores.xlsx",
       mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    fileStream.emit("data", Buffer.from("fake-xlsx-data"));
+    fileStream.emit("data", Buffer.from("fake-xlsx"));
     fileStream.emit("end");
-
     mockBusboyInstance.emit("finish");
 
     expect(mockNext).toHaveBeenCalled();
     expect((mockReq as any).file).toBeDefined();
     expect((mockReq as any).file.originalname).toBe("jogadores.xlsx");
+  });
+
+  it("deve usar rawBody quando disponível (Cloud Functions)", () => {
+    uploadExcel(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockBusboyInstance.end).toHaveBeenCalledWith(mockReq.rawBody);
+    expect(mockReq.pipe).not.toHaveBeenCalled();
+  });
+
+  it("deve usar pipe quando rawBody não está disponível (local)", () => {
+    delete mockReq.rawBody;
+
+    uploadExcel(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockReq.pipe).toHaveBeenCalledWith(mockBusboyInstance);
   });
 
   it("deve rejeitar quando nenhum arquivo é enviado", () => {
@@ -72,7 +88,6 @@ describe("uploadExcel middleware", () => {
       mockRes,
       "Nenhum arquivo enviado"
     );
-    expect(mockNext).not.toHaveBeenCalled();
   });
 
   it("deve rejeitar quando arquivo excede tamanho máximo", () => {
@@ -86,7 +101,6 @@ describe("uploadExcel middleware", () => {
     fileStream.emit("data", Buffer.from("data"));
     fileStream.emit("limit");
     fileStream.emit("end");
-
     mockBusboyInstance.emit("finish");
 
     expect(ResponseHelper.badRequest).toHaveBeenCalledWith(

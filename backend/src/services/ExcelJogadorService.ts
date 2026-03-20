@@ -3,6 +3,8 @@
  */
 
 import ExcelJS from "exceljs";
+import { Timestamp } from "firebase-admin/firestore";
+import { db } from "../config/firebase";
 import {
   Jogador,
   NivelJogador,
@@ -322,15 +324,47 @@ class ExcelJogadorService {
       );
     }
 
-    // Criar jogadores
+    // Criar jogadores em batch (até 500 por batch)
     const jogadoresCriados: Jogador[] = [];
+    const collection = db.collection("jogadores");
+    const agora = Timestamp.now();
+    const BATCH_SIZE = 500;
 
-    for (const dados of jogadoresParaCriar) {
-      const jogador = await jogadorService.criar(arenaId, adminUid, dados);
-      jogadoresCriados.push(jogador);
+    for (let i = 0; i < jogadoresParaCriar.length; i += BATCH_SIZE) {
+      const chunk = jogadoresParaCriar.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+
+      for (const dados of chunk) {
+        const docRef = collection.doc();
+        const jogadorData = {
+          arenaId,
+          nome: dados.nome.trim(),
+          email: dados.email?.trim().toLowerCase() || undefined,
+          telefone: dados.telefone?.trim() || undefined,
+          dataNascimento: dados.dataNascimento || undefined,
+          genero: dados.genero,
+          nivel: dados.nivel,
+          status: StatusJogador.ATIVO,
+          observacoes: dados.observacoes?.trim() || undefined,
+          vitorias: 0,
+          derrotas: 0,
+          pontos: 0,
+          criadoEm: agora,
+          atualizadoEm: agora,
+          criadoPor: adminUid,
+        };
+
+        batch.set(docRef, jogadorData);
+        jogadoresCriados.push({
+          id: docRef.id,
+          ...jogadorData,
+        } as Jogador);
+      }
+
+      await batch.commit();
     }
 
-    logger.info("Jogadores importados via Excel", {
+    logger.info("Jogadores importados via Excel (batch)", {
       arenaId,
       total: jogadoresCriados.length,
     });
