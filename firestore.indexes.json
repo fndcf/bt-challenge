@@ -1,21 +1,22 @@
 {
   "indexes": [
     {
-      "collectionGroup": "jogadores",
+      "collectionGroup": "cabecas_de_chave",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "nome", "order": "ASCENDING" }
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "jogadores",
+      "collectionGroup": "cabecas_de_chave",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "nivel", "order": "ASCENDING" },
-        { "fieldPath": "nome", "order": "ASCENDING" }
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
       ]
     },
     {
@@ -28,28 +29,60 @@
       ]
     },
     {
-      "collectionGroup": "partidas",
+      "collectionGroup": "confrontos_eliminatorios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "confrontos_eliminatorios",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
         { "fieldPath": "etapaId", "order": "ASCENDING" },
-        { "fieldPath": "fase", "order": "ASCENDING" }
+        { "fieldPath": "fase", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "duplas",
+      "collectionGroup": "confrontos_eliminatorios",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "etapaId", "order": "ASCENDING" }
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "fase", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "grupos",
+      "collectionGroup": "confrontos_eliminatorios",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "etapaId", "order": "ASCENDING" }
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "confrontos_eliminatorios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "fase", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "confrontos_equipe",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "fase", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
       ]
     },
     {
@@ -62,36 +95,37 @@
       ]
     },
     {
+      "collectionGroup": "duplas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "duplas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "grupoNome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "duplas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "grupoId", "order": "ASCENDING" },
+        { "fieldPath": "posicaoGrupo", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "equipes",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
         { "fieldPath": "etapaId", "order": "ASCENDING" },
         { "fieldPath": "ordem", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "partidas_teams",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "confrontoId", "order": "ASCENDING" },
-        { "fieldPath": "ordem", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "partidas_rei_da_praia",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "etapaId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "confrontos_eliminatorios",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "etapaId", "order": "ASCENDING" }
       ]
     },
     {
@@ -103,11 +137,29 @@
       ]
     },
     {
-      "collectionGroup": "inscricoes",
+      "collectionGroup": "estatisticas_jogador",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
-        { "fieldPath": "etapaId", "order": "ASCENDING" }
+        { "fieldPath": "jogadorId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "estatisticas_jogador",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "pontos", "order": "DESCENDING" },
+        { "fieldPath": "saldoGames", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "estatisticas_jogador",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "grupoId", "order": "ASCENDING" },
+        { "fieldPath": "posicaoGrupo", "order": "ASCENDING" }
       ]
     },
     {
@@ -116,6 +168,127 @@
       "fields": [
         { "fieldPath": "arenaId", "order": "ASCENDING" },
         { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "etapas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "dataRealizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "grupos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "completo", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "grupos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "grupos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inscricoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jogadores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "nivel", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jogadores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "fase", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "grupoId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas_rei_da_praia",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas_rei_da_praia",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas_rei_da_praia",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "grupoId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas_teams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "confrontoId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
       ]
     }
   ],
