@@ -26,9 +26,32 @@ app.use(helmet());
  * CORS - Em produção, restringe às origens permitidas
  * Em desenvolvimento, aceita localhost
  */
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:3000"];
+/**
+ * Determinar origens CORS permitidas:
+ * 1. Se ALLOWED_ORIGINS está definido, usar ele
+ * 2. Se estamos no Firebase (GCLOUD_PROJECT), derivar do projeto
+ * 3. Fallback para localhost
+ */
+const getAllowedOrigins = (): string[] => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
+  }
+
+  const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_CONFIG
+    ? JSON.parse(process.env.FIREBASE_CONFIG || "{}").projectId
+    : null;
+
+  if (projectId) {
+    return [
+      `https://${projectId}.web.app`,
+      `https://${projectId}.firebaseapp.com`,
+    ];
+  }
+
+  return ["http://localhost:3000"];
+};
+
+const allowedOrigins = getAllowedOrigins();
 
 app.use(
   cors({
