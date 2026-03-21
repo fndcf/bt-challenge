@@ -78,4 +78,6 @@ export interface IEtapaService {
       genero: string;
     }>
   >;
+
+  exportarSumula(etapaId: string): Promise<void>;
 }

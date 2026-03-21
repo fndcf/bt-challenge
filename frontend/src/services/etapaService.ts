@@ -1,3 +1,4 @@
+import axios from "axios";
 import { apiClient } from "./apiClient";
 import {
   Etapa,
@@ -407,6 +408,44 @@ class EtapaService implements IEtapaService {
       >(`${this.baseURL}/${etapaId}/jogadores-disponiveis`);
     } catch (error) {
       const appError = handleError(error, "EtapaService.buscarJogadoresDisponiveis");
+      throw new Error(appError.message);
+    }
+  }
+  /**
+   * Exportar súmula (partidas dos grupos) para Excel
+   */
+  async exportarSumula(etapaId: string): Promise<void> {
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const response = await axios.get(
+        `${this.baseURL}/${etapaId}/exportar-sumula`,
+        {
+          baseURL: apiClient.getBaseURL(),
+          responseType: "blob",
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+
+      // Extrair nome do arquivo do header ou usar default
+      const contentDisposition = response.headers["content-disposition"] || "";
+      const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `sumula-${etapaId}.xlsx`;
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      logger.info("Súmula exportada", { etapaId });
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.exportarSumula");
       throw new Error(appError.message);
     }
   }

@@ -107,6 +107,14 @@ router.delete("/:id/chaves", (req, res) =>
 );
 
 /**
+ * @route   GET /api/etapas/:id/exportar-sumula
+ * @desc    Exportar súmula (partidas dos grupos) para Excel
+ */
+router.get("/:id/exportar-sumula", (req, res) =>
+  etapaController.exportarSumula(req, res)
+);
+
+/**
  * @route   GET /api/etapas/:id/duplas
  * @desc    Buscar duplas da etapa
  */

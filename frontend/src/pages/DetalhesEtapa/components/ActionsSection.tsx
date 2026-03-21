@@ -3,6 +3,7 @@
  */
 
 import React from "react";
+import { Download } from "lucide-react";
 import { Etapa, StatusEtapa } from "@/types/etapa";
 import * as S from "../DetalhesEtapa.styles";
 
@@ -17,6 +18,8 @@ interface ActionsSectionProps {
   onApagarChaves: () => void;
   onVerChaves: () => void;
   onSubstituirJogador?: () => void;
+  onExportarSumula?: () => void;
+  exportandoSumula?: boolean;
 }
 
 export const ActionsSection: React.FC<ActionsSectionProps> = ({
@@ -30,6 +33,8 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   onApagarChaves,
   onVerChaves,
   onSubstituirJogador,
+  onExportarSumula,
+  exportandoSumula = false,
 }) => {
   const inscricoesAbertas = etapa.status === StatusEtapa.INSCRICOES_ABERTAS;
   const inscricoesEncerradas =
@@ -100,6 +105,14 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
         {etapa.chavesGeradas && onSubstituirJogador && (
           <S.Button $variant="orange" onClick={onSubstituirJogador}>
             <span>Substituir Jogador</span>
+          </S.Button>
+        )}
+
+        {/* Exportar súmula */}
+        {etapa.chavesGeradas && onExportarSumula && (
+          <S.Button $variant="green" onClick={onExportarSumula} disabled={exportandoSumula}>
+            <Download size={16} />
+            <span>{exportandoSumula ? "Exportando..." : "Exportar Súmula"}</span>
           </S.Button>
         )}
       </S.ActionsGrid>

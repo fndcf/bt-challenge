@@ -42,6 +42,9 @@ const DetalhesEtapa: React.FC = () => {
   // Estado do modal de substituição de jogador
   const [modalSubstituicaoAberto, setModalSubstituicaoAberto] = useState(false);
 
+  // Estado da exportação de súmula
+  const [exportandoSumula, setExportandoSumula] = useState(false);
+
   // Hook customizado gerencia todo o estado e lógica
   const {
     etapa,
@@ -103,6 +106,19 @@ const DetalhesEtapa: React.FC = () => {
       </S.Container>
     );
   }
+
+  // Handler para exportar súmula
+  const handleExportarSumula = async () => {
+    try {
+      setExportandoSumula(true);
+      await etapaService.exportarSumula(etapa.id);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao exportar súmula";
+      alert(message);
+    } finally {
+      setExportandoSumula(false);
+    }
+  };
 
   // Handlers
   const handleEditar = () => {
@@ -244,6 +260,8 @@ const DetalhesEtapa: React.FC = () => {
             }, 100);
           }}
           onSubstituirJogador={() => setModalSubstituicaoAberto(true)}
+          onExportarSumula={handleExportarSumula}
+          exportandoSumula={exportandoSumula}
         />
 
         {/* Tabs */}

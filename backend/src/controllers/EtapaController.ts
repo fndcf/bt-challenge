@@ -8,6 +8,7 @@ import { BaseController } from "./BaseController";
 import { ResponseHelper } from "../utils/responseHelper";
 import etapaService from "../services/EtapaService";
 import chaveService from "../services/ChaveService";
+import excelSumulaService from "../services/ExcelSumulaService";
 import {
   CriarEtapaSchema,
   AtualizarEtapaSchema,
@@ -2148,6 +2149,43 @@ class EtapaController extends BaseController {
       this.handleGenericError(res, error, "buscar jogadores disponíveis", {
         etapaId: req.params.id,
       });
+    }
+  }
+  /**
+   * Exportar súmula (partidas dos grupos) para Excel
+   * GET /api/etapas/:id/exportar-sumula
+   */
+  async exportarSumula(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Exportando súmula", { etapaId: id, arenaId });
+
+      const { buffer, nomeArquivo } = await excelSumulaService.gerarSumula(id, arenaId);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${nomeArquivo}"`
+      );
+      res.send(buffer);
+    } catch (error: any) {
+      if (error.message?.includes("não encontrada") || error.message?.includes("não pertence")) {
+        ResponseHelper.notFound(res, error.message);
+        return;
+      }
+      if (error.message?.includes("não foram geradas")) {
+        ResponseHelper.badRequest(res, error.message);
+        return;
+      }
+      logger.error("Erro ao exportar súmula", { etapaId: req.params.id }, error);
+      this.handleGenericError(res, error, "exportar súmula");
     }
   }
 }
