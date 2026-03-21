@@ -78,6 +78,7 @@ export interface Etapa {
   maxJogadores: number;
   jogadoresPorGrupo: number; // Não usado em Rei da Praia, Super X e TEAMS
   qtdGrupos?: number;
+  grupoUnico?: boolean; // Todas as duplas em um único grupo (todos contra todos)
   status: StatusEtapa;
   faseAtual: FaseEtapa;
   totalInscritos: number;
@@ -110,6 +111,7 @@ export interface CriarEtapaDTO {
   local?: string;
   maxJogadores: number;
   jogadoresPorGrupo?: number; // Opcional porque Rei da Praia, Super X e TEAMS não usam
+  grupoUnico?: boolean; // Todas as duplas em um único grupo (todos contra todos)
   contaPontosRanking?: boolean; // Por padrão true
 }
 

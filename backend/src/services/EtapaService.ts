@@ -134,6 +134,7 @@ export class EtapaService {
         local: dadosValidados.local?.trim(),
         maxJogadores: dadosValidados.maxJogadores,
         jogadoresPorGrupo: dadosValidados.jogadoresPorGrupo,
+        grupoUnico: dadosValidados.grupoUnico,
         contaPontosRanking: dadosValidados.contaPontosRanking ?? true,
       });
 

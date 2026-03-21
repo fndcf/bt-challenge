@@ -159,7 +159,11 @@ export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
 
           <S.PreviewBox>{infoDuplaFixa.descricao}</S.PreviewBox>
 
-          <S.PreviewNote>Grupos com 3 duplas cada (mínimo)</S.PreviewNote>
+          <S.PreviewNote>
+            {infoDuplaFixa.qtdGrupos === 1
+              ? "Todas as duplas jogam entre si"
+              : "Grupos com 3 duplas cada (mínimo)"}
+          </S.PreviewNote>
         </S.PreviewContent>
       ) : (
         <S.PreviewRow>{infoDuplaFixa.descricao}</S.PreviewRow>

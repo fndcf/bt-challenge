@@ -56,9 +56,12 @@ export class EtapaRepository implements IEtapaRepository {
       local: data.local || "",
       maxJogadores: data.maxJogadores,
       jogadoresPorGrupo: data.jogadoresPorGrupo || data.maxJogadores,
-      qtdGrupos: data.jogadoresPorGrupo
-        ? Math.ceil(data.maxJogadores / 2 / data.jogadoresPorGrupo)
-        : 1,
+      grupoUnico: data.grupoUnico || false,
+      qtdGrupos: data.grupoUnico
+        ? 1
+        : data.jogadoresPorGrupo
+          ? Math.ceil(data.maxJogadores / 2 / data.jogadoresPorGrupo)
+          : 1,
       status: StatusEtapa.INSCRICOES_ABERTAS,
       faseAtual: FaseEtapa.GRUPOS,
       totalInscritos: 0,

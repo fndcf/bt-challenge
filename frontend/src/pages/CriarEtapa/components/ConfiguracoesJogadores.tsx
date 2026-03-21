@@ -10,6 +10,7 @@ export interface ConfiguracoesJogadoresProps {
   maxJogadores: number;
   formato: FormatoEtapa;
   contaPontosRanking: boolean;
+  grupoUnico?: boolean;
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
   tipoFormacaoEquipe?: TipoFormacaoEquipe;
@@ -17,6 +18,7 @@ export interface ConfiguracoesJogadoresProps {
   tipoFormacaoDupla?: TipoFormacaoDupla;
   onMaxJogadoresChange: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
+  onGrupoUnicoChange?: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
   onVarianteTeamsChange?: (value: VarianteTeams) => void;
   onTipoFormacaoEquipeChange?: (value: TipoFormacaoEquipe) => void;
@@ -28,6 +30,7 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   maxJogadores,
   formato,
   contaPontosRanking,
+  grupoUnico = false,
   varianteSuperX,
   varianteTeams,
   tipoFormacaoEquipe,
@@ -35,6 +38,7 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   tipoFormacaoDupla,
   onMaxJogadoresChange,
   onContaPontosRankingChange,
+  onGrupoUnicoChange,
   onVarianteSuperXChange,
   onVarianteTeamsChange,
   onTipoFormacaoEquipeChange,
@@ -286,6 +290,25 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
               {formato === FormatoEtapa.REI_DA_PRAIA
                 ? "Múltiplo de 4 (mín: 8, máx: 64)"
                 : "Número par (mín: 6, máx: 52)"}
+            </S.HelperText>
+          </S.Field>
+        )}
+
+        {formato === FormatoEtapa.DUPLA_FIXA && onGrupoUnicoChange && (
+          <S.Field>
+            <S.CheckboxContainer>
+              <S.Checkbox
+                type="checkbox"
+                id="grupoUnico"
+                checked={grupoUnico}
+                onChange={(e) => onGrupoUnicoChange(e.target.checked)}
+              />
+              <S.CheckboxLabel htmlFor="grupoUnico">
+                Grupo único (todos contra todos)
+              </S.CheckboxLabel>
+            </S.CheckboxContainer>
+            <S.HelperText>
+              Todas as duplas jogam entre si em um único grupo, sem divisão em múltiplos grupos
             </S.HelperText>
           </S.Field>
         )}

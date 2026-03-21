@@ -101,6 +101,7 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   maxJogadores: 16,
   jogadoresPorGrupo: 3,
   contaPontosRanking: true, // Por padrão, etapas contam pontos no ranking
+  grupoUnico: false, // Por padrão, usa distribuição de múltiplos grupos
 };
 
 export const useCriarEtapa = (): UseCriarEtapaReturn => {
@@ -154,6 +155,17 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         };
       }
 
+      // Grupo único: todas as duplas em um grupo
+      if (formData.grupoUnico) {
+        return {
+          qtdGrupos: 1,
+          distribuicao: [totalDuplas],
+          descricao: `Grupo único: ${totalDuplas} duplas (todos contra todos)`,
+          totalDuplas,
+          valido: true,
+        };
+      }
+
       if (totalDuplas === 5) {
         return {
           qtdGrupos: 1,
@@ -195,7 +207,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         totalDuplas,
         valido: true,
       };
-    }, [formData.maxJogadores]);
+    }, [formData.maxJogadores, formData.grupoUnico]);
 
   const calcularDistribuicaoReiDaPraia =
     useCallback((): DistribuicaoReiDaPraia => {

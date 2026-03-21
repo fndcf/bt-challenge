@@ -104,6 +104,7 @@ export interface Etapa {
   maxJogadores: number; // Ex: 16, 24, 32
   jogadoresPorGrupo: number; // Ex: 3 ou 4 duplas por grupo
   qtdGrupos?: number; // Calculado automaticamente
+  grupoUnico?: boolean; // Todas as duplas em um único grupo (todos contra todos)
 
   // Status
   status: StatusEtapa;
@@ -160,6 +161,7 @@ const CriarEtapaSchemaBase = z.object({
     .min(6, "Mínimo de 6 jogadores")
     .max(64, "Máximo de 64 jogadores"),
   jogadoresPorGrupo: z.number().min(3).max(12).optional(), // max 12 para SUPER_X (grupo único)
+  grupoUnico: z.boolean().optional(), // Todas as duplas em um único grupo
   contaPontosRanking: z.boolean().default(true),
 });
 

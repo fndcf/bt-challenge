@@ -510,4 +510,113 @@ describe("GrupoService", () => {
       expect(result).toHaveLength(2);
     });
   });
+
+  describe("criarGrupos - grupo único", () => {
+    it("deve criar um único grupo com todas as duplas quando grupoUnico=true", async () => {
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1", jogador1Id: "j-1" }),
+        createDuplaFixture({ id: "dupla-2", jogador1Id: "j-2" }),
+        createDuplaFixture({ id: "dupla-3", jogador1Id: "j-3" }),
+        createDuplaFixture({ id: "dupla-4", jogador1Id: "j-4" }),
+        createDuplaFixture({ id: "dupla-5", jogador1Id: "j-5" }),
+        createDuplaFixture({ id: "dupla-6", jogador1Id: "j-6" }),
+      ];
+
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
+
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
+        )
+      );
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
+
+      const result = await grupoService.criarGrupos(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        duplas,
+        3,
+        true // grupoUnico
+      );
+
+      // Deve criar apenas 1 grupo
+      expect(result).toHaveLength(1);
+
+      // O criarEmLote deve receber apenas 1 grupo com 6 duplas
+      const gruposCriados = mockGrupoRepository.criarEmLote.mock.calls[0][0];
+      expect(gruposCriados).toHaveLength(1);
+      expect(gruposCriados[0].nome).toBe("Grupo A");
+    });
+
+    it("deve criar múltiplos grupos quando grupoUnico=false", async () => {
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1", jogador1Id: "j-1" }),
+        createDuplaFixture({ id: "dupla-2", jogador1Id: "j-2" }),
+        createDuplaFixture({ id: "dupla-3", jogador1Id: "j-3" }),
+        createDuplaFixture({ id: "dupla-4", jogador1Id: "j-4" }),
+        createDuplaFixture({ id: "dupla-5", jogador1Id: "j-5" }),
+        createDuplaFixture({ id: "dupla-6", jogador1Id: "j-6" }),
+      ];
+
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
+
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
+        )
+      );
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
+
+      const result = await grupoService.criarGrupos(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        duplas,
+        3,
+        false // não é grupo único
+      );
+
+      // 6 duplas = 2 grupos de 3
+      expect(result).toHaveLength(2);
+    });
+
+    it("deve criar grupo único com 8 duplas", async () => {
+      const duplas = Array.from({ length: 8 }, (_, i) =>
+        createDuplaFixture({ id: `dupla-${i + 1}`, jogador1Id: `j-${i + 1}` })
+      );
+
+      (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
+
+      mockGrupoRepository.criarEmLote.mockImplementation(async (dtos: any[]) =>
+        dtos.map((dto, idx) =>
+          createGrupoFixture({
+            id: `grupo-${idx + 1}`,
+            nome: dto.nome,
+            ordem: dto.ordem,
+          })
+        )
+      );
+      mockDuplaRepository.atualizarEmLote.mockResolvedValue(undefined);
+
+      const result = await grupoService.criarGrupos(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        duplas,
+        3,
+        true
+      );
+
+      expect(result).toHaveLength(1);
+
+      const gruposCriados = mockGrupoRepository.criarEmLote.mock.calls[0][0];
+      expect(gruposCriados).toHaveLength(1);
+    });
+  });
 });

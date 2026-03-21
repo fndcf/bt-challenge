@@ -167,7 +167,8 @@ export class ChaveService implements IChaveService {
         etapaId,
         arenaId,
         duplas,
-        etapa.jogadoresPorGrupo
+        etapa.jogadoresPorGrupo,
+        etapa.grupoUnico
       );
 
       // Gerar partidas
@@ -268,7 +269,8 @@ export class ChaveService implements IChaveService {
         etapaId,
         arenaId,
         duplas,
-        etapa.jogadoresPorGrupo
+        etapa.jogadoresPorGrupo,
+        etapa.grupoUnico
       );
 
       // Gerar partidas

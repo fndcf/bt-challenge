@@ -27,7 +27,8 @@ export interface IGrupoService {
     etapaId: string,
     arenaId: string,
     duplas: Dupla[],
-    duplasPorGrupo: number
+    duplasPorGrupo: number,
+    grupoUnico?: boolean
   ): Promise<Grupo[]>;
 
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<Grupo[]>;
@@ -58,13 +59,16 @@ export class GrupoService implements IGrupoService {
     etapaId: string,
     arenaId: string,
     duplas: Dupla[],
-    _duplasPorGrupo: number
+    _duplasPorGrupo: number,
+    grupoUnico?: boolean
   ): Promise<Grupo[]> {
     try {
       const grupos: Grupo[] = [];
 
       // Calcular distribuição ideal de grupos
-      const distribuicao = calcularDistribuicaoGrupos(duplas.length);
+      const distribuicao = grupoUnico
+        ? [duplas.length] // Grupo único: todas as duplas juntas
+        : calcularDistribuicaoGrupos(duplas.length);
       const qtdGrupos = distribuicao.length;
 
       // Obter cabeças de chave para distribuição equilibrada
