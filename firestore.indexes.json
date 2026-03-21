@@ -51,6 +51,72 @@
         { "fieldPath": "arenaId", "order": "ASCENDING" },
         { "fieldPath": "etapaId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "confrontos_equipe",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "equipes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas_teams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "confrontoId", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidas_rei_da_praia",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "confrontos_eliminatorios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "estatisticas_jogador",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "inscricoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "etapaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "etapas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arenaId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
