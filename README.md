@@ -21,7 +21,8 @@ Dupley é uma plataforma completa para gerenciamento de torneios, permitindo:
 
 Formato tradicional onde duplas são formadas via sorteio e permanecem juntas durante toda a etapa.
 
-- Fase de grupos(ou grupo único) + Fase eliminatória
+- Fase de grupos + Fase eliminatória
+- **Grupo único**: opção para colocar todas as duplas em um único grupo (todos contra todos)
 - Configurável: número de duplas por grupo e classificados por grupo
 - **Tipos de formação de duplas:**
   - **Mesmo Nível**: Sorteio entre jogadores do mesmo nível selecionado
@@ -547,8 +548,22 @@ firebase deploy
 | `.firebaserc` | Projetos Firebase (default + staging) |
 | `firebase.json` | Hosting, Functions, Emuladores, Firestore, Storage |
 | `firestore.rules` | Regras de segurança do Firestore |
-| `firestore.indexes.json` | Índices compostos do Firestore |
+| `firestore.indexes.json` | Índices compostos do Firestore (espelho da produção) |
 | `storage.rules` | Regras de segurança do Storage |
+
+#### Índices do Firestore
+
+O arquivo `firestore.indexes.json` contém todos os índices compostos necessários, exportados da produção. Ao criar um novo projeto staging ou recriar o ambiente, os índices são deployados automaticamente:
+
+```bash
+firebase deploy --only firestore:indexes
+```
+
+Os índices levam 2-3 minutos para construir após o deploy. Para exportar índices de produção:
+
+```bash
+firebase use default && firebase firestore:indexes
+```
 
 ### Variáveis de Ambiente em Produção
 
@@ -578,6 +593,7 @@ firebase deploy
 - [x] Visualizador de chaves (BracketViewer)
 - [x] Rankings
 - [x] Formação manual de duplas (Dupla Fixa)
+- [x] Grupo único para Dupla Fixa (todos contra todos)
 - [x] Substituição de jogadores (todos os formatos)
 - [x] Edição de jogadores em partidas TEAMS
 - [x] Importação/Exportação de jogadores via Excel
