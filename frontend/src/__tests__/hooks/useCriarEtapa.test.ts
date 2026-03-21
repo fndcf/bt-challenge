@@ -354,9 +354,9 @@ describe("useCriarEtapa", () => {
       const { result } = renderHook(() => useCriarEtapa());
 
       act(() => {
-        result.current.handleChange("dataInicio", "2024-01-15");
-        result.current.handleChange("dataFim", "2024-01-10");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-15");
+        result.current.handleChange("dataFim", "2027-01-10");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await waitFor(() => {
@@ -368,9 +368,9 @@ describe("useCriarEtapa", () => {
       const { result } = renderHook(() => useCriarEtapa());
 
       act(() => {
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-10");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-10");
       });
 
       await waitFor(() => {
@@ -382,9 +382,9 @@ describe("useCriarEtapa", () => {
       const { result } = renderHook(() => useCriarEtapa());
 
       act(() => {
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await waitFor(() => {
@@ -414,9 +414,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("maxJogadores", 12);
         result.current.handleChange("nivel", NivelJogador.INTERMEDIARIO);
         result.current.handleChange("genero", GeneroJogador.MASCULINO);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -433,9 +433,9 @@ describe("useCriarEtapa", () => {
 
       act(() => {
         result.current.handleChange("nome", "AB");
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -453,9 +453,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Teste");
         result.current.handleChange("formato", FormatoEtapa.DUPLA_FIXA);
         result.current.handleChange("maxJogadores", 4);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -472,9 +472,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Teste");
         result.current.handleChange("formato", FormatoEtapa.DUPLA_FIXA);
         result.current.handleChange("maxJogadores", 60);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -491,9 +491,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Teste");
         result.current.handleChange("formato", FormatoEtapa.DUPLA_FIXA);
         result.current.handleChange("maxJogadores", 11);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -517,9 +517,9 @@ describe("useCriarEtapa", () => {
       act(() => {
         result.current.handleChange("nome", "Etapa Rei da Praia");
         result.current.handleChange("maxJogadores", 16);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -581,9 +581,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Super X");
         result.current.handleChange("varianteSuperX", VarianteSuperX.SUPER_8);
         result.current.handleChange("maxJogadores", 8);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -605,9 +605,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Teste");
         result.current.handleChange("varianteSuperX", 10 as VarianteSuperX);
         result.current.handleChange("maxJogadores", 10);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -628,9 +628,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Teste");
         result.current.handleChange("varianteSuperX", VarianteSuperX.SUPER_8);
         result.current.handleChange("maxJogadores", 10);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -654,9 +654,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("varianteTeams", VarianteTeams.TEAMS_4);
         result.current.handleChange("tipoFormacaoEquipe", TipoFormacaoEquipe.BALANCEADO);
         result.current.handleChange("maxJogadores", 8);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -679,9 +679,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("varianteTeams", 5 as VarianteTeams);
         result.current.handleChange("tipoFormacaoEquipe", TipoFormacaoEquipe.BALANCEADO);
         result.current.handleChange("maxJogadores", 10);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -703,9 +703,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("varianteTeams", VarianteTeams.TEAMS_4);
         result.current.handleChange("tipoFormacaoEquipe", undefined);
         result.current.handleChange("maxJogadores", 8);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -727,9 +727,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("varianteTeams", VarianteTeams.TEAMS_4);
         result.current.handleChange("tipoFormacaoEquipe", TipoFormacaoEquipe.BALANCEADO);
         result.current.handleChange("maxJogadores", 4);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -751,9 +751,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("varianteTeams", VarianteTeams.TEAMS_4);
         result.current.handleChange("tipoFormacaoEquipe", TipoFormacaoEquipe.BALANCEADO);
         result.current.handleChange("maxJogadores", 10);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -776,9 +776,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("tipoFormacaoEquipe", TipoFormacaoEquipe.MESMO_NIVEL);
         result.current.handleChange("nivel", undefined);
         result.current.handleChange("maxJogadores", 8);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {
@@ -797,9 +797,9 @@ describe("useCriarEtapa", () => {
         result.current.handleChange("nome", "Etapa Teste");
         result.current.handleChange("formato", FormatoEtapa.DUPLA_FIXA);
         result.current.handleChange("maxJogadores", 12);
-        result.current.handleChange("dataInicio", "2024-01-01");
-        result.current.handleChange("dataFim", "2024-01-15");
-        result.current.handleChange("dataRealizacao", "2024-01-20");
+        result.current.handleChange("dataInicio", "2027-01-01");
+        result.current.handleChange("dataFim", "2027-01-15");
+        result.current.handleChange("dataRealizacao", "2027-01-20");
       });
 
       await act(async () => {

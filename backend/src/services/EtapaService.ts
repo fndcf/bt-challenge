@@ -85,8 +85,21 @@ export class EtapaService {
       const dataFim = new Date(dadosValidados.dataFim);
       const dataRealizacao = new Date(dadosValidados.dataRealizacao);
 
+      // Comparar apenas datas (sem hora) para evitar problemas de fuso
+      const hojeStr = new Date().toISOString().split("T")[0];
+      const dataFimStr = dataFim.toISOString().split("T")[0];
+      const dataRealizacaoStr = dataRealizacao.toISOString().split("T")[0];
+
       if (dataFim <= dataInicio) {
         throw new Error("Data fim deve ser posterior à data início");
+      }
+
+      if (dataFimStr < hojeStr) {
+        throw new Error("Data fim das inscrições não pode ser anterior a hoje");
+      }
+
+      if (dataRealizacaoStr < hojeStr) {
+        throw new Error("Data de realização não pode ser anterior a hoje");
       }
 
       if (dataRealizacao <= dataFim) {

@@ -358,9 +358,19 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
       const inicio = new Date(formData.dataInicio);
       const fim = new Date(formData.dataFim);
       const realizacao = new Date(formData.dataRealizacao);
+      // Comparar apenas datas (sem hora) usando string YYYY-MM-DD
+      const hojeStr = new Date().toISOString().split("T")[0];
 
       if (inicio >= fim) {
         erros.dataFim = "Data fim deve ser após a data de início";
+      }
+
+      if (formData.dataFim < hojeStr) {
+        erros.dataFim = "Data fim das inscrições não pode ser anterior a hoje";
+      }
+
+      if (formData.dataRealizacao < hojeStr) {
+        erros.dataRealizacao = "Data de realização não pode ser anterior a hoje";
       }
 
       if (fim >= realizacao) {
