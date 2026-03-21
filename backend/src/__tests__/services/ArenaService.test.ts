@@ -15,7 +15,9 @@ jest.mock("../../utils/logger", () => ({
 
 // Mock do Firebase
 const mockDocSet = jest.fn();
-const mockDoc = jest.fn(() => ({ set: mockDocSet }));
+const mockDocUpdate = jest.fn();
+const mockDocGet = jest.fn().mockResolvedValue({ exists: false, data: () => null });
+const mockDoc = jest.fn(() => ({ set: mockDocSet, update: mockDocUpdate, get: mockDocGet }));
 const mockCollection = jest.fn(() => ({ doc: mockDoc }));
 
 const mockCreateUser = jest.fn();
@@ -56,6 +58,8 @@ describe("ArenaService", () => {
       findById: jest.fn(),
       findBySlug: jest.fn(),
       findByAdminUid: jest.fn(),
+      findAllByAdminUid: jest.fn(),
+      findByIds: jest.fn(),
       list: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -422,6 +426,147 @@ describe("ArenaService", () => {
       await expect(arenaService.isSlugAvailable("AB")).rejects.toThrow(
         BadRequestError
       );
+    });
+  });
+
+  describe("createAdditionalArena", () => {
+    const mockArena = new Arena({
+      id: "arena-2",
+      nome: "Arena Nova",
+      slug: "arena-nova",
+      adminUid: "admin-123",
+      adminEmail: "admin@test.com",
+      ativa: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    it("deve criar arena adicional com sucesso", async () => {
+      mockArenaRepository.exists.mockResolvedValue(false);
+      mockArenaRepository.findAllByAdminUid.mockResolvedValue([]);
+      mockArenaRepository.create.mockResolvedValue(mockArena);
+      mockDocGet.mockResolvedValue({
+        exists: true,
+        data: () => ({ arenaId: "arena-1", arenaIds: ["arena-1"] }),
+      });
+
+      const result = await arenaService.createAdditionalArena(
+        "admin-123",
+        "admin@test.com",
+        { nome: "Arena Nova" }
+      );
+
+      expect(result.id).toBe("arena-2");
+      expect(mockArenaRepository.create).toHaveBeenCalled();
+      expect(mockDocUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          arenaIds: ["arena-1", "arena-2"],
+          defaultArenaId: "arena-2",
+        })
+      );
+    });
+
+    it("deve rejeitar nome duplicado", async () => {
+      mockArenaRepository.findAllByAdminUid.mockResolvedValue([
+        new Arena({
+          id: "arena-1",
+          nome: "Arena Nova",
+          slug: "arena-nova",
+          adminUid: "admin-123",
+          adminEmail: "admin@test.com",
+          ativa: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      ]);
+
+      await expect(
+        arenaService.createAdditionalArena("admin-123", "admin@test.com", {
+          nome: "Arena Nova",
+        })
+      ).rejects.toThrow(ConflictError);
+    });
+
+    it("deve rejeitar nome curto", async () => {
+      await expect(
+        arenaService.createAdditionalArena("admin-123", "admin@test.com", {
+          nome: "AB",
+        })
+      ).rejects.toThrow(BadRequestError);
+    });
+  });
+
+  describe("getAdminArenas", () => {
+    it("deve retornar arenas do admin", async () => {
+      const mockArenas = [
+        new Arena({ id: "a1", nome: "Arena 1", slug: "a1", adminUid: "admin-123", adminEmail: "a@t.com", ativa: true, createdAt: new Date(), updatedAt: new Date() }),
+        new Arena({ id: "a2", nome: "Arena 2", slug: "a2", adminUid: "admin-123", adminEmail: "a@t.com", ativa: true, createdAt: new Date(), updatedAt: new Date() }),
+      ];
+
+      mockDocGet.mockResolvedValue({
+        exists: true,
+        data: () => ({ arenaIds: ["a1", "a2"] }),
+      });
+      mockArenaRepository.findByIds.mockResolvedValue(mockArenas);
+
+      const result = await arenaService.getAdminArenas("admin-123");
+
+      expect(result).toHaveLength(2);
+      expect(mockArenaRepository.findByIds).toHaveBeenCalledWith(["a1", "a2"]);
+    });
+
+    it("deve retornar vazio se admin não existe", async () => {
+      mockDocGet.mockResolvedValue({ exists: false, data: () => null });
+
+      const result = await arenaService.getAdminArenas("admin-inexistente");
+
+      expect(result).toEqual([]);
+    });
+
+    it("deve usar fallback arenaId se arenaIds não existe", async () => {
+      mockDocGet.mockResolvedValue({
+        exists: true,
+        data: () => ({ arenaId: "a1" }),
+      });
+      mockArenaRepository.findByIds.mockResolvedValue([]);
+
+      await arenaService.getAdminArenas("admin-123");
+
+      expect(mockArenaRepository.findByIds).toHaveBeenCalledWith(["a1"]);
+    });
+  });
+
+  describe("switchArena", () => {
+    it("deve trocar arena ativa", async () => {
+      mockDocGet.mockResolvedValue({
+        exists: true,
+        data: () => ({ arenaIds: ["a1", "a2"], defaultArenaId: "a1" }),
+      });
+
+      await arenaService.switchArena("admin-123", "a2");
+
+      expect(mockDocUpdate).toHaveBeenCalledWith({
+        defaultArenaId: "a2",
+      });
+    });
+
+    it("deve rejeitar arena não pertencente ao admin", async () => {
+      mockDocGet.mockResolvedValue({
+        exists: true,
+        data: () => ({ arenaIds: ["a1"] }),
+      });
+
+      await expect(
+        arenaService.switchArena("admin-123", "a999")
+      ).rejects.toThrow(BadRequestError);
+    });
+
+    it("deve rejeitar admin inexistente", async () => {
+      mockDocGet.mockResolvedValue({ exists: false, data: () => null });
+
+      await expect(
+        arenaService.switchArena("admin-inexistente", "a1")
+      ).rejects.toThrow(NotFoundError);
     });
   });
 });

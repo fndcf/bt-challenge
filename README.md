@@ -104,15 +104,6 @@ Um administrador pode gerenciar múltiplas arenas com a mesma conta. Cada arena 
 - Ao trocar de arena, todos os dados (jogadores, etapas, partidas) são carregados da arena selecionada
 - Cada arena tem sua própria página pública com slug único
 
-### Migração
-
-Para admins existentes (que tinham apenas uma arena), rode o script de migração:
-
-```bash
-cd backend
-npx ts-node scripts/migrar-multi-arena.ts
-```
-
 ## Importação/Exportação de Jogadores
 
 Permite importar e exportar jogadores em massa via planilha Excel (.xlsx).
