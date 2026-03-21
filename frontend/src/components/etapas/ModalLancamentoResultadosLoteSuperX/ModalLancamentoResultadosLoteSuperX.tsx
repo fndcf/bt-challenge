@@ -489,7 +489,7 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
       return false;
     }
 
-    // Validações de regras do Super X
+    // Validações básicas
     if (gamesDupla1 === 0 && gamesDupla2 === 0) {
       setResultados((prev) => {
         const novo = new Map(prev);
@@ -502,75 +502,12 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
       return false;
     }
 
-    const maxGames = Math.max(gamesDupla1, gamesDupla2);
-    const minGames = Math.min(gamesDupla1, gamesDupla2);
-
-    if (maxGames < 4) {
+    if (gamesDupla1 === gamesDupla2) {
       setResultados((prev) => {
         const novo = new Map(prev);
         novo.set(resultado.partidaId, {
           ...resultado,
-          erro: "O set deve ter no mínimo 4 games para o vencedor",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (maxGames === 4 && minGames > 2) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Set com 4 games: placar deve ser 4-0, 4-1 ou 4-2",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (maxGames === 5 && minGames < 3) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Set com 5 games: placar deve ser 5-3 ou 5-4",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (maxGames === 6 && minGames > 4) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Set com 6 games: placar deve ser 6-0 a 6-4",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (maxGames === 7 && minGames < 5) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Set com 7 games: placar deve ser 7-5 ou 7-6",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (maxGames > 7) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Set não pode ter mais de 7 games",
+          erro: "Não há um vencedor definido",
         });
         return novo;
       });

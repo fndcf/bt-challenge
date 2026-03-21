@@ -465,33 +465,6 @@ export const ModalLancamentoResultadosLoteDuplaFixa: React.FC<
       return "O placar não pode ser 0 x 0";
     }
 
-    const maxGames = Math.max(gamesDupla1, gamesDupla2);
-    const minGames = Math.min(gamesDupla1, gamesDupla2);
-
-    if (maxGames < 4) {
-      return "O set deve ter no mínimo 4 games para o vencedor";
-    }
-
-    if (maxGames === 4 && minGames > 2) {
-      return "Set com 4 games: placar deve ser 4-0, 4-1 ou 4-2";
-    }
-
-    if (maxGames === 5 && minGames < 3) {
-      return "Set com 5 games: placar deve ser 5-3 ou 5-4";
-    }
-
-    if (maxGames === 6 && minGames > 4) {
-      return "Set com 6 games: placar deve ser 6-0, 6-1, 6-2, 6-3 ou 6-4";
-    }
-
-    if (maxGames === 7 && minGames < 5) {
-      return "Set com 7 games: placar deve ser 7-5 ou 7-6";
-    }
-
-    if (maxGames > 7) {
-      return "Set não pode ter mais de 7 games";
-    }
-
     if (gamesDupla1 === gamesDupla2) {
       return "Não há um vencedor definido";
     }

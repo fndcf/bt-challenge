@@ -299,72 +299,7 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it("deve mostrar erro para set com menos de 4 games para vencedor", async () => {
-      render(
-        <ModalRegistrarResultadoEliminatorio
-          confronto={mockConfrontoNovo}
-          onClose={mockOnClose}
-          onSuccess={mockOnSuccess}
-        />
-      );
-
-      const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "3" } });
-      fireEvent.change(inputs[1], { target: { value: "2" } });
-
-      fireEvent.click(screen.getByText("Salvar Resultado"));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/O set deve ter no mínimo 4 games para o vencedor/)
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("deve mostrar erro para 6x5 (inválido)", async () => {
-      render(
-        <ModalRegistrarResultadoEliminatorio
-          confronto={mockConfrontoNovo}
-          onClose={mockOnClose}
-          onSuccess={mockOnSuccess}
-        />
-      );
-
-      const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "6" } });
-      fireEvent.change(inputs[1], { target: { value: "5" } });
-
-      fireEvent.click(screen.getByText("Salvar Resultado"));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Set com 6 games:/)
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("deve mostrar erro para mais de 7 games", async () => {
-      render(
-        <ModalRegistrarResultadoEliminatorio
-          confronto={mockConfrontoNovo}
-          onClose={mockOnClose}
-          onSuccess={mockOnSuccess}
-        />
-      );
-
-      const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "8" } });
-      fireEvent.change(inputs[1], { target: { value: "6" } });
-
-      fireEvent.click(screen.getByText("Salvar Resultado"));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Set não pode ter mais de 7 games/)
-        ).toBeInTheDocument();
-      });
-    });
-  });
+});
 
   describe("placares válidos", () => {
     const placaresValidos = [
@@ -697,72 +632,6 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
 
       const submitButton = screen.getByText("Salvar Resultado").closest("button");
       expect(submitButton).toBeDisabled();
-    });
-
-    it("deve mostrar erro para 7x4 (inválido)", async () => {
-      render(
-        <ModalRegistrarResultadoEliminatorio
-          confronto={mockConfrontoNovo}
-          onClose={mockOnClose}
-          onSuccess={mockOnSuccess}
-        />
-      );
-
-      const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "7" } });
-      fireEvent.change(inputs[1], { target: { value: "4" } });
-
-      fireEvent.click(screen.getByText("Salvar Resultado"));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Set com 7 games: placar deve ser 7-5 ou 7-6/)
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("deve mostrar erro para 4x3 (inválido)", async () => {
-      render(
-        <ModalRegistrarResultadoEliminatorio
-          confronto={mockConfrontoNovo}
-          onClose={mockOnClose}
-          onSuccess={mockOnSuccess}
-        />
-      );
-
-      const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "4" } });
-      fireEvent.change(inputs[1], { target: { value: "3" } });
-
-      fireEvent.click(screen.getByText("Salvar Resultado"));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Set com 4 games: placar deve ser 4-0, 4-1 ou 4-2/)
-        ).toBeInTheDocument();
-      });
-    });
-
-    it("deve mostrar erro para 5x2 (inválido)", async () => {
-      render(
-        <ModalRegistrarResultadoEliminatorio
-          confronto={mockConfrontoNovo}
-          onClose={mockOnClose}
-          onSuccess={mockOnSuccess}
-        />
-      );
-
-      const inputs = screen.getAllByRole("spinbutton");
-      fireEvent.change(inputs[0], { target: { value: "5" } });
-      fireEvent.change(inputs[1], { target: { value: "2" } });
-
-      fireEvent.click(screen.getByText("Salvar Resultado"));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Set com 5 games: placar deve ser 5-3 ou 5-4/)
-        ).toBeInTheDocument();
-      });
     });
 
     it("deve mostrar erro para placar 0x0 (via submit forçado)", async () => {
