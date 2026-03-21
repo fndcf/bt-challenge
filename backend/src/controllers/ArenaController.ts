@@ -109,6 +109,83 @@ export class ArenaController {
   }
 
   /**
+   * Listar arenas do admin autenticado
+   * GET /api/arenas/mine
+   */
+  async getMyArenas(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.uid) {
+        return ResponseHelper.unauthorized(res);
+      }
+
+      const arenas = await arenaService.getAdminArenas(req.user.uid);
+
+      return ResponseHelper.success(res, {
+        arenas: arenas.map((arena) => arena.toObject()),
+        total: arenas.length,
+        defaultArenaId: req.user.arenaId,
+      });
+    } catch (error) {
+      logger.error("Erro ao buscar arenas do admin", { adminUid: req.user?.uid }, error as Error);
+      return next(error);
+    }
+  }
+
+  /**
+   * Criar arena adicional para admin já logado
+   * POST /api/arenas/create-additional
+   */
+  async createAdditional(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.uid) {
+        return ResponseHelper.unauthorized(res);
+      }
+
+      const { nome, slug } = req.body;
+
+      logger.info("Criando arena adicional", { nome, slug, adminUid: req.user.uid });
+
+      const arena = await arenaService.createAdditionalArena(
+        req.user.uid,
+        req.user.email,
+        { nome, slug }
+      );
+
+      logger.info("Arena adicional criada", { arenaId: arena.id, nome });
+
+      return ResponseHelper.created(
+        res,
+        arena.toObject(),
+        `Arena "${arena.nome}" criada com sucesso!`
+      );
+    } catch (error) {
+      logger.error("Erro ao criar arena adicional", { nome: req.body.nome }, error as Error);
+      return next(error);
+    }
+  }
+
+  /**
+   * Trocar arena ativa
+   * PUT /api/arenas/switch/:arenaId
+   */
+  async switchArena(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.uid) {
+        return ResponseHelper.unauthorized(res);
+      }
+
+      const { arenaId } = req.params;
+
+      await arenaService.switchArena(req.user.uid, arenaId);
+
+      return ResponseHelper.success(res, { arenaId }, "Arena alterada com sucesso");
+    } catch (error) {
+      logger.error("Erro ao trocar arena", { arenaId: req.params.arenaId }, error as Error);
+      return next(error);
+    }
+  }
+
+  /**
    * Listar todas as arenas
    * GET /api/arenas
    */

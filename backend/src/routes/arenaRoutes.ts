@@ -76,13 +76,60 @@ router.get("/", arenaController.list.bind(arenaController));
 
 /**
  * @route   GET /api/arenas/me
- * @desc    Obter arena do admin autenticado
+ * @desc    Obter arena do admin autenticado (default)
  * @access  Private
  */
 router.get(
   "/me",
   requireAuth,
   arenaController.getMyArena.bind(arenaController)
+);
+
+/**
+ * @route   GET /api/arenas/mine
+ * @desc    Listar todas as arenas do admin autenticado
+ * @access  Private
+ */
+router.get(
+  "/mine",
+  requireAuth,
+  arenaController.getMyArenas.bind(arenaController)
+);
+
+/**
+ * @route   POST /api/arenas/create-additional
+ * @desc    Criar arena adicional para admin já logado
+ * @access  Private
+ */
+router.post(
+  "/create-additional",
+  requireAuth,
+  runValidations([
+    body("nome")
+      .trim()
+      .notEmpty()
+      .withMessage("Nome é obrigatório")
+      .isLength({ min: 3, max: 100 })
+      .withMessage("Nome deve ter entre 3 e 100 caracteres"),
+    body("slug")
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 50 })
+      .withMessage("Slug deve ter entre 3 e 50 caracteres")
+      .custom(isValidSlug),
+  ]),
+  arenaController.createAdditional.bind(arenaController)
+);
+
+/**
+ * @route   PUT /api/arenas/switch/:arenaId
+ * @desc    Trocar arena ativa
+ * @access  Private
+ */
+router.put(
+  "/switch/:arenaId",
+  requireAuth,
+  arenaController.switchArena.bind(arenaController)
 );
 
 /**

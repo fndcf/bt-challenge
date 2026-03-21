@@ -160,7 +160,80 @@ export class ArenaService {
   }
 
   /**
-   * Buscar arena do admin autenticado
+   * Criar arena adicional para admin já existente
+   */
+  async createAdditionalArena(
+    adminUid: string,
+    adminEmail: string,
+    data: { nome: string; slug?: string }
+  ): Promise<Arena> {
+    // Gerar slug
+    let slug = data.slug;
+    if (!slug) {
+      slug = await generateUniqueSlug(data.nome, (s) =>
+        this.arenaRepository.exists(s)
+      );
+    } else {
+      this.validateSlug(slug);
+      const slugExists = await this.arenaRepository.exists(slug);
+      if (slugExists) {
+        throw new ConflictError(`O slug "${slug}" já está em uso`);
+      }
+    }
+
+    if (!data.nome || data.nome.trim().length < 3) {
+      throw new BadRequestError("Nome da arena deve ter no mínimo 3 caracteres");
+    }
+
+    // Verificar se já existe arena com mesmo nome para este admin
+    const arenasDoAdmin = await this.arenaRepository.findAllByAdminUid(adminUid);
+    const nomeExiste = arenasDoAdmin.some(
+      (a) => a.nome.trim().toLowerCase() === data.nome.trim().toLowerCase()
+    );
+    if (nomeExiste) {
+      throw new ConflictError(`Já existe uma arena com o nome "${data.nome}"`);
+    }
+
+    // Criar arena
+    const arenaData: ArenaType = {
+      id: "",
+      nome: data.nome,
+      slug,
+      adminEmail,
+      adminUid,
+      ativa: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const arena = await this.arenaRepository.create(arenaData);
+
+    // Atualizar documento admin — adicionar ao array arenaIds
+    const adminRef = db.collection(COLLECTIONS.ADMINS).doc(adminUid);
+    const adminDoc = await adminRef.get();
+
+    if (adminDoc.exists) {
+      const adminData = adminDoc.data();
+      const arenaIds: string[] = adminData?.arenaIds || (adminData?.arenaId ? [adminData.arenaId] : []);
+      arenaIds.push(arena.id);
+
+      await adminRef.update({
+        arenaIds,
+        defaultArenaId: arena.id,
+      });
+    }
+
+    logger.info("Arena adicional criada", {
+      arenaId: arena.id,
+      nome: arena.nome,
+      adminUid,
+    });
+
+    return arena;
+  }
+
+  /**
+   * Buscar arena do admin autenticado (primeira/default)
    */
   async getAdminArena(adminUid: string): Promise<Arena> {
     const arena = await this.arenaRepository.findByAdminUid(adminUid);
@@ -172,6 +245,52 @@ export class ArenaService {
     }
 
     return arena;
+  }
+
+  /**
+   * Buscar todas as arenas do admin
+   */
+  async getAdminArenas(adminUid: string): Promise<Arena[]> {
+    // Buscar arenaIds do documento admin
+    const adminDoc = await db.collection(COLLECTIONS.ADMINS).doc(adminUid).get();
+
+    if (!adminDoc.exists) {
+      return [];
+    }
+
+    const adminData = adminDoc.data();
+    const arenaIds: string[] = adminData?.arenaIds
+      || (adminData?.arenaId ? [adminData.arenaId] : []);
+
+    if (arenaIds.length === 0) return [];
+
+    return this.arenaRepository.findByIds(arenaIds);
+  }
+
+  /**
+   * Trocar arena ativa do admin
+   */
+  async switchArena(adminUid: string, arenaId: string): Promise<void> {
+    const adminRef = db.collection(COLLECTIONS.ADMINS).doc(adminUid);
+    const adminDoc = await adminRef.get();
+
+    if (!adminDoc.exists) {
+      throw new NotFoundError("Admin não encontrado");
+    }
+
+    const adminData = adminDoc.data();
+    const arenaIds: string[] = adminData?.arenaIds
+      || (adminData?.arenaId ? [adminData.arenaId] : []);
+
+    if (!arenaIds.includes(arenaId)) {
+      throw new BadRequestError("Você não tem acesso a esta arena");
+    }
+
+    await adminRef.update({
+      defaultArenaId: arenaId,
+    });
+
+    logger.info("Arena ativa alterada", { adminUid, arenaId });
   }
 
   /**

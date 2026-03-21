@@ -54,9 +54,13 @@ export interface AuthState {
  */
 export interface ArenaContextType {
   arena: Arena | null;
+  arenas: Arena[];
   loading: boolean;
   error: string | null;
   setArena: (arena: Arena) => void;
+  switchArena: (arenaId: string) => Promise<void>;
+  createArena: (nome: string, slug?: string) => Promise<Arena>;
+  loadArenas: () => Promise<void>;
 }
 
 /**

@@ -61,12 +61,16 @@ class ApiClient {
    * Configurar interceptors
    */
   private setupInterceptors() {
-    // Request interceptor - adicionar token de autenticação
+    // Request interceptor - adicionar token e arena ativa
     this.client.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem("authToken");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        const arenaId = localStorage.getItem("selectedArenaId");
+        if (arenaId) {
+          config.headers["X-Arena-Id"] = arenaId;
         }
         return config;
       },

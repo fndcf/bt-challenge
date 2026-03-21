@@ -183,6 +183,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       });
       expect(mockNext).toHaveBeenCalledWith();
@@ -262,6 +263,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       });
       expect(mockNext).toHaveBeenCalledWith();
@@ -312,6 +314,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "user",
       };
 
@@ -330,6 +333,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       };
 
@@ -344,6 +348,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "superadmin",
       };
 
@@ -376,6 +381,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       };
       mockRequest.params = {};
@@ -400,6 +406,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       };
       mockRequest.params = { arenaId: "arena-456" };
@@ -422,6 +429,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       };
       mockRequest.params = { arenaId: "arena-123" };
@@ -440,6 +448,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       };
       mockRequest.params = {};
@@ -459,6 +468,7 @@ describe("Auth Middlewares", () => {
         uid: "user-123",
         email: "test@example.com",
         arenaId: "arena-123",
+        arenaIds: ["arena-123"],
         role: "admin",
       };
       mockRequest.params = {};

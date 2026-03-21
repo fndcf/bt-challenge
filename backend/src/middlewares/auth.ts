@@ -9,7 +9,8 @@ export interface AuthRequest extends Request {
   user?: {
     uid: string;
     email: string;
-    arenaId: string;
+    arenaId: string;       // Arena ativa (resolvida por header ou default)
+    arenaIds: string[];    // Todas as arenas do admin
     role: string;
   };
 }
@@ -17,6 +18,12 @@ export interface AuthRequest extends Request {
 /**
  * Middleware de autenticação obrigatória
  * Verifica se o token JWT é válido e adiciona os dados do usuário ao request
+ *
+ * Resolução da arena ativa (prioridade):
+ * 1. Header X-Arena-Id (enviado pelo frontend)
+ * 2. defaultArenaId do documento admin
+ * 3. Primeiro arenaId do array arenaIds
+ * 4. Campo legado arenaId (backward compat)
  */
 export const requireAuth = async (
   req: AuthRequest,
@@ -44,8 +51,6 @@ export const requireAuth = async (
       .get();
 
     if (!adminDoc.exists) {
-      // Erro específico: usuário existe no Auth mas não no Firestore
-      // Isso pode acontecer se o admin foi deletado manualmente do Firestore
       const error = new UnauthorizedError("Usuário não cadastrado no sistema");
       (error as any).code = "auth/user-not-registered";
       throw error;
@@ -53,11 +58,30 @@ export const requireAuth = async (
 
     const adminData = adminDoc.data();
 
+    // Resolver arenaIds (backward compat: campo antigo arenaId → array)
+    const arenaIds: string[] = adminData?.arenaIds
+      || (adminData?.arenaId ? [adminData.arenaId] : []);
+
+    // Resolver arena ativa
+    const headerArenaId = req.headers["x-arena-id"] as string;
+    let arenaId = "";
+
+    if (headerArenaId && arenaIds.includes(headerArenaId)) {
+      arenaId = headerArenaId;
+    } else if (adminData?.defaultArenaId && arenaIds.includes(adminData.defaultArenaId)) {
+      arenaId = adminData.defaultArenaId;
+    } else if (arenaIds.length > 0) {
+      arenaId = arenaIds[0];
+    } else {
+      arenaId = adminData?.arenaId || "";
+    }
+
     // Adicionar dados do usuário ao request
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email || "",
-      arenaId: adminData?.arenaId || "",
+      arenaId,
+      arenaIds,
       role: adminData?.role || "admin",
     };
 
@@ -86,7 +110,6 @@ export const optionalAuth = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      // Sem token = continua sem autenticação
       return next();
     }
 
@@ -101,17 +124,20 @@ export const optionalAuth = async (
 
     if (adminDoc.exists) {
       const adminData = adminDoc.data();
+      const arenaIds: string[] = adminData?.arenaIds
+        || (adminData?.arenaId ? [adminData.arenaId] : []);
+
       req.user = {
         uid: decodedToken.uid,
         email: decodedToken.email || "",
-        arenaId: adminData?.arenaId || "",
+        arenaId: adminData?.defaultArenaId || arenaIds[0] || adminData?.arenaId || "",
+        arenaIds,
         role: adminData?.role || "admin",
       };
     }
 
     next();
   } catch (error) {
-    // Se houver erro na autenticação opcional, apenas continua sem user
     next();
   }
 };
@@ -155,7 +181,7 @@ export const requireArenaAccess = (
     return next(new UnauthorizedError("Arena não especificada"));
   }
 
-  if (req.user.arenaId !== arenaId) {
+  if (!req.user.arenaIds.includes(arenaId)) {
     return next(new UnauthorizedError("Você não tem acesso a esta arena"));
   }
 

@@ -11,6 +11,8 @@ export interface IArenaRepository {
   findById(id: string): Promise<Arena | null>;
   findBySlug(slug: string): Promise<Arena | null>;
   findByAdminUid(adminUid: string): Promise<Arena | null>;
+  findAllByAdminUid(adminUid: string): Promise<Arena[]>;
+  findByIds(ids: string[]): Promise<Arena[]>;
   list(): Promise<Arena[]>;
   update(id: string, data: Partial<ArenaType>): Promise<Arena>;
   delete(id: string): Promise<void>;
@@ -94,6 +96,46 @@ export class ArenaRepository implements IArenaRepository {
 
     const doc = snapshot.docs[0];
     return Arena.fromFirestore({ id: doc.id, ...doc.data() });
+  }
+
+  /**
+   * Buscar todas as arenas de um admin
+   */
+  async findAllByAdminUid(adminUid: string): Promise<Arena[]> {
+    const snapshot = await this.collection
+      .where("adminUid", "==", adminUid)
+      .where("ativa", "==", true)
+      .get();
+
+    return snapshot.docs.map((doc) =>
+      Arena.fromFirestore({ id: doc.id, ...doc.data() })
+    );
+  }
+
+  /**
+   * Buscar arenas por IDs
+   */
+  async findByIds(ids: string[]): Promise<Arena[]> {
+    if (ids.length === 0) return [];
+
+    // Firestore 'in' aceita max 30 valores
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 30) {
+      chunks.push(ids.slice(i, i + 30));
+    }
+
+    const arenas: Arena[] = [];
+    for (const chunk of chunks) {
+      const snapshot = await this.collection
+        .where("__name__", "in", chunk)
+        .get();
+
+      for (const doc of snapshot.docs) {
+        arenas.push(Arena.fromFirestore({ id: doc.id, ...doc.data() }));
+      }
+    }
+
+    return arenas;
   }
 
   /**

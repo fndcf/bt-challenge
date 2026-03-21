@@ -160,6 +160,51 @@ class ArenaAdminService implements IArenaAdminService {
       return false;
     }
   }
+  /**
+   * Listar todas as arenas do admin
+   */
+  async obterMinhasArenas(): Promise<{ arenas: Arena[]; defaultArenaId: string }> {
+    try {
+      const response = await apiClient.get<{ arenas: Arena[]; total: number; defaultArenaId: string }>(
+        `${this.basePath}/mine`
+      );
+      return { arenas: response.arenas, defaultArenaId: response.defaultArenaId };
+    } catch (error) {
+      handleError(error, "ArenaAdminService.obterMinhasArenas");
+      return { arenas: [], defaultArenaId: "" };
+    }
+  }
+
+  /**
+   * Criar arena adicional
+   */
+  async criarArenaAdicional(nome: string, slug?: string): Promise<Arena> {
+    try {
+      const response = await apiClient.post<Arena>(
+        `${this.basePath}/create-additional`,
+        { nome, slug }
+      );
+
+      logger.info("Arena adicional criada", { nome, arenaId: response.id });
+      return response;
+    } catch (error) {
+      const appError = handleError(error, "ArenaAdminService.criarArenaAdicional");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Trocar arena ativa
+   */
+  async trocarArena(arenaId: string): Promise<void> {
+    try {
+      await apiClient.put(`${this.basePath}/switch/${arenaId}`);
+      logger.info("Arena ativa alterada", { arenaId });
+    } catch (error) {
+      const appError = handleError(error, "ArenaAdminService.trocarArena");
+      throw new Error(appError.message);
+    }
+  }
 }
 
 // Exportar instância única

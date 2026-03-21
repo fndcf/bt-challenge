@@ -140,7 +140,13 @@ const AdminLayout: React.FC = () => {
 const renderWithRouter = (
   initialEntries = ["/admin"],
   authValue = { user: { email: "admin@test.com" }, logout: mockLogout },
-  arenaValue = { arena: { slug: "minha-arena", nome: "Minha Arena" } }
+  arenaValue = {
+    arena: { id: "arena-1", slug: "minha-arena", nome: "Minha Arena" },
+    arenas: [{ id: "arena-1", slug: "minha-arena", nome: "Minha Arena" }],
+    switchArena: jest.fn(),
+    createArena: jest.fn(),
+    loadArenas: jest.fn(),
+  }
 ) => {
   mockUseAuth.mockReturnValue(authValue);
   mockUseArena.mockReturnValue(arenaValue);
@@ -210,7 +216,13 @@ describe("AdminLayout", () => {
     });
 
     it("não deve mostrar link da página pública quando arena não existe", () => {
-      renderWithRouter(["/admin"], undefined, { arena: null });
+      renderWithRouter(["/admin"], undefined, {
+        arena: null,
+        arenas: [],
+        switchArena: jest.fn(),
+        createArena: jest.fn(),
+        loadArenas: jest.fn(),
+      });
       expect(screen.queryByText("Ver Página Pública")).not.toBeInTheDocument();
     });
 

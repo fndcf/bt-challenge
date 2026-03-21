@@ -45,4 +45,19 @@ export interface IArenaAdminService {
    * Verificar disponibilidade de slug
    */
   verificarSlugDisponivel(slug: string): Promise<boolean>;
+
+  /**
+   * Listar todas as arenas do admin
+   */
+  obterMinhasArenas(): Promise<{ arenas: Arena[]; defaultArenaId: string }>;
+
+  /**
+   * Criar arena adicional
+   */
+  criarArenaAdicional(nome: string, slug?: string): Promise<Arena>;
+
+  /**
+   * Trocar arena ativa
+   */
+  trocarArena(arenaId: string): Promise<void>;
 }

@@ -43,7 +43,11 @@ describe("AdminLayout", () => {
       logout: mockLogout,
     });
     mockUseArena.mockReturnValue({
-      arena: { slug: "arena-teste", nome: "Arena Teste" },
+      arena: { id: "arena-1", slug: "arena-teste", nome: "Arena Teste" },
+      arenas: [{ id: "arena-1", slug: "arena-teste", nome: "Arena Teste" }],
+      switchArena: jest.fn(),
+      createArena: jest.fn(),
+      loadArenas: jest.fn(),
     });
     // Mock innerWidth for desktop
     Object.defineProperty(window, "innerWidth", {
@@ -102,7 +106,13 @@ describe("AdminLayout", () => {
     });
 
     it("não deve mostrar link para página pública quando arena não existe", () => {
-      mockUseArena.mockReturnValue({ arena: null });
+      mockUseArena.mockReturnValue({
+        arena: null,
+        arenas: [],
+        switchArena: jest.fn(),
+        createArena: jest.fn(),
+        loadArenas: jest.fn(),
+      });
       renderWithRouter();
       expect(screen.queryByText("Ver Página Pública")).not.toBeInTheDocument();
     });

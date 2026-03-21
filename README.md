@@ -71,6 +71,7 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 
 ### Para Administradores
 
+- **Multi-arena**: um admin pode gerenciar múltiplas arenas com a mesma conta
 - Cadastro e gestão de jogadores (com status ativo/inativo)
 - **Importação/Exportação de jogadores via planilha Excel** (.xlsx)
 - Criação de etapas com quatro formatos de torneio
@@ -80,6 +81,7 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 - Controle de inscrições
 - Fase de grupos + Fase eliminatória
 - **Substituição de jogadores** após geração de chaves (antes de partidas iniciadas)
+- **Edição de jogadores em partidas TEAMS** (antes da partida ser finalizada)
 - **Exportação de súmula** (partidas dos grupos) para Excel
 - Dashboard com estatísticas
 
@@ -90,6 +92,26 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 - Estatísticas individuais
 - Acompanhamento de etapas em andamento
 - Página pública da arena
+
+## Multi-Arena
+
+Um administrador pode gerenciar múltiplas arenas com a mesma conta. Cada arena tem seus próprios jogadores, etapas e dados completamente isolados.
+
+### Como funciona
+
+- No painel admin, um **seletor de arenas** no menu lateral permite trocar entre arenas
+- O botão **"+ Nova Arena"** abre um modal para criar arenas adicionais
+- Ao trocar de arena, todos os dados (jogadores, etapas, partidas) são carregados da arena selecionada
+- Cada arena tem sua própria página pública com slug único
+
+### Migração
+
+Para admins existentes (que tinham apenas uma arena), rode o script de migração:
+
+```bash
+cd backend
+npx ts-node scripts/migrar-multi-arena.ts
+```
 
 ## Importação/Exportação de Jogadores
 
@@ -335,6 +357,9 @@ cd frontend && npm run dev
 | GET    | `/api/jogadores/exportar-excel`          | Exportar jogadores para Excel        |
 | POST   | `/api/jogadores/importar-excel`          | Importar jogadores de Excel          |
 | GET    | `/api/etapas/:id/exportar-sumula`        | Exportar súmula (partidas) para Excel|
+| GET    | `/api/arenas/mine`                       | Listar arenas do admin               |
+| POST   | `/api/arenas/create-additional`          | Criar arena adicional                |
+| PUT    | `/api/arenas/switch/:arenaId`            | Trocar arena ativa                   |
 
 ## Estrutura do Projeto
 
@@ -563,8 +588,10 @@ firebase deploy
 - [x] Rankings
 - [x] Formação manual de duplas (Dupla Fixa)
 - [x] Substituição de jogadores (todos os formatos)
+- [x] Edição de jogadores em partidas TEAMS
 - [x] Importação/Exportação de jogadores via Excel
 - [x] Exportação de súmula (partidas dos grupos) para Excel
+- [x] Multi-arena (um admin gerencia múltiplas arenas)
 - [x] Testes unitários (backend e frontend)
 - [x] Ambientes staging + produção com CI/CD
 

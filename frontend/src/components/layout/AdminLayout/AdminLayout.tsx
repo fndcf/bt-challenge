@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
+import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArena } from "@/contexts/ArenaContext";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ModalNovaArena } from "@/components/modals/ModalNovaArena";
 
 // ===========================
 // LAYOUT PRINCIPAL
@@ -267,18 +269,77 @@ const MenuButton = styled.button`
 `;
 
 // ===========================
+// ARENA SELECTOR
+// ===========================
+
+const ArenaSelector = styled.div`
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const ArenaSelectorLabel = styled.div`
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.375rem;
+`;
+
+const ArenaSelectorSelect = styled.select`
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  option {
+    background: #134e5e;
+    color: white;
+  }
+`;
+
+const NovaArenaButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+  }
+`;
+
+// ===========================
 // COMPONENTE
 // ===========================
 
 const AdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
-  const { arena } = useArena();
+  const { arena, arenas, switchArena, createArena } = useArena();
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth > 768 : true
   );
   const [modalLogoutAberto, setModalLogoutAberto] = useState(false);
+  const [modalNovaArenaAberto, setModalNovaArenaAberto] = useState(false);
 
   // adiciona classe "admin-area" no body ao montar
   useEffect(() => {
@@ -308,6 +369,11 @@ const AdminLayout: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
+  const handleCriarArena = async (nome: string, slug?: string) => {
+    await createArena(nome, slug);
+    window.location.reload();
+  };
+
   const handleLogoutClick = (e: React.PointerEvent) => {
     e.preventDefault();
     setModalLogoutAberto(true);
@@ -330,6 +396,27 @@ const AdminLayout: React.FC = () => {
         <SidebarHeader>
           <LogoText $show={sidebarOpen}>Dupley</LogoText>
         </SidebarHeader>
+
+        {/* Seletor de Arenas */}
+        {sidebarOpen && arenas.length > 0 && (
+          <ArenaSelector>
+            <ArenaSelectorLabel>Arena</ArenaSelectorLabel>
+            <ArenaSelectorSelect
+              value={arena?.id || ""}
+              onChange={(e) => switchArena(e.target.value)}
+            >
+              {arenas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nome}
+                </option>
+              ))}
+            </ArenaSelectorSelect>
+            <NovaArenaButton onClick={() => setModalNovaArenaAberto(true)}>
+              <Plus size={14} />
+              Nova Arena
+            </NovaArenaButton>
+          </ArenaSelector>
+        )}
 
         <Nav>
           {menuItems.map((item) => (
@@ -391,6 +478,12 @@ const AdminLayout: React.FC = () => {
         mensagem="Deseja realmente sair do painel administrativo?"
         textoBotaoConfirmar="Sair"
         variante="warning"
+      />
+
+      <ModalNovaArena
+        isOpen={modalNovaArenaAberto}
+        onClose={() => setModalNovaArenaAberto(false)}
+        onCriar={handleCriarArena}
       />
     </Layout>
   );

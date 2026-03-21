@@ -25,11 +25,17 @@ jest.mock("@/hooks/useArenaLoader", () => ({
 // Mock do serviço de arena
 const mockBuscarPorSlug = jest.fn();
 const mockObterMinhaArena = jest.fn();
+const mockObterMinhasArenas = jest.fn();
+const mockTrocarArena = jest.fn();
+const mockCriarArenaAdicional = jest.fn();
 
 jest.mock("@/services", () => ({
   getArenaAdminService: () => ({
     buscarPorSlug: mockBuscarPorSlug,
     obterMinhaArena: mockObterMinhaArena,
+    obterMinhasArenas: mockObterMinhasArenas,
+    trocarArena: mockTrocarArena,
+    criarArenaAdicional: mockCriarArenaAdicional,
   }),
 }));
 
@@ -178,7 +184,10 @@ describe("ArenaContext", () => {
 
   describe("fetchMyArena", () => {
     it("deve carregar arena do admin com sucesso", async () => {
-      mockObterMinhaArena.mockResolvedValue(mockArena);
+      mockObterMinhasArenas.mockResolvedValue({
+        arenas: [mockArena],
+        defaultArenaId: mockArena.id,
+      });
 
       render(
         <ArenaProvider>
@@ -194,10 +203,11 @@ describe("ArenaContext", () => {
         expect(screen.getByTestId("arena")).toHaveTextContent("Arena Teste");
       });
 
-      expect(mockObterMinhaArena).toHaveBeenCalled();
+      expect(mockObterMinhasArenas).toHaveBeenCalled();
     });
 
     it("deve setar erro quando arena do admin não é encontrada", async () => {
+      mockObterMinhasArenas.mockResolvedValue({ arenas: [], defaultArenaId: "" });
       mockObterMinhaArena.mockResolvedValue(null);
 
       render(
@@ -218,7 +228,7 @@ describe("ArenaContext", () => {
     });
 
     it("deve setar erro quando busca da arena do admin falha", async () => {
-      mockObterMinhaArena.mockRejectedValue(new Error("Não autorizado"));
+      mockObterMinhasArenas.mockRejectedValue(new Error("Não autorizado"));
 
       render(
         <ArenaProvider>
