@@ -1330,6 +1330,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
                 // Verifica se precisa definir jogadores (sem duplas definidas)
                 const semJogadores = !partida.dupla1 || partida.dupla1.length === 0;
                 const podeDefinirJogadores = semJogadores && !etapaFinalizada && partida.status !== "finalizada";
+                const podeEditarJogadores = !semJogadores && !etapaFinalizada && partida.status !== "finalizada";
                 const placarStr =
                   partida.status === "finalizada" && partida.placar?.length > 0
                     ? `${partida.placar[0].gamesDupla1} x ${partida.placar[0].gamesDupla2}`
@@ -1353,6 +1354,15 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
                       {!semJogadores && (
                         <PartidaDuplas>
                           {dupla1Label} vs {dupla2Label}
+                          {podeEditarJogadores && (
+                            <ActionButton
+                              $variant="warning"
+                              onClick={() => handleDefinirJogadores(partida, confronto)}
+                              style={{ marginLeft: "0.5rem", fontSize: "0.7rem", padding: "0.15rem 0.5rem" }}
+                            >
+                              Editar
+                            </ActionButton>
+                          )}
                         </PartidaDuplas>
                       )}
                       {podeDefinirJogadores && (

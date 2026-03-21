@@ -295,8 +295,8 @@ export class TeamsPartidaService implements ITeamsPartidaService {
       throw new ValidationError("Partida não pertence a esta arena");
     }
 
-    if (partida.dupla1.length > 0 || partida.dupla2.length > 0) {
-      throw new ValidationError("Esta partida já tem jogadores definidos");
+    if (partida.status === "finalizada") {
+      throw new ValidationError("Não é possível alterar jogadores de uma partida já finalizada");
     }
 
     // Obter IDs das equipes

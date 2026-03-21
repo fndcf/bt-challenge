@@ -72,6 +72,7 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 ### Para Administradores
 
 - Cadastro e gestão de jogadores (com status ativo/inativo)
+- **Importação/Exportação de jogadores via planilha Excel** (.xlsx)
 - Criação de etapas com quatro formatos de torneio
 - Geração automática de grupos e chaves
 - Registro de resultados (placar por games)
@@ -79,6 +80,7 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 - Controle de inscrições
 - Fase de grupos + Fase eliminatória
 - **Substituição de jogadores** após geração de chaves (antes de partidas iniciadas)
+- **Exportação de súmula** (partidas dos grupos) para Excel
 - Dashboard com estatísticas
 
 ### Para Jogadores/Espectadores
@@ -88,6 +90,35 @@ Formato por equipes com 4 ou 6 jogadores(feminino, masculino ou misto) por time.
 - Estatísticas individuais
 - Acompanhamento de etapas em andamento
 - Página pública da arena
+
+## Importação/Exportação de Jogadores
+
+Permite importar e exportar jogadores em massa via planilha Excel (.xlsx).
+
+### Exportar
+
+Botão "Exportar" na página de jogadores — baixa um arquivo Excel com todos os jogadores da arena, incluindo: Nome, Email, Telefone, Data de Nascimento, Gênero, Nível, Status e Observações.
+
+### Importar
+
+Botão "Importar" na página de jogadores — abre modal para upload de planilha Excel.
+
+**Colunas obrigatórias:** Nome Completo, Gênero, Nível
+
+**Colunas opcionais:** Email, Telefone, Data de Nascimento, Observações
+
+**Validações:**
+- Gênero aceita: Masculino, Feminino, M ou F
+- Nível aceita: Iniciante, Intermediário ou Avançado
+- Status é definido como Ativo automaticamente
+- Nomes duplicados na planilha ou já existentes na arena são rejeitados
+- Importação é atômica: se houver erro, nenhum jogador é criado
+
+## Exportação de Súmula
+
+Após gerar as chaves de uma etapa, o botão "Exportar Súmula" fica disponível nas Ações Administrativas. Gera um Excel com as partidas da fase de grupos para impressão.
+
+Disponível para todos os formatos: Dupla Fixa, Rei da Praia, Super X e TEAMS.
 
 ## Substituição de Jogadores
 
@@ -301,6 +332,9 @@ cd frontend && npm run dev
 | POST   | `/api/etapas/:id/formar-duplas-manual`   | Formar duplas manualmente (Dupla Fixa)|
 | POST   | `/api/etapas/:id/substituir-jogador`     | Substituir jogador na etapa          |
 | GET    | `/api/etapas/:id/jogadores-disponiveis`  | Jogadores disponíveis p/ substituição|
+| GET    | `/api/jogadores/exportar-excel`          | Exportar jogadores para Excel        |
+| POST   | `/api/jogadores/importar-excel`          | Importar jogadores de Excel          |
+| GET    | `/api/etapas/:id/exportar-sumula`        | Exportar súmula (partidas) para Excel|
 
 ## Estrutura do Projeto
 
@@ -529,7 +563,10 @@ firebase deploy
 - [x] Rankings
 - [x] Formação manual de duplas (Dupla Fixa)
 - [x] Substituição de jogadores (todos os formatos)
+- [x] Importação/Exportação de jogadores via Excel
+- [x] Exportação de súmula (partidas dos grupos) para Excel
 - [x] Testes unitários (backend e frontend)
+- [x] Ambientes staging + produção com CI/CD
 
 ### Em Desenvolvimento
 

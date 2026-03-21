@@ -1008,7 +1008,7 @@ describe("TeamsService", () => {
       ).rejects.toThrow("Partida não pertence a esta arena");
     });
 
-    it("deve lancar erro se partida ja tem jogadores definidos", async () => {
+    it("deve lancar erro se partida ja foi finalizada", async () => {
       mockPartidaRepository.buscarPorId.mockResolvedValue({
         id: "partida-1",
         arenaId: TEST_ARENA_ID,
@@ -1016,6 +1016,7 @@ describe("TeamsService", () => {
         dupla2: [],
         confrontoId: "confronto-1",
         tipoJogo: TipoJogoTeams.MASCULINO,
+        status: "finalizada",
       });
 
       await expect(
@@ -1025,7 +1026,7 @@ describe("TeamsService", () => {
           ["j1", "j2"],
           ["j3", "j4"]
         )
-      ).rejects.toThrow("Esta partida já tem jogadores definidos");
+      ).rejects.toThrow("Não é possível alterar jogadores de uma partida já finalizada");
     });
 
     it("deve definir jogadores com sucesso", async () => {

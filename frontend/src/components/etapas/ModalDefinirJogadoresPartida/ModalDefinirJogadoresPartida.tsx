@@ -3,7 +3,7 @@
  * Permite selecionar quais jogadores de cada equipe irão jogar
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
 import { Modal } from "@/components/ui/Modal";
 import { PartidaTeams, JogadorEquipe } from "@/types/teams";
@@ -192,6 +192,23 @@ export const ModalDefinirJogadoresPartida: React.FC<ModalDefinirJogadoresPartida
   const [selectedEquipe2, setSelectedEquipe2] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pré-preencher com jogadores existentes (modo edição)
+  useEffect(() => {
+    if (isOpen) {
+      if (partida.dupla1?.length > 0) {
+        setSelectedEquipe1(partida.dupla1.map((j) => j.id));
+      } else {
+        setSelectedEquipe1([]);
+      }
+      if (partida.dupla2?.length > 0) {
+        setSelectedEquipe2(partida.dupla2.map((j) => j.id));
+      } else {
+        setSelectedEquipe2([]);
+      }
+      setError(null);
+    }
+  }, [isOpen, partida]);
 
   // Obter duplas e jogadores já usados no confronto
   const { duplasUsadas, jogadoresUsados } = useMemo(() => {
