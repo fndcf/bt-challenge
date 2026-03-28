@@ -89,103 +89,105 @@ export const SUPER_8_SCHEDULE: RodadaSuperX[] = [
  * Total: 33 partidas
  */
 export const SUPER_12_SCHEDULE: RodadaSuperX[] = [
+  // Gerado via algoritmo do círculo (round-robin)
+  // Garante que cada par de jogadores é parceiro exatamente 1 vez em 11 rodadas
   // R1
   {
     rodada: 1,
     partidas: [
-      { dupla1: [0, 1], dupla2: [2, 3] },
-      { dupla1: [4, 5], dupla2: [6, 7] },
-      { dupla1: [8, 9], dupla2: [10, 11] },
+      { dupla1: [0, 11], dupla2: [1, 10] },
+      { dupla1: [2, 9], dupla2: [3, 8] },
+      { dupla1: [4, 7], dupla2: [5, 6] },
     ],
   },
   // R2
   {
     rodada: 2,
     partidas: [
-      { dupla1: [0, 2], dupla2: [1, 4] },
-      { dupla1: [3, 6], dupla2: [5, 8] },
-      { dupla1: [7, 10], dupla2: [9, 11] },
+      { dupla1: [1, 11], dupla2: [0, 2] },
+      { dupla1: [3, 10], dupla2: [4, 9] },
+      { dupla1: [5, 8], dupla2: [6, 7] },
     ],
   },
   // R3
   {
     rodada: 3,
     partidas: [
-      { dupla1: [0, 3], dupla2: [2, 5] },
-      { dupla1: [1, 7], dupla2: [4, 9] },
-      { dupla1: [6, 10], dupla2: [8, 11] },
+      { dupla1: [2, 11], dupla2: [1, 3] },
+      { dupla1: [0, 4], dupla2: [5, 10] },
+      { dupla1: [6, 9], dupla2: [7, 8] },
     ],
   },
   // R4
   {
     rodada: 4,
     partidas: [
-      { dupla1: [0, 4], dupla2: [1, 6] },
-      { dupla1: [2, 8], dupla2: [3, 9] },
-      { dupla1: [5, 10], dupla2: [7, 11] },
+      { dupla1: [3, 11], dupla2: [2, 4] },
+      { dupla1: [1, 5], dupla2: [0, 6] },
+      { dupla1: [7, 10], dupla2: [8, 9] },
     ],
   },
   // R5
   {
     rodada: 5,
     partidas: [
-      { dupla1: [0, 5], dupla2: [3, 7] },
-      { dupla1: [1, 9], dupla2: [2, 10] },
-      { dupla1: [4, 11], dupla2: [6, 8] },
+      { dupla1: [4, 11], dupla2: [3, 5] },
+      { dupla1: [2, 6], dupla2: [1, 7] },
+      { dupla1: [0, 8], dupla2: [9, 10] },
     ],
   },
   // R6
   {
     rodada: 6,
     partidas: [
-      { dupla1: [0, 6], dupla2: [1, 8] },
-      { dupla1: [2, 11], dupla2: [4, 7] },
-      { dupla1: [3, 10], dupla2: [5, 9] },
+      { dupla1: [5, 11], dupla2: [4, 6] },
+      { dupla1: [3, 7], dupla2: [2, 8] },
+      { dupla1: [1, 9], dupla2: [0, 10] },
     ],
   },
   // R7
   {
     rodada: 7,
     partidas: [
-      { dupla1: [0, 7], dupla2: [2, 9] },
-      { dupla1: [1, 10], dupla2: [3, 11] },
-      { dupla1: [4, 6], dupla2: [5, 8] },
+      { dupla1: [6, 11], dupla2: [5, 7] },
+      { dupla1: [4, 8], dupla2: [3, 9] },
+      { dupla1: [2, 10], dupla2: [0, 1] },
     ],
   },
   // R8
   {
     rodada: 8,
     partidas: [
-      { dupla1: [0, 8], dupla2: [1, 11] },
-      { dupla1: [2, 6], dupla2: [4, 10] },
-      { dupla1: [3, 5], dupla2: [7, 9] },
+      { dupla1: [7, 11], dupla2: [6, 8] },
+      { dupla1: [5, 9], dupla2: [4, 10] },
+      { dupla1: [0, 3], dupla2: [1, 2] },
     ],
   },
   // R9
   {
     rodada: 9,
     partidas: [
-      { dupla1: [0, 9], dupla2: [3, 8] },
-      { dupla1: [1, 5], dupla2: [6, 11] },
-      { dupla1: [2, 7], dupla2: [4, 10] },
+      { dupla1: [8, 11], dupla2: [7, 9] },
+      { dupla1: [6, 10], dupla2: [0, 5] },
+      { dupla1: [1, 4], dupla2: [2, 3] },
     ],
   },
   // R10
   {
     rodada: 10,
     partidas: [
-      { dupla1: [0, 10], dupla2: [2, 4] },
-      { dupla1: [1, 3], dupla2: [5, 11] },
-      { dupla1: [6, 9], dupla2: [7, 8] },
+      { dupla1: [9, 11], dupla2: [8, 10] },
+      { dupla1: [0, 7], dupla2: [1, 6] },
+      { dupla1: [2, 5], dupla2: [3, 4] },
     ],
   },
   // R11
   {
     rodada: 11,
     partidas: [
-      { dupla1: [0, 11], dupla2: [1, 2] },
-      { dupla1: [3, 4], dupla2: [5, 6] },
-      { dupla1: [7, 10], dupla2: [8, 9] },
+      { dupla1: [10, 11], dupla2: [0, 9] },
+      { dupla1: [1, 8], dupla2: [2, 7] },
+      { dupla1: [3, 6], dupla2: [4, 5] },
     ],
   },
 ];

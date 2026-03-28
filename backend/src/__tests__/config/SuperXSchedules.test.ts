@@ -113,6 +113,27 @@ describe("SuperXSchedules", () => {
         }
       }
     });
+
+    it("cada par de jogadores deve ser parceiro exatamente uma vez", () => {
+      const pares = new Map<string, number>();
+
+      for (const rodada of SUPER_8_SCHEDULE) {
+        for (const partida of rodada.partidas) {
+          const parA = [partida.dupla1[0], partida.dupla1[1]].sort().join(",");
+          const parB = [partida.dupla2[0], partida.dupla2[1]].sort().join(",");
+          pares.set(parA, (pares.get(parA) || 0) + 1);
+          pares.set(parB, (pares.get(parB) || 0) + 1);
+        }
+      }
+
+      // Deve ter C(8,2) = 28 pares unicos
+      expect(pares.size).toBe(28);
+
+      // Cada par deve aparecer exatamente uma vez
+      for (const [, count] of pares) {
+        expect(count).toBe(1);
+      }
+    });
   });
 
   describe("SUPER_12_SCHEDULE", () => {
@@ -210,6 +231,27 @@ describe("SuperXSchedules", () => {
           expect(partida.dupla1[0]).not.toBe(partida.dupla1[1]);
           expect(partida.dupla2[0]).not.toBe(partida.dupla2[1]);
         }
+      }
+    });
+
+    it("cada par de jogadores deve ser parceiro exatamente uma vez", () => {
+      const pares = new Map<string, number>();
+
+      for (const rodada of SUPER_12_SCHEDULE) {
+        for (const partida of rodada.partidas) {
+          const parA = [partida.dupla1[0], partida.dupla1[1]].sort().join(",");
+          const parB = [partida.dupla2[0], partida.dupla2[1]].sort().join(",");
+          pares.set(parA, (pares.get(parA) || 0) + 1);
+          pares.set(parB, (pares.get(parB) || 0) + 1);
+        }
+      }
+
+      // Deve ter C(12,2) = 66 pares unicos
+      expect(pares.size).toBe(66);
+
+      // Cada par deve aparecer exatamente uma vez
+      for (const [, count] of pares) {
+        expect(count).toBe(1);
       }
     });
   });

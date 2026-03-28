@@ -28,7 +28,8 @@
  *   cd bt-challenge/backend
  *   npm install
  *   export GCLOUD_PROJECT=torneio-challenge
- *   npx ts-node scripts/limpar-arena.ts <arenaId>
+ *   npm install
+ *   npx tsx scripts/limpar-arena.ts <arenaId>
  *
  * Nota: O Cloud Shell já tem Node.js e as credenciais do projeto.
  *       Não é necessário configurar .env ou chaves privadas.
