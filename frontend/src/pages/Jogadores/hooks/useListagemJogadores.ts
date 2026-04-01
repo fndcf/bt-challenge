@@ -291,11 +291,11 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
    * Importar jogadores de Excel
    */
   const handleImportarExcel = useCallback(
-    async (file: File): Promise<{ criados: number }> => {
+    async (file: File): Promise<{ criados: number; ignorados: string[] }> => {
       const jogadorService = getJogadorService();
       const resultado = await jogadorService.importarExcel(file);
       carregarJogadores();
-      return resultado;
+      return { criados: resultado.criados, ignorados: resultado.ignorados };
     },
     [carregarJogadores]
   );

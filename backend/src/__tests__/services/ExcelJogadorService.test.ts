@@ -356,7 +356,7 @@ describe("ExcelJogadorService", () => {
       ).rejects.toThrow("duplicados na planilha");
     });
 
-    it("deve rejeitar quando jogador já existe na arena", async () => {
+    it("deve rejeitar quando todos os jogadores já existem na arena", async () => {
       const buffer = await criarPlanilha([
         { nome: "João Silva", genero: "M", nivel: "Iniciante" },
       ]);
@@ -373,10 +373,10 @@ describe("ExcelJogadorService", () => {
 
       await expect(
         excelJogadorService.importarDeExcel(TEST_ARENA_ID, TEST_ADMIN_ID, buffer)
-      ).rejects.toThrow("já existem na arena");
+      ).rejects.toThrow("Todos os jogadores da planilha já existem na arena");
     });
 
-    it("deve rejeitar quando jogador já existe na arena (case insensitive)", async () => {
+    it("deve rejeitar quando todos os jogadores já existem (case insensitive)", async () => {
       const buffer = await criarPlanilha([
         { nome: "JOÃO SILVA", genero: "M", nivel: "Iniciante" },
       ]);
@@ -393,7 +393,35 @@ describe("ExcelJogadorService", () => {
 
       await expect(
         excelJogadorService.importarDeExcel(TEST_ARENA_ID, TEST_ADMIN_ID, buffer)
-      ).rejects.toThrow("já existem na arena");
+      ).rejects.toThrow("Todos os jogadores da planilha já existem na arena");
+    });
+
+    it("deve importar novos e ignorar duplicados existentes", async () => {
+      const buffer = await criarPlanilha([
+        { nome: "João Silva", genero: "M", nivel: "Iniciante" },
+        { nome: "Carlos Souza", genero: "M", nivel: "Avançado" },
+        { nome: "Ana Paula", genero: "F", nivel: "Intermediário" },
+      ]);
+
+      mockedJogadorService.listar.mockResolvedValue({
+        jogadores: [
+          createJogadorFixture({ id: "existente", nome: "João Silva" }),
+        ],
+        total: 1,
+        limite: 10000,
+        offset: 0,
+        temMais: false,
+      });
+
+      const resultado = await excelJogadorService.importarDeExcel(
+        TEST_ARENA_ID,
+        TEST_ADMIN_ID,
+        buffer
+      );
+
+      expect(resultado.criados).toBe(2);
+      expect(resultado.ignorados).toEqual(["João Silva"]);
+      expect(mockBatchSet).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -58,8 +58,12 @@ export const ListagemJogadores: React.FC = () => {
     }
   }, [errorMessage, successMessage]);
 
-  const handleImportSuccess = (criados: number) => {
-    setSuccessMessage(`${criados} jogador(es) importado(s) com sucesso`);
+  const handleImportSuccess = (resultado: { criados: number; ignorados: string[] }) => {
+    let mensagem = `${resultado.criados} jogador(es) importado(s) com sucesso`;
+    if (resultado.ignorados.length > 0) {
+      mensagem += `\n${resultado.ignorados.length} jogador(es) ignorado(s) por já existirem: ${resultado.ignorados.join(", ")}`;
+    }
+    setSuccessMessage(mensagem);
   };
 
   return (

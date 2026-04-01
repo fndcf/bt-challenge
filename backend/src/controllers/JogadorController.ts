@@ -284,11 +284,12 @@ class JogadorController extends BaseController {
         file.buffer
       );
 
-      ResponseHelper.success(
-        res,
-        resultado,
-        `${resultado.criados} jogador(es) importado(s) com sucesso`
-      );
+      let mensagem = `${resultado.criados} jogador(es) importado(s) com sucesso`;
+      if (resultado.ignorados.length > 0) {
+        mensagem += `. ${resultado.ignorados.length} jogador(es) ignorado(s) por já existirem na arena`;
+      }
+
+      ResponseHelper.success(res, resultado, mensagem);
     } catch (error: any) {
       logger.error("Erro ao importar jogadores", { arenaId: req.user?.arenaId }, error);
 
@@ -299,7 +300,8 @@ class JogadorController extends BaseController {
         error.message?.includes("já existem na arena") ||
         error.message?.includes("duplicados na planilha") ||
         error.message?.includes("não contém dados") ||
-        error.message?.includes("vazia ou formato")
+        error.message?.includes("vazia ou formato") ||
+        error.message?.includes("Todos os jogadores da planilha")
       ) {
         ResponseHelper.badRequest(res, error.message);
         return;

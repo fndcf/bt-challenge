@@ -216,9 +216,9 @@ class JogadorService implements IJogadorService {
   /**
    * Importar jogadores de Excel
    */
-  async importarExcel(file: File): Promise<{ criados: number; jogadores: Jogador[] }> {
+  async importarExcel(file: File): Promise<{ criados: number; jogadores: Jogador[]; ignorados: string[] }> {
     try {
-      const resultado = await apiClient.upload<{ criados: number; jogadores: Jogador[] }>(
+      const resultado = await apiClient.upload<{ criados: number; jogadores: Jogador[]; ignorados: string[] }>(
         `${this.basePath}/importar-excel`,
         file
       );

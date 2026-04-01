@@ -154,6 +154,7 @@ export const AlertContent = styled.div`
   flex: 1;
   font-size: 0.875rem;
   font-weight: 500;
+  white-space: pre-line;
 
   @media (min-width: 768px) {
     font-size: 0.9375rem;

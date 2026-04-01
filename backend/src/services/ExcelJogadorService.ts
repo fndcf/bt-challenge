@@ -138,7 +138,7 @@ class ExcelJogadorService {
     arenaId: string,
     adminUid: string,
     fileBuffer: Buffer
-  ): Promise<{ criados: number; jogadores: Jogador[] }> {
+  ): Promise<{ criados: number; jogadores: Jogador[]; ignorados: string[] }> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(fileBuffer as unknown as ArrayBuffer);
 
@@ -313,14 +313,17 @@ class ExcelJogadorService {
       existentes.jogadores.map((j) => j.nome.trim().toLowerCase())
     );
 
-    const duplicatasComBanco = jogadoresParaCriar.filter((j) =>
-      nomesExistentes.has(j.nome.trim().toLowerCase())
+    const ignorados = jogadoresParaCriar
+      .filter((j) => nomesExistentes.has(j.nome.trim().toLowerCase()))
+      .map((j) => j.nome);
+
+    const jogadoresNovos = jogadoresParaCriar.filter(
+      (j) => !nomesExistentes.has(j.nome.trim().toLowerCase())
     );
 
-    if (duplicatasComBanco.length > 0) {
-      const nomes = duplicatasComBanco.map((j) => j.nome).join(", ");
+    if (jogadoresNovos.length === 0 && ignorados.length > 0) {
       throw new Error(
-        `Os seguintes jogadores já existem na arena: ${nomes}`
+        `Todos os jogadores da planilha já existem na arena: ${ignorados.join(", ")}`
       );
     }
 
@@ -330,8 +333,8 @@ class ExcelJogadorService {
     const agora = Timestamp.now();
     const BATCH_SIZE = 500;
 
-    for (let i = 0; i < jogadoresParaCriar.length; i += BATCH_SIZE) {
-      const chunk = jogadoresParaCriar.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < jogadoresNovos.length; i += BATCH_SIZE) {
+      const chunk = jogadoresNovos.slice(i, i + BATCH_SIZE);
       const batch = db.batch();
 
       for (const dados of chunk) {
@@ -367,11 +370,13 @@ class ExcelJogadorService {
     logger.info("Jogadores importados via Excel (batch)", {
       arenaId,
       total: jogadoresCriados.length,
+      ignorados: ignorados.length,
     });
 
     return {
       criados: jogadoresCriados.length,
       jogadores: jogadoresCriados,
+      ignorados,
     };
   }
 }

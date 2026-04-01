@@ -6,11 +6,16 @@ import React, { useState, useRef } from "react";
 import styled from "styled-components";
 import { Upload, X, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
 
+interface ImportResult {
+  criados: number;
+  ignorados: string[];
+}
+
 interface ModalImportarJogadoresProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (criados: number) => void;
-  onImportar: (file: File) => Promise<{ criados: number }>;
+  onSuccess: (resultado: ImportResult) => void;
+  onImportar: (file: File) => Promise<ImportResult>;
   onExportarModelo: () => Promise<void>;
 }
 
@@ -65,7 +70,7 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
 
     try {
       const resultado = await onImportar(file);
-      onSuccess(resultado.criados);
+      onSuccess({ criados: resultado.criados, ignorados: resultado.ignorados });
       handleClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao importar";

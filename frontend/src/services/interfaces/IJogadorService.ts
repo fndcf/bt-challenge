@@ -68,5 +68,5 @@ export interface IJogadorService {
 
   exportarExcel(): Promise<void>;
 
-  importarExcel(file: File): Promise<{ criados: number; jogadores: Jogador[] }>;
+  importarExcel(file: File): Promise<{ criados: number; jogadores: Jogador[]; ignorados: string[] }>;
 }
