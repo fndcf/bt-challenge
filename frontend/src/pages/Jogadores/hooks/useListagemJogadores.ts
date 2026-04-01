@@ -55,7 +55,7 @@ export interface UseListagemJogadoresReturn {
   // Import/Export
   exportando: boolean;
   handleExportarExcel: () => Promise<void>;
-  handleImportarExcel: (file: File) => Promise<{ criados: number }>;
+  handleImportarExcel: (file: File) => Promise<{ criados: number; ignorados: string[] }>;
 }
 
 export const useListagemJogadores = (): UseListagemJogadoresReturn => {
