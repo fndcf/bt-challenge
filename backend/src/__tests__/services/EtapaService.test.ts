@@ -1812,6 +1812,181 @@ describe("EtapaService", () => {
     });
   });
 
+  describe("encerrarEtapa - formato REI_DA_PRAIA", () => {
+    it("deve lançar erro se não há fase eliminatória", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.REI_DA_PRAIA,
+      });
+      const grupos = [createGrupoFixture({ id: "g1" })];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Não há fase eliminatória para esta etapa");
+    });
+
+    it("deve lançar erro se a final não está finalizada", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.REI_DA_PRAIA,
+      });
+      const grupos = [createGrupoFixture({ id: "g1" })];
+      const confrontoFinal = createConfrontoFixture({
+        fase: TipoFase.FINAL,
+        status: "agendada" as any,
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([confrontoFinal]);
+
+      await expect(
+        etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("A final ainda não foi finalizada");
+    });
+
+    it("deve atribuir pontos de participação para quem jogou os grupos mas não chegou na eliminatória", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.REI_DA_PRAIA,
+        contaPontosRanking: true,
+      });
+      const grupos = [createGrupoFixture({ id: "g1" })];
+
+      const confrontoFinal = createConfrontoFixture({
+        fase: TipoFase.FINAL,
+        status: "finalizada" as any,
+        vencedoraId: "dupla-campeao",
+        vencedoraNome: "Campeão A & Campeão B",
+        dupla1Id: "dupla-campeao",
+        dupla2Id: "dupla-vice",
+      });
+
+      // Duplas só existem para quem chegou na eliminatória (comportamento real do Rei da Praia)
+      const duplasEliminatoria: Record<string, ReturnType<typeof createDuplaFixture>> = {
+        "dupla-campeao": createDuplaFixture({
+          id: "dupla-campeao",
+          jogador1Id: "j-campeao-a",
+          jogador1Nome: "Campeão A",
+          jogador2Id: "j-campeao-b",
+          jogador2Nome: "Campeão B",
+        }),
+        "dupla-vice": createDuplaFixture({
+          id: "dupla-vice",
+          jogador1Id: "j-vice-a",
+          jogador1Nome: "Vice A",
+          jogador2Id: "j-vice-b",
+          jogador2Nome: "Vice B",
+        }),
+      };
+
+      // Roster completo da etapa: 2 jogadores da eliminatória + 2 que só jogaram os grupos
+      const todosJogadores = [
+        createEstatisticasJogadorFixture({ id: "e-campeao-a", jogadorId: "j-campeao-a" }),
+        createEstatisticasJogadorFixture({ id: "e-campeao-b", jogadorId: "j-campeao-b" }),
+        createEstatisticasJogadorFixture({ id: "e-vice-a", jogadorId: "j-vice-a" }),
+        createEstatisticasJogadorFixture({ id: "e-vice-b", jogadorId: "j-vice-b" }),
+        createEstatisticasJogadorFixture({ id: "e-grupo-1", jogadorId: "j-so-grupo-1" }),
+        createEstatisticasJogadorFixture({ id: "e-grupo-2", jogadorId: "j-so-grupo-2" }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([confrontoFinal]);
+      mockConfrontoRepository.buscarFinalizadosPorFase
+        .mockResolvedValueOnce([]) // semifinal
+        .mockResolvedValueOnce([]) // quartas
+        .mockResolvedValueOnce([]); // oitavas
+      mockEstatisticasRepository.buscarPorEtapa.mockResolvedValue(todosJogadores);
+      mockDuplaRepository.buscarPorId.mockImplementation((id: string) =>
+        Promise.resolve(duplasEliminatoria[id] || null)
+      );
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          { estatisticaId: "e-campeao-a", pontos: 100, colocacao: "campeao" },
+          { estatisticaId: "e-campeao-b", pontos: 100, colocacao: "campeao" },
+          { estatisticaId: "e-vice-a", pontos: 70, colocacao: "vice" },
+          { estatisticaId: "e-vice-b", pontos: 70, colocacao: "vice" },
+          // Estes dois jogaram os grupos mas não chegaram na eliminatória —
+          // é exatamente o caso que estava ficando com 0 pontos antes do fix
+          { estatisticaId: "e-grupo-1", pontos: 10, colocacao: "participacao" },
+          { estatisticaId: "e-grupo-2", pontos: 10, colocacao: "participacao" },
+        ])
+      );
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        "dupla-campeao",
+        "Campeão A & Campeão B"
+      );
+    });
+
+    it("deve pular atribuição de pontos se Rei da Praia não conta no ranking", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.REI_DA_PRAIA,
+        contaPontosRanking: false,
+      });
+      const grupos = [createGrupoFixture({ id: "g1" })];
+      const confrontoFinal = createConfrontoFixture({
+        fase: TipoFase.FINAL,
+        status: "finalizada" as any,
+        vencedoraId: "dupla-campeao",
+        vencedoraNome: "Campeão A & Campeão B",
+      });
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([confrontoFinal]);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).not.toHaveBeenCalled();
+      expect(mockEtapaRepository.definirCampeao).toHaveBeenCalled();
+    });
+  });
+
   describe("encerrarEtapa - grupo único sem pontos ranking", () => {
     it("deve pular atribuição de pontos se grupo único não conta no ranking", async () => {
       const etapa = createEtapaFixture({

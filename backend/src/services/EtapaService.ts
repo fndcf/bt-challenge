@@ -1151,6 +1151,197 @@ export class EtapaService {
         return;
       }
 
+      // CENÁRIO 1.5: REI DA PRAIA
+      // Diferente da Dupla Fixa, a fase de grupos é jogada por jogadores
+      // individuais (parceiros rotativos) — estatísticas ficam em
+      // estatisticas_jogador, não em "duplas". A collection "duplas" só
+      // recebe registros quando a fase eliminatória é gerada (apenas para
+      // quem classificou). Por isso não dá para reaproveitar a lógica de
+      // "duplas não classificadas" do cenário COM ELIMINATÓRIA abaixo —
+      // ela sempre viria vazia e ninguém fora da eliminatória receberia
+      // pontos de participação.
+      if (etapa.formato === FormatoEtapa.REI_DA_PRAIA) {
+        const confrontosFinais = await this.confrontoRepository.buscarPorFase(
+          id,
+          arenaId,
+          TipoFase.FINAL
+        );
+
+        if (confrontosFinais.length === 0) {
+          throw new Error("Não há fase eliminatória para esta etapa");
+        }
+
+        const confrontoFinal = confrontosFinais[0];
+
+        if (confrontoFinal.status !== "finalizada") {
+          throw new Error("A final ainda não foi finalizada");
+        }
+
+        if (contaPontosRanking) {
+          const [
+            confrontosSemi,
+            confrontosQuartas,
+            confrontosOitavas,
+            todosJogadores,
+          ] = await Promise.all([
+            this.confrontoRepository.buscarFinalizadosPorFase(
+              id,
+              arenaId,
+              TipoFase.SEMIFINAL
+            ),
+            this.confrontoRepository.buscarFinalizadosPorFase(
+              id,
+              arenaId,
+              TipoFase.QUARTAS
+            ),
+            this.confrontoRepository.buscarFinalizadosPorFase(
+              id,
+              arenaId,
+              TipoFase.OITAVAS
+            ),
+            this.estatisticasJogadorRepository.buscarPorEtapa(id, arenaId),
+          ]);
+
+          // Colocação por duplaId (só existe para quem chegou na eliminatória)
+          const duplaColocacoes: Map<
+            string,
+            { pontos: number; colocacao: string }
+          > = new Map();
+
+          const campeaoDuplaId = confrontoFinal.vencedoraId;
+          if (campeaoDuplaId) {
+            duplaColocacoes.set(campeaoDuplaId, {
+              pontos: pontuacao.campeao,
+              colocacao: "campeao",
+            });
+          }
+
+          const viceDuplaId =
+            confrontoFinal.dupla1Id === campeaoDuplaId
+              ? confrontoFinal.dupla2Id
+              : confrontoFinal.dupla1Id;
+          if (viceDuplaId) {
+            duplaColocacoes.set(viceDuplaId, {
+              pontos: pontuacao.vice,
+              colocacao: "vice",
+            });
+          }
+
+          for (const confronto of confrontosSemi) {
+            const perdedorId =
+              confronto.vencedoraId === confronto.dupla1Id
+                ? confronto.dupla2Id
+                : confronto.dupla1Id;
+            if (perdedorId && !duplaColocacoes.has(perdedorId)) {
+              duplaColocacoes.set(perdedorId, {
+                pontos: pontuacao.semifinalista,
+                colocacao: "semifinalista",
+              });
+            }
+          }
+
+          for (const confronto of confrontosQuartas) {
+            const perdedorId =
+              confronto.vencedoraId === confronto.dupla1Id
+                ? confronto.dupla2Id
+                : confronto.dupla1Id;
+            if (perdedorId && !duplaColocacoes.has(perdedorId)) {
+              duplaColocacoes.set(perdedorId, {
+                pontos: pontuacao.quartas,
+                colocacao: "quartas",
+              });
+            }
+          }
+
+          for (const confronto of confrontosOitavas) {
+            const perdedorId =
+              confronto.vencedoraId === confronto.dupla1Id
+                ? confronto.dupla2Id
+                : confronto.dupla1Id;
+            if (perdedorId && !duplaColocacoes.has(perdedorId)) {
+              duplaColocacoes.set(perdedorId, {
+                pontos: pontuacao.oitavas,
+                colocacao: "oitavas",
+              });
+            }
+          }
+
+          // Resolver as duplas da eliminatória em jogadorIds individuais
+          const duplaIds = Array.from(duplaColocacoes.keys());
+          const duplasResolvidas = await Promise.all(
+            duplaIds.map((duplaId) => this.duplaRepository.buscarPorId(duplaId))
+          );
+
+          const jogadorColocacoes: Map<
+            string,
+            { pontos: number; colocacao: string }
+          > = new Map();
+
+          for (const dupla of duplasResolvidas) {
+            if (!dupla) continue;
+            const colocacaoInfo = duplaColocacoes.get(dupla.id);
+            if (!colocacaoInfo) continue;
+
+            jogadorColocacoes.set(dupla.jogador1Id, colocacaoInfo);
+            jogadorColocacoes.set(dupla.jogador2Id, colocacaoInfo);
+
+            logger.info("Pontos atribuídos para dupla (Rei da Praia)", {
+              duplaId: dupla.id,
+              etapaId: id,
+              jogadores: `${dupla.jogador1Nome} & ${dupla.jogador2Nome}`,
+              pontos: colocacaoInfo.pontos,
+              colocacao: colocacaoInfo.colocacao,
+            });
+          }
+
+          // Participação: todo jogador da etapa que não está no mapa acima
+          // (ou seja, jogou os grupos mas não chegou na eliminatória)
+          const pontuacoesBatch: AtualizarPontuacaoEmLoteDTO[] =
+            todosJogadores.map((jogador) => {
+              const colocacaoInfo = jogadorColocacoes.get(jogador.jogadorId);
+              return {
+                estatisticaId: jogador.id,
+                pontos: colocacaoInfo?.pontos ?? pontuacao.participacao,
+                colocacao: colocacaoInfo?.colocacao ?? "participacao",
+              };
+            });
+
+          await this.estatisticasJogadorRepository.atualizarPontuacaoEmLote(
+            pontuacoesBatch
+          );
+
+          logger.info("Pontos atribuídos (Rei da Praia)", {
+            etapaId: id,
+            totalJogadores: todosJogadores.length,
+            totalNaEliminatoria: jogadorColocacoes.size,
+          });
+        } else {
+          logger.info(
+            "Etapa Rei da Praia não conta pontos no ranking - pulando atribuição",
+            {
+              etapaId: id,
+            }
+          );
+        }
+
+        if (confrontoFinal.vencedoraId) {
+          await this.etapaRepository.definirCampeao(
+            id,
+            confrontoFinal.vencedoraId,
+            confrontoFinal.vencedoraNome || "Campeão"
+          );
+        }
+
+        logger.info("Etapa Rei da Praia encerrada (com eliminatória)", {
+          etapaId: id,
+          nome: etapa.nome,
+          campeaoNome: confrontoFinal.vencedoraNome,
+          arenaId,
+        });
+
+        return;
+      }
+
       // CENÁRIO 2: GRUPO ÚNICO (Dupla Fixa)
       if (grupos.length === 1) {
         const grupo = grupos[0];
