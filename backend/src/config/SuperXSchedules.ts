@@ -203,11 +203,11 @@ export const SUPER_12_SCHEDULE: RodadaSuperX[] = [
  * nos outros formatos.
  *
  * A tabela é única — o Super 8 usa só as 8 primeiras posições dela (o último
- * colocado do Super 8 fica com 43 pontos, não desce até o piso de 10, que é
+ * colocado do Super 8 fica com 40 pontos, não desce até o piso de 10, que é
  * exclusivo de quem joga — e perde — as 12 rodadas do Super 12).
  */
 export const SUPER_X_PONTOS_POR_POSICAO: number[] = [
-  100, 92, 84, 76, 64, 56, 48, 40, 32, 24, 16, 10,  
+  100, 92, 84, 76, 64, 56, 48, 40, 32, 24, 16, 10,
 ];
 
 /**

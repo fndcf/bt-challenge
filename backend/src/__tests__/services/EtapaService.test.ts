@@ -1779,7 +1779,7 @@ describe("EtapaService", () => {
       ]);
     });
 
-    it("deve atribuir pontos por posição (Super 8) — último colocado fica com 43 pontos, não com o piso de 10", async () => {
+    it("deve atribuir pontos por posição (Super 8) — último colocado fica com 40 pontos, não com o piso de 10", async () => {
       const etapa = createEtapaFixture({
         status: StatusEtapa.EM_ANDAMENTO,
         formato: FormatoEtapa.SUPER_X,
@@ -1817,10 +1817,10 @@ describe("EtapaService", () => {
         { estatisticaId: "e2", pontos: 92, colocacao: "vice" },
         { estatisticaId: "e3", pontos: 84, colocacao: "3o_lugar" },
         { estatisticaId: "e4", pontos: 76, colocacao: "4o_lugar" },
-        { estatisticaId: "e5", pontos: 67, colocacao: "5o_lugar" },
-        { estatisticaId: "e6", pontos: 59, colocacao: "6o_lugar" },
-        { estatisticaId: "e7", pontos: 51, colocacao: "7o_lugar" },
-        { estatisticaId: "e8", pontos: 43, colocacao: "8o_lugar" },
+        { estatisticaId: "e5", pontos: 64, colocacao: "5o_lugar" },
+        { estatisticaId: "e6", pontos: 56, colocacao: "6o_lugar" },
+        { estatisticaId: "e7", pontos: 48, colocacao: "7o_lugar" },
+        { estatisticaId: "e8", pontos: 40, colocacao: "8o_lugar" },
       ]);
     });
 
