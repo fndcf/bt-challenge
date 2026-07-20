@@ -203,6 +203,7 @@ export function createCriarEtapaDTO(
     maxJogadores: 16,
     jogadoresPorGrupo: 4,
     contaPontosRanking: true,
+    darPontosParticipacao: true,
     ...overrides,
   };
 }

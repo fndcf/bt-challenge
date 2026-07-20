@@ -844,6 +844,66 @@ describe("EtapaService", () => {
         expect(mockEtapaRepository.definirCampeao).toHaveBeenCalled();
       });
 
+      it("deve zerar pontos de participação (grupo único) quando darPontosParticipacao=false", async () => {
+        const etapa = createEtapaFixture({
+          status: StatusEtapa.EM_ANDAMENTO,
+          darPontosParticipacao: false,
+        });
+        const grupo = createGrupoFixture({ completo: true });
+        // 5 duplas: as 4 primeiras caem em campeao/vice/semi/quartas, a 5ª
+        // cairia em "participacao" (grupo único não tem faixa de oitavas).
+        const duplas = Array.from({ length: 5 }, (_, i) =>
+          createDuplaFixture({
+            id: `dupla-${i + 1}`,
+            jogador1Id: `j${i * 2 + 1}`,
+            jogador2Id: `j${i * 2 + 2}`,
+            posicaoGrupo: i + 1,
+          })
+        );
+
+        mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+        mockConfigRepository.buscarPontuacao.mockResolvedValue({
+          campeao: 100,
+          vice: 70,
+          semifinalista: 50,
+          quartas: 30,
+          oitavas: 20,
+          participacao: 10,
+        });
+        mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+        mockDuplaRepository.buscarPorGrupoOrdenado.mockResolvedValue(duplas);
+        mockDuplaRepository.buscarPorId.mockImplementation((id: string) =>
+          Promise.resolve(duplas.find((d) => d.id === id) || null)
+        );
+        mockEstatisticasRepository.buscarPorJogadorEEtapa.mockImplementation(
+          (jogadorId: string) =>
+            Promise.resolve(
+              createEstatisticasJogadorFixture({ id: `e-${jogadorId}`, jogadorId })
+            )
+        );
+        mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+        mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+        await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+        const [batch] = mockEstatisticasRepository.atualizarPontuacaoEmLote.mock.calls[0];
+        const pontosDupla5 = batch.filter((b: any) =>
+          ["e-j9", "e-j10"].includes(b.estatisticaId)
+        );
+        expect(pontosDupla5).toEqual([
+          { estatisticaId: "e-j9", pontos: 0, colocacao: "participacao" },
+          { estatisticaId: "e-j10", pontos: 0, colocacao: "participacao" },
+        ]);
+
+        const pontosDupla1 = batch.filter((b: any) =>
+          ["e-j1", "e-j2"].includes(b.estatisticaId)
+        );
+        expect(pontosDupla1).toEqual([
+          { estatisticaId: "e-j1", pontos: 100, colocacao: "campeao" },
+          { estatisticaId: "e-j2", pontos: 100, colocacao: "campeao" },
+        ]);
+      });
+
       it("deve lançar erro se grupo único não está completo", async () => {
         const etapa = createEtapaFixture({
           status: StatusEtapa.EM_ANDAMENTO,
@@ -1019,6 +1079,99 @@ describe("EtapaService", () => {
           "dupla-campeao",
           "Dupla Campeã"
         );
+      });
+
+      it("deve zerar pontos das duplas não classificadas quando darPontosParticipacao=false", async () => {
+        const etapa = createEtapaFixture({
+          status: StatusEtapa.EM_ANDAMENTO,
+          darPontosParticipacao: false,
+        });
+        const grupos = [
+          createGrupoFixture({ id: "g1" }),
+          createGrupoFixture({ id: "g2" }),
+        ];
+        const confrontoFinal = createConfrontoFixture({
+          fase: TipoFase.FINAL,
+          status: "finalizada" as any,
+          vencedoraId: "dupla-campeao",
+          vencedoraNome: "Dupla Campeã",
+          dupla1Id: "dupla-campeao",
+          dupla2Id: "dupla-vice",
+        });
+        const confrontosSemi = [
+          createConfrontoFixture({
+            fase: TipoFase.SEMIFINAL,
+            status: "finalizada" as any,
+            vencedoraId: "dupla-campeao",
+            dupla1Id: "dupla-campeao",
+            dupla2Id: "dupla-semi1",
+          }),
+          createConfrontoFixture({
+            fase: TipoFase.SEMIFINAL,
+            status: "finalizada" as any,
+            vencedoraId: "dupla-vice",
+            dupla1Id: "dupla-vice",
+            dupla2Id: "dupla-semi2",
+          }),
+        ];
+        const duplasNaoClassificadas = [
+          createDuplaFixture({
+            id: "dupla-nc1",
+            classificada: false,
+            jogador1Id: "j-nc1-a",
+            jogador2Id: "j-nc1-b",
+          }),
+        ];
+
+        mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+        mockConfigRepository.buscarPontuacao.mockResolvedValue({
+          campeao: 100,
+          vice: 70,
+          semifinalista: 50,
+          quartas: 30,
+          oitavas: 20,
+          participacao: 10,
+        });
+        mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+        mockConfrontoRepository.buscarPorFase.mockResolvedValue([confrontoFinal]);
+        mockConfrontoRepository.buscarFinalizadosPorFase
+          .mockResolvedValueOnce(confrontosSemi)
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([]);
+        mockDuplaRepository.buscarPorEtapa.mockResolvedValue(duplasNaoClassificadas);
+        mockDuplaRepository.buscarPorId.mockImplementation((id: string) =>
+          Promise.resolve(
+            duplasNaoClassificadas.find((d) => d.id === id) ||
+              createDuplaFixture({ id, jogador1Id: `j1-${id}`, jogador2Id: `j2-${id}` })
+          )
+        );
+        mockEstatisticasRepository.buscarPorJogadorEEtapa.mockImplementation(
+          (jogadorId: string) =>
+            Promise.resolve(
+              createEstatisticasJogadorFixture({ id: `e-${jogadorId}`, jogadorId })
+            )
+        );
+        mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+        mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+        await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+        const [batch] = mockEstatisticasRepository.atualizarPontuacaoEmLote.mock.calls[0];
+        const pontosNaoClassificada = batch.filter((b: any) =>
+          ["e-j-nc1-a", "e-j-nc1-b"].includes(b.estatisticaId)
+        );
+        expect(pontosNaoClassificada).toEqual([
+          { estatisticaId: "e-j-nc1-a", pontos: 0, colocacao: "participacao" },
+          { estatisticaId: "e-j-nc1-b", pontos: 0, colocacao: "participacao" },
+        ]);
+
+        const pontosCampeao = batch.filter((b: any) =>
+          ["e-j1-dupla-campeao", "e-j2-dupla-campeao"].includes(b.estatisticaId)
+        );
+        expect(pontosCampeao).toEqual([
+          { estatisticaId: "e-j1-dupla-campeao", pontos: 100, colocacao: "campeao" },
+          { estatisticaId: "e-j2-dupla-campeao", pontos: 100, colocacao: "campeao" },
+        ]);
       });
 
       it("deve atribuir pontos para quartas e oitavas", async () => {
@@ -1570,6 +1723,69 @@ describe("EtapaService", () => {
       );
     });
 
+    it("deve zerar pontos de participação para equipes fora da colocação quando darPontosParticipacao=false", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.TEAMS,
+        contaPontosRanking: true,
+        darPontosParticipacao: false,
+      });
+
+      // 6 equipes: as 5 primeiras caem nas faixas campeao/vice/semi/quartas/oitavas,
+      // a 6ª cairia em "participacao" — é essa que precisa ficar com 0 pontos.
+      const equipes = Array.from({ length: 6 }, (_, i) => ({
+        id: `eq${i + 1}`,
+        nome: `Equipe ${i + 1}`,
+        jogadores: [
+          { id: `j${i * 2 + 1}`, nome: `Jogador ${i * 2 + 1}` },
+          { id: `j${i * 2 + 2}`, nome: `Jogador ${i * 2 + 2}` },
+        ],
+      }));
+
+      const confrontos = [{ id: "c1", status: StatusConfronto.FINALIZADO }];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockConfrontoEquipeRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+      mockEquipeRepository.buscarPorClassificacao.mockResolvedValue(equipes);
+      mockEstatisticasRepository.buscarPorJogadorEEtapa.mockImplementation(
+        (jogadorId: string) =>
+          Promise.resolve(
+            createEstatisticasJogadorFixture({ id: `e-${jogadorId}`, jogadorId })
+          )
+      );
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      const [batch] = mockEstatisticasRepository.atualizarPontuacaoEmLote.mock.calls[0];
+      const pontosEquipe6 = batch.filter((b: any) =>
+        ["e-j11", "e-j12"].includes(b.estatisticaId)
+      );
+      expect(pontosEquipe6).toEqual([
+        { estatisticaId: "e-j11", pontos: 0, colocacao: "participacao" },
+        { estatisticaId: "e-j12", pontos: 0, colocacao: "participacao" },
+      ]);
+
+      // Campeão continua recebendo os pontos normalmente — o toggle só afeta participação
+      const pontosEquipe1 = batch.filter((b: any) =>
+        ["e-j1", "e-j2"].includes(b.estatisticaId)
+      );
+      expect(pontosEquipe1).toEqual([
+        { estatisticaId: "e-j1", pontos: 100, colocacao: "campeao" },
+        { estatisticaId: "e-j2", pontos: 100, colocacao: "campeao" },
+      ]);
+    });
+
     it("deve lançar erro se não há confrontos TEAMS", async () => {
       const etapa = createEtapaFixture({
         status: StatusEtapa.EM_ANDAMENTO,
@@ -2047,6 +2263,84 @@ describe("EtapaService", () => {
         TEST_ETAPA_ID,
         "dupla-campeao",
         "Campeão A & Campeão B"
+      );
+    });
+
+    it("deve zerar pontos de quem só jogou os grupos quando darPontosParticipacao=false, sem afetar campeão/vice", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.REI_DA_PRAIA,
+        contaPontosRanking: true,
+        darPontosParticipacao: false,
+      });
+      const grupos = [createGrupoFixture({ id: "g1" })];
+
+      const confrontoFinal = createConfrontoFixture({
+        fase: TipoFase.FINAL,
+        status: "finalizada" as any,
+        vencedoraId: "dupla-campeao",
+        vencedoraNome: "Campeão A & Campeão B",
+        dupla1Id: "dupla-campeao",
+        dupla2Id: "dupla-vice",
+      });
+
+      const duplasEliminatoria: Record<string, ReturnType<typeof createDuplaFixture>> = {
+        "dupla-campeao": createDuplaFixture({
+          id: "dupla-campeao",
+          jogador1Id: "j-campeao-a",
+          jogador1Nome: "Campeão A",
+          jogador2Id: "j-campeao-b",
+          jogador2Nome: "Campeão B",
+        }),
+        "dupla-vice": createDuplaFixture({
+          id: "dupla-vice",
+          jogador1Id: "j-vice-a",
+          jogador1Nome: "Vice A",
+          jogador2Id: "j-vice-b",
+          jogador2Nome: "Vice B",
+        }),
+      };
+
+      const todosJogadores = [
+        createEstatisticasJogadorFixture({ id: "e-campeao-a", jogadorId: "j-campeao-a" }),
+        createEstatisticasJogadorFixture({ id: "e-campeao-b", jogadorId: "j-campeao-b" }),
+        createEstatisticasJogadorFixture({ id: "e-vice-a", jogadorId: "j-vice-a" }),
+        createEstatisticasJogadorFixture({ id: "e-vice-b", jogadorId: "j-vice-b" }),
+        createEstatisticasJogadorFixture({ id: "e-grupo-1", jogadorId: "j-so-grupo-1" }),
+        createEstatisticasJogadorFixture({ id: "e-grupo-2", jogadorId: "j-so-grupo-2" }),
+      ];
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue(grupos);
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([confrontoFinal]);
+      mockConfrontoRepository.buscarFinalizadosPorFase
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockEstatisticasRepository.buscarPorEtapa.mockResolvedValue(todosJogadores);
+      mockDuplaRepository.buscarPorId.mockImplementation((id: string) =>
+        Promise.resolve(duplasEliminatoria[id] || null)
+      );
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          { estatisticaId: "e-campeao-a", pontos: 100, colocacao: "campeao" },
+          { estatisticaId: "e-vice-a", pontos: 70, colocacao: "vice" },
+          { estatisticaId: "e-grupo-1", pontos: 0, colocacao: "participacao" },
+          { estatisticaId: "e-grupo-2", pontos: 0, colocacao: "participacao" },
+        ])
       );
     });
 

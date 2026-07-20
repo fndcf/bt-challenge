@@ -150,6 +150,7 @@ export class EtapaService {
         jogadoresPorGrupo: dadosValidados.jogadoresPorGrupo,
         grupoUnico: dadosValidados.grupoUnico,
         contaPontosRanking: dadosValidados.contaPontosRanking ?? true,
+        darPontosParticipacao: dadosValidados.darPontosParticipacao ?? true,
       });
 
       logger.info("Etapa criada", {
@@ -901,6 +902,13 @@ export class EtapaService {
       // Buscar pontuação via repository
       const pontuacao = await this.configRepository.buscarPontuacao();
 
+      // Pontos de participação (quem joga mas não classifica/coloca) — o
+      // organizador pode optar por não dar esses pontos, exceto para
+      // SUPER_X, que não usa esse conceito (todo mundo pontua por posição).
+      // undefined/true = comportamento padrão (dá os pontos configurados).
+      const pontosParticipacao =
+        etapa.darPontosParticipacao === false ? 0 : pontuacao.participacao;
+
       // CENÁRIO 0: TEAMS (equipes)
       if (etapa.formato === FormatoEtapa.TEAMS) {
         // Buscar confrontos TEAMS
@@ -940,7 +948,7 @@ export class EtapaService {
           { colocacao: "semifinalista", pontos: pontuacao.semifinalista },
           { colocacao: "quartas", pontos: pontuacao.quartas },
           { colocacao: "oitavas", pontos: pontuacao.oitavas },
-          { colocacao: "participacao", pontos: pontuacao.participacao },
+          { colocacao: "participacao", pontos: pontosParticipacao },
         ];
 
         // Só atribuir pontos se a etapa conta para o ranking
@@ -1298,7 +1306,7 @@ export class EtapaService {
               const colocacaoInfo = jogadorColocacoes.get(jogador.jogadorId);
               return {
                 estatisticaId: jogador.id,
-                pontos: colocacaoInfo?.pontos ?? pontuacao.participacao,
+                pontos: colocacaoInfo?.pontos ?? pontosParticipacao,
                 colocacao: colocacaoInfo?.colocacao ?? "participacao",
               };
             });
@@ -1363,7 +1371,7 @@ export class EtapaService {
           { colocacao: "vice", pontos: pontuacao.vice },
           { colocacao: "semifinalista", pontos: pontuacao.semifinalista },
           { colocacao: "quartas", pontos: pontuacao.quartas },
-          { colocacao: "participacao", pontos: pontuacao.participacao },
+          { colocacao: "participacao", pontos: pontosParticipacao },
         ];
 
         // Só atribuir pontos se a etapa conta para o ranking
@@ -1577,7 +1585,7 @@ export class EtapaService {
         for (const dupla of duplasNaoClassificadas) {
           if (!duplaColocacoes.has(dupla.id)) {
             duplaColocacoes.set(dupla.id, {
-              pontos: pontuacao.participacao,
+              pontos: pontosParticipacao,
               colocacao: "participacao",
             });
           }

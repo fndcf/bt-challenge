@@ -123,6 +123,7 @@ export interface Etapa {
 
   // Ranking
   contaPontosRanking: boolean; // Se true, os pontos da etapa contam para o ranking geral
+  darPontosParticipacao?: boolean; // Se false, quem não classifica/coloca não recebe pontos de participação. Não se aplica a SUPER_X (não tem faixa de participação).
 
   // Metadados
   criadoEm: Timestamp | string;
@@ -163,6 +164,7 @@ const CriarEtapaSchemaBase = z.object({
   jogadoresPorGrupo: z.number().min(3).max(12).optional(), // max 12 para SUPER_X (grupo único)
   grupoUnico: z.boolean().optional(), // Todas as duplas em um único grupo
   contaPontosRanking: z.boolean().default(true),
+  darPontosParticipacao: z.boolean().default(true), // Ignorado para SUPER_X
 });
 
 // Criar Etapa - Com validações condicionais
@@ -359,6 +361,7 @@ export const AtualizarEtapaSchema = z.object({
     .optional(),
   status: z.nativeEnum(StatusEtapa).optional(),
   contaPontosRanking: z.boolean().optional(),
+  darPontosParticipacao: z.boolean().optional(),
 });
 
 export type AtualizarEtapaDTO = z.infer<typeof AtualizarEtapaSchema>;

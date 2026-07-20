@@ -68,6 +68,7 @@ export class EtapaRepository implements IEtapaRepository {
       jogadoresInscritos: [],
       chavesGeradas: false,
       contaPontosRanking: data.contaPontosRanking ?? true, // Por padrão conta pontos
+      darPontosParticipacao: data.darPontosParticipacao ?? true, // Por padrão dá pontos de participação
       criadoEm: agora,
       atualizadoEm: agora,
       criadoPor: data.criadoPor,
