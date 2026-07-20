@@ -21,6 +21,7 @@ import {
 import { Inscricao, StatusInscricao } from "../models/Inscricao";
 import { GeneroJogador } from "../models/Jogador";
 import { TipoFase } from "../models/Eliminatoria";
+import { getPontosSuperXPorPosicao } from "../config/SuperXSchedules";
 import logger from "../utils/logger";
 
 // Interfaces dos repositories
@@ -1077,27 +1078,25 @@ export class EtapaService {
           throw new Error("Nenhum jogador encontrado no grupo");
         }
 
-        // Tabela de colocações para Super X (individual)
-        const tabelaColocacoes = [
-          { colocacao: "campeao", pontos: pontuacao.campeao },
-          { colocacao: "vice", pontos: pontuacao.vice },
-          { colocacao: "semifinalista", pontos: pontuacao.semifinalista },
-          { colocacao: "quartas", pontos: pontuacao.quartas },
-          { colocacao: "oitavas", pontos: pontuacao.oitavas },
-          { colocacao: "participacao", pontos: pontuacao.participacao },
-        ];
+        // Super X não tem fase eliminatória — a colocação final é só a
+        // posição na classificação do grupo único, então os pontos seguem
+        // uma tabela por posição (ver SUPER_X_PONTOS_POR_POSICAO), não as
+        // faixas de bracket usadas nos outros formatos.
+        const colocacaoPorPosicao = (posicao: number): string => {
+          if (posicao === 1) return "campeao";
+          if (posicao === 2) return "vice";
+          return `${posicao}o_lugar`;
+        };
 
         // Só atribuir pontos se a etapa conta para o ranking
         if (contaPontosRanking) {
           // Preparar dados para batch
           const pontuacoesBatch = jogadores.map((jogador, i) => {
-            const { colocacao, pontos: pts } =
-              tabelaColocacoes[i] ||
-              tabelaColocacoes[tabelaColocacoes.length - 1];
+            const posicao = i + 1;
             return {
               estatisticaId: jogador.id,
-              pontos: pts,
-              colocacao,
+              pontos: getPontosSuperXPorPosicao(posicao),
+              colocacao: colocacaoPorPosicao(posicao),
             };
           });
 
@@ -1108,15 +1107,13 @@ export class EtapaService {
 
           // Log individual para debug (opcional)
           jogadores.forEach((jogador, i) => {
-            const { colocacao, pontos } =
-              tabelaColocacoes[i] ||
-              tabelaColocacoes[tabelaColocacoes.length - 1];
+            const posicao = i + 1;
             logger.info("Pontos atribuídos ao jogador Super X", {
               jogadorId: jogador.jogadorId,
               jogadorNome: jogador.jogadorNome,
-              posicao: i + 1,
-              colocacao,
-              pontos,
+              posicao,
+              colocacao: colocacaoPorPosicao(posicao),
+              pontos: getPontosSuperXPorPosicao(posicao),
             });
           });
         } else {

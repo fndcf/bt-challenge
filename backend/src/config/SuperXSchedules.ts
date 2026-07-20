@@ -193,6 +193,32 @@ export const SUPER_12_SCHEDULE: RodadaSuperX[] = [
 ];
 
 /**
+ * Pontos de ranking por posição final no Super X.
+ *
+ * Diferente dos outros formatos (Dupla Fixa, Rei da Praia, Teams), o Super X
+ * não tem fase eliminatória — é um grupo único, todos jogam contra todos, e a
+ * colocação final é só a posição na classificação do grupo. Por isso os
+ * pontos seguem uma tabela por posição (1º ao 12º) em vez das faixas de
+ * bracket (campeão/vice/semifinalista/quartas/oitavas/participação) usadas
+ * nos outros formatos.
+ *
+ * A tabela é única — o Super 8 usa só as 8 primeiras posições dela (o último
+ * colocado do Super 8 fica com 43 pontos, não desce até o piso de 10, que é
+ * exclusivo de quem joga — e perde — as 12 rodadas do Super 12).
+ */
+export const SUPER_X_PONTOS_POR_POSICAO: number[] = [
+  100, 92, 84, 76, 64, 56, 48, 40, 32, 24, 16, 10,  
+];
+
+/**
+ * Retorna os pontos de ranking para uma posição final no Super X (1-indexado).
+ */
+export function getPontosSuperXPorPosicao(posicao: number): number {
+  const pontos = SUPER_X_PONTOS_POR_POSICAO[posicao - 1];
+  return pontos ?? SUPER_X_PONTOS_POR_POSICAO[SUPER_X_PONTOS_POR_POSICAO.length - 1];
+}
+
+/**
  * Mapa de schedules por variante
  */
 export const SUPER_X_SCHEDULES: Record<8 | 12, RodadaSuperX[]> = {

@@ -1727,6 +1727,103 @@ describe("EtapaService", () => {
       );
     });
 
+    it("deve atribuir pontos por posição (Super 12) — sem fase eliminatória, cada posição tem sua própria pontuação", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.SUPER_X,
+        contaPontosRanking: true,
+      });
+
+      const grupo = createGrupoFixture({ completo: true });
+      const jogadores = Array.from({ length: 12 }, (_, i) =>
+        createEstatisticasJogadorFixture({
+          id: `e${i + 1}`,
+          jogadorId: `j${i + 1}`,
+          jogadorNome: `Jogador ${i + 1}`,
+          posicaoGrupo: i + 1,
+        })
+      );
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+      mockEstatisticasRepository.buscarPorGrupoOrdenado.mockResolvedValue(jogadores);
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      // Tabela combinada com o usuário: 1º ao 12º, independente dos valores
+      // de campeao/vice/etc configurados em config/global (Super X tem sua
+      // própria tabela fixa, ver SUPER_X_PONTOS_POR_POSICAO).
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).toHaveBeenCalledWith([
+        { estatisticaId: "e1", pontos: 100, colocacao: "campeao" },
+        { estatisticaId: "e2", pontos: 92, colocacao: "vice" },
+        { estatisticaId: "e3", pontos: 84, colocacao: "3o_lugar" },
+        { estatisticaId: "e4", pontos: 76, colocacao: "4o_lugar" },
+        { estatisticaId: "e5", pontos: 64, colocacao: "5o_lugar" },
+        { estatisticaId: "e6", pontos: 56, colocacao: "6o_lugar" },
+        { estatisticaId: "e7", pontos: 48, colocacao: "7o_lugar" },
+        { estatisticaId: "e8", pontos: 40, colocacao: "8o_lugar" },
+        { estatisticaId: "e9", pontos: 32, colocacao: "9o_lugar" },
+        { estatisticaId: "e10", pontos: 24, colocacao: "10o_lugar" },
+        { estatisticaId: "e11", pontos: 16, colocacao: "11o_lugar" },
+        { estatisticaId: "e12", pontos: 10, colocacao: "12o_lugar" },
+      ]);
+    });
+
+    it("deve atribuir pontos por posição (Super 8) — último colocado fica com 43 pontos, não com o piso de 10", async () => {
+      const etapa = createEtapaFixture({
+        status: StatusEtapa.EM_ANDAMENTO,
+        formato: FormatoEtapa.SUPER_X,
+        contaPontosRanking: true,
+      });
+
+      const grupo = createGrupoFixture({ completo: true });
+      const jogadores = Array.from({ length: 8 }, (_, i) =>
+        createEstatisticasJogadorFixture({
+          id: `e${i + 1}`,
+          jogadorId: `j${i + 1}`,
+          jogadorNome: `Jogador ${i + 1}`,
+          posicaoGrupo: i + 1,
+        })
+      );
+
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockConfigRepository.buscarPontuacao.mockResolvedValue({
+        campeao: 100,
+        vice: 70,
+        semifinalista: 50,
+        quartas: 30,
+        oitavas: 20,
+        participacao: 10,
+      });
+      mockGrupoRepository.buscarPorEtapa.mockResolvedValue([grupo]);
+      mockEstatisticasRepository.buscarPorGrupoOrdenado.mockResolvedValue(jogadores);
+      mockEstatisticasRepository.atualizarPontuacaoEmLote.mockResolvedValue(undefined);
+      mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
+
+      await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasRepository.atualizarPontuacaoEmLote).toHaveBeenCalledWith([
+        { estatisticaId: "e1", pontos: 100, colocacao: "campeao" },
+        { estatisticaId: "e2", pontos: 92, colocacao: "vice" },
+        { estatisticaId: "e3", pontos: 84, colocacao: "3o_lugar" },
+        { estatisticaId: "e4", pontos: 76, colocacao: "4o_lugar" },
+        { estatisticaId: "e5", pontos: 67, colocacao: "5o_lugar" },
+        { estatisticaId: "e6", pontos: 59, colocacao: "6o_lugar" },
+        { estatisticaId: "e7", pontos: 51, colocacao: "7o_lugar" },
+        { estatisticaId: "e8", pontos: 43, colocacao: "8o_lugar" },
+      ]);
+    });
+
     it("deve lançar erro se grupo SUPER_X não está completo", async () => {
       const etapa = createEtapaFixture({
         status: StatusEtapa.EM_ANDAMENTO,
