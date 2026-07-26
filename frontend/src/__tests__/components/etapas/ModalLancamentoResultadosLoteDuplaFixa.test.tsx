@@ -293,7 +293,7 @@ describe("ModalLancamentoResultadosLoteDuplaFixa", () => {
         expect(mockPartidaService.registrarResultadosEmLote).toHaveBeenCalledWith([
           {
             partidaId: "partida-1",
-            placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4, vencedorId: "" }],
+            placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }],
           },
         ]);
       });

@@ -273,7 +273,7 @@ describe("EliminatoriaService", () => {
       ).rejects.toThrow("Confronto não encontrado");
     });
 
-    it("deve lançar erro se placar não tiver exatamente 1 set", async () => {
+    it("deve lançar erro se placar tiver 2 sets divididos sem um 3º set de desempate", async () => {
       const confronto = createConfrontoFixture();
       mockConfrontoRepository.buscarPorIdEArena.mockResolvedValue(confronto);
 
@@ -283,10 +283,12 @@ describe("EliminatoriaService", () => {
           TEST_ARENA_ID,
           [
             { numero: 1, gamesDupla1: 6, gamesDupla2: 4 },
-            { numero: 2, gamesDupla1: 6, gamesDupla2: 3 },
+            { numero: 2, gamesDupla1: 2, gamesDupla2: 6 },
           ]
         )
-      ).rejects.toThrow("Placar inválido: deve ter apenas 1 set");
+      ).rejects.toThrow(
+        "Placar incompleto: cada lado venceu 1 set, é necessário um 3º set de desempate"
+      );
     });
 
     it("deve registrar resultado corretamente", async () => {

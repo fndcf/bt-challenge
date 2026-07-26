@@ -15,10 +15,14 @@ export interface ConfiguracoesJogadoresEditProps {
   minimoJogadores: number;
   contaPontosRanking: boolean;
   darPontosParticipacao: boolean;
+  melhorDe3: boolean;
+  melhorDe3Eliminatoria: boolean;
   onMaxJogadoresChange: (value: number | undefined) => void;
   onBlur: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
   onDarPontosParticipacaoChange: (value: boolean) => void;
+  onMelhorDe3Change: (value: boolean) => void;
+  onMelhorDe3EliminatoriaChange: (value: boolean) => void;
 }
 
 export const ConfiguracoesJogadoresEdit: React.FC<
@@ -32,10 +36,14 @@ export const ConfiguracoesJogadoresEdit: React.FC<
   minimoJogadores,
   contaPontosRanking,
   darPontosParticipacao,
+  melhorDe3,
+  melhorDe3Eliminatoria,
   onMaxJogadoresChange,
   onBlur,
   onContaPontosRankingChange,
   onDarPontosParticipacaoChange,
+  onMelhorDe3Change,
+  onMelhorDe3EliminatoriaChange,
 }) => {
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = formato === FormatoEtapa.SUPER_X;
@@ -148,6 +156,48 @@ export const ConfiguracoesJogadoresEdit: React.FC<
               {chavesGeradas
                 ? "Não é possível alterar após gerar as chaves"
                 : "Se desmarcado, quem não se classificar/colocar não recebe pontos de participação — apenas quem chegar em alguma colocação pontua"}
+            </S.HelperText>
+          </S.Field>
+        )}
+
+        <S.Field>
+          <S.CheckboxContainer>
+            <S.Checkbox
+              type="checkbox"
+              id="melhorDe3"
+              checked={melhorDe3}
+              onChange={(e) => onMelhorDe3Change(e.target.checked)}
+              disabled={chavesGeradas}
+            />
+            <S.CheckboxLabel htmlFor="melhorDe3">
+              Partidas melhor de 3 sets
+            </S.CheckboxLabel>
+          </S.CheckboxContainer>
+          <S.HelperText>
+            {chavesGeradas
+              ? "Não é possível alterar após gerar as chaves"
+              : "Ao lançar o resultado, serão pedidos 2 sets; se cada lado vencer um, abre um 3º set de desempate"}
+          </S.HelperText>
+        </S.Field>
+
+        {melhorDe3 && (
+          <S.Field>
+            <S.CheckboxContainer>
+              <S.Checkbox
+                type="checkbox"
+                id="melhorDe3Eliminatoria"
+                checked={melhorDe3Eliminatoria}
+                onChange={(e) => onMelhorDe3EliminatoriaChange(e.target.checked)}
+                disabled={chavesGeradas}
+              />
+              <S.CheckboxLabel htmlFor="melhorDe3Eliminatoria">
+                Aplicar também na fase eliminatória (mata-mata)
+              </S.CheckboxLabel>
+            </S.CheckboxContainer>
+            <S.HelperText>
+              {chavesGeradas
+                ? "Não é possível alterar após gerar as chaves"
+                : "Se desmarcado, o mata-mata continua sendo decidido em 1 set único"}
             </S.HelperText>
           </S.Field>
         )}

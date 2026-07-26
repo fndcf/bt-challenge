@@ -22,6 +22,8 @@ interface ChavesTeamsProps {
   varianteTeams?: VarianteTeams;
   tipoFormacaoJogos?: TipoFormacaoJogos;
   etapaFinalizada?: boolean;
+  melhorDe3?: boolean;
+  melhorDe3Eliminatoria?: boolean;
   onAtualizar?: () => void;
 }
 
@@ -822,6 +824,8 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   varianteTeams,
   tipoFormacaoJogos,
   etapaFinalizada = false,
+  melhorDe3 = false,
+  melhorDe3Eliminatoria = false,
   onAtualizar,
 }) => {
   const teamsService = getTeamsService();
@@ -1576,6 +1580,10 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           equipes={equipes}
           tipoFormacaoManual={isFormacaoManual}
           etapaFinalizada={etapaFinalizada}
+          melhorDe3={
+            melhorDe3 &&
+            (modalResultados.confronto.fase === FaseEtapa.GRUPOS || melhorDe3Eliminatoria)
+          }
           onClose={() => {
             // Limpar cache do confronto para garantir dados atualizados
             // (caso jogadores tenham sido definidos e o usuário cancelou)

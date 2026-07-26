@@ -15,6 +15,7 @@ import { Grupo } from "../models/Grupo";
 import { StatusPartida } from "../models/Partida";
 import { Jogador } from "../models/Jogador";
 import { BadRequestError } from "../utils/errors";
+import { validarEDeterminarVencedorPlacar } from "../utils/placarSets";
 import logger from "../utils/logger";
 
 // Utilitários compartilhados
@@ -323,10 +324,8 @@ export class SuperXService {
     placar: { numero: number; gamesDupla1: number; gamesDupla2: number }[]
   ): Promise<void> {
     try {
-      // Validar placar (apenas 1 set no Super X)
-      if (placar.length !== 1) {
-        throw new Error("Placar inválido: deve ter apenas 1 set");
-      }
+      // Validar placar (1 set, ou 2-3 sets quando a etapa usa "melhor de 3")
+      const { setsDupla1, setsDupla2, dupla1Venceu } = validarEDeterminarVencedorPlacar(placar);
 
       // Buscar partida via repository
       const partida = await this.partidaReiDaPraiaRepository.buscarPorIdEArena(
@@ -358,11 +357,9 @@ export class SuperXService {
         await this.reverterEstatisticasComMap(partida, estatisticasMap);
       }
 
-      const set = placar[0];
-      const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
-      const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
-      const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
-      const dupla1Venceu = vencedorDupla === 1;
+      const vencedorDupla = dupla1Venceu ? 1 : 2;
+      const gamesDupla1 = placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+      const gamesDupla2 = placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
       //  Executar atualização da partida e estatísticas em PARALELO
       const atualizacoes = [
@@ -372,8 +369,8 @@ export class SuperXService {
             venceu: dupla1Venceu,
             setsVencidos: setsDupla1,
             setsPerdidos: setsDupla2,
-            gamesVencidos: set.gamesDupla1,
-            gamesPerdidos: set.gamesDupla2,
+            gamesVencidos: gamesDupla1,
+            gamesPerdidos: gamesDupla2,
           },
         },
         {
@@ -382,8 +379,8 @@ export class SuperXService {
             venceu: dupla1Venceu,
             setsVencidos: setsDupla1,
             setsPerdidos: setsDupla2,
-            gamesVencidos: set.gamesDupla1,
-            gamesPerdidos: set.gamesDupla2,
+            gamesVencidos: gamesDupla1,
+            gamesPerdidos: gamesDupla2,
           },
         },
         {
@@ -392,8 +389,8 @@ export class SuperXService {
             venceu: !dupla1Venceu,
             setsVencidos: setsDupla2,
             setsPerdidos: setsDupla1,
-            gamesVencidos: set.gamesDupla2,
-            gamesPerdidos: set.gamesDupla1,
+            gamesVencidos: gamesDupla2,
+            gamesPerdidos: gamesDupla1,
           },
         },
         {
@@ -402,8 +399,8 @@ export class SuperXService {
             venceu: !dupla1Venceu,
             setsVencidos: setsDupla2,
             setsPerdidos: setsDupla1,
-            gamesVencidos: set.gamesDupla2,
-            gamesPerdidos: set.gamesDupla1,
+            gamesVencidos: gamesDupla2,
+            gamesPerdidos: gamesDupla1,
           },
         },
       ].filter((a) => a.estatisticaId);
@@ -495,10 +492,11 @@ export class SuperXService {
   ): Promise<void> {
     if (!partida.placar || partida.placar.length === 0) return;
 
-    const set = partida.placar[0];
     const dupla1Venceu = partida.vencedorDupla === 1;
     const setsDupla1 = partida.setsDupla1 || 0;
     const setsDupla2 = partida.setsDupla2 || 0;
+    const gamesDupla1 = partida.placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+    const gamesDupla2 = partida.placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
     const reversoes = [
       {
@@ -507,8 +505,8 @@ export class SuperXService {
           venceu: dupla1Venceu,
           setsVencidos: setsDupla1,
           setsPerdidos: setsDupla2,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
         },
       },
       {
@@ -517,8 +515,8 @@ export class SuperXService {
           venceu: dupla1Venceu,
           setsVencidos: setsDupla1,
           setsPerdidos: setsDupla2,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
         },
       },
       {
@@ -527,8 +525,8 @@ export class SuperXService {
           venceu: !dupla1Venceu,
           setsVencidos: setsDupla2,
           setsPerdidos: setsDupla1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
         },
       },
       {
@@ -537,8 +535,8 @@ export class SuperXService {
           venceu: !dupla1Venceu,
           setsVencidos: setsDupla2,
           setsPerdidos: setsDupla1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
         },
       },
     ].filter((r) => r.estatisticaId);
@@ -613,10 +611,10 @@ export class SuperXService {
           continue;
         }
 
-        if (!resultado.placar || resultado.placar.length !== 1) {
+        if (!resultado.placar || resultado.placar.length === 0) {
           erros.push({
             partidaId: resultado.partidaId,
-            erro: "Placar deve ter exatamente 1 set",
+            erro: "Placar não informado",
           });
           continue;
         }
@@ -646,11 +644,11 @@ export class SuperXService {
       const aplicacoes = resultadosValidos.map(
         async ({ resultado, partida }) => {
           try {
-            const set = resultado.placar[0];
-            const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
-            const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
-            const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
-            const dupla1Venceu = vencedorDupla === 1;
+            const { setsDupla1, setsDupla2, dupla1Venceu } =
+              validarEDeterminarVencedorPlacar(resultado.placar);
+            const vencedorDupla = dupla1Venceu ? 1 : 2;
+            const gamesDupla1 = resultado.placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+            const gamesDupla2 = resultado.placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
             const atualizacoes = [
               {
@@ -660,8 +658,8 @@ export class SuperXService {
                   venceu: dupla1Venceu,
                   setsVencidos: setsDupla1,
                   setsPerdidos: setsDupla2,
-                  gamesVencidos: set.gamesDupla1,
-                  gamesPerdidos: set.gamesDupla2,
+                  gamesVencidos: gamesDupla1,
+                  gamesPerdidos: gamesDupla2,
                 },
               },
               {
@@ -671,8 +669,8 @@ export class SuperXService {
                   venceu: dupla1Venceu,
                   setsVencidos: setsDupla1,
                   setsPerdidos: setsDupla2,
-                  gamesVencidos: set.gamesDupla1,
-                  gamesPerdidos: set.gamesDupla2,
+                  gamesVencidos: gamesDupla1,
+                  gamesPerdidos: gamesDupla2,
                 },
               },
               {
@@ -682,8 +680,8 @@ export class SuperXService {
                   venceu: !dupla1Venceu,
                   setsVencidos: setsDupla2,
                   setsPerdidos: setsDupla1,
-                  gamesVencidos: set.gamesDupla2,
-                  gamesPerdidos: set.gamesDupla1,
+                  gamesVencidos: gamesDupla2,
+                  gamesPerdidos: gamesDupla1,
                 },
               },
               {
@@ -693,8 +691,8 @@ export class SuperXService {
                   venceu: !dupla1Venceu,
                   setsVencidos: setsDupla2,
                   setsPerdidos: setsDupla1,
-                  gamesVencidos: set.gamesDupla2,
-                  gamesPerdidos: set.gamesDupla1,
+                  gamesVencidos: gamesDupla2,
+                  gamesPerdidos: gamesDupla1,
                 },
               },
             ].filter((a) => a.estatisticaId);

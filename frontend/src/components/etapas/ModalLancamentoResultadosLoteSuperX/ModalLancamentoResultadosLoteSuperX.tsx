@@ -7,20 +7,33 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { PartidaReiDaPraia, ResultadoPartidaLoteSuperXDTO } from "@/types/reiDaPraia";
 import { getSuperXService } from "@/services";
+import {
+  SetScore,
+  deveExibirTerceiroSet,
+  validarSet,
+  montarPlacarFinal,
+  setPreenchido,
+} from "@/utils/placarMelhorDe3";
 
 interface ModalLancamentoResultadosLoteSuperXProps {
   partidas: PartidaReiDaPraia[];
   etapaFinalizada?: boolean;
+  melhorDe3?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 interface ResultadoPartida {
   partidaId: string;
-  gamesDupla1: number | undefined;
-  gamesDupla2: number | undefined;
+  set1: SetScore;
+  set2: SetScore;
+  set3: SetScore;
   erro?: string;
 }
+
+const setVazio = (set: SetScore): boolean =>
+  (set.gamesDupla1 === undefined || set.gamesDupla1 === null) &&
+  (set.gamesDupla2 === undefined || set.gamesDupla2 === null);
 
 // ============== STYLED COMPONENTS ==============
 
@@ -254,6 +267,29 @@ const VsSeparator = styled.div`
   font-weight: 600;
 `;
 
+const ScoreInputsGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const SetsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const SetsHeaderSpacer = styled.div`
+  flex: 1;
+`;
+
+const SetLabel = styled.span`
+  width: 4rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+`;
+
 const ErrorText = styled.p`
   font-size: 0.75rem;
   color: #991b1b;
@@ -398,7 +434,7 @@ const agruparPorRodada = (
 
 export const ModalLancamentoResultadosLoteSuperX: React.FC<
   ModalLancamentoResultadosLoteSuperXProps
-> = ({ partidas, etapaFinalizada = false, onClose, onSuccess }) => {
+> = ({ partidas, etapaFinalizada = false, melhorDe3 = false, onClose, onSuccess }) => {
   const superXService = getSuperXService();
   const [resultados, setResultados] = useState<Map<string, ResultadoPartida>>(
     new Map()
@@ -410,19 +446,13 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
     const mapaInicial = new Map<string, ResultadoPartida>();
 
     partidas.forEach((partida) => {
-      if (partida.status === "finalizada" && partida.placar && partida.placar.length > 0) {
-        mapaInicial.set(partida.id, {
-          partidaId: partida.id,
-          gamesDupla1: partida.placar[0].gamesDupla1,
-          gamesDupla2: partida.placar[0].gamesDupla2,
-        });
-      } else {
-        mapaInicial.set(partida.id, {
-          partidaId: partida.id,
-          gamesDupla1: undefined,
-          gamesDupla2: undefined,
-        });
-      }
+      const sets = partida.status === "finalizada" ? partida.placar || [] : [];
+      mapaInicial.set(partida.id, {
+        partidaId: partida.id,
+        set1: sets[0] ? { gamesDupla1: sets[0].gamesDupla1, gamesDupla2: sets[0].gamesDupla2 } : {},
+        set2: sets[1] ? { gamesDupla1: sets[1].gamesDupla1, gamesDupla2: sets[1].gamesDupla2 } : {},
+        set3: sets[2] ? { gamesDupla1: sets[2].gamesDupla1, gamesDupla2: sets[2].gamesDupla2 } : {},
+      });
     });
 
     setResultados(mapaInicial);
@@ -430,6 +460,7 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
 
   const handleScoreChange = (
     partidaId: string,
+    setKey: "set1" | "set2" | "set3",
     campo: "gamesDupla1" | "gamesDupla2",
     valor: string
   ) => {
@@ -439,13 +470,14 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
       const novo = new Map(prev);
       const resultado = novo.get(partidaId) || {
         partidaId,
-        gamesDupla1: undefined,
-        gamesDupla2: undefined,
+        set1: {},
+        set2: {},
+        set3: {},
       };
 
       novo.set(partidaId, {
         ...resultado,
-        [campo]: valorNumerico,
+        [setKey]: { ...resultado[setKey], [campo]: valorNumerico },
         erro: undefined, // Limpar erro ao editar
       });
 
@@ -453,68 +485,26 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
     });
   };
 
-  const validarPlacar = (resultado: ResultadoPartida): boolean => {
-    const { gamesDupla1, gamesDupla2 } = resultado;
+  // Retorna mensagem de erro ou undefined se o resultado for válido (ou estiver vazio, para ser pulado)
+  const validarResultado = (resultado: ResultadoPartida): string | undefined => {
+    const partidaVazia =
+      setVazio(resultado.set1) && (!melhorDe3 || setVazio(resultado.set2));
+    if (partidaVazia) return undefined;
 
-    // Se ambos estiverem vazios, não validar (será pulado no save)
-    if (
-      (gamesDupla1 === undefined || gamesDupla1 === null) &&
-      (gamesDupla2 === undefined || gamesDupla2 === null)
-    ) {
-      return true; // Não tem erro, apenas não será salvo
+    const erroSet1 = validarSet(resultado.set1, true);
+    if (erroSet1) return erroSet1;
+
+    if (!melhorDe3) return undefined;
+
+    const erroSet2 = validarSet(resultado.set2, true);
+    if (erroSet2) return `Set 2: ${erroSet2}`;
+
+    if (deveExibirTerceiroSet(resultado.set1, resultado.set2)) {
+      const erroSet3 = validarSet(resultado.set3, true);
+      if (erroSet3) return `Set 3 (desempate): ${erroSet3}`;
     }
 
-    // Se apenas um estiver preenchido
-    if (gamesDupla1 === undefined || gamesDupla1 === null) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Preencha o placar da primeira dupla",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (gamesDupla2 === undefined || gamesDupla2 === null) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Preencha o placar da segunda dupla",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    // Validações básicas
-    if (gamesDupla1 === 0 && gamesDupla2 === 0) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "O placar não pode ser 0 x 0",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    if (gamesDupla1 === gamesDupla2) {
-      setResultados((prev) => {
-        const novo = new Map(prev);
-        novo.set(resultado.partidaId, {
-          ...resultado,
-          erro: "Não há um vencedor definido",
-        });
-        return novo;
-      });
-      return false;
-    }
-
-    return true;
+    return undefined;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -524,18 +514,17 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
     const resultadosPreenchidos: ResultadoPartida[] = [];
 
     for (const resultado of Array.from(resultados.values())) {
-      const { gamesDupla1, gamesDupla2 } = resultado;
+      const partidaVazia =
+        setVazio(resultado.set1) && (!melhorDe3 || setVazio(resultado.set2));
+      if (partidaVazia) continue;
 
-      // Se ambos estiverem vazios, pular
-      if (
-        (gamesDupla1 === undefined || gamesDupla1 === null) &&
-        (gamesDupla2 === undefined || gamesDupla2 === null)
-      ) {
-        continue;
-      }
-
-      // Validar
-      if (!validarPlacar(resultado)) {
+      const erro = validarResultado(resultado);
+      if (erro) {
+        setResultados((prev) => {
+          const novo = new Map(prev);
+          novo.set(resultado.partidaId, { ...resultado, erro });
+          return novo;
+        });
         return; // Para no primeiro erro
       }
 
@@ -559,16 +548,18 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
 
       // Montar array de resultados em lote
       const resultadosLote: ResultadoPartidaLoteSuperXDTO[] = resultadosPreenchidos.map(
-        (resultado) => ({
-          partidaId: resultado.partidaId,
-          placar: [
-            {
-              numero: 1,
-              gamesDupla1: resultado.gamesDupla1!,
-              gamesDupla2: resultado.gamesDupla2!,
-            },
-          ],
-        })
+        (resultado) => {
+          const sets = melhorDe3
+            ? deveExibirTerceiroSet(resultado.set1, resultado.set2)
+              ? [resultado.set1, resultado.set2, resultado.set3]
+              : [resultado.set1, resultado.set2]
+            : [resultado.set1];
+
+          return {
+            partidaId: resultado.partidaId,
+            placar: montarPlacarFinal(sets),
+          };
+        }
       );
 
       // Enviar todos os resultados em uma única requisição
@@ -605,11 +596,7 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
   const partidasFinalizadas = partidas.filter((p) => p.status === "finalizada")
     .length;
   const resultadosASeremSalvos = Array.from(resultados.values()).filter(
-    (r) =>
-      r.gamesDupla1 !== undefined &&
-      r.gamesDupla1 !== null &&
-      r.gamesDupla2 !== undefined &&
-      r.gamesDupla2 !== null
+    (r) => setPreenchido(r.set1) && (!melhorDe3 || setPreenchido(r.set2))
   ).length;
 
   const partidasPorRodada = agruparPorRodada(partidas);
@@ -669,53 +656,123 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
                               </PartidaInfo>
                             </PartidaHeader>
 
-                            <DuplasContainer>
-                              <DuplaRow>
-                                <DuplaNome>
-                                  {partida.jogador1ANome} &{" "}
-                                  {partida.jogador1BNome}
-                                </DuplaNome>
-                                <ScoreInput
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  value={resultado?.gamesDupla1 ?? ""}
-                                  onChange={(e) =>
-                                    handleScoreChange(
-                                      partida.id,
-                                      "gamesDupla1",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="-"
-                                  disabled={loading}
-                                />
-                              </DuplaRow>
+                            {(() => {
+                              const mostrarTerceiroSet =
+                                melhorDe3 &&
+                                deveExibirTerceiroSet(
+                                  resultado?.set1 || {},
+                                  resultado?.set2 || {}
+                                );
 
-                              <VsSeparator>VS</VsSeparator>
+                              return (
+                                <DuplasContainer>
+                                  {melhorDe3 && (
+                                    <SetsHeader>
+                                      <SetsHeaderSpacer />
+                                      <SetLabel>Set 1</SetLabel>
+                                      <SetLabel>Set 2</SetLabel>
+                                      {mostrarTerceiroSet && (
+                                        <SetLabel>Desempate</SetLabel>
+                                      )}
+                                    </SetsHeader>
+                                  )}
 
-                              <DuplaRow>
-                                <DuplaNome>
-                                  {partida.jogador2ANome} &{" "}
-                                  {partida.jogador2BNome}
-                                </DuplaNome>
-                                <ScoreInput
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  value={resultado?.gamesDupla2 ?? ""}
-                                  onChange={(e) =>
-                                    handleScoreChange(
-                                      partida.id,
-                                      "gamesDupla2",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="-"
-                                  disabled={loading}
-                                />
-                              </DuplaRow>
-                            </DuplasContainer>
+                                  <DuplaRow>
+                                    <DuplaNome>
+                                      {partida.jogador1ANome} &{" "}
+                                      {partida.jogador1BNome}
+                                    </DuplaNome>
+                                    <ScoreInputsGroup>
+                                      <ScoreInput
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        value={resultado?.set1?.gamesDupla1 ?? ""}
+                                        onChange={(e) =>
+                                          handleScoreChange(partida.id, "set1", "gamesDupla1", e.target.value)
+                                        }
+                                        placeholder="-"
+                                        disabled={loading}
+                                      />
+                                      {melhorDe3 && (
+                                        <ScoreInput
+                                          type="number"
+                                          min="0"
+                                          max="10"
+                                          value={resultado?.set2?.gamesDupla1 ?? ""}
+                                          onChange={(e) =>
+                                            handleScoreChange(partida.id, "set2", "gamesDupla1", e.target.value)
+                                          }
+                                          placeholder="-"
+                                          disabled={loading}
+                                        />
+                                      )}
+                                      {mostrarTerceiroSet && (
+                                        <ScoreInput
+                                          type="number"
+                                          min="0"
+                                          max="10"
+                                          value={resultado?.set3?.gamesDupla1 ?? ""}
+                                          onChange={(e) =>
+                                            handleScoreChange(partida.id, "set3", "gamesDupla1", e.target.value)
+                                          }
+                                          placeholder="-"
+                                          disabled={loading}
+                                        />
+                                      )}
+                                    </ScoreInputsGroup>
+                                  </DuplaRow>
+
+                                  <VsSeparator>VS</VsSeparator>
+
+                                  <DuplaRow>
+                                    <DuplaNome>
+                                      {partida.jogador2ANome} &{" "}
+                                      {partida.jogador2BNome}
+                                    </DuplaNome>
+                                    <ScoreInputsGroup>
+                                      <ScoreInput
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        value={resultado?.set1?.gamesDupla2 ?? ""}
+                                        onChange={(e) =>
+                                          handleScoreChange(partida.id, "set1", "gamesDupla2", e.target.value)
+                                        }
+                                        placeholder="-"
+                                        disabled={loading}
+                                      />
+                                      {melhorDe3 && (
+                                        <ScoreInput
+                                          type="number"
+                                          min="0"
+                                          max="10"
+                                          value={resultado?.set2?.gamesDupla2 ?? ""}
+                                          onChange={(e) =>
+                                            handleScoreChange(partida.id, "set2", "gamesDupla2", e.target.value)
+                                          }
+                                          placeholder="-"
+                                          disabled={loading}
+                                        />
+                                      )}
+                                      {mostrarTerceiroSet && (
+                                        <ScoreInput
+                                          type="number"
+                                          min="0"
+                                          max="10"
+                                          value={resultado?.set3?.gamesDupla2 ?? ""}
+                                          onChange={(e) =>
+                                            handleScoreChange(partida.id, "set3", "gamesDupla2", e.target.value)
+                                          }
+                                          placeholder="-"
+                                          disabled={loading}
+                                        />
+                                      )}
+                                    </ScoreInputsGroup>
+                                  </DuplaRow>
+                                </DuplasContainer>
+                              );
+                            })()}
 
                             {resultado?.erro && (
                               <ErrorText>{resultado.erro}</ErrorText>

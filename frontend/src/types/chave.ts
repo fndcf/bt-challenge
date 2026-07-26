@@ -81,7 +81,7 @@ export interface SetPartida {
   gamesDupla1: number;
   gamesDupla2: number;
   tiebreak?: boolean;
-  vencedorId: string;
+  vencedorId?: string;
 }
 
 /**

@@ -25,6 +25,7 @@ import { grupoRepository } from "../repositories/firebase/GrupoRepository";
 import { confrontoEliminatorioRepository } from "../repositories/firebase/ConfrontoEliminatorioRepository";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
 import classificacaoService from "./ClassificacaoService";
+import { validarEDeterminarVencedorPlacar } from "../utils/placarSets";
 import logger from "../utils/logger";
 
 /**
@@ -274,20 +275,14 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     vencedoraId: string;
     placarComVencedor: PlacarSet[];
   } {
-    let setsDupla1 = 0;
-    let setsDupla2 = 0;
+    const { setsDupla1, setsDupla2, dupla1Venceu } = validarEDeterminarVencedorPlacar(placar);
+
     let gamesVencidosDupla1 = 0;
     let gamesPerdidosDupla1 = 0;
     let gamesVencidosDupla2 = 0;
     let gamesPerdidosDupla2 = 0;
 
     const placarComVencedor = placar.map((set) => {
-      if (set.gamesDupla1 > set.gamesDupla2) {
-        setsDupla1++;
-      } else {
-        setsDupla2++;
-      }
-
       gamesVencidosDupla1 += set.gamesDupla1;
       gamesPerdidosDupla1 += set.gamesDupla2;
       gamesVencidosDupla2 += set.gamesDupla2;
@@ -299,7 +294,6 @@ export class PartidaGrupoService implements IPartidaGrupoService {
       };
     });
 
-    const dupla1Venceu = setsDupla1 > setsDupla2;
     const vencedoraId = dupla1Venceu ? dupla1Id : dupla2Id;
 
     return {

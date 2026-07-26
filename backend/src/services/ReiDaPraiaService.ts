@@ -5,6 +5,7 @@
 import { StatusEtapa, FaseEtapa } from "../models/Etapa";
 import { Jogador } from "../models/Jogador";
 import { BadRequestError } from "../utils/errors";
+import { validarEDeterminarVencedorPlacar } from "../utils/placarSets";
 import { Inscricao } from "../models/Inscricao";
 import { Grupo } from "../models/Grupo";
 import { StatusPartida } from "../models/Partida";
@@ -604,10 +605,10 @@ export class ReiDaPraiaService {
           continue;
         }
 
-        if (!resultado.placar || resultado.placar.length !== 1) {
+        if (!resultado.placar || resultado.placar.length === 0) {
           erros.push({
             partidaId: resultado.partidaId,
-            erro: "Placar deve ter exatamente 1 set",
+            erro: "Placar não informado",
           });
           continue;
         }
@@ -645,11 +646,11 @@ export class ReiDaPraiaService {
       const aplicacoes = resultadosValidos.map(
         async ({ resultado, partida }) => {
           try {
-            const set = resultado.placar[0];
-            const setsDupla1 = set.gamesDupla1 > set.gamesDupla2 ? 1 : 0;
-            const setsDupla2 = set.gamesDupla1 > set.gamesDupla2 ? 0 : 1;
-            const vencedorDupla = setsDupla1 > setsDupla2 ? 1 : 2;
-            const dupla1Venceu = vencedorDupla === 1;
+            const { setsDupla1, setsDupla2, dupla1Venceu } =
+              validarEDeterminarVencedorPlacar(resultado.placar);
+            const vencedorDupla = dupla1Venceu ? 1 : 2;
+            const gamesDupla1 = resultado.placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+            const gamesDupla2 = resultado.placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
             const vencedores = dupla1Venceu
               ? [partida.jogador1AId, partida.jogador1BId]
@@ -668,8 +669,8 @@ export class ReiDaPraiaService {
                   venceu: dupla1Venceu,
                   setsVencidos: setsDupla1,
                   setsPerdidos: setsDupla2,
-                  gamesVencidos: set.gamesDupla1,
-                  gamesPerdidos: set.gamesDupla2,
+                  gamesVencidos: gamesDupla1,
+                  gamesPerdidos: gamesDupla2,
                 },
               },
               {
@@ -679,8 +680,8 @@ export class ReiDaPraiaService {
                   venceu: dupla1Venceu,
                   setsVencidos: setsDupla1,
                   setsPerdidos: setsDupla2,
-                  gamesVencidos: set.gamesDupla1,
-                  gamesPerdidos: set.gamesDupla2,
+                  gamesVencidos: gamesDupla1,
+                  gamesPerdidos: gamesDupla2,
                 },
               },
               {
@@ -690,8 +691,8 @@ export class ReiDaPraiaService {
                   venceu: !dupla1Venceu,
                   setsVencidos: setsDupla2,
                   setsPerdidos: setsDupla1,
-                  gamesVencidos: set.gamesDupla2,
-                  gamesPerdidos: set.gamesDupla1,
+                  gamesVencidos: gamesDupla2,
+                  gamesPerdidos: gamesDupla1,
                 },
               },
               {
@@ -701,8 +702,8 @@ export class ReiDaPraiaService {
                   venceu: !dupla1Venceu,
                   setsVencidos: setsDupla2,
                   setsPerdidos: setsDupla1,
-                  gamesVencidos: set.gamesDupla2,
-                  gamesPerdidos: set.gamesDupla1,
+                  gamesVencidos: gamesDupla2,
+                  gamesPerdidos: gamesDupla1,
                 },
               },
             ].filter((a) => a.estatisticaId);
@@ -714,12 +715,10 @@ export class ReiDaPraiaService {
                 {
                   setsDupla1,
                   setsDupla2,
-                  sets: [
-                    {
-                      pontosDupla1: set.gamesDupla1,
-                      pontosDupla2: set.gamesDupla2,
-                    },
-                  ],
+                  sets: resultado.placar.map((s) => ({
+                    pontosDupla1: s.gamesDupla1,
+                    pontosDupla2: s.gamesDupla2,
+                  })),
                   placar: resultado.placar,
                   vencedores,
                   vencedoresNomes,
@@ -797,10 +796,11 @@ export class ReiDaPraiaService {
       return;
     }
 
-    const set = partida.placar[0];
     const dupla1Venceu = partida.vencedores.includes(partida.jogador1AId);
-    const setsDupla1 = dupla1Venceu ? 1 : 0;
-    const setsDupla2 = dupla1Venceu ? 0 : 1;
+    const setsDupla1 = partida.setsDupla1 ?? (dupla1Venceu ? 1 : 0);
+    const setsDupla2 = partida.setsDupla2 ?? (dupla1Venceu ? 0 : 1);
+    const gamesDupla1 = partida.placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+    const gamesDupla2 = partida.placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
     // Preparar reversões para todos os 4 jogadores
     const reversoes = [
@@ -809,32 +809,32 @@ export class ReiDaPraiaService {
         venceu: dupla1Venceu,
         setsVencidos: setsDupla1,
         setsPerdidos: setsDupla2,
-        gamesVencidos: set.gamesDupla1,
-        gamesPerdidos: set.gamesDupla2,
+        gamesVencidos: gamesDupla1,
+        gamesPerdidos: gamesDupla2,
       },
       {
         jogadorId: partida.jogador1BId,
         venceu: dupla1Venceu,
         setsVencidos: setsDupla1,
         setsPerdidos: setsDupla2,
-        gamesVencidos: set.gamesDupla1,
-        gamesPerdidos: set.gamesDupla2,
+        gamesVencidos: gamesDupla1,
+        gamesPerdidos: gamesDupla2,
       },
       {
         jogadorId: partida.jogador2AId,
         venceu: !dupla1Venceu,
         setsVencidos: setsDupla2,
         setsPerdidos: setsDupla1,
-        gamesVencidos: set.gamesDupla2,
-        gamesPerdidos: set.gamesDupla1,
+        gamesVencidos: gamesDupla2,
+        gamesPerdidos: gamesDupla1,
       },
       {
         jogadorId: partida.jogador2BId,
         venceu: !dupla1Venceu,
         setsVencidos: setsDupla2,
         setsPerdidos: setsDupla1,
-        gamesVencidos: set.gamesDupla2,
-        gamesPerdidos: set.gamesDupla1,
+        gamesVencidos: gamesDupla2,
+        gamesPerdidos: gamesDupla1,
       },
     ]
       .map((r) => ({

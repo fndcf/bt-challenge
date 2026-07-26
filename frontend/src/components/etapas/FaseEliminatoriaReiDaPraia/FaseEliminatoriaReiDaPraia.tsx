@@ -3,6 +3,7 @@ import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { ModalRegistrarResultadoEliminatorio } from "../ModalRegistrarResultadoEliminatorio";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { formatarLadoPlacarConfronto } from "@/utils/placarMelhorDe3";
 import {
   useFaseEliminatoriaReiDaPraia,
   ConfrontoEliminatorioReiDaPraia,
@@ -59,11 +60,12 @@ interface FaseEliminatoriaReiDaPraiaProps {
   arenaId: string;
   grupos: Grupo[];
   etapaTipoChaveamento?: TipoChaveamentoReiDaPraia;
+  melhorDe3?: boolean;
 }
 
 export const FaseEliminatoriaReiDaPraia: React.FC<
   FaseEliminatoriaReiDaPraiaProps
-> = ({ etapaId, grupos, etapaTipoChaveamento }) => {
+> = ({ etapaId, grupos, etapaTipoChaveamento, melhorDe3 = false }) => {
   const [modalCancelarAberto, setModalCancelarAberto] = useState(false);
   const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
 
@@ -226,6 +228,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
       {confrontoSelecionado && (
         <ModalRegistrarResultadoEliminatorio
           confronto={confrontoSelecionado as any}
+          melhorDe3={melhorDe3}
           onClose={() => setConfrontoSelecionado(null)}
           onSuccess={() => {
             setConfrontoSelecionado(null);
@@ -322,7 +325,7 @@ const VisualizacaoLista: React.FC<{
                         {confronto.status ===
                           StatusConfrontoEliminatorio.FINALIZADA &&
                           confronto.placar && (
-                            <Score>{confronto.placar.split("-")[0]}</Score>
+                            <Score>{formatarLadoPlacarConfronto(confronto.placar, 1)}</Score>
                           )}
                       </DuplaRow>
 
@@ -348,7 +351,7 @@ const VisualizacaoLista: React.FC<{
                         {confronto.status ===
                           StatusConfrontoEliminatorio.FINALIZADA &&
                           confronto.placar && (
-                            <Score>{confronto.placar.split("-")[1]}</Score>
+                            <Score>{formatarLadoPlacarConfronto(confronto.placar, 2)}</Score>
                           )}
                       </DuplaRow>
                     </ConfrontoContent>

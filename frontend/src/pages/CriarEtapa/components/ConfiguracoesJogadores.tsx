@@ -11,6 +11,8 @@ export interface ConfiguracoesJogadoresProps {
   formato: FormatoEtapa;
   contaPontosRanking: boolean;
   darPontosParticipacao: boolean;
+  melhorDe3: boolean;
+  melhorDe3Eliminatoria: boolean;
   grupoUnico?: boolean;
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
@@ -20,6 +22,8 @@ export interface ConfiguracoesJogadoresProps {
   onMaxJogadoresChange: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
   onDarPontosParticipacaoChange: (value: boolean) => void;
+  onMelhorDe3Change: (value: boolean) => void;
+  onMelhorDe3EliminatoriaChange: (value: boolean) => void;
   onGrupoUnicoChange?: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
   onVarianteTeamsChange?: (value: VarianteTeams) => void;
@@ -33,6 +37,8 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   formato,
   contaPontosRanking,
   darPontosParticipacao,
+  melhorDe3,
+  melhorDe3Eliminatoria,
   grupoUnico = false,
   varianteSuperX,
   varianteTeams,
@@ -42,6 +48,8 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   onMaxJogadoresChange,
   onContaPontosRankingChange,
   onDarPontosParticipacaoChange,
+  onMelhorDe3Change,
+  onMelhorDe3EliminatoriaChange,
   onGrupoUnicoChange,
   onVarianteSuperXChange,
   onVarianteTeamsChange,
@@ -354,6 +362,43 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
             <S.HelperText>
               Se desmarcado, quem não se classificar/colocar não recebe pontos
               de participação — apenas quem chegar em alguma colocação pontua
+            </S.HelperText>
+          </S.Field>
+        )}
+
+        <S.Field>
+          <S.CheckboxContainer>
+            <S.Checkbox
+              type="checkbox"
+              id="melhorDe3"
+              checked={melhorDe3}
+              onChange={(e) => onMelhorDe3Change(e.target.checked)}
+            />
+            <S.CheckboxLabel htmlFor="melhorDe3">
+              Partidas melhor de 3 sets
+            </S.CheckboxLabel>
+          </S.CheckboxContainer>
+          <S.HelperText>
+            Ao lançar o resultado, serão pedidos 2 sets; se cada lado vencer
+            um, abre um 3º set de desempate
+          </S.HelperText>
+        </S.Field>
+
+        {melhorDe3 && (
+          <S.Field>
+            <S.CheckboxContainer>
+              <S.Checkbox
+                type="checkbox"
+                id="melhorDe3Eliminatoria"
+                checked={melhorDe3Eliminatoria}
+                onChange={(e) => onMelhorDe3EliminatoriaChange(e.target.checked)}
+              />
+              <S.CheckboxLabel htmlFor="melhorDe3Eliminatoria">
+                Aplicar também na fase eliminatória (mata-mata)
+              </S.CheckboxLabel>
+            </S.CheckboxContainer>
+            <S.HelperText>
+              Se desmarcado, o mata-mata continua sendo decidido em 1 set único
             </S.HelperText>
           </S.Field>
         )}

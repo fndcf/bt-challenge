@@ -1377,7 +1377,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                                   match.placar &&
                                   match.placar.length > 0 && (
                                     <TeamScore $winner={winner1}>
-                                      {match.placar[0].gamesDupla1}
+                                      {match.placar.map((s) => s.gamesDupla1).join(", ")}
                                     </TeamScore>
                                   )}
                               </TeamRow>
@@ -1392,7 +1392,7 @@ const GruposViewer: React.FC<GruposViewerProps> = ({ grupos }) => {
                                   match.placar &&
                                   match.placar.length > 0 && (
                                     <TeamScore $winner={winner2}>
-                                      {match.placar[0].gamesDupla2}
+                                      {match.placar.map((s) => s.gamesDupla2).join(", ")}
                                     </TeamScore>
                                   )}
                               </TeamRow>

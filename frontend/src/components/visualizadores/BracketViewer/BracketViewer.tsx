@@ -370,7 +370,7 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                         match.placarDetalhado &&
                         match.placarDetalhado.length > 0 && (
                           <Score $winner={winner1}>
-                            {match.placarDetalhado[0].gamesDupla1}
+                            {match.placarDetalhado.map((s) => s.gamesDupla1).join(", ")}
                           </Score>
                         )}
                     </Team>
@@ -381,7 +381,7 @@ const BracketViewer: React.FC<BracketViewerProps> = ({ chaves }) => {
                         match.placarDetalhado &&
                         match.placarDetalhado.length > 0 && (
                           <Score $winner={winner2}>
-                            {match.placarDetalhado[0].gamesDupla2}
+                            {match.placarDetalhado.map((s) => s.gamesDupla2).join(", ")}
                           </Score>
                         )}
                     </Team>

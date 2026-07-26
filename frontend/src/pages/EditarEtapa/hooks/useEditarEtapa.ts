@@ -59,6 +59,8 @@ export const useEditarEtapa = (
     tipoChaveamento: undefined,
     contaPontosRanking: true,
     darPontosParticipacao: true,
+    melhorDe3: false,
+    melhorDe3Eliminatoria: false,
     tipoFormacaoJogos: undefined, // TEAMS
   });
 
@@ -106,6 +108,8 @@ export const useEditarEtapa = (
         varianteSuperX: data.varianteSuperX,
         contaPontosRanking: data.contaPontosRanking ?? true,
         darPontosParticipacao: data.darPontosParticipacao ?? true,
+        melhorDe3: data.melhorDe3 ?? false,
+        melhorDe3Eliminatoria: data.melhorDe3Eliminatoria ?? false,
         tipoFormacaoJogos: data.tipoFormacaoJogos, // TEAMS
       });
     } catch (err: any) {

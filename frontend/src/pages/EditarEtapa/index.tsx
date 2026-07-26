@@ -178,6 +178,8 @@ export const EditarEtapa: React.FC = () => {
             minimoJogadores={calcularMinimoJogadores()}
             contaPontosRanking={formData.contaPontosRanking ?? true}
             darPontosParticipacao={formData.darPontosParticipacao ?? true}
+            melhorDe3={formData.melhorDe3 ?? false}
+            melhorDe3Eliminatoria={formData.melhorDe3Eliminatoria ?? false}
             onMaxJogadoresChange={(value) =>
               handleChange("maxJogadores", value)
             }
@@ -189,6 +191,10 @@ export const EditarEtapa: React.FC = () => {
             }
             onDarPontosParticipacaoChange={(value) =>
               handleChange("darPontosParticipacao", value)
+            }
+            onMelhorDe3Change={(value) => handleChange("melhorDe3", value)}
+            onMelhorDe3EliminatoriaChange={(value) =>
+              handleChange("melhorDe3Eliminatoria", value)
             }
           />
         </S.FieldsContainer>

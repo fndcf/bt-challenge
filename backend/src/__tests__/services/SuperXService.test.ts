@@ -486,15 +486,17 @@ describe("SuperXService", () => {
   });
 
   describe("registrarResultadoPartida", () => {
-    it("deve lancar erro se placar nao tem exatamente 1 set", async () => {
+    it("deve lancar erro se placar tiver 2 sets divididos sem um 3º set de desempate", async () => {
       const placar = [
         { numero: 1, gamesDupla1: 6, gamesDupla2: 4 },
-        { numero: 2, gamesDupla1: 6, gamesDupla2: 3 },
+        { numero: 2, gamesDupla1: 2, gamesDupla2: 6 },
       ];
 
       await expect(
         service.registrarResultadoPartida("partida-1", TEST_ARENA_ID, placar)
-      ).rejects.toThrow("Placar inválido: deve ter apenas 1 set");
+      ).rejects.toThrow(
+        "Placar incompleto: cada lado venceu 1 set, é necessário um 3º set de desempate"
+      );
     });
 
     it("deve lancar erro se partida nao encontrada", async () => {
@@ -960,7 +962,7 @@ describe("SuperXService", () => {
           partidaId: "partida-1",
           placar: [
             { numero: 1, gamesDupla1: 6, gamesDupla2: 4 },
-            { numero: 2, gamesDupla1: 6, gamesDupla2: 3 },
+            { numero: 2, gamesDupla1: 2, gamesDupla2: 6 },
           ],
         },
       ];
@@ -973,7 +975,9 @@ describe("SuperXService", () => {
 
       expect(result.processados).toBe(0);
       expect(result.erros).toHaveLength(1);
-      expect(result.erros[0].erro).toBe("Placar deve ter exatamente 1 set");
+      expect(result.erros[0].erro).toBe(
+        "Placar incompleto: cada lado venceu 1 set, é necessário um 3º set de desempate"
+      );
     });
 
     it("deve reverter resultados anteriores ao editar em lote", async () => {

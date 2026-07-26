@@ -28,6 +28,7 @@ import ConfrontoEquipeRepository from "../../repositories/firebase/ConfrontoEqui
 import EquipeRepository from "../../repositories/firebase/EquipeRepository";
 import { EtapaRepository } from "../../repositories/firebase/EtapaRepository";
 import { EstatisticasJogadorService } from "../EstatisticasJogadorService";
+import { validarEDeterminarVencedorPlacar } from "../../utils/placarSets";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
 
@@ -388,16 +389,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     vencedoraEquipeId: string;
     vencedoraEquipeNome: string;
   } {
-    let setsDupla1 = 0;
-    let setsDupla2 = 0;
-
-    for (const set of placar) {
-      if (set.gamesDupla1 > set.gamesDupla2) {
-        setsDupla1++;
-      } else if (set.gamesDupla2 > set.gamesDupla1) {
-        setsDupla2++;
-      }
-    }
+    const { setsDupla1, setsDupla2 } = validarEDeterminarVencedorPlacar(placar);
 
     const equipe1Id = partida.equipe1Id || confronto.equipe1Id;
     const equipe2Id = partida.equipe2Id || confronto.equipe2Id;

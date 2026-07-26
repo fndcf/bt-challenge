@@ -11,6 +11,8 @@ interface ChavesEtapaProps {
   etapaId: string;
   arenaId?: string;
   etapaFinalizada?: boolean;
+  melhorDe3?: boolean;
+  melhorDe3Eliminatoria?: boolean;
 }
 
 type AbaAtiva = "grupos" | "eliminatoria";
@@ -430,6 +432,8 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   etapaId,
   arenaId,
   etapaFinalizada = false,
+  melhorDe3 = false,
+  melhorDe3Eliminatoria = false,
 }) => {
   const chaveService = getChaveService();
   const etapaService = getEtapaService();
@@ -735,6 +739,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           etapaId={etapaId}
           arenaId={arenaId || ""}
           grupos={grupos}
+          melhorDe3={melhorDe3Eliminatoria}
         />
       )}
 
@@ -744,6 +749,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           partidas={partidasModal}
           grupoNome={grupoModalAberto.nome}
           etapaFinalizada={etapaFinalizada}
+          melhorDe3={melhorDe3}
           onClose={() => setGrupoModalAberto(null)}
           onSuccess={handleResultadosSalvos}
         />

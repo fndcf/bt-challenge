@@ -971,7 +971,7 @@ describe("ReiDaPraiaService", () => {
 
       expect(result.processados).toBe(0);
       expect(result.erros).toHaveLength(1);
-      expect(result.erros[0].erro).toBe("Placar deve ter exatamente 1 set");
+      expect(result.erros[0].erro).toBe("Placar não informado");
     });
 
     it("deve retornar erro ao editar após gerar eliminatória", async () => {

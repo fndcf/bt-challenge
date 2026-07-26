@@ -114,6 +114,8 @@ export const CriarEtapa: React.FC = () => {
           formato={formData.formato}
           contaPontosRanking={formData.contaPontosRanking ?? true}
           darPontosParticipacao={formData.darPontosParticipacao ?? true}
+          melhorDe3={formData.melhorDe3 ?? false}
+          melhorDe3Eliminatoria={formData.melhorDe3Eliminatoria ?? false}
           grupoUnico={formData.grupoUnico ?? false}
           varianteSuperX={formData.varianteSuperX}
           varianteTeams={formData.varianteTeams}
@@ -126,6 +128,10 @@ export const CriarEtapa: React.FC = () => {
           }
           onDarPontosParticipacaoChange={(value) =>
             handleChange("darPontosParticipacao", value)
+          }
+          onMelhorDe3Change={(value) => handleChange("melhorDe3", value)}
+          onMelhorDe3EliminatoriaChange={(value) =>
+            handleChange("melhorDe3Eliminatoria", value)
           }
           onGrupoUnicoChange={(value) =>
             handleChange("grupoUnico", value)

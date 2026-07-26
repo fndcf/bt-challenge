@@ -5,9 +5,19 @@ import {
   StatusConfrontoEliminatorio,
 } from "@/types/chave";
 import { getChaveService } from "@/services";
+import {
+  SetScore,
+  venceuSet,
+  setVazio,
+  deveExibirTerceiroSet,
+  validarSet,
+  montarPlacarFinal,
+  parsePlacarConfronto,
+} from "@/utils/placarMelhorDe3";
 
 interface ModalRegistrarResultadoEliminatorioProps {
   confronto: ConfrontoEliminatorio;
+  melhorDe3?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -129,6 +139,18 @@ const PlacarGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   align-items: end;
+  margin-bottom: 0.75rem;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+`;
+
+const SetLabelHeader = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.375rem;
 `;
 
 const InputGroup = styled.div`
@@ -239,75 +261,85 @@ const Spinner = styled.div`
 
 export const ModalRegistrarResultadoEliminatorio: React.FC<
   ModalRegistrarResultadoEliminatorioProps
-> = ({ confronto, onClose, onSuccess }) => {
+> = ({ confronto, melhorDe3 = false, onClose, onSuccess }) => {
   const chaveService = getChaveService();
   const isEdicao = confronto.status === StatusConfrontoEliminatorio.FINALIZADA;
 
-  const [gamesDupla1, setGamesDupla1] = useState<number | undefined>(undefined);
-  const [gamesDupla2, setGamesDupla2] = useState<number | undefined>(undefined);
+  const [set1, setSet1] = useState<SetScore>({});
+  const [set2, setSet2] = useState<SetScore>({});
+  const [set3, setSet3] = useState<SetScore>({});
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (isEdicao && confronto.placar) {
-      const [g1, g2] = confronto.placar.split("-").map(Number);
-      setGamesDupla1(g1);
-      setGamesDupla2(g2);
+      const sets = parsePlacarConfronto(confronto.placar);
+      setSet1(sets[0] || {});
+      setSet2(sets[1] || {});
+      setSet3(sets[2] || {});
     }
   }, [isEdicao, confronto.placar]);
 
-  const calcularVencedor = () => {
-    if (
-      gamesDupla1 === undefined ||
-      gamesDupla1 === null ||
-      gamesDupla2 === undefined ||
-      gamesDupla2 === null
-    ) {
-      return null;
+  const mostrarTerceiroSet = melhorDe3 && deveExibirTerceiroSet(set1, set2);
+
+  const calcularVencedor = (): { vencedor: string; placar: string } | null => {
+    const formatarSet = (set: SetScore) => `${set.gamesDupla1} x ${set.gamesDupla2}`;
+
+    const vencedorSet1 = venceuSet(set1);
+    if (vencedorSet1 === undefined) return null;
+
+    if (!melhorDe3) {
+      return {
+        vencedor: vencedorSet1 === 1 ? confronto.dupla1Nome! : confronto.dupla2Nome!,
+        placar: formatarSet(set1),
+      };
     }
 
-    if (gamesDupla1 > gamesDupla2) {
+    const vencedorSet2 = venceuSet(set2);
+    if (vencedorSet2 === undefined) return null;
+
+    if (vencedorSet1 === vencedorSet2) {
       return {
-        vencedor: confronto.dupla1Nome!,
-        placar: `${gamesDupla1} x ${gamesDupla2}`,
-      };
-    } else if (gamesDupla2 > gamesDupla1) {
-      return {
-        vencedor: confronto.dupla2Nome!,
-        placar: `${gamesDupla1} x ${gamesDupla2}`,
+        vencedor: vencedorSet1 === 1 ? confronto.dupla1Nome! : confronto.dupla2Nome!,
+        placar: `${formatarSet(set1)}, ${formatarSet(set2)}`,
       };
     }
-    return null;
+
+    const vencedorSet3 = venceuSet(set3);
+    if (vencedorSet3 === undefined) return null;
+
+    return {
+      vencedor: vencedorSet3 === 1 ? confronto.dupla1Nome! : confronto.dupla2Nome!,
+      placar: `${formatarSet(set1)}, ${formatarSet(set2)}, ${formatarSet(set3)}`,
+    };
   };
 
   const validarPlacar = (): boolean => {
-    if (
-      (gamesDupla1 === undefined || gamesDupla1 === null) &&
-      (gamesDupla2 === undefined || gamesDupla2 === null)
-    ) {
+    if (setVazio(set1)) {
       setErro("O placar deve ser preenchido");
       return false;
     }
 
-    if (gamesDupla1 === undefined || gamesDupla1 === null) {
-      setErro("Preencha o placar da primeira dupla");
+    const erroSet1 = validarSet(set1, true);
+    if (erroSet1) {
+      setErro(erroSet1);
       return false;
     }
 
-    if (gamesDupla2 === undefined || gamesDupla2 === null) {
-      setErro("Preencha o placar da segunda dupla");
+    if (!melhorDe3) return true;
+
+    const erroSet2 = validarSet(set2, true);
+    if (erroSet2) {
+      setErro(`Set 2: ${erroSet2}`);
       return false;
     }
 
-    if (gamesDupla1 === 0 && gamesDupla2 === 0) {
-      setErro("O placar não pode ser 0 x 0");
-      return false;
-    }
-
-    const resultado = calcularVencedor();
-    if (!resultado) {
-      setErro("Não há um vencedor definido");
-      return false;
+    if (deveExibirTerceiroSet(set1, set2)) {
+      const erroSet3 = validarSet(set3, true);
+      if (erroSet3) {
+        setErro(`Set 3 (desempate): ${erroSet3}`);
+        return false;
+      }
     }
 
     return true;
@@ -323,13 +355,17 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
 
     try {
       setLoading(true);
-      await chaveService.registrarResultadoEliminatorio(confronto.id, [
-        {
-          numero: 1,
-          gamesDupla1: gamesDupla1!,
-          gamesDupla2: gamesDupla2!,
-        },
-      ]);
+
+      const sets = melhorDe3
+        ? deveExibirTerceiroSet(set1, set2)
+          ? [set1, set2, set3]
+          : [set1, set2]
+        : [set1];
+
+      await chaveService.registrarResultadoEliminatorio(
+        confronto.id,
+        montarPlacarFinal(sets)
+      );
       alert(
         isEdicao
           ? " Resultado atualizado com sucesso!"
@@ -370,8 +406,9 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
             </InfoBox>
 
             <PlacarSection>
-              <SectionLabel>Placar do Set</SectionLabel>
+              <SectionLabel>{melhorDe3 ? "Placar (melhor de 3 sets)" : "Placar do Set"}</SectionLabel>
 
+              {melhorDe3 && <SetLabelHeader>Set 1</SetLabelHeader>}
               <PlacarGrid>
                 <InputGroup>
                   <InputLabel>{confronto.dupla1Nome}</InputLabel>
@@ -379,13 +416,12 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                     type="number"
                     min="0"
                     max="10"
-                    value={gamesDupla1 ?? ""}
+                    value={set1.gamesDupla1 ?? ""}
                     onChange={(e) =>
-                      setGamesDupla1(
-                        e.target.value === ""
-                          ? undefined
-                          : parseInt(e.target.value)
-                      )
+                      setSet1((prev) => ({
+                        ...prev,
+                        gamesDupla1: e.target.value === "" ? undefined : parseInt(e.target.value),
+                      }))
                     }
                     placeholder="0"
                     required
@@ -399,13 +435,12 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                     type="number"
                     min="0"
                     max="10"
-                    value={gamesDupla2 ?? ""}
+                    value={set1.gamesDupla2 ?? ""}
                     onChange={(e) =>
-                      setGamesDupla2(
-                        e.target.value === ""
-                          ? undefined
-                          : parseInt(e.target.value)
-                      )
+                      setSet1((prev) => ({
+                        ...prev,
+                        gamesDupla2: e.target.value === "" ? undefined : parseInt(e.target.value),
+                      }))
                     }
                     placeholder="0"
                     required
@@ -413,6 +448,96 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
                   />
                 </InputGroup>
               </PlacarGrid>
+
+              {melhorDe3 && (
+                <>
+                  <SetLabelHeader>Set 2</SetLabelHeader>
+                  <PlacarGrid>
+                    <InputGroup>
+                      <InputLabel>{confronto.dupla1Nome}</InputLabel>
+                      <ScoreInput
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={set2.gamesDupla1 ?? ""}
+                        onChange={(e) =>
+                          setSet2((prev) => ({
+                            ...prev,
+                            gamesDupla1: e.target.value === "" ? undefined : parseInt(e.target.value),
+                          }))
+                        }
+                        placeholder="0"
+                        required
+                        disabled={loading}
+                      />
+                    </InputGroup>
+
+                    <InputGroup>
+                      <InputLabel>{confronto.dupla2Nome}</InputLabel>
+                      <ScoreInput
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={set2.gamesDupla2 ?? ""}
+                        onChange={(e) =>
+                          setSet2((prev) => ({
+                            ...prev,
+                            gamesDupla2: e.target.value === "" ? undefined : parseInt(e.target.value),
+                          }))
+                        }
+                        placeholder="0"
+                        required
+                        disabled={loading}
+                      />
+                    </InputGroup>
+                  </PlacarGrid>
+                </>
+              )}
+
+              {mostrarTerceiroSet && (
+                <>
+                  <SetLabelHeader>Set 3 (desempate)</SetLabelHeader>
+                  <PlacarGrid>
+                    <InputGroup>
+                      <InputLabel>{confronto.dupla1Nome}</InputLabel>
+                      <ScoreInput
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={set3.gamesDupla1 ?? ""}
+                        onChange={(e) =>
+                          setSet3((prev) => ({
+                            ...prev,
+                            gamesDupla1: e.target.value === "" ? undefined : parseInt(e.target.value),
+                          }))
+                        }
+                        placeholder="0"
+                        required
+                        disabled={loading}
+                      />
+                    </InputGroup>
+
+                    <InputGroup>
+                      <InputLabel>{confronto.dupla2Nome}</InputLabel>
+                      <ScoreInput
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={set3.gamesDupla2 ?? ""}
+                        onChange={(e) =>
+                          setSet3((prev) => ({
+                            ...prev,
+                            gamesDupla2: e.target.value === "" ? undefined : parseInt(e.target.value),
+                          }))
+                        }
+                        placeholder="0"
+                        required
+                        disabled={loading}
+                      />
+                    </InputGroup>
+                  </PlacarGrid>
+                </>
+              )}
             </PlacarSection>
 
             {erro && <ErrorBox>❌ {erro}</ErrorBox>}

@@ -151,6 +151,8 @@ export class EtapaService {
         grupoUnico: dadosValidados.grupoUnico,
         contaPontosRanking: dadosValidados.contaPontosRanking ?? true,
         darPontosParticipacao: dadosValidados.darPontosParticipacao ?? true,
+        melhorDe3: dadosValidados.melhorDe3 ?? false,
+        melhorDe3Eliminatoria: dadosValidados.melhorDe3Eliminatoria ?? false,
       });
 
       logger.info("Etapa criada", {

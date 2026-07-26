@@ -16,6 +16,8 @@ interface ChavesReiDaPraiaProps {
   arenaId?: string;
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
   etapaFinalizada?: boolean;
+  melhorDe3?: boolean;
+  melhorDe3Eliminatoria?: boolean;
 }
 
 type AbaAtiva = "grupos" | "eliminatoria";
@@ -477,6 +479,8 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   arenaId,
   tipoChaveamento,
   etapaFinalizada = false,
+  melhorDe3 = false,
+  melhorDe3Eliminatoria = false,
 }) => {
   const reiDaPraiaService = getReiDaPraiaService();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
@@ -784,6 +788,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           arenaId={arenaId || ""}
           grupos={grupos}
           etapaTipoChaveamento={tipoChaveamento}
+          melhorDe3={melhorDe3Eliminatoria}
         />
       )}
 
@@ -793,6 +798,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           partidas={partidasModal}
           grupoNome={grupoModalAberto.nome}
           etapaFinalizada={etapaFinalizada}
+          melhorDe3={melhorDe3}
           onClose={() => setGrupoModalAberto(null)}
           onSuccess={handleResultadosSalvos}
         />

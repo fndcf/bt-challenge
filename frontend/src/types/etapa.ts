@@ -87,6 +87,8 @@ export interface Etapa {
   dataGeracaoChaves?: string;
   contaPontosRanking: boolean; // Se true, os pontos da etapa contam para o ranking geral
   darPontosParticipacao?: boolean; // Se false, quem não classifica/coloca não recebe pontos de participação. Não se aplica a SUPER_X.
+  melhorDe3?: boolean; // Se true, partidas pedem 2 sets (e um 3º de desempate se ficar 1x1)
+  melhorDe3Eliminatoria?: boolean; // Se true (e melhorDe3 também true), o mata-mata também usa melhor de 3
   criadoEm: string;
   atualizadoEm: string;
   criadoPor: string;
@@ -115,6 +117,8 @@ export interface CriarEtapaDTO {
   grupoUnico?: boolean; // Todas as duplas em um único grupo (todos contra todos)
   contaPontosRanking?: boolean; // Por padrão true
   darPontosParticipacao?: boolean; // Por padrão true. Ignorado para formato SUPER_X
+  melhorDe3?: boolean; // Por padrão false
+  melhorDe3Eliminatoria?: boolean; // Por padrão false. Só tem efeito se melhorDe3 for true
 }
 
 export interface AtualizarEtapaDTO {
@@ -137,6 +141,8 @@ export interface AtualizarEtapaDTO {
   status?: StatusEtapa;
   contaPontosRanking?: boolean;
   darPontosParticipacao?: boolean;
+  melhorDe3?: boolean;
+  melhorDe3Eliminatoria?: boolean;
 }
 
 export interface InscreverJogadorDTO {

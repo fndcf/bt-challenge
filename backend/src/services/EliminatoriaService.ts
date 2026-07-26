@@ -28,6 +28,7 @@ import { grupoRepository } from "../repositories/firebase/GrupoRepository";
 import { partidaRepository } from "../repositories/firebase/PartidaRepository";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
 import { obterProximaFase } from "../utils/torneioUtils";
+import { validarEDeterminarVencedorPlacar } from "../utils/placarSets";
 import logger from "../utils/logger";
 
 /**
@@ -627,20 +628,16 @@ export class EliminatoriaService implements IEliminatoriaService {
         throw new Error("Confronto não encontrado");
       }
 
-      // Validar placar (eliminatória é melhor de 1 set)
-      if (placar.length !== 1) {
-        throw new Error("Placar inválido: deve ter apenas 1 set");
-      }
+      // Validar placar (1 set, ou 2-3 sets quando a etapa usa "melhor de 3")
+      const { setsDupla1, setsDupla2, dupla1Venceu } = validarEDeterminarVencedorPlacar(placar);
 
-      const set = placar[0];
-      const vencedoraId =
-        set.gamesDupla1 > set.gamesDupla2
-          ? confronto.dupla1Id!
-          : confronto.dupla2Id!;
-      const vencedoraNome =
-        set.gamesDupla1 > set.gamesDupla2
-          ? confronto.dupla1Nome!
-          : confronto.dupla2Nome!;
+      const vencedoraId = dupla1Venceu ? confronto.dupla1Id! : confronto.dupla2Id!;
+      const vencedoraNome = dupla1Venceu ? confronto.dupla1Nome! : confronto.dupla2Nome!;
+      const placarTexto = placar.map((s) => `${s.gamesDupla1}-${s.gamesDupla2}`).join(", ");
+      const placarComVencedor = placar.map((s) => ({
+        ...s,
+        vencedorId: s.gamesDupla1 > s.gamesDupla2 ? confronto.dupla1Id! : confronto.dupla2Id!,
+      }));
 
       // Reverter estatísticas se for edição
       if (confronto.status === StatusConfrontoEliminatorio.FINALIZADA) {
@@ -665,24 +662,24 @@ export class EliminatoriaService implements IEliminatoriaService {
 
         await this.partidaRepo.registrarResultado(partidaId, {
           status: StatusPartida.FINALIZADA,
-          setsDupla1: set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
-          setsDupla2: set.gamesDupla2 > set.gamesDupla1 ? 1 : 0,
-          placar: [{ ...set, vencedorId: vencedoraId }],
+          setsDupla1,
+          setsDupla2,
+          placar: placarComVencedor,
           vencedoraId,
           vencedoraNome,
         });
       } else {
         await this.partidaRepo.atualizar(partidaId, {
-          setsDupla1: set.gamesDupla1 > set.gamesDupla2 ? 1 : 0,
-          setsDupla2: set.gamesDupla2 > set.gamesDupla1 ? 1 : 0,
-          placar: [{ ...set, vencedorId: vencedoraId }],
+          setsDupla1,
+          setsDupla2,
+          placar: placarComVencedor,
           vencedoraId,
           vencedoraNome,
         });
       }
 
       // Atualizar estatísticas dos jogadores
-      await this.atualizarEstatisticasJogadores(confronto, set, vencedoraId);
+      await this.atualizarEstatisticasJogadores(confronto, placar, setsDupla1, setsDupla2, vencedoraId);
 
       // Atualizar confronto
       await this.confrontoRepo.registrarResultado(confrontoId, {
@@ -690,7 +687,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         status: StatusConfrontoEliminatorio.FINALIZADA,
         vencedoraId,
         vencedoraNome,
-        placar: `${set.gamesDupla1}-${set.gamesDupla2}`,
+        placar: placarTexto,
       });
 
       // Avançar vencedor para próxima fase
@@ -701,7 +698,7 @@ export class EliminatoriaService implements IEliminatoriaService {
         etapaId: confronto.etapaId,
         fase: confronto.fase,
         vencedoraNome,
-        placar: `${set.gamesDupla1}-${set.gamesDupla2}`,
+        placar: placarTexto,
       });
     } catch (error: any) {
       logger.error(
@@ -718,7 +715,9 @@ export class EliminatoriaService implements IEliminatoriaService {
    */
   private async atualizarEstatisticasJogadores(
     confronto: ConfrontoEliminatorio,
-    set: { gamesDupla1: number; gamesDupla2: number },
+    placar: { gamesDupla1: number; gamesDupla2: number }[],
+    setsDupla1: number,
+    setsDupla2: number,
     vencedoraId: string
   ): Promise<void> {
     // Buscar ambas as duplas em paralelo
@@ -730,6 +729,8 @@ export class EliminatoriaService implements IEliminatoriaService {
     if (!dupla1 || !dupla2) return;
 
     const dupla1Venceu = vencedoraId === confronto.dupla1Id;
+    const gamesDupla1 = placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+    const gamesDupla2 = placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
     // Atualizar estatísticas de todos os 4 jogadores em paralelo
     await Promise.all([
@@ -739,10 +740,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: dupla1Venceu,
-          setsVencidos: dupla1Venceu ? 1 : 0,
-          setsPerdidos: dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
         }
       ),
       estatisticasJogadorService.atualizarAposPartidaEliminatoria(
@@ -750,10 +751,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: dupla1Venceu,
-          setsVencidos: dupla1Venceu ? 1 : 0,
-          setsPerdidos: dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
         }
       ),
       // Jogadores da dupla 2
@@ -762,10 +763,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: !dupla1Venceu,
-          setsVencidos: !dupla1Venceu ? 1 : 0,
-          setsPerdidos: !dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
         }
       ),
       estatisticasJogadorService.atualizarAposPartidaEliminatoria(
@@ -773,10 +774,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: !dupla1Venceu,
-          setsVencidos: !dupla1Venceu ? 1 : 0,
-          setsPerdidos: !dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
         }
       ),
     ]);
@@ -801,8 +802,11 @@ export class EliminatoriaService implements IEliminatoriaService {
 
     if (!dupla1 || !dupla2) return;
 
-    const set = partida.placar[0];
     const dupla1Venceu = partida.vencedoraId === confronto.dupla1Id;
+    const setsDupla1 = partida.setsDupla1 ?? (dupla1Venceu ? 1 : 0);
+    const setsDupla2 = partida.setsDupla2 ?? (dupla1Venceu ? 0 : 1);
+    const gamesDupla1 = partida.placar.reduce((soma, s) => soma + s.gamesDupla1, 0);
+    const gamesDupla2 = partida.placar.reduce((soma, s) => soma + s.gamesDupla2, 0);
 
     // Reverter estatísticas de todos os 4 jogadores em paralelo
     await Promise.all([
@@ -812,10 +816,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: dupla1Venceu,
-          setsVencidos: dupla1Venceu ? 1 : 0,
-          setsPerdidos: dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
         }
       ),
       estatisticasJogadorService.reverterAposPartidaEliminatoria(
@@ -823,10 +827,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: dupla1Venceu,
-          setsVencidos: dupla1Venceu ? 1 : 0,
-          setsPerdidos: dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla1,
-          gamesPerdidos: set.gamesDupla2,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
         }
       ),
       // Jogadores da dupla 2
@@ -835,10 +839,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: !dupla1Venceu,
-          setsVencidos: !dupla1Venceu ? 1 : 0,
-          setsPerdidos: !dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
         }
       ),
       estatisticasJogadorService.reverterAposPartidaEliminatoria(
@@ -846,10 +850,10 @@ export class EliminatoriaService implements IEliminatoriaService {
         confronto.etapaId,
         {
           venceu: !dupla1Venceu,
-          setsVencidos: !dupla1Venceu ? 1 : 0,
-          setsPerdidos: !dupla1Venceu ? 0 : 1,
-          gamesVencidos: set.gamesDupla2,
-          gamesPerdidos: set.gamesDupla1,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
         }
       ),
     ]);

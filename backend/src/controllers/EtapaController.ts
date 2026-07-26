@@ -1044,11 +1044,12 @@ class EtapaController extends BaseController {
         if (
           !resultado.placar ||
           !Array.isArray(resultado.placar) ||
-          resultado.placar.length !== 1
+          resultado.placar.length < 1 ||
+          resultado.placar.length > 3
         ) {
           ResponseHelper.badRequest(
             res,
-            `Placar deve ter exatamente 1 set para partida ${resultado.partidaId}`
+            `Placar deve ter entre 1 e 3 sets para partida ${resultado.partidaId}`
           );
           return;
         }
@@ -1375,11 +1376,12 @@ class EtapaController extends BaseController {
         if (
           !resultado.placar ||
           !Array.isArray(resultado.placar) ||
-          resultado.placar.length !== 1
+          resultado.placar.length < 1 ||
+          resultado.placar.length > 3
         ) {
           ResponseHelper.badRequest(
             res,
-            `Placar deve ter exatamente 1 set para partida ${resultado.partidaId}`
+            `Placar deve ter entre 1 e 3 sets para partida ${resultado.partidaId}`
           );
           return;
         }

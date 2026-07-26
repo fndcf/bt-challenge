@@ -9,6 +9,12 @@ import {
   ResultadoPartidaLoteDTO,
 } from "@/types/teams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
+import {
+  SetScore,
+  deveExibirTerceiroSet,
+  validarSet,
+  montarPlacarFinal,
+} from "@/utils/placarMelhorDe3";
 
 interface ModalLancamentoResultadosLoteTeamsProps {
   etapaId: string;
@@ -17,15 +23,21 @@ interface ModalLancamentoResultadosLoteTeamsProps {
   equipes: Equipe[];
   tipoFormacaoManual?: boolean;
   etapaFinalizada?: boolean;
+  melhorDe3?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 interface ResultadoPartida {
   partidaId: string;
-  gamesDupla1: number | undefined;
-  gamesDupla2: number | undefined;
+  set1: SetScore;
+  set2: SetScore;
+  set3: SetScore;
 }
+
+const setVazio = (set: SetScore): boolean =>
+  (set.gamesDupla1 === undefined || set.gamesDupla1 === null) &&
+  (set.gamesDupla2 === undefined || set.gamesDupla2 === null);
 
 // ============== STYLED COMPONENTS ==============
 
@@ -318,6 +330,18 @@ const PlacarGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   align-items: end;
+  margin-bottom: 0.75rem;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+`;
+
+const SetLabelHeader = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.375rem;
 `;
 
 const InputGroup = styled.div`
@@ -499,7 +523,7 @@ const getDuplaLabel = (partida: PartidaTeams, lado: 1 | 2): string => {
 
 export const ModalLancamentoResultadosLoteTeams: React.FC<
   ModalLancamentoResultadosLoteTeamsProps
-> = ({ etapaId, confronto, partidas, equipes, tipoFormacaoManual = false, etapaFinalizada = false, onClose, onSuccess }) => {
+> = ({ etapaId, confronto, partidas, equipes, tipoFormacaoManual = false, etapaFinalizada = false, melhorDe3 = false, onClose, onSuccess }) => {
   const teamsService = getTeamsService();
   const [resultados, setResultados] = useState<Map<string, ResultadoPartida>>(new Map());
   const [erros, setErros] = useState<Map<string, string>>(new Map());
@@ -513,23 +537,14 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
     const mapaInicial = new Map<string, ResultadoPartida>();
 
     partidasAtuais.forEach((partida) => {
-      if (
-        partida.status === StatusPartidaTeams.FINALIZADA &&
-        partida.placar &&
-        partida.placar.length > 0
-      ) {
-        mapaInicial.set(partida.id, {
-          partidaId: partida.id,
-          gamesDupla1: partida.placar[0].gamesDupla1,
-          gamesDupla2: partida.placar[0].gamesDupla2,
-        });
-      } else {
-        mapaInicial.set(partida.id, {
-          partidaId: partida.id,
-          gamesDupla1: undefined,
-          gamesDupla2: undefined,
-        });
-      }
+      const sets =
+        partida.status === StatusPartidaTeams.FINALIZADA ? partida.placar || [] : [];
+      mapaInicial.set(partida.id, {
+        partidaId: partida.id,
+        set1: sets[0] ? { gamesDupla1: sets[0].gamesDupla1, gamesDupla2: sets[0].gamesDupla2 } : {},
+        set2: sets[1] ? { gamesDupla1: sets[1].gamesDupla1, gamesDupla2: sets[1].gamesDupla2 } : {},
+        set3: sets[2] ? { gamesDupla1: sets[2].gamesDupla1, gamesDupla2: sets[2].gamesDupla2 } : {},
+      });
     });
 
     setResultados(mapaInicial);
@@ -537,17 +552,19 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
 
   const handleInputChange = (
     partidaId: string,
+    setKey: "set1" | "set2" | "set3",
     campo: "gamesDupla1" | "gamesDupla2",
     valor: string
   ) => {
     const resultadoAtual = resultados.get(partidaId) || {
       partidaId,
-      gamesDupla1: undefined,
-      gamesDupla2: undefined,
+      set1: {},
+      set2: {},
+      set3: {},
     };
     const novoResultado: ResultadoPartida = {
       ...resultadoAtual,
-      [campo]: valor === "" ? undefined : parseInt(valor),
+      [setKey]: { ...resultadoAtual[setKey], [campo]: valor === "" ? undefined : parseInt(valor) },
     };
 
     setResultados((prev) => new Map(prev).set(partidaId, novoResultado));
@@ -562,30 +579,21 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
   };
 
   const validarPlacar = (resultado: ResultadoPartida): string | null => {
-    const { gamesDupla1, gamesDupla2 } = resultado;
+    const partidaVazia =
+      setVazio(resultado.set1) && (!melhorDe3 || setVazio(resultado.set2));
+    if (partidaVazia) return null;
 
-    // Se ambos vazios, não validar (será ignorado no submit)
-    if (
-      (gamesDupla1 === undefined || gamesDupla1 === null) &&
-      (gamesDupla2 === undefined || gamesDupla2 === null)
-    ) {
-      return null;
-    }
+    const erroSet1 = validarSet(resultado.set1, true);
+    if (erroSet1) return erroSet1;
 
-    if (gamesDupla1 === undefined || gamesDupla1 === null) {
-      return "Preencha o placar da primeira dupla";
-    }
+    if (!melhorDe3) return null;
 
-    if (gamesDupla2 === undefined || gamesDupla2 === null) {
-      return "Preencha o placar da segunda dupla";
-    }
+    const erroSet2 = validarSet(resultado.set2, true);
+    if (erroSet2) return `Set 2: ${erroSet2}`;
 
-    if (gamesDupla1 === 0 && gamesDupla2 === 0) {
-      return "O placar não pode ser 0 x 0";
-    }
-
-    if (gamesDupla1 === gamesDupla2) {
-      return "Não há um vencedor definido";
+    if (deveExibirTerceiroSet(resultado.set1, resultado.set2)) {
+      const erroSet3 = validarSet(resultado.set3, true);
+      if (erroSet3) return `Set 3 (desempate): ${erroSet3}`;
     }
 
     return null;
@@ -601,15 +609,9 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
     const novosErros = new Map<string, string>();
 
     for (const resultado of Array.from(resultados.values())) {
-      const { gamesDupla1, gamesDupla2 } = resultado;
-
-      // Se ambos vazios, pular
-      if (
-        (gamesDupla1 === undefined || gamesDupla1 === null) &&
-        (gamesDupla2 === undefined || gamesDupla2 === null)
-      ) {
-        continue;
-      }
+      const partidaVazia =
+        setVazio(resultado.set1) && (!melhorDe3 || setVazio(resultado.set2));
+      if (partidaVazia) continue;
 
       // Verificar se a partida tem jogadores definidos
       const partida = partidasAtuais.find((p) => p.id === resultado.partidaId);
@@ -645,16 +647,18 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
 
       // Montar DTOs para o endpoint em lote
       const resultadosLote: ResultadoPartidaLoteDTO[] = resultadosPreenchidos.map(
-        (resultado) => ({
-          partidaId: resultado.partidaId,
-          placar: [
-            {
-              numero: 1,
-              gamesDupla1: resultado.gamesDupla1!,
-              gamesDupla2: resultado.gamesDupla2!,
-            },
-          ],
-        })
+        (resultado) => {
+          const sets = melhorDe3
+            ? deveExibirTerceiroSet(resultado.set1, resultado.set2)
+              ? [resultado.set1, resultado.set2, resultado.set3]
+              : [resultado.set1, resultado.set2]
+            : [resultado.set1];
+
+          return {
+            partidaId: resultado.partidaId,
+            placar: montarPlacarFinal(sets),
+          };
+        }
       );
 
       // Chamar endpoint em lote
@@ -705,13 +709,9 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
   // Calcular estatísticas
   const totalPartidas = partidasAtuais.length;
   const jaFinalizadas = partidasAtuais.filter((p) => p.status === StatusPartidaTeams.FINALIZADA).length;
-  const seraoSalvas = Array.from(resultados.values()).filter((r) => {
-    const { gamesDupla1, gamesDupla2 } = r;
-    return (
-      (gamesDupla1 !== undefined && gamesDupla1 !== null) ||
-      (gamesDupla2 !== undefined && gamesDupla2 !== null)
-    );
-  }).length;
+  const seraoSalvas = Array.from(resultados.values()).filter(
+    (r) => !setVazio(r.set1) || (melhorDe3 && !setVazio(r.set2))
+  ).length;
   const precisamJogadores = partidasAtuais.filter(
     (p) => tipoFormacaoManual && (!p.dupla1 || p.dupla1.length === 0)
   ).length;
@@ -811,37 +811,125 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
                       </DuplasBox>
                     )}
 
-                    <PlacarGrid>
-                      <InputGroup>
-                        <InputLabel>{partida.equipe1Nome}</InputLabel>
-                        <ScoreInput
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={resultado?.gamesDupla1 ?? ""}
-                          onChange={(e) =>
-                            handleInputChange(partida.id, "gamesDupla1", e.target.value)
-                          }
-                          placeholder="0"
-                          disabled={loading || precisaDefinirJogadores}
-                        />
-                      </InputGroup>
+                    {(() => {
+                      const mostrarTerceiroSet =
+                        melhorDe3 &&
+                        deveExibirTerceiroSet(
+                          resultado?.set1 || {},
+                          resultado?.set2 || {}
+                        );
 
-                      <InputGroup>
-                        <InputLabel>{partida.equipe2Nome}</InputLabel>
-                        <ScoreInput
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={resultado?.gamesDupla2 ?? ""}
-                          onChange={(e) =>
-                            handleInputChange(partida.id, "gamesDupla2", e.target.value)
-                          }
-                          placeholder="0"
-                          disabled={loading || precisaDefinirJogadores}
-                        />
-                      </InputGroup>
-                    </PlacarGrid>
+                      return (
+                        <>
+                          {melhorDe3 && <SetLabelHeader>Set 1</SetLabelHeader>}
+                          <PlacarGrid>
+                            <InputGroup>
+                              <InputLabel>{partida.equipe1Nome}</InputLabel>
+                              <ScoreInput
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={resultado?.set1?.gamesDupla1 ?? ""}
+                                onChange={(e) =>
+                                  handleInputChange(partida.id, "set1", "gamesDupla1", e.target.value)
+                                }
+                                placeholder="0"
+                                disabled={loading || precisaDefinirJogadores}
+                              />
+                            </InputGroup>
+
+                            <InputGroup>
+                              <InputLabel>{partida.equipe2Nome}</InputLabel>
+                              <ScoreInput
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={resultado?.set1?.gamesDupla2 ?? ""}
+                                onChange={(e) =>
+                                  handleInputChange(partida.id, "set1", "gamesDupla2", e.target.value)
+                                }
+                                placeholder="0"
+                                disabled={loading || precisaDefinirJogadores}
+                              />
+                            </InputGroup>
+                          </PlacarGrid>
+
+                          {melhorDe3 && (
+                            <>
+                              <SetLabelHeader>Set 2</SetLabelHeader>
+                              <PlacarGrid>
+                                <InputGroup>
+                                  <InputLabel>{partida.equipe1Nome}</InputLabel>
+                                  <ScoreInput
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={resultado?.set2?.gamesDupla1 ?? ""}
+                                    onChange={(e) =>
+                                      handleInputChange(partida.id, "set2", "gamesDupla1", e.target.value)
+                                    }
+                                    placeholder="0"
+                                    disabled={loading || precisaDefinirJogadores}
+                                  />
+                                </InputGroup>
+
+                                <InputGroup>
+                                  <InputLabel>{partida.equipe2Nome}</InputLabel>
+                                  <ScoreInput
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={resultado?.set2?.gamesDupla2 ?? ""}
+                                    onChange={(e) =>
+                                      handleInputChange(partida.id, "set2", "gamesDupla2", e.target.value)
+                                    }
+                                    placeholder="0"
+                                    disabled={loading || precisaDefinirJogadores}
+                                  />
+                                </InputGroup>
+                              </PlacarGrid>
+                            </>
+                          )}
+
+                          {mostrarTerceiroSet && (
+                            <>
+                              <SetLabelHeader>Set 3 (desempate)</SetLabelHeader>
+                              <PlacarGrid>
+                                <InputGroup>
+                                  <InputLabel>{partida.equipe1Nome}</InputLabel>
+                                  <ScoreInput
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={resultado?.set3?.gamesDupla1 ?? ""}
+                                    onChange={(e) =>
+                                      handleInputChange(partida.id, "set3", "gamesDupla1", e.target.value)
+                                    }
+                                    placeholder="0"
+                                    disabled={loading || precisaDefinirJogadores}
+                                  />
+                                </InputGroup>
+
+                                <InputGroup>
+                                  <InputLabel>{partida.equipe2Nome}</InputLabel>
+                                  <ScoreInput
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={resultado?.set3?.gamesDupla2 ?? ""}
+                                    onChange={(e) =>
+                                      handleInputChange(partida.id, "set3", "gamesDupla2", e.target.value)
+                                    }
+                                    placeholder="0"
+                                    disabled={loading || precisaDefinirJogadores}
+                                  />
+                                </InputGroup>
+                              </PlacarGrid>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
 
                     {erro && <ErrorText>{erro}</ErrorText>}
                   </PartidaCard>

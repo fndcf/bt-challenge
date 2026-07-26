@@ -103,6 +103,8 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   contaPontosRanking: true, // Por padrão, etapas contam pontos no ranking
   darPontosParticipacao: true, // Por padrão, dá pontos de participação (ignorado para SUPER_X)
   grupoUnico: false, // Por padrão, usa distribuição de múltiplos grupos
+  melhorDe3: false,
+  melhorDe3Eliminatoria: false,
 };
 
 export const useCriarEtapa = (): UseCriarEtapaReturn => {

@@ -14,6 +14,7 @@ interface ChavesSuperXProps {
   arenaId?: string;
   varianteSuperX?: VarianteSuperX;
   etapaFinalizada?: boolean;
+  melhorDe3?: boolean;
   onAtualizar?: () => void;
 }
 
@@ -471,6 +472,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
   etapaId,
   varianteSuperX,
   etapaFinalizada = false,
+  melhorDe3 = false,
   onAtualizar,
 }) => {
   const superXService = getSuperXService();
@@ -786,6 +788,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
         <ModalLancamentoResultadosLoteSuperX
           partidas={partidas}
           etapaFinalizada={etapaFinalizada}
+          melhorDe3={melhorDe3}
           onClose={() => setMostrarModalResultados(false)}
           onSuccess={handleResultadosSalvos}
         />

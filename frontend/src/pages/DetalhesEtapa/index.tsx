@@ -348,6 +348,8 @@ const DetalhesEtapa: React.FC = () => {
                   varianteTeams={etapa.varianteTeams}
                   tipoFormacaoJogos={etapa.tipoFormacaoJogos}
                   etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                  melhorDe3={etapa.melhorDe3}
+                  melhorDe3Eliminatoria={!!etapa.melhorDe3 && !!etapa.melhorDe3Eliminatoria}
                   onAtualizar={carregarEtapa}
                 />
               ) : isSuperX ? (
@@ -355,6 +357,7 @@ const DetalhesEtapa: React.FC = () => {
                   etapaId={etapa.id}
                   varianteSuperX={etapa.varianteSuperX}
                   etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                  melhorDe3={etapa.melhorDe3}
                   onAtualizar={carregarEtapa}
                 />
               ) : isReiDaPraia ? (
@@ -362,11 +365,15 @@ const DetalhesEtapa: React.FC = () => {
                   etapaId={etapa.id}
                   tipoChaveamento={etapa.tipoChaveamento}
                   etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                  melhorDe3={etapa.melhorDe3}
+                  melhorDe3Eliminatoria={!!etapa.melhorDe3 && !!etapa.melhorDe3Eliminatoria}
                 />
               ) : (
                 <ChavesEtapa
                   etapaId={etapa.id}
                   etapaFinalizada={etapa.status === StatusEtapa.FINALIZADA}
+                  melhorDe3={etapa.melhorDe3}
+                  melhorDe3Eliminatoria={!!etapa.melhorDe3 && !!etapa.melhorDe3Eliminatoria}
                 />
               )}
             </>

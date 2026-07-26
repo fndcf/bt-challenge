@@ -204,6 +204,8 @@ export function createCriarEtapaDTO(
     jogadoresPorGrupo: 4,
     contaPontosRanking: true,
     darPontosParticipacao: true,
+    melhorDe3: false,
+    melhorDe3Eliminatoria: false,
     ...overrides,
   };
 }
