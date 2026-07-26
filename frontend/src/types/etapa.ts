@@ -86,6 +86,7 @@ export interface Etapa {
   chavesGeradas: boolean;
   dataGeracaoChaves?: string;
   contaPontosRanking: boolean; // Se true, os pontos da etapa contam para o ranking geral
+  darPontosParticipacao?: boolean; // Se false, quem não classifica/coloca não recebe pontos de participação. Não se aplica a SUPER_X.
   criadoEm: string;
   atualizadoEm: string;
   criadoPor: string;
@@ -113,6 +114,7 @@ export interface CriarEtapaDTO {
   jogadoresPorGrupo?: number; // Opcional porque Rei da Praia, Super X e TEAMS não usam
   grupoUnico?: boolean; // Todas as duplas em um único grupo (todos contra todos)
   contaPontosRanking?: boolean; // Por padrão true
+  darPontosParticipacao?: boolean; // Por padrão true. Ignorado para formato SUPER_X
 }
 
 export interface AtualizarEtapaDTO {
@@ -134,6 +136,7 @@ export interface AtualizarEtapaDTO {
   maxJogadores?: number;
   status?: StatusEtapa;
   contaPontosRanking?: boolean;
+  darPontosParticipacao?: boolean;
 }
 
 export interface InscreverJogadorDTO {

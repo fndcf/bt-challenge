@@ -10,6 +10,7 @@ export interface ConfiguracoesJogadoresProps {
   maxJogadores: number;
   formato: FormatoEtapa;
   contaPontosRanking: boolean;
+  darPontosParticipacao: boolean;
   grupoUnico?: boolean;
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
@@ -18,6 +19,7 @@ export interface ConfiguracoesJogadoresProps {
   tipoFormacaoDupla?: TipoFormacaoDupla;
   onMaxJogadoresChange: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
+  onDarPontosParticipacaoChange: (value: boolean) => void;
   onGrupoUnicoChange?: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
   onVarianteTeamsChange?: (value: VarianteTeams) => void;
@@ -30,6 +32,7 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   maxJogadores,
   formato,
   contaPontosRanking,
+  darPontosParticipacao,
   grupoUnico = false,
   varianteSuperX,
   varianteTeams,
@@ -38,6 +41,7 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   tipoFormacaoDupla,
   onMaxJogadoresChange,
   onContaPontosRankingChange,
+  onDarPontosParticipacaoChange,
   onGrupoUnicoChange,
   onVarianteSuperXChange,
   onVarianteTeamsChange,
@@ -330,6 +334,29 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
             somarão pontos no ranking geral
           </S.HelperText>
         </S.Field>
+
+        {/* Pontos de participação: só faz sentido quando conta pontos no ranking,
+            e não se aplica ao Super X (lá todo mundo pontua pela colocação final,
+            não existe uma faixa fixa de "participação") */}
+        {contaPontosRanking && !isSuperX && (
+          <S.Field>
+            <S.CheckboxContainer>
+              <S.Checkbox
+                type="checkbox"
+                id="darPontosParticipacao"
+                checked={darPontosParticipacao}
+                onChange={(e) => onDarPontosParticipacaoChange(e.target.checked)}
+              />
+              <S.CheckboxLabel htmlFor="darPontosParticipacao">
+                Dar pontos de participação
+              </S.CheckboxLabel>
+            </S.CheckboxContainer>
+            <S.HelperText>
+              Se desmarcado, quem não se classificar/colocar não recebe pontos
+              de participação — apenas quem chegar em alguma colocação pontua
+            </S.HelperText>
+          </S.Field>
+        )}
       </S.FieldsContainer>
     </S.Card>
   );

@@ -58,6 +58,7 @@ export const useEditarEtapa = (
     maxJogadores: 16,
     tipoChaveamento: undefined,
     contaPontosRanking: true,
+    darPontosParticipacao: true,
     tipoFormacaoJogos: undefined, // TEAMS
   });
 
@@ -104,6 +105,7 @@ export const useEditarEtapa = (
         tipoChaveamento: data.tipoChaveamento,
         varianteSuperX: data.varianteSuperX,
         contaPontosRanking: data.contaPontosRanking ?? true,
+        darPontosParticipacao: data.darPontosParticipacao ?? true,
         tipoFormacaoJogos: data.tipoFormacaoJogos, // TEAMS
       });
     } catch (err: any) {

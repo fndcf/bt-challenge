@@ -14,9 +14,11 @@ export interface ConfiguracoesJogadoresEditProps {
   totalInscritos: number;
   minimoJogadores: number;
   contaPontosRanking: boolean;
+  darPontosParticipacao: boolean;
   onMaxJogadoresChange: (value: number | undefined) => void;
   onBlur: (value: number) => void;
   onContaPontosRankingChange: (value: boolean) => void;
+  onDarPontosParticipacaoChange: (value: boolean) => void;
 }
 
 export const ConfiguracoesJogadoresEdit: React.FC<
@@ -29,9 +31,11 @@ export const ConfiguracoesJogadoresEdit: React.FC<
   totalInscritos,
   minimoJogadores,
   contaPontosRanking,
+  darPontosParticipacao,
   onMaxJogadoresChange,
   onBlur,
   onContaPontosRankingChange,
+  onDarPontosParticipacaoChange,
 }) => {
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = formato === FormatoEtapa.SUPER_X;
@@ -125,6 +129,28 @@ export const ConfiguracoesJogadoresEdit: React.FC<
               : "Se desmarcado, as estatísticas dos jogos serão registradas, mas não somarão pontos no ranking geral"}
           </S.HelperText>
         </S.Field>
+
+        {contaPontosRanking && !isSuperX && (
+          <S.Field>
+            <S.CheckboxContainer>
+              <S.Checkbox
+                type="checkbox"
+                id="darPontosParticipacao"
+                checked={darPontosParticipacao}
+                onChange={(e) => onDarPontosParticipacaoChange(e.target.checked)}
+                disabled={chavesGeradas}
+              />
+              <S.CheckboxLabel htmlFor="darPontosParticipacao">
+                Dar pontos de participação
+              </S.CheckboxLabel>
+            </S.CheckboxContainer>
+            <S.HelperText>
+              {chavesGeradas
+                ? "Não é possível alterar após gerar as chaves"
+                : "Se desmarcado, quem não se classificar/colocar não recebe pontos de participação — apenas quem chegar em alguma colocação pontua"}
+            </S.HelperText>
+          </S.Field>
+        )}
       </S.FieldsContainer>
     </S.Card>
   );

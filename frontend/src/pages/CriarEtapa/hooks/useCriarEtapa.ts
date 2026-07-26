@@ -101,6 +101,7 @@ const INITIAL_FORM_DATA: CriarEtapaFormData = {
   maxJogadores: 16,
   jogadoresPorGrupo: 3,
   contaPontosRanking: true, // Por padrão, etapas contam pontos no ranking
+  darPontosParticipacao: true, // Por padrão, dá pontos de participação (ignorado para SUPER_X)
   grupoUnico: false, // Por padrão, usa distribuição de múltiplos grupos
 };
 
