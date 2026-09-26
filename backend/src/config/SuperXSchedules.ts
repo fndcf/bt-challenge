@@ -23,62 +23,67 @@ export interface RodadaSuperX {
  * SUPER 8: 7 rodadas, 8 jogadores (índices 0-7)
  * Cada jogador joga em todas as rodadas
  * Total: 14 partidas
+ *
+ * Tabela balanceada (whist tournament): cada par de jogadores é parceiro
+ * exatamente 1 vez e adversário exatamente 2 vezes.
+ * Construção cíclica: o jogador 7 é fixo e os índices 0-6 avançam +1 (mod 7)
+ * a cada rodada.
  */
 export const SUPER_8_SCHEDULE: RodadaSuperX[] = [
-  // R1: A+B vs C+D, E+F vs G+H
+  // R1
   {
     rodada: 1,
     partidas: [
-      { dupla1: [0, 1], dupla2: [2, 3] },
-      { dupla1: [4, 5], dupla2: [6, 7] },
+      { dupla1: [0, 1], dupla2: [2, 4] },
+      { dupla1: [3, 6], dupla2: [5, 7] },
     ],
   },
-  // R2: A+C vs B+D, E+G vs F+H
+  // R2
   {
     rodada: 2,
     partidas: [
-      { dupla1: [0, 2], dupla2: [1, 3] },
-      { dupla1: [4, 6], dupla2: [5, 7] },
+      { dupla1: [1, 2], dupla2: [3, 5] },
+      { dupla1: [4, 0], dupla2: [6, 7] },
     ],
   },
-  // R3: A+D vs B+C, E+H vs F+G
+  // R3
   {
     rodada: 3,
     partidas: [
-      { dupla1: [0, 3], dupla2: [1, 2] },
-      { dupla1: [4, 7], dupla2: [5, 6] },
+      { dupla1: [2, 3], dupla2: [4, 6] },
+      { dupla1: [5, 1], dupla2: [0, 7] },
     ],
   },
-  // R4: A+E vs B+F, C+G vs D+H
+  // R4
   {
     rodada: 4,
     partidas: [
-      { dupla1: [0, 4], dupla2: [1, 5] },
-      { dupla1: [2, 6], dupla2: [3, 7] },
+      { dupla1: [3, 4], dupla2: [5, 0] },
+      { dupla1: [6, 2], dupla2: [1, 7] },
     ],
   },
-  // R5: A+F vs B+E, C+H vs D+G
+  // R5
   {
     rodada: 5,
     partidas: [
-      { dupla1: [0, 5], dupla2: [1, 4] },
-      { dupla1: [2, 7], dupla2: [3, 6] },
+      { dupla1: [4, 5], dupla2: [6, 1] },
+      { dupla1: [0, 3], dupla2: [2, 7] },
     ],
   },
-  // R6: A+G vs B+H, C+E vs D+F
+  // R6
   {
     rodada: 6,
     partidas: [
-      { dupla1: [0, 6], dupla2: [1, 7] },
-      { dupla1: [2, 4], dupla2: [3, 5] },
+      { dupla1: [5, 6], dupla2: [0, 2] },
+      { dupla1: [1, 4], dupla2: [3, 7] },
     ],
   },
-  // R7: A+H vs B+G, C+F vs D+E
+  // R7
   {
     rodada: 7,
     partidas: [
-      { dupla1: [0, 7], dupla2: [1, 6] },
-      { dupla1: [2, 5], dupla2: [3, 4] },
+      { dupla1: [6, 0], dupla2: [1, 3] },
+      { dupla1: [2, 5], dupla2: [4, 7] },
     ],
   },
 ];
@@ -87,107 +92,110 @@ export const SUPER_8_SCHEDULE: RodadaSuperX[] = [
  * SUPER 12: 11 rodadas, 12 jogadores (índices 0-11)
  * Sem jogadores de folga
  * Total: 33 partidas
+ *
+ * Tabela balanceada (whist tournament): cada par de jogadores é parceiro
+ * exatamente 1 vez e adversário exatamente 2 vezes.
+ * Construção cíclica: o jogador 11 é fixo e os índices 0-10 avançam +1 (mod 11)
+ * a cada rodada.
  */
 export const SUPER_12_SCHEDULE: RodadaSuperX[] = [
-  // Gerado via algoritmo do círculo (round-robin)
-  // Garante que cada par de jogadores é parceiro exatamente 1 vez em 11 rodadas
   // R1
   {
     rodada: 1,
     partidas: [
-      { dupla1: [0, 11], dupla2: [1, 10] },
-      { dupla1: [2, 9], dupla2: [3, 8] },
-      { dupla1: [4, 7], dupla2: [5, 6] },
+      { dupla1: [0, 1], dupla2: [2, 5] },
+      { dupla1: [3, 7], dupla2: [8, 10] },
+      { dupla1: [4, 9], dupla2: [6, 11] },
     ],
   },
   // R2
   {
     rodada: 2,
     partidas: [
-      { dupla1: [1, 11], dupla2: [0, 2] },
-      { dupla1: [3, 10], dupla2: [4, 9] },
-      { dupla1: [5, 8], dupla2: [6, 7] },
+      { dupla1: [1, 2], dupla2: [3, 6] },
+      { dupla1: [4, 8], dupla2: [9, 0] },
+      { dupla1: [5, 10], dupla2: [7, 11] },
     ],
   },
   // R3
   {
     rodada: 3,
     partidas: [
-      { dupla1: [2, 11], dupla2: [1, 3] },
-      { dupla1: [0, 4], dupla2: [5, 10] },
-      { dupla1: [6, 9], dupla2: [7, 8] },
+      { dupla1: [2, 3], dupla2: [4, 7] },
+      { dupla1: [5, 9], dupla2: [10, 1] },
+      { dupla1: [6, 0], dupla2: [8, 11] },
     ],
   },
   // R4
   {
     rodada: 4,
     partidas: [
-      { dupla1: [3, 11], dupla2: [2, 4] },
-      { dupla1: [1, 5], dupla2: [0, 6] },
-      { dupla1: [7, 10], dupla2: [8, 9] },
+      { dupla1: [3, 4], dupla2: [5, 8] },
+      { dupla1: [6, 10], dupla2: [0, 2] },
+      { dupla1: [7, 1], dupla2: [9, 11] },
     ],
   },
   // R5
   {
     rodada: 5,
     partidas: [
-      { dupla1: [4, 11], dupla2: [3, 5] },
-      { dupla1: [2, 6], dupla2: [1, 7] },
-      { dupla1: [0, 8], dupla2: [9, 10] },
+      { dupla1: [4, 5], dupla2: [6, 9] },
+      { dupla1: [7, 0], dupla2: [1, 3] },
+      { dupla1: [8, 2], dupla2: [10, 11] },
     ],
   },
   // R6
   {
     rodada: 6,
     partidas: [
-      { dupla1: [5, 11], dupla2: [4, 6] },
-      { dupla1: [3, 7], dupla2: [2, 8] },
-      { dupla1: [1, 9], dupla2: [0, 10] },
+      { dupla1: [5, 6], dupla2: [7, 10] },
+      { dupla1: [8, 1], dupla2: [2, 4] },
+      { dupla1: [9, 3], dupla2: [0, 11] },
     ],
   },
   // R7
   {
     rodada: 7,
     partidas: [
-      { dupla1: [6, 11], dupla2: [5, 7] },
-      { dupla1: [4, 8], dupla2: [3, 9] },
-      { dupla1: [2, 10], dupla2: [0, 1] },
+      { dupla1: [6, 7], dupla2: [8, 0] },
+      { dupla1: [9, 2], dupla2: [3, 5] },
+      { dupla1: [10, 4], dupla2: [1, 11] },
     ],
   },
   // R8
   {
     rodada: 8,
     partidas: [
-      { dupla1: [7, 11], dupla2: [6, 8] },
-      { dupla1: [5, 9], dupla2: [4, 10] },
-      { dupla1: [0, 3], dupla2: [1, 2] },
+      { dupla1: [7, 8], dupla2: [9, 1] },
+      { dupla1: [10, 3], dupla2: [4, 6] },
+      { dupla1: [0, 5], dupla2: [2, 11] },
     ],
   },
   // R9
   {
     rodada: 9,
     partidas: [
-      { dupla1: [8, 11], dupla2: [7, 9] },
-      { dupla1: [6, 10], dupla2: [0, 5] },
-      { dupla1: [1, 4], dupla2: [2, 3] },
+      { dupla1: [8, 9], dupla2: [10, 2] },
+      { dupla1: [0, 4], dupla2: [5, 7] },
+      { dupla1: [1, 6], dupla2: [3, 11] },
     ],
   },
   // R10
   {
     rodada: 10,
     partidas: [
-      { dupla1: [9, 11], dupla2: [8, 10] },
-      { dupla1: [0, 7], dupla2: [1, 6] },
-      { dupla1: [2, 5], dupla2: [3, 4] },
+      { dupla1: [9, 10], dupla2: [0, 3] },
+      { dupla1: [1, 5], dupla2: [6, 8] },
+      { dupla1: [2, 7], dupla2: [4, 11] },
     ],
   },
   // R11
   {
     rodada: 11,
     partidas: [
-      { dupla1: [10, 11], dupla2: [0, 9] },
-      { dupla1: [1, 8], dupla2: [2, 7] },
-      { dupla1: [3, 6], dupla2: [4, 5] },
+      { dupla1: [10, 0], dupla2: [1, 4] },
+      { dupla1: [2, 6], dupla2: [7, 9] },
+      { dupla1: [3, 8], dupla2: [5, 11] },
     ],
   },
 ];

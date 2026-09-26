@@ -134,6 +134,29 @@ describe("SuperXSchedules", () => {
         expect(count).toBe(1);
       }
     });
+
+    it("cada par de jogadores deve ser adversário exatamente duas vezes", () => {
+      const confrontos = new Map<string, number>();
+
+      for (const rodada of SUPER_8_SCHEDULE) {
+        for (const partida of rodada.partidas) {
+          for (const a of partida.dupla1) {
+            for (const b of partida.dupla2) {
+              const par = [a, b].sort().join(",");
+              confrontos.set(par, (confrontos.get(par) || 0) + 1);
+            }
+          }
+        }
+      }
+
+      // Todos os C(8,2) = 28 pares se enfrentam (ninguém fica sem enfrentar alguém)
+      expect(confrontos.size).toBe(28);
+
+      // 14 partidas x 4 confrontos = 56 = 28 pares x 2
+      for (const [, count] of confrontos) {
+        expect(count).toBe(2);
+      }
+    });
   });
 
   describe("SUPER_12_SCHEDULE", () => {
@@ -252,6 +275,29 @@ describe("SuperXSchedules", () => {
       // Cada par deve aparecer exatamente uma vez
       for (const [, count] of pares) {
         expect(count).toBe(1);
+      }
+    });
+
+    it("cada par de jogadores deve ser adversário exatamente duas vezes", () => {
+      const confrontos = new Map<string, number>();
+
+      for (const rodada of SUPER_12_SCHEDULE) {
+        for (const partida of rodada.partidas) {
+          for (const a of partida.dupla1) {
+            for (const b of partida.dupla2) {
+              const par = [a, b].sort().join(",");
+              confrontos.set(par, (confrontos.get(par) || 0) + 1);
+            }
+          }
+        }
+      }
+
+      // Todos os C(12,2) = 66 pares se enfrentam (ninguém fica sem enfrentar alguém)
+      expect(confrontos.size).toBe(66);
+
+      // 33 partidas x 4 confrontos = 132 = 66 pares x 2
+      for (const [, count] of confrontos) {
+        expect(count).toBe(2);
       }
     });
   });

@@ -63,3 +63,6 @@ coverage/
 # Claude Code temp files
 tmpclaude-*
 */tmpclaude-*
+
+# Playwright MCP
+.playwright-mcp/
