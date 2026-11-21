@@ -480,7 +480,9 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
         if (etapa) {
           setEtapaFinalizada(etapa.status === "finalizada");
         }
-      } catch {}
+      } catch {
+        // Não crítico: sem o status, a tela segue como etapa não finalizada
+      }
 
       try {
         const confrontos = await chaveService.buscarConfrontosEliminatorios(

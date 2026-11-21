@@ -1111,17 +1111,14 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
   const handleConfirmDefinirJogadores = async (dupla1Ids: [string, string], dupla2Ids: [string, string]) => {
     if (!modalDefinirJogadores) return;
-    try {
-      await teamsService.definirJogadoresPartida(
-        etapaId,
-        modalDefinirJogadores.partida.id,
-        dupla1Ids,
-        dupla2Ids
-      );
-      await handleJogadoresDefinidos();
-    } catch (err: any) {
-      throw err;
-    }
+    // Erro sobe para o modal, que mostra a mensagem
+    await teamsService.definirJogadoresPartida(
+      etapaId,
+      modalDefinirJogadores.partida.id,
+      dupla1Ids,
+      dupla2Ids
+    );
+    await handleJogadoresDefinidos();
   };
 
   const handleJogadoresDefinidos = async () => {

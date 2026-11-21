@@ -703,11 +703,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
-      let mensagemErro = err.message || "Erro ao cadastrar jogador";
-
-      if (mensagemErro.toLowerCase().includes("já existe")) {
-        mensagemErro = mensagemErro;
-      }
+      const mensagemErro = err.message || "Erro ao cadastrar jogador";
 
       setError(mensagemErro);
       setSuccessMessage(null);

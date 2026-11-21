@@ -69,8 +69,13 @@ class Logger {
 
     // Enviar para Sentry (produção)
     if (config.sendToSentry && typeof window !== "undefined") {
-      // @ts-ignore
-      window.Sentry?.captureException(error || new Error(message), {
+      // Sentry é carregado por script externo (não está nos tipos do window)
+      const { Sentry } = window as unknown as {
+        Sentry?: {
+          captureException: (erro: Error, opcoes: { extra?: unknown }) => void;
+        };
+      };
+      Sentry?.captureException(error || new Error(message), {
         extra: context,
       });
     }

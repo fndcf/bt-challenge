@@ -193,10 +193,6 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
           mensagem = error.message;
         }
 
-        if (mensagem.toLowerCase().includes("já existe")) {
-          mensagem = mensagem;
-        }
-
         setErrorMessage(mensagem);
       } finally {
         setLoading(false);

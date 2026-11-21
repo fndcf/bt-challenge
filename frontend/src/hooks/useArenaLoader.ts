@@ -17,7 +17,7 @@ interface ArenaLoaderConfig {
  * Exemplo: /arena/arenaazul -> arenaazul
  */
 export const extractArenaSlug = (pathname: string): string | null => {
-  const match = pathname.match(/^\/arena\/([^\/]+)/);
+  const match = pathname.match(/^\/arena\/([^/]+)/);
   return match ? match[1] : null;
 };
 
