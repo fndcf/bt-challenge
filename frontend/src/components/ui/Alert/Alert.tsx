@@ -1,5 +1,7 @@
 /**
- * Componente de alerta/notificação inline
+ * Componente de alerta/notificação inline (o "Callout" do design system)
+ *
+ * Usa as cores de status: info, sucesso (success), aviso (warning), erro (error).
  */
 
 import React from "react";
@@ -16,6 +18,13 @@ interface AlertProps {
   onClose?: () => void;
 }
 
+const corPorVariante: Record<AlertVariant, keyof typeof theme.semantic.status> = {
+  info: "info",
+  success: "sucesso",
+  warning: "aviso",
+  error: "erro",
+};
+
 const AlertContainer = styled.div<{ $variant: AlertVariant }>`
   display: flex;
   gap: ${theme.spacing[3]};
@@ -24,34 +33,14 @@ const AlertContainer = styled.div<{ $variant: AlertVariant }>`
   border: 1px solid;
   position: relative;
 
+  /* Cores de status (theme.semantic.status) */
   ${({ $variant }) => {
-    switch ($variant) {
-      case "success":
-        return css`
-          background: ${theme.colors.success[50]};
-          border-color: ${theme.colors.success[500]};
-          color: ${theme.colors.success[700]};
-        `;
-      case "warning":
-        return css`
-          background: ${theme.colors.warning[50]};
-          border-color: ${theme.colors.warning[500]};
-          color: ${theme.colors.warning[700]};
-        `;
-      case "error":
-        return css`
-          background: ${theme.colors.error[50]};
-          border-color: ${theme.colors.error[500]};
-          color: ${theme.colors.error[700]};
-        `;
-      case "info":
-      default:
-        return css`
-          background: ${theme.colors.info[50]};
-          border-color: ${theme.colors.info[500]};
-          color: ${theme.colors.info[700]};
-        `;
-    }
+    const cores = theme.semantic.status[corPorVariante[$variant]];
+    return css`
+      background: ${cores.fundo};
+      border-color: ${cores.borda};
+      color: ${cores.texto};
+    `;
   }}
 `;
 

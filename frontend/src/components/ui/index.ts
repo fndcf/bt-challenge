@@ -26,4 +26,9 @@ export type { ToastType, ToastPosition } from "./Toast";
 
 export { Pagination } from "./Pagination";
 
+export { Badge } from "./Badge";
+export type { BadgeTom, BadgeTamanho } from "./Badge";
+
+export { EmptyState } from "./EmptyState";
+
 export { LoadingOverlay } from "./LoadingOverlay";

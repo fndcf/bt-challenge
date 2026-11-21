@@ -1,5 +1,5 @@
 import React from "react";
-import styled from "styled-components";
+import { Badge, BadgeTom } from "@/components/ui";
 import { StatusEtapa } from "@/types/etapa";
 
 interface StatusBadgeProps {
@@ -7,120 +7,26 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-// ============== STYLED COMPONENTS ==============
-
-const Badge = styled.span<{ $status: StatusEtapa }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1875rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.625rem;
-  font-weight: 600;
-  border: 1px solid;
-  white-space: nowrap;
-
-  @media (min-width: 480px) {
-    gap: 0.375rem;
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  ${(props) => {
-    switch (props.$status) {
-      case StatusEtapa.INSCRICOES_ABERTAS:
-        return `
-          background: #dcfce7;
-          color: #166534;
-          border-color: #bbf7d0;
-        `;
-      case StatusEtapa.INSCRICOES_ENCERRADAS:
-        return `
-          background: #fef3c7;
-          color: #92400e;
-          border-color: #fde68a;
-        `;
-      case StatusEtapa.CHAVES_GERADAS:
-        return `
-          background: #dbeafe;
-          color: #1e40af;
-          border-color: #bfdbfe;
-        `;
-      case StatusEtapa.EM_ANDAMENTO:
-        return `
-          background: #f3e8ff;
-          color: #6b21a8;
-          border-color: #e9d5ff;
-        `;
-      case StatusEtapa.FINALIZADA:
-        return `
-          background: #f3f4f6;
-          color: #374151;
-          border-color: #e5e7eb;
-        `;
-      case StatusEtapa.CANCELADA:
-        return `
-          background: #fee2e2;
-          color: #991b1b;
-          border-color: #fecaca;
-        `;
-      default:
-        return `
-          background: #f3f4f6;
-          color: #374151;
-          border-color: #e5e7eb;
-        `;
-    }
-  }}
-`;
-
-// ============== COMPONENTE ==============
+// Status da etapa -> cor de status (nunca cor de formato).
+// Chaves geradas, em andamento e fase eliminatória são todos "em curso".
+const CONFIG: Record<StatusEtapa, { label: string; tom: BadgeTom }> = {
+  [StatusEtapa.INSCRICOES_ABERTAS]: { label: "Inscrições Abertas", tom: "sucesso" },
+  [StatusEtapa.INSCRICOES_ENCERRADAS]: { label: "Inscrições Encerradas", tom: "aviso" },
+  [StatusEtapa.CHAVES_GERADAS]: { label: "Chaves Geradas", tom: "info" },
+  [StatusEtapa.EM_ANDAMENTO]: { label: "Em Andamento", tom: "info" },
+  [StatusEtapa.FASE_ELIMINATORIA]: { label: "Fase Eliminatória", tom: "info" },
+  [StatusEtapa.FINALIZADA]: { label: "Finalizada", tom: "neutro" },
+  [StatusEtapa.CANCELADA]: { label: "Cancelada", tom: "erro" },
+};
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   className = "",
 }) => {
-  const getStatusConfig = () => {
-    switch (status) {
-      case StatusEtapa.INSCRICOES_ABERTAS:
-        return {
-          label: "Inscrições Abertas",
-        };
-      case StatusEtapa.INSCRICOES_ENCERRADAS:
-        return {
-          label: "Inscrições Encerradas",
-        };
-      case StatusEtapa.CHAVES_GERADAS:
-        return {
-          label: "Chaves Geradas",
-        };
-      case StatusEtapa.EM_ANDAMENTO:
-        return {
-          label: "Em Andamento",
-        };
-      case StatusEtapa.FINALIZADA:
-        return {
-          label: "Finalizada",
-        };
-      case StatusEtapa.CANCELADA:
-        return {
-          label: "Cancelada",
-        };
-      case StatusEtapa.FASE_ELIMINATORIA:
-        return {
-          label: "Fase Eliminatória",
-        };
-      default:
-        return {
-          label: status,
-        };
-    }
-  };
-
-  const config = getStatusConfig();
+  const config = CONFIG[status] ?? { label: status, tom: "neutro" as BadgeTom };
 
   return (
-    <Badge $status={status} className={className}>
+    <Badge tom={config.tom} className={className}>
       {config.label}
     </Badge>
   );

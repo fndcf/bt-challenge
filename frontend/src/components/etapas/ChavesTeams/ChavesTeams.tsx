@@ -10,7 +10,7 @@ import {
   TipoFormacaoJogos,
 } from "@/types/teams";
 import { FaseEtapa } from "@/types/chave";
-import { LoadingOverlay, Button } from "@/components/ui";
+import { LoadingOverlay, Button, Badge, BadgeTom } from "@/components/ui";
 import { ModalLancamentoResultadosLoteTeams } from "../ModalLancamentoResultadosLoteTeams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
@@ -451,24 +451,6 @@ const ConfrontoActions = styled.div`
   align-items: center;
 `;
 
-const StatusBadge = styled.span<{ $status: StatusConfronto }>`
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-
-  ${(props) => {
-    switch (props.$status) {
-      case StatusConfronto.FINALIZADO:
-        return `background: #dcfce7; color: #166534;`;
-      case StatusConfronto.EM_ANDAMENTO:
-        return `background: #dbeafe; color: #1e40af;`;
-      default:
-        return `background: #fef3c7; color: #92400e;`;
-    }
-  }}
-`;
-
 const PartidasExpanded = styled.div`
   background: #f9fafb;
   border-top: 1px solid #e5e7eb;
@@ -750,14 +732,16 @@ const getVarianteInfo = (
   }
 };
 
-const getStatusLabel = (status: StatusConfronto): string => {
+const getStatusConfronto = (
+  status: StatusConfronto
+): { label: string; tom: BadgeTom } => {
   switch (status) {
     case StatusConfronto.FINALIZADO:
-      return "Finalizado";
+      return { label: "Finalizado", tom: "sucesso" };
     case StatusConfronto.EM_ANDAMENTO:
-      return "Em andamento";
+      return { label: "Em andamento", tom: "info" };
     default:
-      return "Aguardando";
+      return { label: "Aguardando", tom: "aviso" };
   }
 };
 
@@ -1299,7 +1283,9 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           </ConfrontoEquipes>
 
           <ConfrontoActions>
-            <StatusBadge $status={confronto.status}>{getStatusLabel(confronto.status)}</StatusBadge>
+            <Badge tom={getStatusConfronto(confronto.status).tom}>
+              {getStatusConfronto(confronto.status).label}
+            </Badge>
 
             {!etapaFinalizada && equipesDefinidas && !resultadosBloqueados && (
               <>

@@ -22,7 +22,7 @@ const StyledCard = styled.div<{
   $hoverable: boolean;
   $clickable: boolean;
 }>`
-  background: ${theme.colors.white};
+  background: ${theme.semantic.superficie.fundo};
   border-radius: ${theme.borderRadius["2xl"]};
   transition: all ${theme.transitions.base} ${theme.easing.easeInOut};
   width: 100%;
@@ -55,7 +55,7 @@ const StyledCard = styled.div<{
     switch ($variant) {
       case "outlined":
         return css`
-          border: 1px solid ${theme.colors.neutral[200]};
+          border: 1px solid ${theme.semantic.superficie.borda};
           box-shadow: none;
         `;
       case "elevated":
@@ -98,19 +98,19 @@ const StyledCard = styled.div<{
 const CardHeader = styled.div`
   margin-bottom: ${theme.spacing[4]};
   padding-bottom: ${theme.spacing[4]};
-  border-bottom: 1px solid ${theme.colors.neutral[200]};
+  border-bottom: 1px solid ${theme.semantic.superficie.borda};
 `;
 
 const CardTitle = styled.h3`
   font-size: ${theme.typography.fontSize.xl};
   font-weight: ${theme.typography.fontWeight.semibold};
-  color: ${theme.colors.neutral[900]};
+  color: ${theme.semantic.texto.principal};
   margin: 0;
 `;
 
 const CardDescription = styled.p`
   font-size: ${theme.typography.fontSize.sm};
-  color: ${theme.colors.neutral[600]};
+  color: ${theme.semantic.texto.secundario};
   margin: ${theme.spacing[2]} 0 0;
 `;
 
@@ -121,7 +121,7 @@ const CardBody = styled.div`
 const CardFooter = styled.div`
   margin-top: ${theme.spacing[4]};
   padding-top: ${theme.spacing[4]};
-  border-top: 1px solid ${theme.colors.neutral[200]};
+  border-top: 1px solid ${theme.semantic.superficie.borda};
   display: flex;
   gap: ${theme.spacing[3]};
   align-items: center;

@@ -1,19 +1,18 @@
 import React from "react";
+import { Badge, BadgeTom } from "@/components/ui";
 import { StatusConfrontoEliminatorio } from "@/types/chave";
-import { StatusBadge as StyledStatusBadge } from "../styles";
 
 interface StatusBadgeProps {
   status: StatusConfrontoEliminatorio;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const labels = {
-    [StatusConfrontoEliminatorio.BYE]: "BYE",
-    [StatusConfrontoEliminatorio.AGENDADA]: "Aguardando",
-    [StatusConfrontoEliminatorio.FINALIZADA]: "Finalizada",
-  };
+const CONFIG: Record<StatusConfrontoEliminatorio, { label: string; tom: BadgeTom }> = {
+  [StatusConfrontoEliminatorio.BYE]: { label: "BYE", tom: "neutro" },
+  [StatusConfrontoEliminatorio.AGENDADA]: { label: "Aguardando", tom: "aviso" },
+  [StatusConfrontoEliminatorio.FINALIZADA]: { label: "Finalizada", tom: "sucesso" },
+};
 
-  return (
-    <StyledStatusBadge $status={status}>{labels[status]}</StyledStatusBadge>
-  );
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const config = CONFIG[status];
+  return <Badge tom={config.tom}>{config.label}</Badge>;
 };

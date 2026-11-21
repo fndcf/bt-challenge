@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { StatusConfrontoEliminatorio } from "@/types/chave";
 
 // ============== LAYOUT ==============
 
@@ -288,24 +287,6 @@ export const ConfrontoLabel = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
   color: #6b7280;
-`;
-
-export const StatusBadge = styled.span<{ $status: StatusConfrontoEliminatorio }>`
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-
-  ${(props) => {
-    switch (props.$status) {
-      case StatusConfrontoEliminatorio.BYE:
-        return `background: #dcfce7; color: #166534;`;
-      case StatusConfrontoEliminatorio.FINALIZADA:
-        return `background: #dcfce7; color: #166534;`;
-      default:
-        return `background: #fef3c7; color: #92400e;`;
-    }
-  }}
 `;
 
 export const ConfrontoContent = styled.div`

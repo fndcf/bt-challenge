@@ -20,7 +20,7 @@
     "hex": 37
   },
   "src/components/etapas/ChavesTeams/ChavesTeams.tsx": {
-    "hex": 110,
+    "hex": 104,
     "styledButton": 2
   },
   "src/components/etapas/EtapaCard/EtapaCard.tsx": {
@@ -31,7 +31,7 @@
     "hex": 1
   },
   "src/components/etapas/FaseEliminatoria/styles.ts": {
-    "hex": 40
+    "hex": 34
   },
   "src/components/etapas/FaseEliminatoriaReiDaPraia/styles.ts": {
     "hex": 3
@@ -78,9 +78,6 @@
   },
   "src/components/etapas/PainelEmpatesPendentes/PainelEmpatesPendentes.tsx": {
     "hex": 8
-  },
-  "src/components/etapas/StatusBadge/StatusBadge.tsx": {
-    "hex": 21
   },
   "src/components/jogadores/JogadorCard/JogadorCard.tsx": {
     "hex": 39,
