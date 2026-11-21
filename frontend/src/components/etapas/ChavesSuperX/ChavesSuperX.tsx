@@ -6,7 +6,7 @@ import { EstatisticasJogador, PartidaReiDaPraia } from "@/types/reiDaPraia";
 import { VarianteSuperX } from "@/types/etapa";
 import { ModalLancamentoResultadosLoteSuperX } from "../ModalLancamentoResultadosLoteSuperX";
 import { LoadingOverlay } from "@/components/ui";
-import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
@@ -820,12 +820,9 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       />
 
       {/* Modal de Confirmação para Encerrar Etapa */}
-      <ConfirmacaoPerigosa
+      <ConfirmacaoAcao
+        acao="encerrarEtapa"
         isOpen={modalEncerrarAberto}
-        titulo="Encerrar Etapa"
-        mensagem="Tem certeza que deseja encerrar esta etapa? Esta ação irá finalizar a etapa, calcular os pontos do ranking e não poderá ser desfeita."
-        textoBotaoConfirmar="Encerrar Etapa"
-        palavraConfirmacao="ENCERRAR"
         onConfirm={encerrarEtapa}
         onClose={() => setModalEncerrarAberto(false)}
       />

@@ -13,7 +13,7 @@ import { FaseEtapa } from "@/types/chave";
 import { LoadingOverlay } from "@/components/ui";
 import { ModalLancamentoResultadosLoteTeams } from "../ModalLancamentoResultadosLoteTeams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
-import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 
@@ -1270,11 +1270,6 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   const gruposConcluidos =
     confrontosGrupos.length > 0 &&
     confrontosGrupos.every((c) => c.status === StatusConfronto.FINALIZADO);
-  const eliminatoriaComResultado = confrontosEliminatoria.some(
-    (c) =>
-      !c.isBye &&
-      (c.status === StatusConfronto.FINALIZADO || (c.partidasFinalizadas || 0) > 0)
-  );
 
   // Renderizar card de equipe
   const renderEquipeCard = (equipe: Equipe, index: number) => {
@@ -1756,27 +1751,16 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       )}
 
       {/* Modal de Confirmação para Encerrar Etapa */}
-      <ConfirmacaoPerigosa
+      <ConfirmacaoAcao
+        acao="encerrarEtapa"
         isOpen={modalEncerrarAberto}
-        titulo="Encerrar Etapa"
-        mensagem="Tem certeza que deseja encerrar esta etapa? Esta ação irá finalizar a etapa, calcular os pontos do ranking e não poderá ser desfeita."
-        textoBotaoConfirmar="Encerrar Etapa"
-        palavraConfirmacao="ENCERRAR"
         onConfirm={encerrarEtapa}
         onClose={() => setModalEncerrarAberto(false)}
       />
 
-      <ConfirmacaoPerigosa
+      <ConfirmacaoAcao
+        acao="cancelarEliminatoria"
         isOpen={modalCancelarEliminatoriaAberto}
-        titulo="Cancelar Eliminatória"
-        mensagem={
-          eliminatoriaComResultado
-            ? "Todos os resultados já lançados no mata-mata serão apagados e as vagas esvaziadas. Os resultados da fase de grupos poderão ser editados novamente. Esta ação não pode ser desfeita."
-            : "As vagas do mata-mata serão esvaziadas e os resultados da fase de grupos poderão ser editados novamente. Depois, gere a eliminatória de novo."
-        }
-        textoBotaoConfirmar="Cancelar Eliminatória"
-        // Mesma confirmação do Rei da Praia
-        palavraConfirmacao="CANCELAR"
         onConfirm={handleCancelarEliminatoria}
         onClose={() => setModalCancelarEliminatoriaAberto(false)}
       />

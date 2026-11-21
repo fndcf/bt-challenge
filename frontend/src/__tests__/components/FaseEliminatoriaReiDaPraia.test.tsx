@@ -637,7 +637,8 @@ describe("FaseEliminatoriaReiDaPraia", () => {
       fireEvent.click(screen.getByText("Encerrar Etapa"));
 
       // Deve abrir o modal de confirmação
-      expect(screen.getByTestId("modal-confirmacao-encerrar-etapa-rei-da-praia")).toBeInTheDocument();
+      // Título padronizado (ConfirmacaoAcao), igual em todos os formatos
+      expect(screen.getByTestId("modal-confirmacao-encerrar-etapa")).toBeInTheDocument();
     });
 
     it("deve chamar encerrarEtapa ao confirmar no modal", async () => {

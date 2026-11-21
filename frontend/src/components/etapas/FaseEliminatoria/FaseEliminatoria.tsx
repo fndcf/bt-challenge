@@ -6,7 +6,7 @@ import {
   Grupo,
 } from "@/types/chave";
 import { ModalRegistrarResultadoEliminatorio } from "../ModalRegistrarResultadoEliminatorio";
-import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { formatarLadoPlacarConfronto } from "@/utils/placarMelhorDe3";
 import { useFaseEliminatoria } from "./hooks/useFaseEliminatoria";
 import { getNomeFase, agruparPorFase, contarStatus } from "./utils/faseHelpers";
@@ -229,11 +229,9 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       )}
 
       {modalCancelarAberto && (
-        <ConfirmacaoPerigosa
+        <ConfirmacaoAcao
+          acao="cancelarEliminatoria"
           isOpen={modalCancelarAberto}
-          titulo="Cancelar Eliminatória"
-          mensagem="Tem certeza que deseja cancelar a fase eliminatória? Todos os confrontos e resultados serão perdidos. Esta ação não pode ser desfeita!"
-          palavraConfirmacao="CANCELAR"
           onConfirm={async () => {
             await cancelarEliminatoria();
             setModalCancelarAberto(false);
@@ -243,11 +241,9 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
       )}
 
       {modalEncerrarAberto && (
-        <ConfirmacaoPerigosa
+        <ConfirmacaoAcao
+          acao="encerrarEtapa"
           isOpen={modalEncerrarAberto}
-          titulo="Encerrar Etapa"
-          mensagem="Tem certeza que deseja encerrar esta etapa? O campeão será definido e os pontos serão atribuídos. Esta ação não pode ser desfeita!"
-          palavraConfirmacao="ENCERRAR"
           onConfirm={async () => {
             await encerrarEtapa();
             setModalEncerrarAberto(false);

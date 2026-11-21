@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { ModalRegistrarResultadoEliminatorio } from "../ModalRegistrarResultadoEliminatorio";
-import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { formatarLadoPlacarConfronto } from "@/utils/placarMelhorDe3";
 import {
   useFaseEliminatoriaReiDaPraia,
@@ -255,11 +255,9 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
       )}
 
       {modalCancelarAberto && (
-        <ConfirmacaoPerigosa
+        <ConfirmacaoAcao
+          acao="cancelarEliminatoria"
           isOpen={modalCancelarAberto}
-          titulo="Cancelar Eliminatória"
-          mensagem="Tem certeza que deseja cancelar a fase eliminatória Rei da Praia? Todos os confrontos e resultados serão perdidos. Esta ação não pode ser desfeita!"
-          palavraConfirmacao="CANCELAR"
           onConfirm={async () => {
             await cancelarEliminatoria();
             setModalCancelarAberto(false);
@@ -269,11 +267,9 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
       )}
 
       {modalEncerrarAberto && (
-        <ConfirmacaoPerigosa
+        <ConfirmacaoAcao
+          acao="encerrarEtapa"
           isOpen={modalEncerrarAberto}
-          titulo="Encerrar Etapa Rei da Praia"
-          mensagem="Tem certeza que deseja encerrar esta etapa Rei da Praia? O campeão será definido e os pontos serão atribuídos. Esta ação não pode ser desfeita!"
-          palavraConfirmacao="ENCERRAR"
           onConfirm={async () => {
             await encerrarEtapa();
             setModalEncerrarAberto(false);

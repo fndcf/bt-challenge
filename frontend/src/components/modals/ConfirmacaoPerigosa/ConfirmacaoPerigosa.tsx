@@ -195,6 +195,8 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
 
   const handleConfirm = () => {
     if (isConfirmacaoCorreta) {
+      // Limpa a palavra digitada para a próxima abertura do modal
+      setInputValue("");
       onConfirm();
     }
   };

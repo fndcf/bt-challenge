@@ -11,7 +11,7 @@ import { ChavesEtapa } from "@/components/etapas/ChavesEtapa";
 import { ChavesReiDaPraia } from "@/components/etapas/ChavesReiDaPraia";
 import { ChavesSuperX } from "@/components/etapas/ChavesSuperX";
 import { ChavesTeams } from "@/components/etapas/ChavesTeams";
-import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { ModalSubstituirJogador } from "@/components/modals/ModalSubstituirJogador";
 import { Footer } from "@/components/layout/Footer";
 import { LoadingOverlay } from "@/components/ui";
@@ -402,11 +402,9 @@ const DetalhesEtapa: React.FC = () => {
       )}
 
       {modalConfirmacaoAberto && (
-        <ConfirmacaoPerigosa
+        <ConfirmacaoAcao
+          acao="excluirChaves"
           isOpen={modalConfirmacaoAberto}
-          titulo="Excluir Chaves"
-          mensagem="Tem certeza que deseja excluir todas as chaves? Esta ação não pode ser desfeita!"
-          palavraConfirmacao="EXCLUIR"
           onConfirm={async () => {
             setModalConfirmacaoAberto(false);
             await handleApagarChavesWithLoading();
