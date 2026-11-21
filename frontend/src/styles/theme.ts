@@ -1,7 +1,11 @@
 import { tokens } from "./tokens";
+import { semantic } from "./semantic";
 
 export const theme = {
   ...tokens,
+
+  // Cores por função (ação, formato, status, texto, superfície)
+  semantic,
 
   // Componentes específicos
   components: {

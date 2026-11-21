@@ -5,32 +5,32 @@
 export const tokens = {
   // Cores
   colors: {
-    // Primary (Beach Tennis)
+    // Primary (teal da marca) - cor de ação, ver styles/semantic.ts
     primary: {
-      50: "#F0F4FF",
-      100: "#E0E9FF",
-      200: "#C7D7FE",
-      300: "#A5BFFC",
-      400: "#8BA4F9",
-      500: "#134e5e", // Principal
-      600: "#5568D3",
-      700: "#4553B8",
-      800: "#3B4694",
-      900: "#333B7A",
+      50: "#EEF6F8",
+      100: "#E6F0F2",
+      200: "#B9D3D9",
+      300: "#8DB4BE",
+      400: "#4F8796",
+      500: "#134E5E", // Principal
+      600: "#0E3A46",
+      700: "#0B2F39",
+      800: "#08242C",
+      900: "#05181E",
     },
 
-    // Secondary (Purple)
+    // Secondary (verde da marca)
     secondary: {
-      50: "#FAF5FF",
-      100: "#F3E8FF",
-      200: "#E9D5FF",
-      300: "#D8B4FE",
-      400: "#C084FC",
-      500: "#71b280", // Principal
-      600: "#6D3D99",
-      700: "#5E3085",
-      800: "#4F2570",
-      900: "#3F1D5C",
+      50: "#F2F8F3",
+      100: "#E1EFE4",
+      200: "#C3DFC9",
+      300: "#A3CEAE",
+      400: "#8AC096",
+      500: "#71B280", // Principal
+      600: "#579A67",
+      700: "#437A50",
+      800: "#325B3C",
+      900: "#223E29",
     },
 
     // Neutral (Grays)
