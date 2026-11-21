@@ -3,6 +3,13 @@
  */
 
 // Mocks devem vir antes dos imports
+jest.mock("../../services/DesempateService", () => {
+  const { createMockDesempateService } = jest.requireActual(
+    "../mocks/desempateService"
+  );
+  return { __esModule: true, default: createMockDesempateService() };
+});
+
 jest.mock("../../utils/logger", () => ({
   __esModule: true,
   default: {
@@ -591,6 +598,95 @@ describe("TeamsService", () => {
       expect(mockEquipeRepository.atualizarEmLote).toHaveBeenCalledWith([
         { id: "equipe-1", dados: { nome: "Os Campeoes" } },
       ]);
+    });
+  });
+
+  // ==================== CANCELAR FASE ELIMINATÓRIA ====================
+  describe("cancelarFaseEliminatoria", () => {
+    const grupo = { id: "g1", fase: FaseEtapa.GRUPOS, equipe1Id: "e1", status: "finalizado" };
+
+    it("deve esvaziar as vagas do mata-mata (BYE mantém o marcador)", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        grupo,
+        { id: "s1", fase: FaseEtapa.SEMIFINAL, equipe1Id: "e1", equipe2Id: "e2", status: "agendado", partidasFinalizadas: 0 },
+        { id: "q1", fase: FaseEtapa.QUARTAS, isBye: true, equipe1Id: "e3", equipe2Id: "BYE", status: "finalizado" },
+      ]);
+      mockPartidaRepository.buscarPorConfronto.mockResolvedValue([]);
+      mockPartidaRepository.deletarPorConfronto.mockResolvedValue(undefined);
+      mockConfrontoRepository.resetarConfronto.mockResolvedValue(undefined);
+      mockConfrontoRepository.atualizar.mockResolvedValue(undefined);
+
+      await service.cancelarFaseEliminatoria(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockConfrontoRepository.resetarConfronto).toHaveBeenCalledTimes(2);
+      expect(mockConfrontoRepository.resetarConfronto).not.toHaveBeenCalledWith("g1");
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("s1", {
+        equipe1Id: "",
+        equipe1Nome: "",
+        equipe2Id: "",
+        equipe2Nome: "",
+      });
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("q1", {
+        equipe1Id: "",
+        equipe1Nome: "",
+      });
+    });
+
+    it("com resultados no mata-mata: desfaz as estatísticas e apaga as partidas", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        grupo,
+        { id: "s1", fase: FaseEtapa.SEMIFINAL, equipe1Id: "e1", equipe2Id: "e2", status: "finalizado", vencedoraId: "e1", partidasFinalizadas: 2 },
+      ]);
+      mockPartidaRepository.buscarPorConfronto.mockResolvedValue([
+        {
+          id: "p1",
+          etapaId: TEST_ETAPA_ID,
+          status: "finalizada",
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 2 }],
+          vencedoraEquipeId: "e1",
+          equipe1Id: "e1",
+          equipe2Id: "e2",
+          dupla1: [{ id: "j1", nome: "J1" }],
+          dupla2: [{ id: "j2", nome: "J2" }],
+        },
+      ]);
+      mockEstatisticasService.buscarPorJogadoresEtapa.mockResolvedValue(
+        new Map([
+          ["j1", { id: "est-j1" }],
+          ["j2", { id: "est-j2" }],
+        ])
+      );
+      mockEstatisticasService.reverterAposPartidaComIncrement.mockResolvedValue(undefined);
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
+      mockPartidaRepository.deletarPorConfronto.mockResolvedValue(undefined);
+      mockConfrontoRepository.resetarConfronto.mockResolvedValue(undefined);
+      mockConfrontoRepository.atualizar.mockResolvedValue(undefined);
+
+      await service.cancelarFaseEliminatoria(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+      expect(mockEstatisticasService.reverterAposPartidaComIncrement).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ estatisticaId: "est-j1" }),
+          expect.objectContaining({ estatisticaId: "est-j2" }),
+        ])
+      );
+      expect(mockEquipeRepository.incrementarEstatisticasEmLote).toHaveBeenCalledWith([
+        { id: "e1", incrementos: { jogosVencidos: -1, jogosPerdidos: 0, gamesVencidos: -6, gamesPerdidos: -2 } },
+        { id: "e2", incrementos: { jogosVencidos: 0, jogosPerdidos: -1, gamesVencidos: -2, gamesPerdidos: -6 } },
+      ]);
+      expect(mockPartidaRepository.deletarPorConfronto).toHaveBeenCalledWith("s1");
+      expect(mockConfrontoRepository.resetarConfronto).toHaveBeenCalledWith("s1");
+    });
+
+    it("deve recusar se a eliminatória não foi gerada", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        grupo,
+        { id: "s1", fase: FaseEtapa.SEMIFINAL, equipe1Id: "", equipe2Id: "", status: "agendado" },
+      ]);
+
+      await expect(
+        service.cancelarFaseEliminatoria(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("ainda não foi gerada");
     });
   });
 
@@ -1245,7 +1341,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -1268,7 +1364,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -2460,7 +2556,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -2476,7 +2572,7 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
@@ -2484,7 +2580,7 @@ describe("TeamsService", () => {
       expect(result[1].id).toBe("e1");
     });
 
-    it("deve usar sorteio quando todos criterios iguais", async () => {
+    it("não deve sortear automaticamente quando todos criterios iguais", async () => {
       const equipes = [
         { id: "e1", nome: "Zebra", pontos: 3, saldoJogos: 1, saldoGames: 5, gamesVencidos: 10 },
         { id: "e2", nome: "Aguia", pontos: 3, saldoJogos: 1, saldoGames: 5, gamesVencidos: 10 },
@@ -2492,14 +2588,12 @@ describe("TeamsService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const result = await service.recalcularClassificacao(TEST_ETAPA_ID, TEST_ARENA_ID);
 
-      // Quando todos os critérios são iguais, usa sorteio
-      // Apenas verificamos que ambas as equipes estão no resultado
-      expect(result).toHaveLength(2);
-      expect(result.map((e: any) => e.id).sort()).toEqual(["e1", "e2"]);
+      // Empate total: ordem estável até o admin decidir (sorteio ou manual)
+      expect(result.map((e: any) => e.id)).toEqual(["e1", "e2"]);
     });
   });
 

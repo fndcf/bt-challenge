@@ -11,6 +11,9 @@ import {
   ListagemEtapas,
   EstatisticasEtapa,
   ResultadoGeracaoChaves,
+  EmpatePendente,
+  ResolverEmpateDTO,
+  ResultadoDesempate,
 } from "@/types/etapa";
 
 export interface IEtapaService {
@@ -53,6 +56,15 @@ export interface IEtapaService {
    * Operações de Status
    */
   encerrarEtapa(id: string): Promise<void>;
+
+  /**
+   * Desempate de posições nos grupos
+   */
+  listarEmpatesPendentes(etapaId: string): Promise<EmpatePendente[]>;
+  resolverEmpate(
+    etapaId: string,
+    dados: ResolverEmpateDTO
+  ): Promise<ResultadoDesempate>;
 
   /**
    * Substituição de Jogador

@@ -10,6 +10,7 @@ import {
 import { FaseEliminatoriaReiDaPraia } from "../FaseEliminatoriaReiDaPraia";
 import { LoadingOverlay } from "@/components/ui";
 import { ModalLancamentoResultadosLoteReiDaPraia } from "../ModalLancamentoResultadosLoteReiDaPraia";
+import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 
 interface ChavesReiDaPraiaProps {
   etapaId: string;
@@ -489,6 +490,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [_eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
+  const [temEmpatePendente, setTemEmpatePendente] = useState(false);
 
   // Estado global de loading para operações críticas que bloqueiam toda a tela
   const [globalLoading, setGlobalLoading] = React.useState(false);
@@ -615,6 +617,14 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           </Tab>
         </TabsList>
       </TabsContainer>
+
+      <PainelEmpatesPendentes
+        etapaId={etapaId}
+        atualizarEm={jogadores}
+        onResolvido={carregarChaves}
+        desabilitado={etapaFinalizada}
+        onEmpatesChange={(empates) => setTemEmpatePendente(empates.length > 0)}
+      />
 
       {abaAtiva === "grupos" ? (
         <>
@@ -789,6 +799,8 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
           grupos={grupos}
           etapaTipoChaveamento={tipoChaveamento}
           melhorDe3={melhorDe3Eliminatoria}
+          onEmpatePendente={carregarChaves}
+          bloqueadoPorEmpate={temEmpatePendente}
         />
       )}
 

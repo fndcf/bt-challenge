@@ -25,6 +25,8 @@ export interface UseFaseEliminatoriaReiDaPraiaProps {
   etapaId: string;
   grupos: Grupo[];
   etapaTipoChaveamento?: TipoChaveamentoReiDaPraia;
+  // Chamado quando a geração é bloqueada por empate pendente
+  onEmpatePendente?: () => void;
 }
 
 export interface UseFaseEliminatoriaReiDaPraiaReturn {
@@ -61,6 +63,7 @@ export const useFaseEliminatoriaReiDaPraia = ({
   etapaId,
   grupos,
   etapaTipoChaveamento,
+  onEmpatePendente,
 }: UseFaseEliminatoriaReiDaPraiaProps): UseFaseEliminatoriaReiDaPraiaReturn => {
   const reiDaPraiaService = getReiDaPraiaService();
   const etapaService = getEtapaService();
@@ -187,7 +190,13 @@ export const useFaseEliminatoriaReiDaPraia = ({
       alert("Fase eliminatória Rei da Praia gerada com sucesso!");
       await carregarConfrontos();
     } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+      // Empate (no grupo ou entre 1ºs/2ºs colocados): o painel de empates
+      // abre o modal para o admin decidir, em vez de mostrar erro
+      if (onEmpatePendente && err.message?.includes("empate pendente")) {
+        onEmpatePendente();
+      } else {
+        alert(`Erro: ${err.message}`);
+      }
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

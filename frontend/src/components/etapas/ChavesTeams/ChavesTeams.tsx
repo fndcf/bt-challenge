@@ -15,6 +15,7 @@ import { ModalLancamentoResultadosLoteTeams } from "../ModalLancamentoResultados
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 
 interface ChavesTeamsProps {
   etapaId: string;
@@ -710,6 +711,48 @@ const AlertBox = styled.div`
   }
 `;
 
+const EliminatoriaAcoesCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+
+  p {
+    margin: 0 0 1rem 0;
+    color: #6b7280;
+    font-size: 0.9375rem;
+  }
+
+  small {
+    display: block;
+    margin-top: 0.75rem;
+    color: #92400e;
+    font-size: 0.8125rem;
+  }
+`;
+
+const EliminatoriaBotao = styled.button<{ $variant?: "perigo" }>`
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #ffffff;
+  background: ${({ $variant }) => ($variant === "perigo" ? "#dc2626" : "#2563eb")};
+
+  &:hover:not(:disabled) {
+    background: ${({ $variant }) => ($variant === "perigo" ? "#b91c1c" : "#1d4ed8")};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 // Styled component para fases eliminatórias
 const FaseSection = styled.section`
   margin-bottom: 2rem;
@@ -840,6 +883,9 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   const [confrontoExpandido, setConfrontoExpandido] = useState<string | null>(null);
   const [partidasConfronto, setPartidasConfronto] = useState<Map<string, PartidaTeams[]>>(new Map());
   const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
+  const [temEmpatePendente, setTemEmpatePendente] = useState(false);
+  const [modalCancelarEliminatoriaAberto, setModalCancelarEliminatoriaAberto] =
+    useState(false);
 
   // Estado global de loading para operações críticas
   const [globalLoading, setGlobalLoading] = useState(false);
@@ -1100,6 +1146,36 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
     await carregarDados(true);
   };
 
+  const handleGerarEliminatoria = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Gerando fase eliminatória...");
+      await teamsService.gerarFaseEliminatoria(etapaId);
+      await carregarDados(true);
+    } catch (err: any) {
+      alert(err.message || "Erro ao gerar fase eliminatória");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
+  const handleCancelarEliminatoria = async () => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage("Cancelando fase eliminatória...");
+      await teamsService.cancelarFaseEliminatoria(etapaId);
+      setModalCancelarEliminatoriaAberto(false);
+      setPartidasConfronto(new Map());
+      await carregarDados(true);
+    } catch (err: any) {
+      alert(err.message || "Erro ao cancelar fase eliminatória");
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
   const encerrarEtapa = async () => {
     try {
       setGlobalLoading(true);
@@ -1161,6 +1237,10 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   if (equipesPorGrupo) {
     Object.keys(equipesPorGrupo).forEach((grupoId) => {
       equipesPorGrupo[grupoId].sort((a, b) => {
+        // Posição calculada pelo backend (critérios + desempate do admin)
+        if (a.posicao !== undefined && b.posicao !== undefined) {
+          return a.posicao - b.posicao;
+        }
         if (a.pontos !== b.pontos) return b.pontos - a.pontos;
         if (a.saldoJogos !== b.saldoJogos) return b.saldoJogos - a.saldoJogos;
         if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
@@ -1186,6 +1266,18 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   ).length;
 
   const temConfrontosEliminatoria = confrontosEliminatoria.length > 0;
+
+  // Os confrontos do mata-mata existem desde a geração das chaves, com as
+  // vagas ("1º Grupo A") vazias até o admin gerar a fase eliminatória
+  const eliminatoriaGerada = confrontosEliminatoria.some((c) => !!c.equipe1Id);
+  const gruposConcluidos =
+    confrontosGrupos.length > 0 &&
+    confrontosGrupos.every((c) => c.status === StatusConfronto.FINALIZADO);
+  const eliminatoriaComResultado = confrontosEliminatoria.some(
+    (c) =>
+      !c.isBye &&
+      (c.status === StatusConfronto.FINALIZADO || (c.partidasFinalizadas || 0) > 0)
+  );
 
   // Renderizar card de equipe
   const renderEquipeCard = (equipe: Equipe, index: number) => {
@@ -1276,6 +1368,9 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       confronto.status !== StatusConfronto.FINALIZADO &&
       !confronto.temDecider;
     const partidas = partidasConfronto.get(confronto.id) || [];
+    // Resultados da fase de grupos ficam travados depois de gerar a eliminatória
+    const resultadosBloqueados =
+      confronto.fase === FaseEtapa.GRUPOS && eliminatoriaGerada;
 
     return (
       <ConfrontoCard key={confronto.id} $status={confronto.status}>
@@ -1297,7 +1392,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           <ConfrontoActions>
             <StatusBadge $status={confronto.status}>{getStatusLabel(confronto.status)}</StatusBadge>
 
-            {!etapaFinalizada && equipesDefinidas && (
+            {!etapaFinalizada && equipesDefinidas && !resultadosBloqueados && (
               <>
                 <ActionButton
                   $variant={confronto.status === StatusConfronto.FINALIZADO ? "secondary" : "primary"}
@@ -1402,6 +1497,37 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
     return (
       <>
+        {!etapaFinalizada && !eliminatoriaGerada && (
+          <EliminatoriaAcoesCard>
+            <p>
+              {gruposConcluidos
+                ? "A fase de grupos foi concluída! Gere a fase eliminatória para preencher as vagas com os classificados."
+                : "Finalize todos os confrontos da fase de grupos para gerar a fase eliminatória."}
+            </p>
+            <EliminatoriaBotao
+              onClick={handleGerarEliminatoria}
+              disabled={!gruposConcluidos || temEmpatePendente}
+            >
+              Gerar Fase Eliminatória
+            </EliminatoriaBotao>
+            {gruposConcluidos && temEmpatePendente && (
+              <small>Resolva o empate indicado acima para liberar esta ação.</small>
+            )}
+          </EliminatoriaAcoesCard>
+        )}
+
+        {eliminatoriaGerada && (
+          <ActionsRow>
+            <EliminatoriaBotao
+              $variant="perigo"
+              onClick={() => setModalCancelarEliminatoriaAberto(true)}
+              disabled={etapaFinalizada}
+            >
+              Cancelar Eliminatória
+            </EliminatoriaBotao>
+          </ActionsRow>
+        )}
+
         {fases.map(({ fase, nome, tipo }) => {
           const confrontosFase = confrontosEliminatoria
             .filter((c) => c.fase === fase)
@@ -1431,7 +1557,15 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       {/* Botão de Encerrar Etapa no topo - só aparece quando todos os confrontos estiverem finalizados */}
       {!etapaFinalizada && confrontos.length > 0 && confrontosFinalizados === confrontos.length && (
         <ActionsRow>
-          <EncerrarEtapaButton onClick={() => setModalEncerrarAberto(true)}>
+          <EncerrarEtapaButton
+            onClick={() => setModalEncerrarAberto(true)}
+            disabled={temEmpatePendente}
+            title={
+              temEmpatePendente
+                ? "Resolva o empate na classificação para encerrar"
+                : undefined
+            }
+          >
             Encerrar Etapa
           </EncerrarEtapaButton>
         </ActionsRow>
@@ -1445,6 +1579,15 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           <span>Esta etapa foi encerrada. Os resultados não podem mais ser alterados.</span>
         </AlertBox>
       )}
+
+      {/* Eliminatória só é preenchida depois que os empates dos grupos forem resolvidos */}
+      <PainelEmpatesPendentes
+        etapaId={etapaId}
+        atualizarEm={equipes}
+        onResolvido={() => carregarDados(true)}
+        desabilitado={etapaFinalizada}
+        onEmpatesChange={(empates) => setTemEmpatePendente(empates.length > 0)}
+      />
 
       <Header>
         <Title>
@@ -1621,8 +1764,24 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
         titulo="Encerrar Etapa"
         mensagem="Tem certeza que deseja encerrar esta etapa? Esta ação irá finalizar a etapa, calcular os pontos do ranking e não poderá ser desfeita."
         textoBotaoConfirmar="Encerrar Etapa"
+        palavraConfirmacao="ENCERRAR"
         onConfirm={encerrarEtapa}
         onClose={() => setModalEncerrarAberto(false)}
+      />
+
+      <ConfirmacaoPerigosa
+        isOpen={modalCancelarEliminatoriaAberto}
+        titulo="Cancelar Eliminatória"
+        mensagem={
+          eliminatoriaComResultado
+            ? "Todos os resultados já lançados no mata-mata serão apagados e as vagas esvaziadas. Os resultados da fase de grupos poderão ser editados novamente. Esta ação não pode ser desfeita."
+            : "As vagas do mata-mata serão esvaziadas e os resultados da fase de grupos poderão ser editados novamente. Depois, gere a eliminatória de novo."
+        }
+        textoBotaoConfirmar="Cancelar Eliminatória"
+        // Mesma confirmação do Rei da Praia
+        palavraConfirmacao="CANCELAR"
+        onConfirm={handleCancelarEliminatoria}
+        onClose={() => setModalCancelarEliminatoriaAberto(false)}
       />
     </Container>
   );

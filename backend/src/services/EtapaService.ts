@@ -22,6 +22,7 @@ import { Inscricao, StatusInscricao } from "../models/Inscricao";
 import { GeneroJogador } from "../models/Jogador";
 import { TipoFase } from "../models/Eliminatoria";
 import { getPontosSuperXPorPosicao } from "../config/SuperXSchedules";
+import { garantirSemEmpatesPendentes } from "../utils/desempate";
 import logger from "../utils/logger";
 
 // Interfaces dos repositories
@@ -891,6 +892,9 @@ export class EtapaService {
       if (etapa.status === StatusEtapa.FINALIZADA) {
         throw new Error("Etapa já está finalizada");
       }
+
+      // Posição define pontuação: não encerrar com empate sem decisão do admin
+      garantirSemEmpatesPendentes(etapa, "encerrar a etapa");
 
       // Verificar se a etapa conta pontos no ranking
       const contaPontosRanking = etapa.contaPontosRanking ?? true;

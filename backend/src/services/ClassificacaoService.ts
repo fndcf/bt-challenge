@@ -15,6 +15,7 @@ import { duplaRepository } from "../repositories/firebase/DuplaRepository";
 import { partidaRepository } from "../repositories/firebase/PartidaRepository";
 import { grupoRepository } from "../repositories/firebase/GrupoRepository";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
+import desempateService, { DesempateService } from "./DesempateService";
 import { calcularTotalPartidas } from "../utils/torneioUtils";
 import logger from "../utils/logger";
 
@@ -37,7 +38,8 @@ export class ClassificacaoService implements IClassificacaoService {
   constructor(
     private duplaRepo: IDuplaRepository = duplaRepository,
     private partidaRepo: IPartidaRepository = partidaRepository,
-    private grupoRepo: IGrupoRepository = grupoRepository
+    private grupoRepo: IGrupoRepository = grupoRepository,
+    private desempate: DesempateService = desempateService
   ) {}
 
   /**
@@ -48,7 +50,7 @@ export class ClassificacaoService implements IClassificacaoService {
    * Saldo de games
    * Confronto direto (apenas quando 2 duplas empatadas)
    * Games vencidos
-   * Sorteio
+   * Decisão do admin (sorteio ou manual) — ver DesempateService
    */
   async recalcularClassificacaoGrupo(grupoId: string): Promise<void> {
     try {
@@ -60,11 +62,24 @@ export class ClassificacaoService implements IClassificacaoService {
         grupoId
       );
 
+      const partidasFinalizadas = partidas.length;
+      const totalPartidas = calcularTotalPartidas(duplas.length);
+      const completo = partidasFinalizadas === totalPartidas;
+
       // Ordenar duplas pelos critérios
-      const duplasOrdenadas = this.ordenarDuplasPorClassificacao(
-        duplas,
-        partidas
-      );
+      const duplasOrdenadas =
+        duplas.length > 0
+          ? await this.desempate.classificarGrupo({
+              etapaId: duplas[0].etapaId,
+              grupoId,
+              grupoNome: duplas[0].grupoNome,
+              itens: duplas,
+              comparar: this.criarComparadorDuplas(duplas, partidas),
+              getId: (d) => d.id,
+              getNome: (d) => `${d.jogador1Nome} / ${d.jogador2Nome}`,
+              grupoCompleto: completo,
+            })
+          : [];
 
       // Atualizar posições no banco
       const atualizacoesPosicao = duplasOrdenadas.flatMap((dupla, i) => {
@@ -86,10 +101,6 @@ export class ClassificacaoService implements IClassificacaoService {
       await Promise.all(atualizacoesPosicao);
 
       // Atualizar status do grupo
-      const partidasFinalizadas = partidas.length;
-      const totalPartidas = calcularTotalPartidas(duplas.length);
-      const completo = partidasFinalizadas === totalPartidas;
-
       await this.grupoRepo.atualizarContadores(grupoId, {
         partidasFinalizadas,
       });
@@ -116,13 +127,13 @@ export class ClassificacaoService implements IClassificacaoService {
   }
 
   /**
-   * Ordenar duplas pelos critérios de classificação
+   * Comparador dos critérios de classificação (0 = empate em todos)
    */
-  private ordenarDuplasPorClassificacao(
+  private criarComparadorDuplas(
     duplas: Dupla[],
     partidas: Partida[]
-  ): Dupla[] {
-    return [...duplas].sort((a, b) => {
+  ): (a: Dupla, b: Dupla) => number {
+    return (a, b) => {
       // Pontos (maior melhor)
       if (a.pontos !== b.pontos) {
         return b.pontos - a.pontos;
@@ -154,9 +165,8 @@ export class ClassificacaoService implements IClassificacaoService {
         return b.gamesVencidos - a.gamesVencidos;
       }
 
-      // Sorteio como último critério
-      return Math.random() - 0.5;
-    });
+      return 0;
+    };
   }
 
   /**

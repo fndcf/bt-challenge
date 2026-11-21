@@ -12,6 +12,9 @@ const mockRenomearEquipe = jest.fn();
 const mockGerarPartidasConfronto = jest.fn();
 const mockGerarDecider = jest.fn();
 const mockEncerrarEtapa = jest.fn();
+const mockGerarFaseEliminatoria = jest.fn();
+const mockCancelarFaseEliminatoria = jest.fn();
+const mockListarEmpatesPendentes = jest.fn().mockResolvedValue([]);
 
 jest.mock("@/services", () => ({
   getTeamsService: () => ({
@@ -21,9 +24,12 @@ jest.mock("@/services", () => ({
     renomearEquipe: mockRenomearEquipe,
     gerarPartidasConfronto: mockGerarPartidasConfronto,
     gerarDecider: mockGerarDecider,
+    gerarFaseEliminatoria: mockGerarFaseEliminatoria,
+    cancelarFaseEliminatoria: mockCancelarFaseEliminatoria,
   }),
   getEtapaService: () => ({
     encerrarEtapa: mockEncerrarEtapa,
+    listarEmpatesPendentes: mockListarEmpatesPendentes,
   }),
 }));
 
@@ -332,6 +338,134 @@ describe("ChavesTeams", () => {
       await waitFor(() => {
         expect(screen.getByText("Final")).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("gerar / cancelar fase eliminatória", () => {
+    const semiVazia = criarConfrontoMock({
+      id: "semi-1",
+      fase: FaseEtapa.SEMIFINAL,
+      grupoId: undefined,
+      equipe1Id: "",
+      equipe1Nome: "",
+      equipe2Id: "",
+      equipe2Nome: "",
+      equipe1Origem: "1º Grupo A",
+      equipe2Origem: "2º Grupo B",
+    });
+
+    const abrirAbaEliminatoria = async () => {
+      await waitFor(() => expect(screen.getByText(/Eliminatória \(/)).toBeInTheDocument());
+      fireEvent.click(screen.getByText(/Eliminatória \(/));
+    };
+
+    beforeEach(() => {
+      mockListarEmpatesPendentes.mockResolvedValue([]);
+      mockBuscarEquipes.mockResolvedValue([criarEquipeMock({ grupoId: "A" })]);
+    });
+
+    it("deve gerar a eliminatória quando a fase de grupos terminou", async () => {
+      mockBuscarConfrontos.mockResolvedValue([
+        criarConfrontoMock({ status: StatusConfronto.FINALIZADO }),
+        semiVazia,
+      ]);
+      mockGerarFaseEliminatoria.mockResolvedValue(undefined);
+
+      render(<ChavesTeams etapaId="etapa-1" />);
+      await abrirAbaEliminatoria();
+
+      const botao = await screen.findByRole("button", { name: "Gerar Fase Eliminatória" });
+      expect(botao).not.toBeDisabled();
+      fireEvent.click(botao);
+
+      await waitFor(() =>
+        expect(mockGerarFaseEliminatoria).toHaveBeenCalledWith("etapa-1")
+      );
+    });
+
+    it("deve desabilitar o botão com confrontos de grupo pendentes", async () => {
+      mockBuscarConfrontos.mockResolvedValue([criarConfrontoMock(), semiVazia]);
+
+      render(<ChavesTeams etapaId="etapa-1" />);
+      await abrirAbaEliminatoria();
+
+      expect(
+        await screen.findByRole("button", { name: "Gerar Fase Eliminatória" })
+      ).toBeDisabled();
+    });
+
+    it("deve desabilitar o botão com empate pendente", async () => {
+      mockBuscarConfrontos.mockResolvedValue([
+        criarConfrontoMock({ status: StatusConfronto.FINALIZADO }),
+        semiVazia,
+      ]);
+      mockListarEmpatesPendentes.mockResolvedValue([
+        {
+          grupoId: "A",
+          grupoNome: "Grupo A",
+          posicaoInicial: 1,
+          participantes: [
+            { id: "e1", nome: "E1" },
+            { id: "e2", nome: "E2" },
+            { id: "e3", nome: "E3" },
+          ],
+        },
+      ]);
+
+      // etapaId próprio: em etapa já carregada, o modal abriria sozinho (empate novo)
+      render(<ChavesTeams etapaId="etapa-empate" />);
+      await abrirAbaEliminatoria();
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Gerar Fase Eliminatória" })
+        ).toBeDisabled()
+      );
+      expect(screen.getByText(/Resolva o empate indicado acima/)).toBeInTheDocument();
+    });
+
+    it("permite cancelar mesmo com resultados no mata-mata", async () => {
+      mockBuscarConfrontos.mockResolvedValue([
+        criarConfrontoMock({ status: StatusConfronto.FINALIZADO }),
+        {
+          ...semiVazia,
+          equipe1Id: "equipe-1",
+          equipe1Nome: "Equipe Alpha",
+          equipe2Id: "equipe-2",
+          equipe2Nome: "Equipe Beta",
+          status: StatusConfronto.FINALIZADO,
+          partidasFinalizadas: 2,
+        },
+      ]);
+
+      render(<ChavesTeams etapaId="etapa-1" />);
+      await abrirAbaEliminatoria();
+
+      expect(
+        await screen.findByRole("button", { name: "Cancelar Eliminatória" })
+      ).toBeInTheDocument();
+    });
+
+    it("com a eliminatória gerada: permite cancelar e trava a edição dos grupos", async () => {
+      mockBuscarConfrontos.mockResolvedValue([
+        criarConfrontoMock({ status: StatusConfronto.FINALIZADO }),
+        { ...semiVazia, equipe1Id: "equipe-1", equipe1Nome: "Equipe Alpha", equipe2Id: "equipe-2", equipe2Nome: "Equipe Beta" },
+      ]);
+      mockCancelarFaseEliminatoria.mockResolvedValue(undefined);
+
+      render(<ChavesTeams etapaId="etapa-1" />);
+
+      // Fase de grupos: sem botão "Editar"
+      await waitFor(() => expect(screen.getByText(/Fase de Grupos/)).toBeInTheDocument());
+      expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+
+      await abrirAbaEliminatoria();
+      fireEvent.click(await screen.findByRole("button", { name: "Cancelar Eliminatória" }));
+      fireEvent.click(screen.getByText("Confirmar Encerrar")); // mock do ConfirmacaoPerigosa
+
+      await waitFor(() =>
+        expect(mockCancelarFaseEliminatoria).toHaveBeenCalledWith("etapa-1")
+      );
     });
   });
 

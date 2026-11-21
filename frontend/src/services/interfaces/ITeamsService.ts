@@ -120,6 +120,8 @@ export interface ITeamsService {
    * Resetar partidas TEAMS (mantém equipes e confrontos, remove partidas e resultados)
    */
   resetarPartidas(etapaId: string): Promise<void>;
+  gerarFaseEliminatoria(etapaId: string): Promise<void>;
+  cancelarFaseEliminatoria(etapaId: string): Promise<void>;
 
   // ============================================
   // CLASSIFICACAO

@@ -56,12 +56,15 @@ interface FaseEliminatoriaProps {
   arenaId: string;
   grupos: Grupo[];
   melhorDe3?: boolean;
+  // Empate pendente nos grupos: bloqueia gerar/encerrar
+  bloqueadoPorEmpate?: boolean;
 }
 
 export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
   etapaId,
   grupos,
   melhorDe3 = false,
+  bloqueadoPorEmpate = false,
 }) => {
   const [modalCancelarAberto, setModalCancelarAberto] = useState(false);
   const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
@@ -129,6 +132,7 @@ export const FaseEliminatoria: React.FC<FaseEliminatoriaProps> = ({
           loading={loading}
           onGerarEliminatoria={gerarEliminatoria}
           onEncerrarEtapa={encerrarEtapa}
+          bloqueadoPorEmpate={bloqueadoPorEmpate}
         />
         <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
       </>

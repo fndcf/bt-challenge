@@ -95,6 +95,35 @@ export interface Etapa {
   finalizadoEm?: string;
 }
 
+/**
+ * Desempate de posições nos grupos (empate em todos os critérios)
+ */
+export interface ParticipanteEmpate {
+  id: string; // duplaId (Dupla Fixa), jogadorId (Rei da Praia/Super X) ou equipeId (Teams)
+  nome: string;
+}
+
+export interface EmpatePendente {
+  grupoId: string;
+  grupoNome: string;
+  posicaoInicial: number; // Primeira posição disputada (ex: 2 = disputa 2º e 3º)
+  participantes: ParticipanteEmpate[];
+  contexto?: string; // Explicação extra (ex: ranking entre grupos que define as duplas)
+}
+
+export type ModoDesempate = "sorteio" | "manual";
+
+export interface ResolverEmpateDTO {
+  grupoId: string;
+  ids: string[]; // No modo manual, na ordem escolhida (do melhor para o pior)
+  modo: ModoDesempate;
+}
+
+export interface ResultadoDesempate {
+  modo: ModoDesempate;
+  participantes: ParticipanteEmpate[]; // Ordem final
+}
+
 export interface CriarEtapaDTO {
   nome: string;
   descricao?: string;

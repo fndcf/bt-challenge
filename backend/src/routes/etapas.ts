@@ -168,6 +168,22 @@ router.post("/:id/encerrar", (req, res) =>
   etapaController.encerrarEtapa(req, res)
 );
 
+/**
+ * @route   GET /api/etapas/:id/empates-pendentes
+ * @desc    Listar empates nos grupos aguardando decisão do admin
+ */
+router.get("/:id/empates-pendentes", (req, res) =>
+  etapaController.listarEmpatesPendentes(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/desempate
+ * @desc    Resolver empate de um grupo (sorteio ou ordem manual)
+ */
+router.post("/:id/desempate", (req, res) =>
+  etapaController.resolverEmpate(req, res)
+);
+
 // ==================== REI DA PRAIA ====================
 
 /**
@@ -396,6 +412,22 @@ router.delete("/:id/teams/cancelar", (req, res) =>
  */
 router.delete("/:id/teams/resetar-partidas", (req, res) =>
   etapaController.resetarPartidasTeams(req, res)
+);
+
+/**
+ * @route   POST /api/etapas/:id/teams/fase-eliminatoria
+ * @desc    Gerar fase eliminatória TEAMS (preenche as vagas com os classificados)
+ */
+router.post("/:id/teams/fase-eliminatoria", (req, res) =>
+  etapaController.gerarFaseEliminatoriaTeams(req, res)
+);
+
+/**
+ * @route   DELETE /api/etapas/:id/teams/fase-eliminatoria
+ * @desc    Cancelar fase eliminatória TEAMS (esvazia as vagas)
+ */
+router.delete("/:id/teams/fase-eliminatoria", (req, res) =>
+  etapaController.cancelarFaseEliminatoriaTeams(req, res)
 );
 
 // ==================== SUBSTITUIÇÃO DE JOGADOR ====================

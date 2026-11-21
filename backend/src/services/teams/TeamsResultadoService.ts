@@ -16,6 +16,7 @@ import {
   SetPlacarTeams,
   RegistrarResultadoTeamsDTO,
   TipoJogoTeams,
+  StatusConfronto,
 } from "../../models/Teams";
 import { Etapa, FaseEtapa } from "../../models/Etapa";
 import { StatusPartida } from "../../models/Partida";
@@ -31,6 +32,7 @@ import { EstatisticasJogadorService } from "../EstatisticasJogadorService";
 import { validarEDeterminarVencedorPlacar } from "../../utils/placarSets";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
+import { isEliminatoriaPreenchida } from "./TeamsClassificacaoService";
 
 // Forward declaration - will be injected
 interface ITeamsPartidaService {
@@ -117,21 +119,31 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     }
 
     // Buscar confronto e partidas em paralelo
-    const [confronto, partidasConfronto] = await Promise.all([
+    const [confrontoAtual, partidasConfronto] = await Promise.all([
       this.confrontoRepository.buscarPorId(partida.confrontoId),
       this.partidaRepository.buscarPorConfrontoOrdenadas(partida.confrontoId),
     ]);
-    if (!confronto) {
+    if (!confrontoAtual) {
       throw new NotFoundError("Confronto não encontrado");
+    }
+    let confronto = confrontoAtual;
+
+    if (confronto.fase === FaseEtapa.GRUPOS) {
+      await this.garantirFaseGruposEditavel(
+        confronto.etapaId,
+        confronto.arenaId
+      );
     }
 
     // Calcular resultado
     const { setsDupla1, setsDupla2, vencedoraEquipeId, vencedoraEquipeNome } =
       this.calcularResultadoPartida(dto.placar, partida, confronto);
 
-    // Se já tinha resultado, reverter estatísticas
+    // Se já tinha resultado, reverter estatísticas (e a finalização do confronto)
     if (partida.status === StatusPartida.FINALIZADA) {
-      await this.reverterEstatisticasPartida(partida);
+      await this.garantirProximoConfrontoEditavel(confronto);
+      await this.reverterEstatisticasPartida(partida, confronto);
+      confronto = await this.reverterFinalizacaoConfronto(confronto);
     }
 
     // Registrar resultado
@@ -335,6 +347,12 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       }
     }
 
+    if (
+      Array.from(confrontosMap.values()).some((c) => c.fase === FaseEtapa.GRUPOS)
+    ) {
+      await this.garantirFaseGruposEditavel(etapaId, arenaId);
+    }
+
     // Processar cada confronto
     for (const [confrontoId, partidasDoConfronto] of resultadosPorConfronto) {
       const confronto = confrontosMap.get(confrontoId);
@@ -377,7 +395,39 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     return { processados, erros, confrontosFinalizados };
   }
 
+  /**
+   * Desfaz as estatísticas de todas as partidas finalizadas de um confronto
+   * (usado ao cancelar a fase eliminatória com resultados lançados)
+   */
+  async reverterResultadosConfronto(confronto: ConfrontoEquipe): Promise<void> {
+    const partidas = await this.partidaRepository.buscarPorConfronto(
+      confronto.id
+    );
+    for (const partida of partidas) {
+      await this.reverterEstatisticasPartida(partida, confronto);
+    }
+  }
+
   // ==================== MÉTODOS PRIVADOS ====================
+
+  /**
+   * Resultados da fase de grupos não podem mudar depois de gerar a
+   * eliminatória (as vagas já foram preenchidas com a classificação)
+   */
+  private async garantirFaseGruposEditavel(
+    etapaId: string,
+    arenaId: string
+  ): Promise<void> {
+    const confrontos = await this.confrontoRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
+    if (isEliminatoriaPreenchida(confrontos)) {
+      throw new Error(
+        "Não é possível editar resultados da fase de grupos após gerar a fase eliminatória. Cancele a eliminatória primeiro."
+      );
+    }
+  }
 
   private calcularResultadoPartida(
     placar: SetPlacarTeams[],
@@ -529,10 +579,142 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     ]);
   }
 
+  /**
+   * Desfaz as estatísticas (jogadores e equipes) do resultado anterior de
+   * uma partida que está sendo editada, para o novo resultado não somar
+   * em cima do antigo
+   */
   private async reverterEstatisticasPartida(
-    _partida: PartidaTeams
+    partida: PartidaTeams,
+    confronto: ConfrontoEquipe
   ): Promise<void> {
-    // Implementar reversão se necessário para edição de resultado
+    if (
+      partida.status !== StatusPartida.FINALIZADA ||
+      !partida.placar ||
+      partida.placar.length === 0 ||
+      !partida.vencedoraEquipeId
+    ) {
+      return;
+    }
+
+    let gamesDupla1 = 0;
+    let gamesDupla2 = 0;
+    for (const set of partida.placar) {
+      gamesDupla1 += set.gamesDupla1;
+      gamesDupla2 += set.gamesDupla2;
+    }
+    const setsDupla1 = partida.placar.filter(
+      (s) => s.gamesDupla1 > s.gamesDupla2
+    ).length;
+    const setsDupla2 = partida.placar.filter(
+      (s) => s.gamesDupla2 > s.gamesDupla1
+    ).length;
+
+    const equipe1Id = partida.equipe1Id || confronto.equipe1Id;
+    const equipe2Id = partida.equipe2Id || confronto.equipe2Id;
+    const dupla1Venceu = partida.vencedoraEquipeId === equipe1Id;
+
+    // Jogadores
+    const estatisticasMap =
+      await this.estatisticasService.buscarPorJogadoresEtapa(
+        [...partida.dupla1, ...partida.dupla2].map((j) => j.id),
+        partida.etapaId
+      );
+    const reversoes = [
+      ...partida.dupla1.map((j) => ({
+        estatisticaId: estatisticasMap.get(j.id)?.id || "",
+        dto: {
+          venceu: dupla1Venceu,
+          setsVencidos: setsDupla1,
+          setsPerdidos: setsDupla2,
+          gamesVencidos: gamesDupla1,
+          gamesPerdidos: gamesDupla2,
+        },
+      })),
+      ...partida.dupla2.map((j) => ({
+        estatisticaId: estatisticasMap.get(j.id)?.id || "",
+        dto: {
+          venceu: !dupla1Venceu,
+          setsVencidos: setsDupla2,
+          setsPerdidos: setsDupla1,
+          gamesVencidos: gamesDupla2,
+          gamesPerdidos: gamesDupla1,
+        },
+      })),
+    ].filter((r) => r.estatisticaId);
+
+    if (reversoes.length > 0) {
+      await this.estatisticasService.reverterAposPartidaComIncrement(reversoes);
+    }
+
+    // Equipes (incrementos negativos)
+    if (equipe1Id && equipe2Id) {
+      await this.equipeRepository.incrementarEstatisticasEmLote([
+        {
+          id: equipe1Id,
+          incrementos: {
+            jogosVencidos: dupla1Venceu ? -1 : 0,
+            jogosPerdidos: dupla1Venceu ? 0 : -1,
+            gamesVencidos: -gamesDupla1,
+            gamesPerdidos: -gamesDupla2,
+          },
+        },
+        {
+          id: equipe2Id,
+          incrementos: {
+            jogosVencidos: dupla1Venceu ? 0 : -1,
+            jogosPerdidos: dupla1Venceu ? -1 : 0,
+            gamesVencidos: -gamesDupla2,
+            gamesPerdidos: -gamesDupla1,
+          },
+        },
+      ]);
+    }
+  }
+
+  /**
+   * Desfaz a finalização de um confronto que está sendo editado
+   * (grupos: vitória/derrota/pontos; mata-mata: vencedor que avançou).
+   * Tudo é aplicado de novo se ele finalizar outra vez.
+   *
+   * @returns Confronto com o estado "não finalizado"
+   */
+  private async reverterFinalizacaoConfronto(
+    confronto: ConfrontoEquipe
+  ): Promise<ConfrontoEquipe> {
+    if (
+      confronto.status !== StatusConfronto.FINALIZADO ||
+      !confronto.vencedoraId
+    ) {
+      return confronto;
+    }
+
+    if (confronto.fase !== FaseEtapa.GRUPOS) {
+      await this.liberarVagaNoProximoConfronto(confronto);
+    } else {
+      const perdedoraId =
+        confronto.vencedoraId === confronto.equipe1Id
+          ? confronto.equipe2Id
+          : confronto.equipe1Id;
+
+      await this.equipeRepository.incrementarEstatisticasEmLote([
+        {
+          id: confronto.vencedoraId,
+          incrementos: { confrontos: -1, vitorias: -1, pontos: -3 },
+        },
+        {
+          id: perdedoraId,
+          incrementos: { confrontos: -1, derrotas: -1 },
+        },
+      ]);
+    }
+
+    await this.confrontoRepository.atualizarStatus(
+      confronto.id,
+      StatusConfronto.EM_ANDAMENTO
+    );
+
+    return { ...confronto, status: StatusConfronto.EM_ANDAMENTO };
   }
 
   private async verificarPrecisaDecider(
@@ -623,31 +805,11 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         ]),
       ]);
 
+      // A eliminatória é gerada pelo admin (TeamsClassificacaoService.gerarFaseEliminatoria)
       if (this.classificacaoService) {
         await this.classificacaoService.recalcularClassificacao(
           confronto.etapaId,
           confronto.arenaId
-        );
-
-        await this.classificacaoService.verificarEPreencherFaseEliminatoria(
-          confronto.etapaId,
-          confronto.arenaId
-        );
-      }
-    } else if (confronto.fase === FaseEtapa.SEMIFINAL) {
-      await this.confrontoRepository.registrarResultado(
-        confronto.id,
-        confronto.jogosEquipe1,
-        confronto.jogosEquipe2,
-        vencedoraId,
-        vencedoraNome
-      );
-
-      if (this.classificacaoService) {
-        await this.classificacaoService.preencherProximoConfronto(
-          confronto,
-          vencedoraId,
-          vencedoraNome
         );
       }
     } else {
@@ -658,7 +820,74 @@ export class TeamsResultadoService implements ITeamsResultadoService {
         vencedoraId,
         vencedoraNome
       );
+
+      // Oitavas, quartas e semifinal levam o vencedor à fase seguinte
+      // (a final não tem próximo confronto)
+      if (this.classificacaoService) {
+        await this.classificacaoService.preencherProximoConfronto(
+          confronto,
+          vencedoraId,
+          vencedoraNome
+        );
+      }
     }
+  }
+
+  /**
+   * Editar um confronto do mata-mata já finalizado pode trocar o vencedor
+   * que avançou; só é permitido enquanto a fase seguinte não tem resultado
+   */
+  private async garantirProximoConfrontoEditavel(
+    confronto: ConfrontoEquipe
+  ): Promise<void> {
+    if (
+      confronto.fase === FaseEtapa.GRUPOS ||
+      confronto.status !== StatusConfronto.FINALIZADO ||
+      !confronto.proximoConfrontoId
+    ) {
+      return;
+    }
+
+    const proximo = await this.confrontoRepository.buscarPorId(
+      confronto.proximoConfrontoId
+    );
+    if (
+      proximo &&
+      (proximo.status === StatusConfronto.FINALIZADO ||
+        (proximo.partidasFinalizadas || 0) > 0)
+    ) {
+      throw new Error(
+        "Não é possível editar este confronto: a fase seguinte já tem resultado lançado. Edite primeiro o confronto seguinte."
+      );
+    }
+  }
+
+  /**
+   * Tira do próximo confronto o vencedor que tinha avançado (edição de
+   * resultado no mata-mata). As partidas já geradas lá usam os jogadores
+   * dessa equipe, então são apagadas e geradas de novo depois.
+   */
+  private async liberarVagaNoProximoConfronto(
+    confronto: ConfrontoEquipe
+  ): Promise<void> {
+    if (!confronto.proximoConfrontoId || !confronto.vencedoraId) return;
+
+    const proximo = await this.confrontoRepository.buscarPorId(
+      confronto.proximoConfrontoId
+    );
+    if (!proximo) return;
+
+    const vaga =
+      proximo.equipe1Id === confronto.vencedoraId
+        ? { equipe1Id: "", equipe1Nome: "" }
+        : proximo.equipe2Id === confronto.vencedoraId
+          ? { equipe2Id: "", equipe2Nome: "" }
+          : null;
+    if (!vaga) return;
+
+    await this.partidaRepository.deletarPorConfronto(proximo.id);
+    await this.confrontoRepository.resetarConfronto(proximo.id);
+    await this.confrontoRepository.atualizar(proximo.id, vaga);
   }
 
   private async processarResultadosConfronto(
@@ -668,6 +897,20 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       placar: SetPlacarTeams[];
     }>
   ): Promise<{ confrontoFinalizado: boolean }> {
+    // Edição: desfazer o resultado anterior antes de aplicar o novo
+    const edicoes = partidasComPlacar.filter(
+      ({ partida }) => partida.status === StatusPartida.FINALIZADA
+    );
+    if (edicoes.length > 0) {
+      await this.garantirProximoConfrontoEditavel(confronto);
+    }
+    for (const { partida } of edicoes) {
+      await this.reverterEstatisticasPartida(partida, confronto);
+    }
+    if (edicoes.length > 0) {
+      confronto = await this.reverterFinalizacaoConfronto(confronto);
+    }
+
     const atualizacoesJogadores: Array<{
       estatisticaId: string;
       dto: {

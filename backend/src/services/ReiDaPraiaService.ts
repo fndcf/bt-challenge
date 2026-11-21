@@ -51,6 +51,14 @@ import { PartidaRepository } from "../repositories/firebase/PartidaRepository";
 // Services auxiliares
 import cabecaDeChaveService from "./CabecaDeChaveService";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
+import desempateService, { DesempateService } from "./DesempateService";
+import {
+  BlocoEmpatado,
+  RANKING_PRIMEIROS,
+  RANKING_SEGUNDOS,
+  isRankingEliminatoria,
+  listarEmpatesPendentes,
+} from "../utils/desempate";
 
 /**
  * Usa injeção de dependência para repositories
@@ -64,7 +72,8 @@ export class ReiDaPraiaService {
     private confrontoRepository: IConfrontoEliminatorioRepository,
     private partidaReiDaPraiaRepository: IPartidaReiDaPraiaRepository,
     private estatisticasJogadorRepository: IEstatisticasJogadorRepository,
-    private partidaRepository: IPartidaRepository
+    private partidaRepository: IPartidaRepository,
+    private desempate: DesempateService = desempateService
   ) {}
 
   /**
@@ -767,6 +776,18 @@ export class ReiDaPraiaService {
       );
       await Promise.all(recalcPromises);
 
+      // Com a classificação dos grupos atualizada, reavaliar o ranking entre
+      // grupos (depois de todos os grupos, para não calcular com dados parciais)
+      try {
+        await this.atualizarEmpatesEntreGrupos(etapaId, arenaId);
+      } catch (error: any) {
+        logger.error(
+          "Erro ao atualizar empates entre grupos Rei da Praia",
+          { etapaId },
+          error
+        );
+      }
+
       return {
         message:
           erros.length === 0
@@ -863,29 +884,41 @@ export class ReiDaPraiaService {
    * Pontos (vitórias * 3)
    * Saldo de games
    * Games vencidos
-   * Sorteio
+   * Decisão do admin (sorteio ou manual) — ver DesempateService
    */
-  private async recalcularClassificacaoGrupo(
+  async recalcularClassificacaoGrupo(
     grupoId: string,
     etapaId: string
   ): Promise<void> {
-    const jogadores = await estatisticasJogadorService.buscarPorGrupo(grupoId);
+    const [jogadores, partidasFinalizadas] = await Promise.all([
+      estatisticasJogadorService.buscarPorGrupo(grupoId),
+      this.partidaReiDaPraiaRepository.contarFinalizadasPorGrupo(grupoId),
+    ]);
+    const completo = partidasFinalizadas === 3;
 
-    const jogadoresOrdenados = [...jogadores].sort((a, b) => {
-      if (a.pontosGrupo !== b.pontosGrupo) {
-        return b.pontosGrupo - a.pontosGrupo;
-      }
-      if (a.vitoriasGrupo !== b.vitoriasGrupo) {
-        return b.vitoriasGrupo - a.vitoriasGrupo;
-      }
-      if (a.saldoGamesGrupo !== b.saldoGamesGrupo) {
-        return b.saldoGamesGrupo - a.saldoGamesGrupo;
-      }
-      if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
-        return b.gamesVencidosGrupo - a.gamesVencidosGrupo;
-      }
-      // Sorteio como último critério
-      return Math.random() - 0.5;
+    const jogadoresOrdenados = await this.desempate.classificarGrupo({
+      etapaId,
+      grupoId,
+      grupoNome: jogadores[0]?.grupoNome || "Grupo",
+      itens: jogadores,
+      comparar: (a, b) => {
+        if (a.pontosGrupo !== b.pontosGrupo) {
+          return b.pontosGrupo - a.pontosGrupo;
+        }
+        if (a.vitoriasGrupo !== b.vitoriasGrupo) {
+          return b.vitoriasGrupo - a.vitoriasGrupo;
+        }
+        if (a.saldoGamesGrupo !== b.saldoGamesGrupo) {
+          return b.saldoGamesGrupo - a.saldoGamesGrupo;
+        }
+        if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo) {
+          return b.gamesVencidosGrupo - a.gamesVencidosGrupo;
+        }
+        return 0;
+      },
+      getId: (j) => j.jogadorId,
+      getNome: (j) => j.jogadorNome,
+      grupoCompleto: completo,
     });
 
     // Atualizar posição de cada jogador
@@ -897,11 +930,6 @@ export class ReiDaPraiaService {
       )
     );
     await Promise.all(atualizacoesPosicao);
-
-    // Verificar se grupo está completo e atualizar em paralelo
-    const partidasFinalizadas =
-      await this.partidaReiDaPraiaRepository.contarFinalizadasPorGrupo(grupoId);
-    const completo = partidasFinalizadas === 3;
 
     // Usar repository para marcar grupo como completo - em paralelo
     await Promise.all([
@@ -967,6 +995,13 @@ export class ReiDaPraiaService {
         );
       }
 
+      // Empates dentro dos grupos primeiro: eles definem quem é 1º e 2º
+      await this.desempate.garantirSemEmpatesPendentes(
+        etapaId,
+        "gerar a fase eliminatória",
+        (empate) => !isRankingEliminatoria(empate.grupoId)
+      );
+
       // Buscar classificados de cada grupo
       const todosClassificados: EstatisticasJogador[] = [];
 
@@ -989,6 +1024,15 @@ export class ReiDaPraiaService {
         );
       }
 
+      // Ordenar 1ºs e 2ºs entre grupos (bloqueia se houver empate pendente)
+      const { primeiros, segundos } =
+        await this.ordenarClassificadosEntreGrupos(
+          etapaId,
+          todosClassificados,
+          grupos.length,
+          tipoChaveamento
+        );
+
       // Marcar jogadores como classificados
       const jogadoresParaMarcar = todosClassificados.map((j) => ({
         jogadorId: j.jogadorId,
@@ -1007,9 +1051,9 @@ export class ReiDaPraiaService {
           duplas = await this.formarDuplasMelhoresComMelhores(
             etapaId,
             arenaId,
-            todosClassificados,
-            grupos.length,
-            classificadosPorGrupo
+            primeiros,
+            segundos,
+            grupos.length
           );
           break;
 
@@ -1017,9 +1061,9 @@ export class ReiDaPraiaService {
           duplas = await this.formarDuplasPareamentoPorRanking(
             etapaId,
             arenaId,
-            todosClassificados,
-            grupos.length,
-            classificadosPorGrupo
+            primeiros,
+            segundos,
+            grupos.length
           );
           break;
 
@@ -1064,49 +1108,246 @@ export class ReiDaPraiaService {
   }
 
   /**
+   * Atualizar empates do ranking entre grupos (1ºs e 2ºs colocados)
+   *
+   * Chamado sempre que a classificação de um grupo muda. Com todos os grupos
+   * encerrados e sem empate pendente dentro deles, já avisa o admin dos
+   * empates que mudariam as duplas da eliminatória; senão, limpa o aviso
+   * (ex: o admin editou um resultado e o empate deixou de existir).
+   */
+  async atualizarEmpatesEntreGrupos(
+    etapaId: string,
+    arenaId: string
+  ): Promise<void> {
+    const etapa = await this.etapaRepository.buscarPorIdEArena(etapaId, arenaId);
+    if (!etapa || etapa.status === StatusEtapa.FASE_ELIMINATORIA) {
+      return;
+    }
+
+    const grupos = await this.grupoRepository.buscarPorEtapa(etapaId, arenaId);
+    const temEmpateNosGrupos = listarEmpatesPendentes(etapa).some(
+      (empate) => !isRankingEliminatoria(empate.grupoId)
+    );
+    const gruposProntos =
+      grupos.length > 1 && grupos.every((g) => g.completo) && !temEmpateNosGrupos;
+
+    if (!gruposProntos) {
+      const temAvisoDoRanking =
+        !!etapa.empatesPendentes?.[RANKING_PRIMEIROS] ||
+        !!etapa.empatesPendentes?.[RANKING_SEGUNDOS];
+      if (temAvisoDoRanking) {
+        await this.desempate.limparGrupos(etapaId, [
+          RANKING_PRIMEIROS,
+          RANKING_SEGUNDOS,
+        ]);
+      }
+      return;
+    }
+
+    const classificados = (
+      await Promise.all(
+        grupos.map((g) => estatisticasJogadorService.buscarClassificados(g.id, 2))
+      )
+    ).flat() as unknown as EstatisticasJogador[];
+
+    await this.classificarRankingEntreGrupos(
+      etapaId,
+      classificados,
+      grupos.length,
+      (etapa.tipoChaveamento as unknown as TipoChaveamentoReiDaPraia) ||
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+    );
+  }
+
+  /**
+   * Ordenar 1ºs e 2ºs colocados entre grupos para formar as duplas
+   * (lança erro enquanto houver empate pendente)
+   */
+  private async ordenarClassificadosEntreGrupos(
+    etapaId: string,
+    classificados: EstatisticasJogador[],
+    totalGrupos: number,
+    tipoChaveamento: TipoChaveamentoReiDaPraia
+  ): Promise<{
+    primeiros: EstatisticasJogador[];
+    segundos: EstatisticasJogador[];
+  }> {
+    const ordenados = await this.classificarRankingEntreGrupos(
+      etapaId,
+      classificados,
+      totalGrupos,
+      tipoChaveamento
+    );
+
+    await this.desempate.garantirSemEmpatesPendentes(
+      etapaId,
+      "gerar a fase eliminatória"
+    );
+
+    return ordenados;
+  }
+
+  /**
+   * Classificar 1ºs e 2ºs colocados entre grupos
+   *
+   * Empates em todos os critérios que mudam alguma dupla (composição e,
+   * por consequência, o seeding) viram pendência para o admin decidir
+   * (sorteio ou manual); os demais ficam em ordem estável.
+   */
+  private async classificarRankingEntreGrupos(
+    etapaId: string,
+    classificados: EstatisticasJogador[],
+    totalGrupos: number,
+    tipoChaveamento: TipoChaveamentoReiDaPraia
+  ): Promise<{
+    primeiros: EstatisticasJogador[];
+    segundos: EstatisticasJogador[];
+  }> {
+    const primeiros = classificados.filter((j) => j.posicaoGrupo === 1);
+    const segundos = classificados.filter((j) => j.posicaoGrupo === 2);
+
+    if (tipoChaveamento === TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO) {
+      // Ordem não importa: limpar pendências de uma tentativa anterior
+      await this.desempate.limparGrupos(etapaId, [
+        RANKING_PRIMEIROS,
+        RANKING_SEGUNDOS,
+      ]);
+      return { primeiros, segundos };
+    }
+
+    const isMelhoresComMelhores =
+      tipoChaveamento === TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES;
+
+    // "Vaga" = dupla que cada posição do ranking ocupa. O empate só importa
+    // se os empatados caem em duplas diferentes.
+    const numParesFortes = Math.floor(totalGrupos / 2);
+    const vagaPrimeiro = (i: number): number | string => {
+      if (!isMelhoresComMelhores) return i;
+      return i < numParesFortes * 2 ? Math.floor(i / 2) : "equilibrada";
+    };
+    const vagaSegundo = (i: number): number | string => {
+      if (!isMelhoresComMelhores) return i;
+      if (totalGrupos % 2 === 0) return Math.floor(i / 2);
+      return i === 0 ? "equilibrada" : Math.floor((i - 1) / 2);
+    };
+    const empateMudaDupla =
+      (vaga: (i: number) => number | string) => (empate: BlocoEmpatado) =>
+        new Set(empate.ids.map((_, k) => vaga(empate.posicaoInicial - 1 + k)))
+          .size > 1;
+
+    const contexto = (colocacao: string) =>
+      isMelhoresComMelhores
+        ? `Esta ordem define as duplas da eliminatória (Melhores com Melhores): os ${colocacao} colocados formam duplas entre si — 1º com 2º, 3º com 4º, e assim por diante.`
+        : "Esta ordem define as duplas da eliminatória (Pareamento por Ranking): o melhor 1º colocado joga com o melhor 2º colocado, o segundo melhor com o segundo melhor, e assim por diante.";
+
+    const parametrosComuns = {
+      etapaId,
+      comparar: isMelhoresComMelhores
+        ? this.compararParaMelhoresComMelhores
+        : this.compararParaPareamentoPorRanking,
+      getId: (j: EstatisticasJogador) => j.jogadorId,
+      getNome: (j: EstatisticasJogador) =>
+        j.grupoNome ? `${j.jogadorNome} (${j.grupoNome})` : j.jogadorNome,
+      grupoCompleto: true,
+    };
+
+    const [primeirosOrdenados, segundosOrdenados] = await Promise.all([
+      this.desempate.classificarGrupo({
+        ...parametrosComuns,
+        grupoId: RANKING_PRIMEIROS,
+        grupoNome: "Ranking dos 1º colocados",
+        itens: primeiros,
+        empateRelevante: empateMudaDupla(vagaPrimeiro),
+        contexto: contexto("1º"),
+      }),
+      this.desempate.classificarGrupo({
+        ...parametrosComuns,
+        grupoId: RANKING_SEGUNDOS,
+        grupoNome: "Ranking dos 2º colocados",
+        itens: segundos,
+        empateRelevante: empateMudaDupla(vagaSegundo),
+        contexto: contexto("2º"),
+      }),
+    ]);
+
+    return { primeiros: primeirosOrdenados, segundos: segundosOrdenados };
+  }
+
+  /**
+   * Critérios entre grupos para Melhores com Melhores (0 = empate em todos)
+   */
+  private compararParaMelhoresComMelhores(
+    a: EstatisticasJogador,
+    b: EstatisticasJogador
+  ): number {
+    const aPontos = a.pontosGrupo ?? 0;
+    const bPontos = b.pontosGrupo ?? 0;
+    const aVitorias = a.vitoriasGrupo ?? 0;
+    const bVitorias = b.vitoriasGrupo ?? 0;
+    const aSaldoGames = a.saldoGamesGrupo ?? 0;
+    const bSaldoGames = b.saldoGamesGrupo ?? 0;
+
+    if (aPontos !== bPontos) {
+      return bPontos - aPontos;
+    }
+    if (aVitorias !== bVitorias) {
+      return bVitorias - aVitorias;
+    }
+    if (aSaldoGames !== bSaldoGames) {
+      return bSaldoGames - aSaldoGames;
+    }
+    return 0;
+  }
+
+  /**
+   * Critérios entre grupos para Pareamento por Ranking (0 = empate em todos)
+   */
+  private compararParaPareamentoPorRanking(
+    a: EstatisticasJogador,
+    b: EstatisticasJogador
+  ): number {
+    const aPontos = a.pontosGrupo ?? 0;
+    const bPontos = b.pontosGrupo ?? 0;
+    const aVitorias = a.vitoriasGrupo ?? 0;
+    const bVitorias = b.vitoriasGrupo ?? 0;
+    const aSaldoGames = a.saldoGamesGrupo ?? 0;
+    const bSaldoGames = b.saldoGamesGrupo ?? 0;
+    const aGamesVencidos = a.gamesVencidosGrupo ?? 0;
+    const bGamesVencidos = b.gamesVencidosGrupo ?? 0;
+    const aSaldoSets = a.saldoSetsGrupo ?? 0;
+    const bSaldoSets = b.saldoSetsGrupo ?? 0;
+
+    if (aPontos !== bPontos) {
+      return bPontos - aPontos;
+    }
+    if (aVitorias !== bVitorias) {
+      return bVitorias - aVitorias;
+    }
+    if (aSaldoGames !== bSaldoGames) {
+      return bSaldoGames - aSaldoGames;
+    }
+    if (aGamesVencidos !== bGamesVencidos) {
+      return bGamesVencidos - aGamesVencidos;
+    }
+    if (aSaldoSets !== bSaldoSets) {
+      return bSaldoSets - aSaldoSets;
+    }
+    return 0;
+  }
+
+  /**
    * OPÇÃO 1: Melhores com Melhores
+   *
+   * @param primeiros - 1ºs colocados já ordenados (ordenarClassificadosEntreGrupos)
+   * @param segundos - 2ºs colocados já ordenados
    */
   private async formarDuplasMelhoresComMelhores(
     etapaId: string,
     arenaId: string,
-    classificados: EstatisticasJogador[],
-    totalGrupos: number,
-    _classificadosPorGrupo: number
+    primeiros: EstatisticasJogador[],
+    segundos: EstatisticasJogador[],
+    totalGrupos: number
   ): Promise<Dupla[]> {
-    const primeiros: EstatisticasJogador[] = [];
-    const segundos: EstatisticasJogador[] = [];
-
-    for (const jogador of classificados) {
-      if (jogador.posicaoGrupo === 1) {
-        primeiros.push(jogador);
-      } else if (jogador.posicaoGrupo === 2) {
-        segundos.push(jogador);
-      }
-    }
-
-    const ordenar = (a: EstatisticasJogador, b: EstatisticasJogador) => {
-      const aPontos = a.pontosGrupo ?? 0;
-      const bPontos = b.pontosGrupo ?? 0;
-      const aVitorias = a.vitoriasGrupo ?? 0;
-      const bVitorias = b.vitoriasGrupo ?? 0;
-      const aSaldoGames = a.saldoGamesGrupo ?? 0;
-      const bSaldoGames = b.saldoGamesGrupo ?? 0;
-
-      if (aPontos !== bPontos) {
-        return bPontos - aPontos;
-      }
-      if (aVitorias !== bVitorias) {
-        return bVitorias - aVitorias;
-      }
-      if (aSaldoGames !== bSaldoGames) {
-        return bSaldoGames - aSaldoGames;
-      }
-      return Math.random() - 0.5;
-    };
-
-    primeiros.sort(ordenar);
-    segundos.sort(ordenar);
-
     // Coletar todos os pares primeiro (sem criar no banco)
     const paresParaCriar: Array<{
       jogador1: EstatisticasJogador;
@@ -1193,63 +1434,22 @@ export class ReiDaPraiaService {
 
   /**
    * OPÇÃO 2: Pareamento por Ranking (Cruzado)
+   *
+   * @param primeiros - 1ºs colocados já ordenados (ordenarClassificadosEntreGrupos)
+   * @param segundos - 2ºs colocados já ordenados
    */
   private async formarDuplasPareamentoPorRanking(
     etapaId: string,
     arenaId: string,
-    classificados: EstatisticasJogador[],
-    totalGrupos: number,
-    _classificadosPorGrupo: number
+    primeiros: EstatisticasJogador[],
+    segundos: EstatisticasJogador[],
+    totalGrupos: number
   ): Promise<Dupla[]> {
     logger.info("Formando duplas por pareamento por ranking cruzado", {
       etapaId,
-      totalClassificados: classificados.length,
+      totalClassificados: primeiros.length + segundos.length,
       totalGrupos,
     });
-
-    const primeiros: EstatisticasJogador[] = [];
-    const segundos: EstatisticasJogador[] = [];
-
-    for (const jogador of classificados) {
-      if (jogador.posicaoGrupo === 1) {
-        primeiros.push(jogador);
-      } else if (jogador.posicaoGrupo === 2) {
-        segundos.push(jogador);
-      }
-    }
-
-    const ordenar = (a: EstatisticasJogador, b: EstatisticasJogador) => {
-      const aPontos = a.pontosGrupo ?? 0;
-      const bPontos = b.pontosGrupo ?? 0;
-      const aVitorias = a.vitoriasGrupo ?? 0;
-      const bVitorias = b.vitoriasGrupo ?? 0;
-      const aSaldoGames = a.saldoGamesGrupo ?? 0;
-      const bSaldoGames = b.saldoGamesGrupo ?? 0;
-      const aGamesVencidos = a.gamesVencidosGrupo ?? 0;
-      const bGamesVencidos = b.gamesVencidosGrupo ?? 0;
-      const aSaldoSets = a.saldoSetsGrupo ?? 0;
-      const bSaldoSets = b.saldoSetsGrupo ?? 0;
-
-      if (aPontos !== bPontos) {
-        return bPontos - aPontos;
-      }
-      if (aVitorias !== bVitorias) {
-        return bVitorias - aVitorias;
-      }
-      if (aSaldoGames !== bSaldoGames) {
-        return bSaldoGames - aSaldoGames;
-      }
-      if (aGamesVencidos !== bGamesVencidos) {
-        return bGamesVencidos - aGamesVencidos;
-      }
-      if (aSaldoSets !== bSaldoSets) {
-        return bSaldoSets - aSaldoSets;
-      }
-      return Math.random() - 0.5;
-    };
-
-    primeiros.sort(ordenar);
-    segundos.sort(ordenar);
 
     // Coletar todos os pares primeiro
     const paresParaCriar = [];
@@ -1758,10 +1958,16 @@ export class ReiDaPraiaService {
         );
       }
 
-      // Excluir confrontos e duplas em paralelo
+      // Excluir confrontos, duplas e desempates entre grupos em paralelo
+      // (ao gerar de novo, o admin decide outra vez)
       await Promise.all([
         this.confrontoRepository.deletarPorEtapa(etapaId, arenaId),
         this.duplaRepository.deletarPorEtapa(etapaId, arenaId),
+        this.desempate.limparGrupos(
+          etapaId,
+          [RANKING_PRIMEIROS, RANKING_SEGUNDOS],
+          true
+        ),
       ]);
 
       // Buscar e desmarcar jogadores classificados

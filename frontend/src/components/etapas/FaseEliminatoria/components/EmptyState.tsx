@@ -20,7 +20,13 @@ interface EmptyStateProps {
   loading: boolean;
   onGerarEliminatoria: () => void;
   onEncerrarEtapa: () => void;
+  // Empate pendente nos grupos: gerar/encerrar ficam bloqueados até resolver
+  bloqueadoPorEmpate?: boolean;
 }
+
+const AvisoEmpate = () => (
+  <HintText>Resolva o empate indicado acima para liberar esta ação.</HintText>
+);
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   isGrupoUnico,
@@ -31,6 +37,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   loading,
   onGerarEliminatoria,
   onEncerrarEtapa,
+  bloqueadoPorEmpate = false,
 }) => {
   return (
     <EmptyStateCard>
@@ -86,11 +93,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                       <Button
                         $variant="warning"
                         onClick={onEncerrarEtapa}
-                        disabled={loading}
+                        disabled={loading || bloqueadoPorEmpate}
                       >
                         <span>Encerrar Etapa e Atribuir Pontos</span>
                       </Button>
                     </ButtonGroup>
+                    {bloqueadoPorEmpate && <AvisoEmpate />}
                   </>
                 )}
               </>
@@ -128,10 +136,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
               continuar o torneio.
             </p>
             <ButtonGroup>
-              <Button onClick={onGerarEliminatoria} disabled={loading}>
+              <Button
+                onClick={onGerarEliminatoria}
+                disabled={loading || bloqueadoPorEmpate}
+              >
                 Gerar Fase Eliminatória
               </Button>
             </ButtonGroup>
+            {bloqueadoPorEmpate && <AvisoEmpate />}
           </>
         )}
       </EmptyStateContent>

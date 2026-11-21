@@ -46,6 +46,11 @@ import {
   createMockPartidaRepository,
   createMockGrupoRepository,
 } from "../mocks/repositories";
+import {
+  createMockDesempateService,
+  comoDesempateService,
+  MockDesempateService,
+} from "../mocks/desempateService";
 import estatisticasJogadorService from "../../services/EstatisticasJogadorService";
 import {
   createDuplaFixture,
@@ -58,6 +63,7 @@ describe("ClassificacaoService", () => {
   let mockDuplaRepository: ReturnType<typeof createMockDuplaRepository>;
   let mockPartidaRepository: ReturnType<typeof createMockPartidaRepository>;
   let mockGrupoRepository: ReturnType<typeof createMockGrupoRepository>;
+  let mockDesempate: MockDesempateService;
   let classificacaoService: ClassificacaoService;
 
   beforeEach(() => {
@@ -66,11 +72,13 @@ describe("ClassificacaoService", () => {
     mockDuplaRepository = createMockDuplaRepository();
     mockPartidaRepository = createMockPartidaRepository();
     mockGrupoRepository = createMockGrupoRepository();
+    mockDesempate = createMockDesempateService();
 
     classificacaoService = new ClassificacaoService(
       mockDuplaRepository,
       mockPartidaRepository,
-      mockGrupoRepository
+      mockGrupoRepository,
+      comoDesempateService(mockDesempate)
     );
   });
 
@@ -415,7 +423,7 @@ describe("ClassificacaoService", () => {
       );
     });
 
-    it("deve usar sorteio quando confronto direto não existe e games vencidos iguais", async () => {
+    it("não deve sortear automaticamente: empate total vai para decisão do admin", async () => {
       const duplas = [
         createDuplaFixture({
           id: "dupla-1",
@@ -445,9 +453,58 @@ describe("ClassificacaoService", () => {
 
       await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
 
-      // Quando todos os critérios são iguais (pontos, saldoGames, confronto direto, gamesVencidos), usa sorteio
-      // Verificamos apenas que todas as duplas tiveram posição atualizada
+      // Todos os critérios iguais: o comparador devolve 0 e o DesempateService
+      // decide (ordem definida pelo admin ou pendência)
+      const params = mockDesempate.classificarGrupo.mock.calls[0][0];
+      expect(params).toMatchObject({
+        etapaId: TEST_IDS.etapa,
+        grupoId: TEST_IDS.grupo1,
+        grupoCompleto: false, // 2 duplas = 1 partida, nenhuma finalizada
+      });
+      expect(params.comparar(duplas[0], duplas[1])).toBe(0);
       expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledTimes(2);
+    });
+
+    it("deve informar grupo completo ao DesempateService quando todas partidas finalizadas", async () => {
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1", jogador1Id: "j1", jogador2Id: "j2", etapaId: TEST_IDS.etapa }),
+        createDuplaFixture({ id: "dupla-2", jogador1Id: "j3", jogador2Id: "j4", etapaId: TEST_IDS.etapa }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue([
+        createPartidaFinalizadaFixture({ id: "partida-1" }),
+      ]);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+      mockGrupoRepository.marcarCompleto.mockResolvedValue(undefined);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      expect(mockDesempate.classificarGrupo).toHaveBeenCalledWith(
+        expect.objectContaining({ grupoCompleto: true })
+      );
+    });
+
+    it("deve aplicar a ordem retornada pelo DesempateService", async () => {
+      const duplas = [
+        createDuplaFixture({ id: "dupla-1", jogador1Id: "j1", jogador2Id: "j2", etapaId: TEST_IDS.etapa }),
+        createDuplaFixture({ id: "dupla-2", jogador1Id: "j3", jogador2Id: "j4", etapaId: TEST_IDS.etapa }),
+      ];
+
+      mockDuplaRepository.buscarPorGrupo.mockResolvedValue(duplas);
+      mockPartidaRepository.buscarFinalizadasPorGrupo.mockResolvedValue([]);
+      mockDuplaRepository.atualizarPosicaoGrupo.mockResolvedValue(undefined);
+      (estatisticasJogadorService.atualizarPosicaoGrupo as jest.Mock).mockResolvedValue(undefined);
+      mockGrupoRepository.atualizarContadores.mockResolvedValue(undefined);
+      // Admin escolheu dupla-2 na frente
+      mockDesempate.classificarGrupo.mockResolvedValueOnce([duplas[1], duplas[0]]);
+
+      await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
+
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledWith("dupla-2", 1);
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledWith("dupla-1", 2);
     });
 
     it("deve desempatar por games vencidos quando pontos e saldo de games iguais", async () => {
@@ -488,7 +545,7 @@ describe("ClassificacaoService", () => {
       );
     });
 
-    it("deve usar sorteio para 3+ duplas empatadas em todos critérios", async () => {
+    it("deve posicionar 3+ duplas empatadas em todos critérios sem sortear", async () => {
       const duplas = [
         createDuplaFixture({
           id: "dupla-1",
@@ -530,8 +587,10 @@ describe("ClassificacaoService", () => {
 
       await classificacaoService.recalcularClassificacaoGrupo(TEST_IDS.grupo1);
 
-      // Todas as duplas devem receber posições (o sorteio é aleatório, mas todas serão posicionadas)
-      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledTimes(3);
+      // Sem decisão do admin: ordem estável (por id) até o desempate ser definido
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledWith("dupla-1", 1);
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledWith("dupla-2", 2);
+      expect(mockDuplaRepository.atualizarPosicaoGrupo).toHaveBeenCalledWith("dupla-3", 3);
     });
 
     it("deve priorizar vencedora do confronto direto (dupla B)", async () => {

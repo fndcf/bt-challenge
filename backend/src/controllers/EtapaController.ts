@@ -9,10 +9,16 @@ import { ResponseHelper } from "../utils/responseHelper";
 import etapaService from "../services/EtapaService";
 import chaveService from "../services/ChaveService";
 import excelSumulaService from "../services/ExcelSumulaService";
+import desempateService from "../services/DesempateService";
+import {
+  listarEmpatesPendentes,
+  isRankingEliminatoria,
+} from "../utils/desempate";
 import {
   CriarEtapaSchema,
   AtualizarEtapaSchema,
   FiltrosEtapa,
+  FormatoEtapa,
   StatusEtapa,
   TipoChaveamentoReiDaPraia,
 } from "../models/Etapa";
@@ -801,6 +807,118 @@ class EtapaController extends BaseController {
       }
 
       this.handleGenericError(res, error, "encerrar etapa", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Listar empates pendentes (empate em todos os critérios em grupo encerrado)
+   * GET /api/etapas/:id/empates-pendentes
+   */
+  async listarEmpatesPendentes(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      ResponseHelper.success(res, listarEmpatesPendentes(etapa));
+    } catch (error: any) {
+      this.handleGenericError(res, error, "listar empates pendentes", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Resolver empate de um grupo (sorteio ou ordem manual)
+   * POST /api/etapas/:id/desempate
+   * Body: { grupoId, ids, modo: "sorteio" | "manual" }
+   * No modo manual, `ids` vem na ordem escolhida (do melhor para o pior).
+   */
+  async resolverEmpate(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+      const { grupoId, ids, modo } = req.body;
+
+      if (
+        typeof grupoId !== "string" ||
+        !Array.isArray(ids) ||
+        ids.length < 2 ||
+        !ids.every((i: unknown) => typeof i === "string") ||
+        (modo !== "sorteio" && modo !== "manual")
+      ) {
+        ResponseHelper.badRequest(res, "Dados de desempate inválidos");
+        return;
+      }
+
+      const etapa = await etapaService.buscarPorId(id, arenaId);
+      if (!etapa) {
+        ResponseHelper.notFound(res, "Etapa não encontrada");
+        return;
+      }
+
+      const resultado = await desempateService.definirDesempate(
+        id,
+        grupoId,
+        ids,
+        modo
+      );
+
+      // Reaplicar a classificação do grupo com a decisão (limpa a pendência)
+      switch (etapa.formato) {
+        case FormatoEtapa.DUPLA_FIXA: {
+          const classificacaoService = (
+            await import("../services/ClassificacaoService")
+          ).default;
+          await classificacaoService.recalcularClassificacaoGrupo(grupoId);
+          break;
+        }
+        case FormatoEtapa.REI_DA_PRAIA: {
+          // Ranking entre grupos (duplas da eliminatória): a decisão é
+          // aplicada na próxima geração, não há grupo para recalcular
+          if (isRankingEliminatoria(grupoId)) break;
+
+          const reiDaPraiaService = (
+            await import("../services/ReiDaPraiaService")
+          ).default;
+          await reiDaPraiaService.recalcularClassificacaoGrupo(grupoId, id);
+          // Sem empate no grupo, o ranking entre grupos pode ter empate a decidir
+          await reiDaPraiaService.atualizarEmpatesEntreGrupos(id, arenaId);
+          break;
+        }
+        case FormatoEtapa.SUPER_X: {
+          const superXService = (await import("../services/SuperXService"))
+            .default;
+          await superXService.recalcularClassificacaoGrupo(grupoId, id);
+          break;
+        }
+        case FormatoEtapa.TEAMS: {
+          const { teamsClassificacaoService } = await import(
+            "../services/teams"
+          );
+          await teamsClassificacaoService.recalcularClassificacao(id, arenaId);
+          break;
+        }
+      }
+
+      ResponseHelper.success(res, resultado, "Desempate definido com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "resolver empate", {
         etapaId: req.params.id,
       });
     }
@@ -2031,6 +2149,68 @@ class EtapaController extends BaseController {
       }
 
       this.handleGenericError(res, error, "resetar partidas TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Gerar (preencher) fase eliminatória TEAMS a partir da fase de grupos
+   * POST /api/etapas/:id/teams/fase-eliminatoria
+   */
+  async gerarFaseEliminatoriaTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Gerando fase eliminatória TEAMS", { etapaId: id });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      await teamsService.gerarFaseEliminatoria(id, arenaId);
+
+      ResponseHelper.created(res, null, "Fase eliminatória gerada com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "gerar fase eliminatória TEAMS", {
+        etapaId: req.params.id,
+      });
+    }
+  }
+
+  /**
+   * Cancelar fase eliminatória TEAMS (esvazia as vagas)
+   * DELETE /api/etapas/:id/teams/fase-eliminatoria
+   */
+  async cancelarFaseEliminatoriaTeams(
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      if (!this.checkAuth(req, res)) return;
+
+      const { arenaId } = req.user;
+      const { id } = req.params;
+
+      logger.info("Cancelando fase eliminatória TEAMS", { etapaId: id });
+
+      const teamsService = (await import("../services/TeamsService")).default;
+      await teamsService.cancelarFaseEliminatoria(id, arenaId);
+
+      ResponseHelper.success(res, null, "Fase eliminatória cancelada com sucesso");
+    } catch (error: any) {
+      if (this.handleBusinessError(res, error, this.getAllErrorPatterns())) {
+        return;
+      }
+
+      this.handleGenericError(res, error, "cancelar fase eliminatória TEAMS", {
         etapaId: req.params.id,
       });
     }

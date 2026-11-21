@@ -74,6 +74,32 @@ export enum TipoFormacaoDupla {
 }
 
 /**
+ * Desempate de posições nos grupos
+ *
+ * Quando participantes empatam em TODOS os critérios de classificação,
+ * o admin decide a ordem (sorteio ou escolha manual).
+ */
+export interface ParticipanteEmpate {
+  id: string; // duplaId (Dupla Fixa), jogadorId (Rei da Praia/Super X) ou equipeId (Teams)
+  nome: string;
+}
+
+export interface EmpatePendente {
+  grupoId: string;
+  grupoNome: string;
+  posicaoInicial: number; // Primeira posição disputada pelo bloco empatado (ex: 2 = disputa 2º e 3º)
+  participantes: ParticipanteEmpate[];
+  contexto?: string; // Explicação extra exibida no modal (ex: o que o ranking define)
+}
+
+export type ModoDesempate = "sorteio" | "manual";
+
+export interface DesempateDefinido {
+  ids: string[]; // Ordem final escolhida (do melhor para o pior)
+  modo: ModoDesempate;
+}
+
+/**
  * Interface da Etapa
  */
 export interface Etapa {
@@ -126,6 +152,10 @@ export interface Etapa {
   darPontosParticipacao?: boolean; // Se false, quem não classifica/coloca não recebe pontos de participação. Não se aplica a SUPER_X (não tem faixa de participação).
   melhorDe3?: boolean; // Se true, partidas pedem 2 sets (e um 3º de desempate se ficar 1x1)
   melhorDe3Eliminatoria?: boolean; // Se true (e melhorDe3 também true), o mata-mata também usa melhor de 3
+
+  // Desempate de posições nos grupos (chave = grupoId)
+  empatesPendentes?: Record<string, EmpatePendente[]>; // Empates aguardando decisão do admin
+  desempates?: Record<string, DesempateDefinido[]>; // Ordens já decididas (sorteio ou manual)
 
   // Metadados
   criadoEm: Timestamp | string;

@@ -409,6 +409,41 @@ class TeamsService implements ITeamsService {
     }
   }
 
+  /**
+   * Gerar fase eliminatória (preenche as vagas com os classificados dos grupos)
+   */
+  async gerarFaseEliminatoria(etapaId: string): Promise<void> {
+    try {
+      await apiClient.post(
+        `${this.basePath}/${etapaId}${this.teamsPath}/fase-eliminatoria`
+      );
+
+      logger.info("Fase eliminatória TEAMS gerada", { etapaId });
+    } catch (error) {
+      const appError = handleError(error, "TeamsService.gerarFaseEliminatoria");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Cancelar fase eliminatória (esvazia as vagas; só sem resultados no mata-mata)
+   */
+  async cancelarFaseEliminatoria(etapaId: string): Promise<void> {
+    try {
+      await apiClient.delete(
+        `${this.basePath}/${etapaId}${this.teamsPath}/fase-eliminatoria`
+      );
+
+      logger.info("Fase eliminatória TEAMS cancelada", { etapaId });
+    } catch (error) {
+      const appError = handleError(
+        error,
+        "TeamsService.cancelarFaseEliminatoria"
+      );
+      throw new Error(appError.message);
+    }
+  }
+
   // ============================================
   // CLASSIFICAÇÃO
   // ============================================

@@ -11,11 +11,17 @@ import { TeamsClassificacaoService } from "../../../services/teams/TeamsClassifi
 import { createMockEquipeRepository, createMockConfrontoEquipeRepository } from "../../mocks/repositories";
 import { Equipe, ConfrontoEquipe, StatusConfronto } from "../../../models/Teams";
 import { FaseEtapa } from "../../../models/Etapa";
+import {
+  createMockDesempateService,
+  comoDesempateService,
+  MockDesempateService,
+} from "../../mocks/desempateService";
 
 describe("TeamsClassificacaoService", () => {
   let service: TeamsClassificacaoService;
   let mockEquipeRepository: ReturnType<typeof createMockEquipeRepository>;
   let mockConfrontoRepository: ReturnType<typeof createMockConfrontoEquipeRepository>;
+  let mockDesempate: MockDesempateService;
 
   const etapaId = "etapa-1";
   const arenaId = "arena-1";
@@ -75,9 +81,14 @@ describe("TeamsClassificacaoService", () => {
     mockEquipeRepository = createMockEquipeRepository();
     mockConfrontoRepository = createMockConfrontoEquipeRepository();
 
+    mockDesempate = createMockDesempateService();
+    // Sem confrontos na fase: vaga do próximo confronto cai no fallback
+    mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+
     service = new TeamsClassificacaoService(
       mockConfrontoRepository,
-      mockEquipeRepository
+      mockEquipeRepository,
+      comoDesempateService(mockDesempate)
     );
   });
 
@@ -91,7 +102,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -112,7 +123,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -130,7 +141,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -148,7 +159,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -157,7 +168,7 @@ describe("TeamsClassificacaoService", () => {
       expect(resultado[2].nome).toBe("Equipe 3"); // 15 games
     });
 
-    it("deve usar sorteio como último critério de desempate", async () => {
+    it("não deve sortear automaticamente quando todos os critérios são iguais", async () => {
       const equipes = [
         criarEquipe({ id: "e1", nome: "Zebra", pontos: 6, saldoJogos: 2, saldoGames: 10, gamesVencidos: 20 }),
         criarEquipe({ id: "e2", nome: "Alpha", pontos: 6, saldoJogos: 2, saldoGames: 10, gamesVencidos: 20 }),
@@ -166,14 +177,78 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
-      // Quando todos os critérios são iguais, usa sorteio
-      // Apenas verificamos que todas as equipes estão no resultado
-      expect(resultado).toHaveLength(3);
-      expect(resultado.map((e) => e.nome).sort()).toEqual(["Alpha", "Beta", "Zebra"]);
+      // Ordem estável até o admin decidir (sorteio ou manual)
+      expect(resultado.map((e) => e.id)).toEqual(["e1", "e2", "e3"]);
+      const params = mockDesempate.classificarGrupo.mock.calls[0][0];
+      expect(params.comparar(equipes[0], equipes[1])).toBe(0);
+    });
+
+    it("deve classificar cada grupo separadamente e informar se o grupo terminou", async () => {
+      const equipes = [
+        criarEquipe({ id: "a1", nome: "A1", grupoId: "A", grupoNome: "Grupo A", pontos: 3 }),
+        criarEquipe({ id: "a2", nome: "A2", grupoId: "A", grupoNome: "Grupo A", pontos: 3 }),
+        criarEquipe({ id: "b1", nome: "B1", grupoId: "B", grupoNome: "Grupo B", pontos: 3 }),
+        criarEquipe({ id: "b2", nome: "B2", grupoId: "B", grupoNome: "Grupo B", pontos: 0 }),
+      ];
+      const confrontos = [
+        criarConfronto({ id: "ca", grupoId: "A", equipe1Id: "a1", equipe2Id: "a2", status: StatusConfronto.FINALIZADO }),
+        criarConfronto({ id: "cb", grupoId: "B", equipe1Id: "b1", equipe2Id: "b2", status: StatusConfronto.AGENDADO }),
+      ];
+
+      mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
+      mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+
+      await service.recalcularClassificacao(etapaId, arenaId);
+
+      expect(mockDesempate.classificarGrupo).toHaveBeenCalledTimes(2);
+      expect(mockDesempate.classificarGrupo).toHaveBeenCalledWith(
+        expect.objectContaining({ grupoId: "A", grupoNome: "Grupo A", grupoCompleto: true, atualizarPendencias: true })
+      );
+      expect(mockDesempate.classificarGrupo).toHaveBeenCalledWith(
+        expect.objectContaining({ grupoId: "B", grupoNome: "Grupo B", grupoCompleto: false })
+      );
+    });
+
+    it("não deve atualizar pendências depois que a eliminatória foi preenchida", async () => {
+      const equipes = [
+        criarEquipe({ id: "a1", nome: "A1", grupoId: "A" }),
+        criarEquipe({ id: "a2", nome: "A2", grupoId: "A" }),
+      ];
+      const confrontos = [
+        criarConfronto({ id: "ca", grupoId: "A", equipe1Id: "a1", equipe2Id: "a2", status: StatusConfronto.FINALIZADO }),
+        criarConfronto({ id: "final", fase: FaseEtapa.FINAL, equipe1Id: "a1", equipe2Id: "" }),
+      ];
+
+      mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
+      mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue(confrontos);
+
+      await service.recalcularClassificacao(etapaId, arenaId);
+
+      expect(mockDesempate.classificarGrupo).toHaveBeenCalledWith(
+        expect.objectContaining({ grupoId: "A", atualizarPendencias: false })
+      );
+    });
+
+    it("deve aplicar a ordem definida no desempate", async () => {
+      const equipes = [
+        criarEquipe({ id: "e1", nome: "Equipe 1" }),
+        criarEquipe({ id: "e2", nome: "Equipe 2" }),
+      ];
+
+      mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
+      mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
+      mockDesempate.classificarGrupo.mockResolvedValueOnce([equipes[1], equipes[0]]);
+
+      const resultado = await service.recalcularClassificacao(etapaId, arenaId);
+
+      expect(resultado.map((e) => e.id)).toEqual(["e2", "e1"]);
     });
 
     it("deve atualizar posições em lote", async () => {
@@ -184,7 +259,7 @@ describe("TeamsClassificacaoService", () => {
 
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue(equipes);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       await service.recalcularClassificacao(etapaId, arenaId);
 
@@ -197,11 +272,77 @@ describe("TeamsClassificacaoService", () => {
     it("deve retornar lista vazia se não houver equipes", async () => {
       mockEquipeRepository.buscarPorEtapa.mockResolvedValue([]);
       mockEquipeRepository.atualizarPosicoesEmLote.mockResolvedValue(undefined);
-      mockConfrontoRepository.buscarPorFase.mockResolvedValue([]);
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
 
       const resultado = await service.recalcularClassificacao(etapaId, arenaId);
 
       expect(resultado).toEqual([]);
+    });
+  });
+
+  describe("gerarFaseEliminatoria", () => {
+    const grupoFinalizado = criarConfronto({ id: "g1", grupoId: "A", status: StatusConfronto.FINALIZADO });
+    const semiVazia = criarConfronto({
+      id: "s1", fase: FaseEtapa.SEMIFINAL, equipe1Id: "", equipe2Id: "",
+      equipe1Origem: "1º Grupo A", equipe2Origem: "2º Grupo B",
+    });
+
+    it("deve recusar se ainda há confrontos de grupo pendentes", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        grupoFinalizado,
+        criarConfronto({ id: "g2", grupoId: "A", status: StatusConfronto.AGENDADO }),
+        semiVazia,
+      ]);
+
+      await expect(service.gerarFaseEliminatoria(etapaId, arenaId)).rejects.toThrow(
+        "ainda há 1 confronto(s) pendente(s)"
+      );
+    });
+
+    it("deve recusar se a eliminatória já foi gerada", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        grupoFinalizado,
+        { ...semiVazia, equipe1Id: "e1" },
+      ]);
+
+      await expect(service.gerarFaseEliminatoria(etapaId, arenaId)).rejects.toThrow(
+        "já foi gerada"
+      );
+    });
+
+    it("deve recusar com empate pendente", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([grupoFinalizado, semiVazia]);
+      mockDesempate.garantirSemEmpatesPendentes.mockRejectedValueOnce(
+        new Error("Não é possível gerar a fase eliminatória: há empate pendente em Grupo A.")
+      );
+
+      await expect(service.gerarFaseEliminatoria(etapaId, arenaId)).rejects.toThrow(
+        "empate pendente"
+      );
+      expect(mockConfrontoRepository.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("deve preencher as vagas com a classificação", async () => {
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([grupoFinalizado, semiVazia]);
+      mockConfrontoRepository.todosFinalizadosPorFase.mockResolvedValue(true);
+      mockEquipeRepository.buscarPorEtapaOrdenadas.mockResolvedValue([
+        criarEquipe({ id: "a1", nome: "A1", grupoId: "A", posicao: 1 }),
+        criarEquipe({ id: "a2", nome: "A2", grupoId: "A", posicao: 2 }),
+        criarEquipe({ id: "b1", nome: "B1", grupoId: "B", posicao: 1 }),
+        criarEquipe({ id: "b2", nome: "B2", grupoId: "B", posicao: 2 }),
+      ]);
+      mockConfrontoRepository.atualizar.mockResolvedValue(undefined);
+
+      await service.gerarFaseEliminatoria(etapaId, arenaId);
+
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("s1", {
+        equipe1Id: "a1",
+        equipe1Nome: "A1",
+      });
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("s1", {
+        equipe2Id: "b2",
+        equipe2Nome: "B2",
+      });
     });
   });
 
@@ -369,27 +510,27 @@ describe("TeamsClassificacaoService", () => {
       expect(mockConfrontoRepository.atualizar).not.toHaveBeenCalled();
     });
 
-    it("deve ordenar equipes dentro do grupo usando todos os critérios", async () => {
+    it("não deve preencher enquanto houver empate pendente", async () => {
+      mockConfrontoRepository.todosFinalizadosPorFase.mockResolvedValue(true);
+      mockDesempate.listarPendentes.mockResolvedValueOnce([
+        { grupoId: "A", grupoNome: "Grupo A", posicaoInicial: 2, participantes: [] },
+      ]);
+
+      await service.verificarEPreencherFaseEliminatoria(etapaId, arenaId);
+
+      expect(mockEquipeRepository.buscarPorEtapaOrdenadas).not.toHaveBeenCalled();
+      expect(mockConfrontoRepository.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("deve ordenar equipes dentro do grupo pela posição calculada", async () => {
       mockConfrontoRepository.todosFinalizadosPorFase.mockResolvedValue(true);
 
-      // Equipes do mesmo grupo com empates
+      // posicao vem de recalcularClassificacao (critérios + desempate do admin)
       const equipes = [
-        criarEquipe({
-          id: "e1", nome: "A", grupoId: "A",
-          pontos: 6, saldoJogos: 2, saldoGames: 10, gamesVencidos: 20
-        }),
-        criarEquipe({
-          id: "e2", nome: "B", grupoId: "A",
-          pontos: 6, saldoJogos: 2, saldoGames: 15, gamesVencidos: 20 // Melhor saldo games
-        }),
-        criarEquipe({
-          id: "e3", nome: "C", grupoId: "B",
-          pontos: 3, saldoJogos: 0, saldoGames: 0, gamesVencidos: 10
-        }),
-        criarEquipe({
-          id: "e4", nome: "D", grupoId: "B",
-          pontos: 3, saldoJogos: 0, saldoGames: 0, gamesVencidos: 15 // Mais games
-        }),
+        criarEquipe({ id: "e1", nome: "A", grupoId: "A", posicao: 2 }),
+        criarEquipe({ id: "e2", nome: "B", grupoId: "A", posicao: 1 }),
+        criarEquipe({ id: "e3", nome: "C", grupoId: "B", posicao: 4 }),
+        criarEquipe({ id: "e4", nome: "D", grupoId: "B", posicao: 3 }),
       ];
       mockEquipeRepository.buscarPorEtapaOrdenadas.mockResolvedValue(equipes);
 
@@ -410,15 +551,78 @@ describe("TeamsClassificacaoService", () => {
 
       await service.verificarEPreencherFaseEliminatoria(etapaId, arenaId);
 
-      // e2 deve ser 1º do grupo A (melhor saldoGames)
+      // e2 deve ser 1º do grupo A
       expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("c1", {
         equipe1Id: "e2",
         equipe1Nome: "B",
       });
-      // e4 deve ser 1º do grupo B (mais gamesVencidos)
+      // e4 deve ser 1º do grupo B
       expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("c1", {
         equipe2Id: "e4",
         equipe2Nome: "D",
+      });
+    });
+  });
+
+  describe("preencherProximoConfronto - vaga pela origem", () => {
+    // Semifinais: S1 (ordem 13) e S2 (ordem 14) alimentam a final
+    const s1 = criarConfronto({ id: "s1", fase: FaseEtapa.SEMIFINAL, ordem: 13, proximoConfrontoId: "final" });
+    const s2 = criarConfronto({ id: "s2", fase: FaseEtapa.SEMIFINAL, ordem: 14, proximoConfrontoId: "final" });
+
+    beforeEach(() => {
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue([s2, s1]);
+      mockConfrontoRepository.atualizar.mockResolvedValue(undefined);
+    });
+
+    it("vencedor da Semifinal 2 vai para a vaga 2 mesmo terminando primeiro", async () => {
+      mockConfrontoRepository.buscarPorId.mockResolvedValue(
+        criarConfronto({
+          id: "final", fase: FaseEtapa.FINAL, equipe1Id: "", equipe2Id: "",
+          equipe1Origem: "Vencedor Semifinal 1", equipe2Origem: "Vencedor Semifinal 2",
+        })
+      );
+
+      await service.preencherProximoConfronto(s2, "e9", "Equipe 9");
+
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("final", {
+        equipe2Id: "e9",
+        equipe2Nome: "Equipe 9",
+      });
+    });
+
+    it("sobrescreve a vaga quando o vencedor muda (edição)", async () => {
+      mockConfrontoRepository.buscarPorId.mockResolvedValue(
+        criarConfronto({
+          id: "final", fase: FaseEtapa.FINAL, equipe1Id: "antiga", equipe2Id: "",
+          equipe1Origem: "Vencedor Semifinal 1", equipe2Origem: "Vencedor Semifinal 2",
+        })
+      );
+
+      await service.preencherProximoConfronto(s1, "nova", "Nova");
+
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("final", {
+        equipe1Id: "nova",
+        equipe1Nome: "Nova",
+      });
+    });
+
+    it("quartas também alimentam a semifinal pela origem", async () => {
+      const quartas = [1, 2, 3, 4].map((n) =>
+        criarConfronto({ id: `q${n}`, fase: FaseEtapa.QUARTAS, ordem: 8 + n, proximoConfrontoId: "s2" })
+      );
+      mockConfrontoRepository.buscarPorFase.mockResolvedValue(quartas);
+      mockConfrontoRepository.buscarPorId.mockResolvedValue(
+        criarConfronto({
+          id: "s2", fase: FaseEtapa.SEMIFINAL, equipe1Id: "", equipe2Id: "",
+          equipe1Origem: "Vencedor Quartas 3", equipe2Origem: "Vencedor Quartas 4",
+        })
+      );
+
+      await service.preencherProximoConfronto(quartas[3], "e4", "Equipe 4");
+
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("s2", {
+        equipe2Id: "e4",
+        equipe2Nome: "Equipe 4",
       });
     });
   });

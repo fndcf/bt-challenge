@@ -3,7 +3,7 @@
  *
  * Seguindo SRP:
  * - Cálculo de classificação de equipes
- * - Preenchimento automático da fase eliminatória
+ * - Preenchimento da fase eliminatória (acionado pelo admin)
  * - Propagação de vencedores para próximos confrontos
  */
 
@@ -13,10 +13,24 @@ import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfr
 import { IEquipeRepository } from "../../repositories/interfaces/IEquipeRepository";
 import ConfrontoEquipeRepository from "../../repositories/firebase/ConfrontoEquipeRepository";
 import EquipeRepository from "../../repositories/firebase/EquipeRepository";
+import desempateService, { DesempateService } from "../DesempateService";
 import logger from "../../utils/logger";
+
+// Chave usada quando a etapa não tem fase de grupos (todas as equipes juntas)
+const GRUPO_GERAL = "geral";
+
+/**
+ * Eliminatória já recebeu equipes (os confrontos existem desde a geração das
+ * chaves, com vagas "1º Grupo A" etc. vazias até a fase de grupos terminar)
+ */
+export function isEliminatoriaPreenchida(confrontos: ConfrontoEquipe[]): boolean {
+  return confrontos.some((c) => c.fase !== FaseEtapa.GRUPOS && !!c.equipe1Id);
+}
 
 export interface ITeamsClassificacaoService {
   recalcularClassificacao(etapaId: string, arenaId: string): Promise<Equipe[]>;
+
+  gerarFaseEliminatoria(etapaId: string, arenaId: string): Promise<void>;
 
   verificarEPreencherFaseEliminatoria(
     etapaId: string,
@@ -33,71 +47,97 @@ export interface ITeamsClassificacaoService {
 export class TeamsClassificacaoService implements ITeamsClassificacaoService {
   constructor(
     private confrontoRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository,
-    private equipeRepository: IEquipeRepository = EquipeRepository
+    private equipeRepository: IEquipeRepository = EquipeRepository,
+    private desempate: DesempateService = desempateService
   ) {}
 
   /**
    * Recalcula a classificação de todas as equipes da etapa
    *
-   * CRITÉRIOS DE DESEMPATE (em ordem):
+   * CRITÉRIOS DE DESEMPATE (em ordem, dentro de cada grupo):
    * Pontos
    * Saldo de jogos
    * Saldo de games
    * Confronto direto (apenas quando 2 equipes empatadas)
    * Games vencidos
-   * Sorteio
+   * Decisão do admin (sorteio ou manual) — ver DesempateService
    */
   async recalcularClassificacao(
     etapaId: string,
     arenaId: string
   ): Promise<Equipe[]> {
-    // Buscar equipes e confrontos da fase de grupos
-    const [equipes, todosConfrontosGrupos] = await Promise.all([
+    // Buscar equipes e todos os confrontos da etapa
+    const [equipes, confrontos] = await Promise.all([
       this.equipeRepository.buscarPorEtapa(etapaId, arenaId),
-      this.confrontoRepository.buscarPorFase(
-        etapaId,
-        arenaId,
-        FaseEtapa.GRUPOS
-      ),
+      this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
     ]);
+    const todosConfrontosGrupos = confrontos.filter(
+      (c) => c.fase === FaseEtapa.GRUPOS
+    );
     // Filtrar apenas confrontos finalizados para confronto direto
     const confrontosGrupos = todosConfrontosGrupos.filter(
       (c) => c.status === StatusConfronto.FINALIZADO
     );
 
-    // Ordenar por critérios de desempate
-    const equipesOrdenadas = [...equipes].sort((a, b) => {
-      // Pontos (desc)
-      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-      // Saldo de jogos (desc)
-      if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
-      // Saldo de games (desc)
-      if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
+    // Jogos do mata-mata também somam games/jogos nas equipes. Depois que a
+    // eliminatória é preenchida, as posições de grupo já foram usadas e
+    // não devem mais gerar empates pendentes.
+    const eliminatoriaPreenchida = isEliminatoriaPreenchida(confrontos);
 
-      // Verificar quantas equipes estão empatadas nestes critérios
-      const equipesEmpatadas = equipes.filter(
-        (e: Equipe) =>
-          e.pontos === a.pontos &&
-          e.saldoJogos === a.saldoJogos &&
-          e.saldoGames === a.saldoGames
-      );
-
-      // Confronto direto (apenas se 2 equipes empatadas)
-      if (equipesEmpatadas.length === 2) {
-        const confrontoDireto = this.verificarConfrontoDireto(
-          confrontosGrupos,
-          a.id,
-          b.id
-        );
-        if (confrontoDireto === a.id) return -1;
-        if (confrontoDireto === b.id) return 1;
+    // Classificar cada grupo (sem fase de grupos = grupo único "geral")
+    const chaveGrupo = (e: { grupoId?: string }) => e.grupoId || GRUPO_GERAL;
+    const equipesPorGrupo = new Map<string, Equipe[]>();
+    for (const equipe of equipes) {
+      const grupoId = chaveGrupo(equipe);
+      if (!equipesPorGrupo.has(grupoId)) {
+        equipesPorGrupo.set(grupoId, []);
       }
+      equipesPorGrupo.get(grupoId)!.push(equipe);
+    }
 
-      // Games vencidos (desc)
+    const rankNoGrupo = new Map<string, number>();
+    await Promise.all(
+      Array.from(equipesPorGrupo.entries()).map(
+        async ([grupoId, equipesDoGrupo]) => {
+          const confrontosDoGrupo = todosConfrontosGrupos.filter(
+            (c) => chaveGrupo(c) === grupoId
+          );
+          const grupoCompleto =
+            confrontosDoGrupo.length > 0 &&
+            confrontosDoGrupo.every(
+              (c) => c.status === StatusConfronto.FINALIZADO
+            );
+
+          const ordenadas = await this.desempate.classificarGrupo({
+            etapaId,
+            grupoId,
+            grupoNome: equipesDoGrupo[0].grupoNome || "Classificação geral",
+            itens: equipesDoGrupo,
+            comparar: this.criarComparadorEquipes(
+              equipesDoGrupo,
+              confrontosGrupos
+            ),
+            getId: (e) => e.id,
+            getNome: (e) => e.nome,
+            grupoCompleto,
+            atualizarPendencias: !eliminatoriaPreenchida,
+          });
+          ordenadas.forEach((e, i) => rankNoGrupo.set(e.id, i));
+        }
+      )
+    );
+
+    // Ordem geral: dentro do mesmo grupo segue a classificação do grupo;
+    // entre grupos diferentes, compara os números
+    const rank = (e: Equipe) => rankNoGrupo.get(e.id) ?? 0;
+    const equipesOrdenadas = [...equipes].sort((a, b) => {
+      if (chaveGrupo(a) === chaveGrupo(b)) return rank(a) - rank(b);
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
+      if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
       if (b.gamesVencidos !== a.gamesVencidos)
         return b.gamesVencidos - a.gamesVencidos;
-      // Sorteio como último critério
-      return Math.random() - 0.5;
+      return rank(a) - rank(b) || a.nome.localeCompare(b.nome);
     });
 
     // Atualizar todas as posições em um único batch
@@ -112,6 +152,44 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
       ...equipe,
       posicao: index + 1,
     }));
+  }
+
+  /**
+   * Gera (preenche) a fase eliminatória a partir da classificação dos grupos
+   *
+   * Acionado pelo admin, como nos outros formatos: assim a classificação
+   * final dos grupos (inclusive desempates) é a que vale para o mata-mata.
+   */
+  async gerarFaseEliminatoria(etapaId: string, arenaId: string): Promise<void> {
+    const confrontos = await this.confrontoRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
+
+    if (!confrontos.some((c) => c.fase !== FaseEtapa.GRUPOS)) {
+      throw new Error("Esta etapa não possui fase eliminatória");
+    }
+
+    const gruposPendentes = confrontos.filter(
+      (c) =>
+        c.fase === FaseEtapa.GRUPOS && c.status !== StatusConfronto.FINALIZADO
+    );
+    if (gruposPendentes.length > 0) {
+      throw new Error(
+        `Não é possível gerar a fase eliminatória: ainda há ${gruposPendentes.length} confronto(s) pendente(s) na fase de grupos`
+      );
+    }
+
+    if (isEliminatoriaPreenchida(confrontos)) {
+      throw new Error("A fase eliminatória já foi gerada");
+    }
+
+    await this.desempate.garantirSemEmpatesPendentes(
+      etapaId,
+      "gerar a fase eliminatória"
+    );
+
+    await this.verificarEPreencherFaseEliminatoria(etapaId, arenaId);
   }
 
   /**
@@ -130,6 +208,16 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
       );
 
     if (!todosGruposFinalizados) {
+      return;
+    }
+
+    // Só preencher depois que o admin resolver os empates dos grupos
+    const empatesPendentes = await this.desempate.listarPendentes(etapaId);
+    if (empatesPendentes.length > 0) {
+      logger.info("Fase de grupos finalizada, aguardando desempate do admin", {
+        etapaId,
+        empates: empatesPendentes.length,
+      });
       return;
     }
 
@@ -159,16 +247,10 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
       equipesPorGrupo.get(grupoId)!.push(equipe);
     }
 
-    // Ordenar equipes dentro de cada grupo
+    // Ordenar equipes dentro de cada grupo pela posição calculada em
+    // recalcularClassificacao (mesma ordem exibida na tabela)
     for (const [, equipesDoGrupo] of equipesPorGrupo) {
-      equipesDoGrupo.sort((a, b) => {
-        if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-        if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
-        if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
-        if (b.gamesVencidos !== a.gamesVencidos)
-          return b.gamesVencidos - a.gamesVencidos;
-        return Math.random() - 0.5;
-      });
+      equipesDoGrupo.sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0));
     }
 
     const grupoIds = Array.from(equipesPorGrupo.keys()).sort();
@@ -215,7 +297,11 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
   }
 
   /**
-   * Preenche o próximo confronto após uma semifinal/quartas
+   * Preenche o próximo confronto com o vencedor (oitavas/quartas/semifinal)
+   *
+   * A vaga vem da origem do próximo confronto ("Vencedor Quartas 3" = 3º
+   * confronto das quartas, pela ordem), e não da primeira vaga vazia, que
+   * dependeria de qual jogo terminou antes.
    */
   async preencherProximoConfronto(
     confronto: ConfrontoEquipe,
@@ -234,13 +320,17 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
       return;
     }
 
-    // Determinar qual posição preencher (equipe1 ou equipe2)
-    if (!proximoConfronto.equipe1Id) {
+    const vaga =
+      (await this.vagaNoProximoConfronto(confronto, proximoConfronto)) ??
+      // Origem não reconhecida: primeira vaga livre (comportamento antigo)
+      (!proximoConfronto.equipe1Id ? 1 : !proximoConfronto.equipe2Id ? 2 : null);
+
+    if (vaga === 1) {
       await this.confrontoRepository.atualizar(proximoConfronto.id, {
         equipe1Id: vencedoraId,
         equipe1Nome: vencedoraNome,
       });
-    } else if (!proximoConfronto.equipe2Id) {
+    } else if (vaga === 2) {
       await this.confrontoRepository.atualizar(proximoConfronto.id, {
         equipe2Id: vencedoraId,
         equipe2Nome: vencedoraNome,
@@ -255,6 +345,39 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
   }
 
   // ==================== MÉTODOS PRIVADOS ====================
+
+  /**
+   * Vaga (1 ou 2) do próximo confronto alimentada por este confronto,
+   * pela origem "Vencedor <Fase> N" (null se a origem não for reconhecida)
+   */
+  private async vagaNoProximoConfronto(
+    confronto: ConfrontoEquipe,
+    proximoConfronto: ConfrontoEquipe
+  ): Promise<1 | 2 | null> {
+    const nomesFase: Partial<Record<FaseEtapa, string>> = {
+      [FaseEtapa.OITAVAS]: "Oitavas",
+      [FaseEtapa.QUARTAS]: "Quartas",
+      [FaseEtapa.SEMIFINAL]: "Semifinal",
+    };
+    const nomeFase = nomesFase[confronto.fase];
+    if (!nomeFase) return null;
+
+    const confrontosDaFase = (
+      await this.confrontoRepository.buscarPorFase(
+        confronto.etapaId,
+        confronto.arenaId,
+        confronto.fase
+      )
+    ).sort((a, b) => a.ordem - b.ordem);
+    const numero =
+      confrontosDaFase.findIndex((c) => c.id === confronto.id) + 1;
+    if (numero === 0) return null;
+
+    const origem = `Vencedor ${nomeFase} ${numero}`;
+    if (proximoConfronto.equipe1Origem === origem) return 1;
+    if (proximoConfronto.equipe2Origem === origem) return 2;
+    return null;
+  }
 
   /**
    * Preenche um confronto eliminatório com as equipes classificadas
@@ -373,6 +496,48 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
     }
 
     return null;
+  }
+
+  /**
+   * Comparador dos critérios de classificação de um grupo (0 = empate em todos)
+   */
+  private criarComparadorEquipes(
+    equipesDoGrupo: Equipe[],
+    confrontosGrupos: ConfrontoEquipe[]
+  ): (a: Equipe, b: Equipe) => number {
+    return (a, b) => {
+      // Pontos (desc)
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      // Saldo de jogos (desc)
+      if (b.saldoJogos !== a.saldoJogos) return b.saldoJogos - a.saldoJogos;
+      // Saldo de games (desc)
+      if (b.saldoGames !== a.saldoGames) return b.saldoGames - a.saldoGames;
+
+      // Verificar quantas equipes estão empatadas nestes critérios
+      const equipesEmpatadas = equipesDoGrupo.filter(
+        (e) =>
+          e.pontos === a.pontos &&
+          e.saldoJogos === a.saldoJogos &&
+          e.saldoGames === a.saldoGames
+      );
+
+      // Confronto direto (apenas se 2 equipes empatadas)
+      if (equipesEmpatadas.length === 2) {
+        const confrontoDireto = this.verificarConfrontoDireto(
+          confrontosGrupos,
+          a.id,
+          b.id
+        );
+        if (confrontoDireto === a.id) return -1;
+        if (confrontoDireto === b.id) return 1;
+      }
+
+      // Games vencidos (desc)
+      if (b.gamesVencidos !== a.gamesVencidos)
+        return b.gamesVencidos - a.gamesVencidos;
+
+      return 0;
+    };
   }
 
   /**

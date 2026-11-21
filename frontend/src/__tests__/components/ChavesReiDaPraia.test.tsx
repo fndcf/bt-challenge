@@ -17,6 +17,9 @@ jest.mock("@/services", () => ({
     buscarConfrontosEliminatorios: mockBuscarConfrontosEliminatorios,
     buscarPartidas: mockBuscarPartidas,
   }),
+  getEtapaService: () => ({
+    listarEmpatesPendentes: jest.fn().mockResolvedValue([]),
+  }),
 }));
 
 // Mock do FaseEliminatoriaReiDaPraia

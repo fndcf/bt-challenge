@@ -38,6 +38,7 @@ import ConfrontoEquipeRepository from "../repositories/firebase/ConfrontoEquipeR
 import PartidaTeamsRepository from "../repositories/firebase/PartidaTeamsRepository";
 import { EstatisticasJogadorService } from "./EstatisticasJogadorService";
 import logger from "../utils/logger";
+import desempateService from "./DesempateService";
 
 // Import dos services especializados
 import {
@@ -303,6 +304,52 @@ export class TeamsService {
     return this.classificacaoService.recalcularClassificacao(etapaId, arenaId);
   }
 
+  /**
+   * Gera (preenche) a fase eliminatória com os classificados dos grupos
+   */
+  async gerarFaseEliminatoria(etapaId: string, arenaId: string): Promise<void> {
+    await this.classificacaoService.gerarFaseEliminatoria(etapaId, arenaId);
+  }
+
+  /**
+   * Cancela a fase eliminatória: esvazia as vagas para gerar de novo
+   *
+   * Resultados já lançados no mata-mata são apagados e as estatísticas
+   * deles (jogadores e equipes) desfeitas.
+   */
+  async cancelarFaseEliminatoria(
+    etapaId: string,
+    arenaId: string
+  ): Promise<void> {
+    const confrontos = await this.confrontoRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
+    const eliminatoria = confrontos.filter((c) => c.fase !== FaseEtapa.GRUPOS);
+
+    if (!eliminatoria.some((c) => !!c.equipe1Id)) {
+      throw new Error("A fase eliminatória ainda não foi gerada");
+    }
+
+    await Promise.all(
+      eliminatoria.map(async (confronto) => {
+        if (!confronto.isBye) {
+          await this.resultadoService.reverterResultadosConfronto(confronto);
+        }
+        await this.partidaRepository.deletarPorConfronto(confronto.id);
+        await this.confrontoRepository.resetarConfronto(confronto.id);
+        await this.confrontoRepository.atualizar(confronto.id, {
+          equipe1Id: "",
+          equipe1Nome: "",
+          // BYE mantém o marcador "BYE" na vaga 2
+          ...(confronto.isBye ? {} : { equipe2Id: "", equipe2Nome: "" }),
+        });
+      })
+    );
+
+    logger.info("Fase eliminatória TEAMS cancelada", { etapaId, arenaId });
+  }
+
   // ==================== BUSCAR ====================
 
   /**
@@ -478,8 +525,11 @@ export class TeamsService {
    * Volta ao estado inicial após "Gerar Equipes"
    */
   async resetarPartidas(etapaId: string, arenaId: string): Promise<void> {
-    // Deletar todas as partidas
-    await this.partidaRepository.deletarPorEtapa(etapaId, arenaId);
+    // Deletar todas as partidas e decisões de desempate
+    await Promise.all([
+      this.partidaRepository.deletarPorEtapa(etapaId, arenaId),
+      desempateService.limpar(etapaId),
+    ]);
 
     // Deletar estatísticas de jogadores desta etapa
     const { estatisticasJogadorRepository } = await import(
@@ -562,6 +612,9 @@ export class TeamsService {
       })(),
       (async () => {
         await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
+      })(),
+      (async () => {
+        await desempateService.limpar(etapaId);
       })(),
     ]);
 

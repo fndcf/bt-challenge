@@ -227,4 +227,43 @@ describe("EmptyState (FaseEliminatoria)", () => {
       expect(button).toBeDisabled();
     });
   });
+
+  describe("empate pendente", () => {
+    it("deve desabilitar gerar eliminatória e explicar o motivo", () => {
+      render(
+        <EmptyState
+          {...defaultProps}
+          todosGruposCompletos={true}
+          bloqueadoPorEmpate={true}
+        />
+      );
+
+      expect(screen.getByText("Gerar Fase Eliminatória")).toBeDisabled();
+      expect(
+        screen.getByText("Resolva o empate indicado acima para liberar esta ação.")
+      ).toBeInTheDocument();
+    });
+
+    it("deve desabilitar encerrar etapa (grupo único) com empate pendente", () => {
+      render(
+        <EmptyState
+          {...defaultProps}
+          isGrupoUnico={true}
+          grupoUnicoCompleto={true}
+          bloqueadoPorEmpate={true}
+        />
+      );
+
+      expect(
+        screen.getByText("Encerrar Etapa e Atribuir Pontos").closest("button")
+      ).toBeDisabled();
+    });
+
+    it("não deve mostrar o aviso sem empate", () => {
+      render(<EmptyState {...defaultProps} todosGruposCompletos={true} />);
+
+      expect(screen.getByText("Gerar Fase Eliminatória")).not.toBeDisabled();
+      expect(screen.queryByText(/Resolva o empate/)).not.toBeInTheDocument();
+    });
+  });
 });

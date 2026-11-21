@@ -35,6 +35,7 @@ import eliminatoriaService, {
 import etapaService from "./EtapaService";
 import estatisticasJogadorService from "./EstatisticasJogadorService";
 import historicoDuplaService from "./HistoricoDuplaService";
+import desempateService from "./DesempateService";
 import logger from "../utils/logger";
 
 // Repositories para substituição
@@ -373,6 +374,9 @@ export class ChaveService implements IChaveService {
         (async () => {
           await historicoDuplaService.limparDaEtapa(arenaId, etapaId);
         })(),
+        (async () => {
+          await desempateService.limpar(etapaId);
+        })(),
       ]);
 
       // Atualizar etapa
@@ -408,6 +412,11 @@ export class ChaveService implements IChaveService {
     arenaId: string,
     classificadosPorGrupo: number = 2
   ): Promise<{ confrontos: ConfrontoEliminatorio[] }> {
+    await desempateService.garantirSemEmpatesPendentes(
+      etapaId,
+      "gerar a fase eliminatória"
+    );
+
     return this.eliminatoria.gerarFaseEliminatoria(
       etapaId,
       arenaId,

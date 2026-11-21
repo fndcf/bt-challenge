@@ -2,6 +2,13 @@
  * Testes do ChaveService
  */
 
+jest.mock("../../services/DesempateService", () => {
+  const { createMockDesempateService } = jest.requireActual(
+    "../mocks/desempateService"
+  );
+  return { __esModule: true, default: createMockDesempateService() };
+});
+
 jest.mock("../../utils/logger", () => ({
   __esModule: true,
   default: {

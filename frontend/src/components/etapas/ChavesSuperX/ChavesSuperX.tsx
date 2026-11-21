@@ -7,6 +7,7 @@ import { VarianteSuperX } from "@/types/etapa";
 import { ModalLancamentoResultadosLoteSuperX } from "../ModalLancamentoResultadosLoteSuperX";
 import { LoadingOverlay } from "@/components/ui";
 import { ConfirmacaoPerigosa } from "@/components/modals/ConfirmacaoPerigosa";
+import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
 interface ChavesSuperXProps {
@@ -484,6 +485,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
   const [partidas, setPartidas] = useState<PartidaReiDaPraia[]>([]);
   const [mostrarModalResultados, setMostrarModalResultados] = useState(false);
   const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
+  const [temEmpatePendente, setTemEmpatePendente] = useState(false);
 
   // Estado global de loading para operações críticas que bloqueiam toda a tela
   const [globalLoading, setGlobalLoading] = useState(false);
@@ -593,13 +595,30 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
 
   return (
     <Container>
+      {/* Posição define a pontuação: empates precisam de decisão antes de encerrar */}
+      <PainelEmpatesPendentes
+        etapaId={etapaId}
+        atualizarEm={jogadores}
+        onResolvido={carregarChaves}
+        desabilitado={etapaFinalizada}
+        onEmpatesChange={(empates) => setTemEmpatePendente(empates.length > 0)}
+      />
+
       {/* Botão de Encerrar Etapa no topo - só aparece quando todas as partidas estiverem finalizadas */}
       {!etapaFinalizada &&
         grupo &&
         (grupo.partidasFinalizadas || 0) === totalPartidas &&
         totalPartidas > 0 && (
           <ActionsRow>
-            <EncerrarEtapaButton onClick={() => setModalEncerrarAberto(true)}>
+            <EncerrarEtapaButton
+              onClick={() => setModalEncerrarAberto(true)}
+              disabled={temEmpatePendente}
+              title={
+                temEmpatePendente
+                  ? "Resolva o empate na classificação para encerrar"
+                  : undefined
+              }
+            >
               Encerrar Etapa
             </EncerrarEtapaButton>
           </ActionsRow>
@@ -806,6 +825,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
         titulo="Encerrar Etapa"
         mensagem="Tem certeza que deseja encerrar esta etapa? Esta ação irá finalizar a etapa, calcular os pontos do ranking e não poderá ser desfeita."
         textoBotaoConfirmar="Encerrar Etapa"
+        palavraConfirmacao="ENCERRAR"
         onConfirm={encerrarEtapa}
         onClose={() => setModalEncerrarAberto(false)}
       />

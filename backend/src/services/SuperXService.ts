@@ -47,6 +47,7 @@ import { EstatisticasJogadorRepository } from "../repositories/firebase/Estatist
 
 // Services auxiliares
 import estatisticasJogadorService from "./EstatisticasJogadorService";
+import desempateService, { DesempateService } from "./DesempateService";
 
 /**
  * Usa injeção de dependência para repositories
@@ -57,7 +58,8 @@ export class SuperXService {
     private inscricaoRepository: IInscricaoRepository,
     private grupoRepository: IGrupoRepository,
     private partidaReiDaPraiaRepository: IPartidaReiDaPraiaRepository,
-    private estatisticasJogadorRepository: IEstatisticasJogadorRepository
+    private estatisticasJogadorRepository: IEstatisticasJogadorRepository,
+    private desempate: DesempateService = desempateService
   ) {}
 
   /**
@@ -421,48 +423,11 @@ export class SuperXService {
 
       // Recalcular classificação e verificar grupo completo
       if (partida.grupoId) {
-        // Buscar dados para classificação e verificação em PARALELO
-        const [jogadoresGrupo, partidasGrupo] = await Promise.all([
-          this.estatisticasJogadorRepository.buscarPorGrupo(partida.grupoId),
-          this.partidaReiDaPraiaRepository.buscarPorGrupo(partida.grupoId),
-        ]);
-
-        // Ordenar e atualizar posições
-        // Critérios: Pontos → Saldo Games → Games vencidos → Sorteio
-        const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
-          if (a.pontosGrupo !== b.pontosGrupo)
-            return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
-          if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
-            return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
-          if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
-            return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
-          // Sorteio como último critério
-          return Math.random() - 0.5;
-        });
-
-        const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
-          estatisticaId: j.id,
-          posicaoGrupo: i + 1,
-        }));
-
-        // Verificar se grupo está completo (contando a partida atual como finalizada)
-        const partidasFinalizadas = partidasGrupo.filter(
-          (p) => p.status === StatusPartida.FINALIZADA || p.id === partidaId
-        ).length;
-        const grupoCompleto =
-          partidasFinalizadas === partidasGrupo.length &&
-          partidasGrupo.length > 0;
-
-        //  Atualizar posições e status do grupo em PARALELO
-        await Promise.all([
-          estatisticasJogadorService.atualizarPosicoesGrupoEmLote(
-            atualizacoesPosicao
-          ),
-          this.grupoRepository.atualizar(partida.grupoId, {
-            completo: grupoCompleto,
-            partidasFinalizadas,
-          }),
-        ]);
+        await this.recalcularClassificacaoGrupo(
+          partida.grupoId,
+          partida.etapaId,
+          partidaId
+        );
       }
 
       logger.info("Resultado Super X registrado", {
@@ -735,46 +700,7 @@ export class SuperXService {
       const recalcPromises = Array.from(gruposParaRecalcular).map(
         async (grupoId) => {
           try {
-            const [jogadoresGrupo, partidasGrupo] = await Promise.all([
-              this.estatisticasJogadorRepository.buscarPorGrupo(grupoId),
-              this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId),
-            ]);
-
-            // Critérios: Pontos → Saldo Games → Games vencidos → Sorteio
-            const jogadoresOrdenados = [...jogadoresGrupo].sort((a, b) => {
-              if (a.pontosGrupo !== b.pontosGrupo)
-                return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
-              if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
-                return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
-              if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
-                return (
-                  (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0)
-                );
-              // Sorteio como último critério
-              return Math.random() - 0.5;
-            });
-
-            const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
-              estatisticaId: j.id,
-              posicaoGrupo: i + 1,
-            }));
-
-            const partidasFinalizadas = partidasGrupo.filter(
-              (p) => p.status === StatusPartida.FINALIZADA
-            ).length;
-            const grupoCompleto =
-              partidasFinalizadas === partidasGrupo.length &&
-              partidasGrupo.length > 0;
-
-            await Promise.all([
-              estatisticasJogadorService.atualizarPosicoesGrupoEmLote(
-                atualizacoesPosicao
-              ),
-              this.grupoRepository.atualizar(grupoId, {
-                completo: grupoCompleto,
-                partidasFinalizadas,
-              }),
-            ]);
+            await this.recalcularClassificacaoGrupo(grupoId, etapaId);
           } catch (error: any) {
             logger.error(
               "Erro ao recalcular classificação do grupo Super X",
@@ -840,6 +766,68 @@ export class SuperXService {
   }
 
   /**
+   * Recalcular classificação do grupo Super X
+   *
+   * CRITÉRIOS DE DESEMPATE (em ordem):
+   * Pontos → Saldo de games → Games vencidos →
+   * Decisão do admin (sorteio ou manual) — ver DesempateService
+   *
+   * @param partidaRecemFinalizadaId - Partida que acabou de ser salva (conta como finalizada)
+   */
+  async recalcularClassificacaoGrupo(
+    grupoId: string,
+    etapaId: string,
+    partidaRecemFinalizadaId?: string
+  ): Promise<void> {
+    const [jogadoresGrupo, partidasGrupo] = await Promise.all([
+      this.estatisticasJogadorRepository.buscarPorGrupo(grupoId),
+      this.partidaReiDaPraiaRepository.buscarPorGrupo(grupoId),
+    ]);
+
+    const partidasFinalizadas = partidasGrupo.filter(
+      (p) =>
+        p.status === StatusPartida.FINALIZADA ||
+        p.id === partidaRecemFinalizadaId
+    ).length;
+    const grupoCompleto =
+      partidasFinalizadas === partidasGrupo.length && partidasGrupo.length > 0;
+
+    const jogadoresOrdenados = await this.desempate.classificarGrupo({
+      etapaId,
+      grupoId,
+      grupoNome: jogadoresGrupo[0]?.grupoNome || "Grupo único",
+      itens: jogadoresGrupo,
+      comparar: (a, b) => {
+        if (a.pontosGrupo !== b.pontosGrupo)
+          return (b.pontosGrupo || 0) - (a.pontosGrupo || 0);
+        if (a.saldoGamesGrupo !== b.saldoGamesGrupo)
+          return (b.saldoGamesGrupo || 0) - (a.saldoGamesGrupo || 0);
+        if (a.gamesVencidosGrupo !== b.gamesVencidosGrupo)
+          return (b.gamesVencidosGrupo || 0) - (a.gamesVencidosGrupo || 0);
+        return 0;
+      },
+      getId: (j) => j.jogadorId,
+      getNome: (j) => j.jogadorNome,
+      grupoCompleto,
+    });
+
+    const atualizacoesPosicao = jogadoresOrdenados.map((j, i) => ({
+      estatisticaId: j.id,
+      posicaoGrupo: i + 1,
+    }));
+
+    await Promise.all([
+      estatisticasJogadorService.atualizarPosicoesGrupoEmLote(
+        atualizacoesPosicao
+      ),
+      this.grupoRepository.atualizar(grupoId, {
+        completo: grupoCompleto,
+        partidasFinalizadas,
+      }),
+    ]);
+  }
+
+  /**
    * Buscar grupo da etapa Super X
    */
   async buscarGrupo(etapaId: string, arenaId: string): Promise<Grupo | null> {
@@ -879,6 +867,9 @@ export class SuperXService {
             etapaId,
             arenaId
           );
+        })(),
+        (async () => {
+          await this.desempate.limpar(etapaId);
         })(),
       ]);
 

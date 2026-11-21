@@ -2,6 +2,13 @@
  * Testes do ReiDaPraiaService
  */
 
+jest.mock("../../services/DesempateService", () => {
+  const { createMockDesempateService } = jest.requireActual(
+    "../mocks/desempateService"
+  );
+  return { __esModule: true, default: createMockDesempateService() };
+});
+
 jest.mock("../../utils/logger", () => ({
   __esModule: true,
   default: {
@@ -50,6 +57,12 @@ import { StatusPartida } from "../../models/Partida";
 import { TipoChaveamentoReiDaPraia } from "../../models/TipoChaveamentoReiDaPraia";
 import { StatusConfrontoEliminatorio } from "../../models/Eliminatoria";
 import { TEST_IDS, NivelJogador, GeneroJogador } from "../fixtures";
+import { RANKING_PRIMEIROS, RANKING_SEGUNDOS } from "../../utils/desempate";
+import {
+  createMockDesempateService,
+  comoDesempateService,
+  MockDesempateService,
+} from "../mocks/desempateService";
 
 describe("ReiDaPraiaService", () => {
   let service: ReiDaPraiaService;
@@ -72,6 +85,7 @@ describe("ReiDaPraiaService", () => {
     adicionarPartida: jest.fn(),
     adicionarPartidasEmLote: jest.fn(),
     buscarCompletos: jest.fn(),
+    buscarPorEtapa: jest.fn(),
     marcarCompleto: jest.fn(),
   };
 
@@ -1336,6 +1350,302 @@ describe("ReiDaPraiaService", () => {
 
       expect(result.duplas).toHaveLength(4);
       expect(mockDuplaRepository.criar).toHaveBeenCalled();
+    });
+  });
+
+  describe("gerarFaseEliminatoria - empate entre grupos", () => {
+    let mockDesempate: MockDesempateService;
+    let serviceComDesempate: ReiDaPraiaService;
+
+    // 1º colocado de cada grupo com as estatísticas informadas; 2º sempre pior
+    const prepararGrupos = (
+      primeiros: Array<{ pontos: number; vitorias: number; saldo: number }>
+    ) => {
+      const grupos = primeiros.map((_, i) => ({
+        id: `grupo-${i + 1}`,
+        nome: `Grupo ${String.fromCharCode(65 + i)}`,
+      }));
+      mockGrupoRepository.buscarCompletos.mockResolvedValue(grupos);
+
+      const buscar = estatisticasJogadorService.buscarClassificados as jest.Mock;
+      primeiros.forEach((p, i) => {
+        buscar.mockResolvedValueOnce([
+          {
+            jogadorId: `p${i + 1}`,
+            jogadorNome: `Primeiro ${i + 1}`,
+            grupoId: grupos[i].id,
+            grupoNome: grupos[i].nome,
+            posicaoGrupo: 1,
+            pontosGrupo: p.pontos,
+            vitoriasGrupo: p.vitorias,
+            saldoGamesGrupo: p.saldo,
+          },
+          {
+            jogadorId: `s${i + 1}`,
+            jogadorNome: `Segundo ${i + 1}`,
+            grupoId: grupos[i].id,
+            grupoNome: grupos[i].nome,
+            posicaoGrupo: 2,
+            pontosGrupo: 3,
+            vitoriasGrupo: 1,
+            saldoGamesGrupo: -i, // segundos sem empate
+          },
+        ]);
+      });
+
+      mockDuplaRepository.criar.mockImplementation((dto: any) =>
+        Promise.resolve({ id: `dupla-${dto.jogador1Id}-${dto.jogador2Id}`, ...dto })
+      );
+      mockConfrontoRepository.criarEmLote.mockImplementation((dtos: any[]) =>
+        Promise.resolve(dtos.map((dto: any) => ({ id: `c-${dto.ordem}`, ...dto })))
+      );
+    };
+
+    // Parâmetros passados ao DesempateService para o ranking informado
+    const paramsRanking = (grupoId: string) =>
+      mockDesempate.classificarGrupo.mock.calls
+        .map((c) => c[0])
+        .find((p) => p.grupoId === grupoId);
+
+    beforeEach(() => {
+      mockDesempate = createMockDesempateService();
+      serviceComDesempate = new ReiDaPraiaService(
+        mockEtapaRepository as any,
+        mockInscricaoRepository as any,
+        mockGrupoRepository as any,
+        mockDuplaRepository as any,
+        mockConfrontoRepository as any,
+        mockPartidaReiDaPraiaRepository as any,
+        mockEstatisticasJogadorRepository as any,
+        mockPartidaRepository as any,
+        comoDesempateService(mockDesempate)
+      );
+    });
+
+    it("Melhores com Melhores: empate só importa se os empatados caem em duplas diferentes", async () => {
+      // 3 primeiros empatados (3 vitórias, +5) e 1 pior — cenário do usuário
+      const igual = { pontos: 9, vitorias: 3, saldo: 5 };
+      prepararGrupos([igual, igual, igual, { pontos: 6, vitorias: 2, saldo: 1 }]);
+
+      await serviceComDesempate.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+      );
+
+      const { empateRelevante, grupoNome, contexto } = paramsRanking(
+        RANKING_PRIMEIROS
+      );
+      expect(grupoNome).toBe("Ranking dos 1º colocados");
+      expect(contexto).toContain("Melhores com Melhores");
+      // 1º, 2º e 3º empatados: o 3º vira parceiro do 4º → importa
+      expect(empateRelevante({ posicaoInicial: 1, ids: ["a", "b", "c"] })).toBe(true);
+      // 1º e 2º empatados: formam a mesma dupla de qualquer jeito
+      expect(empateRelevante({ posicaoInicial: 1, ids: ["a", "b"] })).toBe(false);
+      // 2º e 3º empatados: duplas diferentes
+      expect(empateRelevante({ posicaoInicial: 2, ids: ["b", "c"] })).toBe(true);
+    });
+
+    it("Melhores com Melhores com grupos ímpares: 1º que sobra joga com o melhor 2º", async () => {
+      const igual = { pontos: 9, vitorias: 3, saldo: 5 };
+      prepararGrupos([igual, igual, igual]);
+
+      await serviceComDesempate.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+      );
+
+      const primeiros = paramsRanking(RANKING_PRIMEIROS).empateRelevante;
+      const segundos = paramsRanking(RANKING_SEGUNDOS).empateRelevante;
+      // Primeiros: posições 1-2 formam dupla, 3º vai para a dupla equilibrada
+      expect(primeiros({ posicaoInicial: 1, ids: ["a", "b"] })).toBe(false);
+      expect(primeiros({ posicaoInicial: 2, ids: ["b", "c"] })).toBe(true);
+      // Segundos: 1º vai para a equilibrada, 2º e 3º formam dupla
+      expect(segundos({ posicaoInicial: 1, ids: ["a", "b"] })).toBe(true);
+      expect(segundos({ posicaoInicial: 2, ids: ["b", "c"] })).toBe(false);
+    });
+
+    it("Pareamento por Ranking: qualquer empate muda a dupla", async () => {
+      const igual = { pontos: 9, vitorias: 3, saldo: 5 };
+      prepararGrupos([igual, igual]);
+
+      await serviceComDesempate.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
+      );
+
+      const { empateRelevante, contexto } = paramsRanking(RANKING_PRIMEIROS);
+      expect(contexto).toContain("Pareamento por Ranking");
+      expect(empateRelevante({ posicaoInicial: 1, ids: ["a", "b"] })).toBe(true);
+    });
+
+    it("deve formar as duplas na ordem definida pelo desempate", async () => {
+      const igual = { pontos: 9, vitorias: 3, saldo: 5 };
+      prepararGrupos([igual, igual, igual, { pontos: 6, vitorias: 2, saldo: 1 }]);
+
+      // Admin decidiu: Primeiro 3 e Primeiro 1 na frente; Primeiro 2 joga com o 4
+      mockDesempate.classificarGrupo.mockImplementation(async (p: any) => {
+        if (p.grupoId !== RANKING_PRIMEIROS) return p.itens;
+        const ordem = ["p3", "p1", "p2", "p4"];
+        return [...p.itens].sort(
+          (a: any, b: any) => ordem.indexOf(a.jogadorId) - ordem.indexOf(b.jogadorId)
+        );
+      });
+
+      await serviceComDesempate.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+      );
+
+      const pares = mockDuplaRepository.criar.mock.calls.map(
+        (c: any[]) => `${c[0].jogador1Id}+${c[0].jogador2Id}`
+      );
+      expect(pares).toContain("p3+p1");
+      expect(pares).toContain("p2+p4");
+    });
+
+    it("deve bloquear a geração enquanto o empate entre grupos estiver pendente", async () => {
+      const igual = { pontos: 9, vitorias: 3, saldo: 5 };
+      prepararGrupos([igual, igual, igual, { pontos: 6, vitorias: 2, saldo: 1 }]);
+      mockDesempate.garantirSemEmpatesPendentes
+        .mockResolvedValueOnce(undefined) // empates dentro dos grupos: ok
+        .mockRejectedValueOnce(
+          new Error(
+            "Não é possível gerar a fase eliminatória: há empate pendente em Ranking dos 1º colocados."
+          )
+        );
+
+      await expect(
+        serviceComDesempate.gerarFaseEliminatoria(
+          TEST_ETAPA_ID,
+          TEST_ARENA_ID,
+          2,
+          TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+        )
+      ).rejects.toThrow("Ranking dos 1º colocados");
+
+      // Nada é gravado: nem classificados marcados, nem duplas criadas
+      expect(estatisticasJogadorService.marcarComoClassificadoEmLote).not.toHaveBeenCalled();
+      expect(mockDuplaRepository.criar).not.toHaveBeenCalled();
+    });
+
+    it("deve checar primeiro só os empates dentro dos grupos", async () => {
+      prepararGrupos([
+        { pontos: 9, vitorias: 3, saldo: 5 },
+        { pontos: 6, vitorias: 2, saldo: 1 },
+      ]);
+
+      await serviceComDesempate.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+      );
+
+      const filtro = mockDesempate.garantirSemEmpatesPendentes.mock.calls[0][2];
+      expect(filtro({ grupoId: "grupo-1" })).toBe(true);
+      expect(filtro({ grupoId: RANKING_PRIMEIROS })).toBe(false);
+    });
+
+    describe("atualizarEmpatesEntreGrupos (após mudar resultados dos grupos)", () => {
+      const igual = { pontos: 9, vitorias: 3, saldo: 5 };
+
+      it("com todos os grupos encerrados, já avisa o empate do ranking", async () => {
+        prepararGrupos([igual, igual, igual, { pontos: 6, vitorias: 2, saldo: 1 }]);
+        mockGrupoRepository.buscarPorEtapa.mockResolvedValue(
+          [1, 2, 3, 4].map((i) => ({ id: `grupo-${i}`, completo: true }))
+        );
+        mockEtapaRepository.buscarPorIdEArena.mockResolvedValue({
+          id: TEST_ETAPA_ID,
+          status: StatusEtapa.CHAVES_GERADAS,
+          tipoChaveamento: TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING,
+        });
+
+        await serviceComDesempate.atualizarEmpatesEntreGrupos(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+        // Usa o tipo de chaveamento da etapa
+        expect(paramsRanking(RANKING_PRIMEIROS).contexto).toContain("Pareamento por Ranking");
+        // Não bloqueia nada aqui: só registra o aviso
+        expect(mockDesempate.garantirSemEmpatesPendentes).not.toHaveBeenCalled();
+      });
+
+      it("com grupo incompleto, limpa o aviso antigo do ranking", async () => {
+        mockGrupoRepository.buscarPorEtapa.mockResolvedValue([
+          { id: "grupo-1", completo: true },
+          { id: "grupo-2", completo: false },
+        ]);
+        mockEtapaRepository.buscarPorIdEArena.mockResolvedValue({
+          id: TEST_ETAPA_ID,
+          status: StatusEtapa.CHAVES_GERADAS,
+          empatesPendentes: { [RANKING_PRIMEIROS]: [{ grupoId: RANKING_PRIMEIROS }] },
+        });
+
+        await serviceComDesempate.atualizarEmpatesEntreGrupos(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+        expect(mockDesempate.classificarGrupo).not.toHaveBeenCalled();
+        expect(mockDesempate.limparGrupos).toHaveBeenCalledWith(TEST_ETAPA_ID, [
+          RANKING_PRIMEIROS,
+          RANKING_SEGUNDOS,
+        ]);
+      });
+
+      it("com empate pendente dentro de um grupo, espera ele ser resolvido", async () => {
+        mockGrupoRepository.buscarPorEtapa.mockResolvedValue([
+          { id: "grupo-1", completo: true },
+          { id: "grupo-2", completo: true },
+        ]);
+        mockEtapaRepository.buscarPorIdEArena.mockResolvedValue({
+          id: TEST_ETAPA_ID,
+          status: StatusEtapa.CHAVES_GERADAS,
+          empatesPendentes: {
+            "grupo-1": [{ grupoId: "grupo-1", grupoNome: "Grupo A", posicaoInicial: 1, participantes: [] }],
+          },
+        });
+
+        await serviceComDesempate.atualizarEmpatesEntreGrupos(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+        expect(mockDesempate.classificarGrupo).not.toHaveBeenCalled();
+        // Não havia aviso do ranking: nada para limpar
+        expect(mockDesempate.limparGrupos).not.toHaveBeenCalled();
+      });
+
+      it("depois de gerar a eliminatória não mexe em nada", async () => {
+        mockEtapaRepository.buscarPorIdEArena.mockResolvedValue({
+          id: TEST_ETAPA_ID,
+          status: StatusEtapa.FASE_ELIMINATORIA,
+        });
+
+        await serviceComDesempate.atualizarEmpatesEntreGrupos(TEST_ETAPA_ID, TEST_ARENA_ID);
+
+        expect(mockGrupoRepository.buscarPorEtapa).not.toHaveBeenCalled();
+      });
+    });
+
+    it("Sorteio Aleatório: não pergunta nada e limpa pendências antigas", async () => {
+      prepararGrupos([
+        { pontos: 9, vitorias: 3, saldo: 5 },
+        { pontos: 9, vitorias: 3, saldo: 5 },
+      ]);
+
+      await serviceComDesempate.gerarFaseEliminatoria(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        2,
+        TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO
+      );
+
+      expect(mockDesempate.classificarGrupo).not.toHaveBeenCalled();
+      expect(mockDesempate.limparGrupos).toHaveBeenCalledWith(TEST_ETAPA_ID, [
+        RANKING_PRIMEIROS,
+        RANKING_SEGUNDOS,
+      ]);
     });
   });
 

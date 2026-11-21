@@ -61,11 +61,22 @@ interface FaseEliminatoriaReiDaPraiaProps {
   grupos: Grupo[];
   etapaTipoChaveamento?: TipoChaveamentoReiDaPraia;
   melhorDe3?: boolean;
+  // Geração bloqueada por empate: o pai recarrega e o painel de empates abre o modal
+  onEmpatePendente?: () => void;
+  // Empate pendente já conhecido: bloqueia gerar/encerrar
+  bloqueadoPorEmpate?: boolean;
 }
 
 export const FaseEliminatoriaReiDaPraia: React.FC<
   FaseEliminatoriaReiDaPraiaProps
-> = ({ etapaId, grupos, etapaTipoChaveamento, melhorDe3 = false }) => {
+> = ({
+  etapaId,
+  grupos,
+  etapaTipoChaveamento,
+  melhorDe3 = false,
+  onEmpatePendente,
+  bloqueadoPorEmpate = false,
+}) => {
   const [modalCancelarAberto, setModalCancelarAberto] = useState(false);
   const [modalEncerrarAberto, setModalEncerrarAberto] = useState(false);
 
@@ -95,7 +106,12 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
     gerarEliminatoria,
     cancelarEliminatoria,
     encerrarEtapa,
-  } = useFaseEliminatoriaReiDaPraia({ etapaId, grupos, etapaTipoChaveamento });
+  } = useFaseEliminatoriaReiDaPraia({
+    etapaId,
+    grupos,
+    etapaTipoChaveamento,
+    onEmpatePendente,
+  });
 
   // Loading inicial
   if (loading && (!confrontos || confrontos.length === 0)) {
@@ -133,6 +149,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
           loading={loading}
           onGerarEliminatoria={gerarEliminatoria}
           onEncerrarEtapa={encerrarEtapa}
+          bloqueadoPorEmpate={bloqueadoPorEmpate}
         />
         <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
       </>

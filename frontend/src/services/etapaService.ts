@@ -9,6 +9,9 @@ import {
   ListagemEtapas,
   EstatisticasEtapa,
   ResultadoGeracaoChaves,
+  EmpatePendente,
+  ResolverEmpateDTO,
+  ResultadoDesempate,
 } from "../types/etapa";
 import { handleError } from "@/utils/errorHandler";
 import logger from "@/utils/logger";
@@ -338,6 +341,49 @@ class EtapaService implements IEtapaService {
       logger.info("Etapa encerrada", { etapaId: id });
     } catch (error) {
       const appError = handleError(error, "EtapaService.encerrarEtapa");
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Listar empates nos grupos aguardando decisão do admin
+   */
+  async listarEmpatesPendentes(etapaId: string): Promise<EmpatePendente[]> {
+    try {
+      return await apiClient.get<EmpatePendente[]>(
+        `${this.baseURL}/${etapaId}/empates-pendentes`
+      );
+    } catch (error) {
+      const appError = handleError(
+        error,
+        "EtapaService.listarEmpatesPendentes"
+      );
+      throw new Error(appError.message);
+    }
+  }
+
+  /**
+   * Resolver empate de um grupo (sorteio ou ordem manual)
+   */
+  async resolverEmpate(
+    etapaId: string,
+    dados: ResolverEmpateDTO
+  ): Promise<ResultadoDesempate> {
+    try {
+      const resultado = await apiClient.post<ResultadoDesempate>(
+        `${this.baseURL}/${etapaId}/desempate`,
+        dados
+      );
+
+      logger.info("Empate resolvido", {
+        etapaId,
+        grupoId: dados.grupoId,
+        modo: dados.modo,
+      });
+
+      return resultado;
+    } catch (error) {
+      const appError = handleError(error, "EtapaService.resolverEmpate");
       throw new Error(appError.message);
     }
   }

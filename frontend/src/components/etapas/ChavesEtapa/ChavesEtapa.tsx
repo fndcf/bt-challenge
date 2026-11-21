@@ -5,6 +5,7 @@ import { Dupla, Grupo, Partida } from "@/types/chave";
 import { FaseEliminatoria } from "../FaseEliminatoria";
 import { LoadingOverlay } from "@/components/ui";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
+import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { getNivelLabel } from "@/utils/formatters";
 
 interface ChavesEtapaProps {
@@ -444,6 +445,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   const [_eliminatoriaExiste, setEliminatoriaExiste] = useState(false);
   const [_etapaFinalizada, setEtapaFinalizada] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<AbaAtiva>("grupos");
+  const [temEmpatePendente, setTemEmpatePendente] = useState(false);
 
   // Estado global de loading para operações críticas que bloqueiam toda a tela
   const [globalLoading, setGlobalLoading] = React.useState(false);
@@ -574,6 +576,14 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           </Tab>
         </TabsList>
       </TabsContainer>
+
+      <PainelEmpatesPendentes
+        etapaId={etapaId}
+        atualizarEm={duplas}
+        onResolvido={carregarChaves}
+        desabilitado={etapaFinalizada || _etapaFinalizada}
+        onEmpatesChange={(empates) => setTemEmpatePendente(empates.length > 0)}
+      />
 
       {abaAtiva === "grupos" ? (
         <>
@@ -740,6 +750,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
           arenaId={arenaId || ""}
           grupos={grupos}
           melhorDe3={melhorDe3Eliminatoria}
+          bloqueadoPorEmpate={temEmpatePendente}
         />
       )}
 

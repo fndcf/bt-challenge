@@ -564,6 +564,58 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
 
       expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao gerar");
     });
+
+    it("deve chamar onEmpatePendente (sem alert) quando bloqueado por empate", async () => {
+      mockGerarEliminatoria.mockRejectedValue(
+        new Error(
+          "Não é possível gerar a fase eliminatória: há empate pendente em Ranking dos 1º colocados. Resolva o desempate antes de continuar."
+        )
+      );
+      const onEmpatePendente = jest.fn();
+
+      const { result } = renderHook(() =>
+        useFaseEliminatoriaReiDaPraia({
+          etapaId: "etapa-1",
+          grupos: mockGrupos,
+          onEmpatePendente,
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.gerarEliminatoria();
+      });
+
+      expect(onEmpatePendente).toHaveBeenCalled();
+      expect(mockAlert).not.toHaveBeenCalled();
+    });
+
+    it("deve manter o alert para outros erros mesmo com onEmpatePendente", async () => {
+      mockGerarEliminatoria.mockRejectedValue(new Error("Erro ao gerar"));
+      const onEmpatePendente = jest.fn();
+
+      const { result } = renderHook(() =>
+        useFaseEliminatoriaReiDaPraia({
+          etapaId: "etapa-1",
+          grupos: mockGrupos,
+          onEmpatePendente,
+        })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.gerarEliminatoria();
+      });
+
+      expect(onEmpatePendente).not.toHaveBeenCalled();
+      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao gerar");
+    });
   });
 
   describe("cancelarEliminatoria", () => {

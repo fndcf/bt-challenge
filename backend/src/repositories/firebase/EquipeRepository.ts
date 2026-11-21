@@ -288,7 +288,11 @@ export class EquipeRepository implements IEquipeRepository {
         return b.saldoGames - a.saldoGames;
       }
       // Games vencidos (decrescente)
-      return b.gamesVencidos - a.gamesVencidos;
+      if (b.gamesVencidos !== a.gamesVencidos) {
+        return b.gamesVencidos - a.gamesVencidos;
+      }
+      // Posição calculada (inclui desempate definido pelo admin)
+      return (a.posicao ?? 0) - (b.posicao ?? 0);
     });
   }
 }
