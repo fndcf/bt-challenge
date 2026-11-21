@@ -15,13 +15,12 @@ import {
 } from "../FaseEliminatoria/utils/faseHelpers";
 import { EmptyState } from "../FaseEliminatoria/components/EmptyState";
 import { StatusBadge } from "../FaseEliminatoria/components/StatusBadge";
-import { LoadingOverlay } from "@/components/ui";
+import { LoadingOverlay, Button } from "@/components/ui";
 import {
   Container,
   Header,
   ChaveamentoInfo,
   ActionsRow,
-  Button,
   Controls,
   Select,
   LoadingContainer,
@@ -52,7 +51,6 @@ import {
   Score,
   VsSeparator,
   ActionSection,
-  ActionButton,
 } from "./styles";
 
 interface FaseEliminatoriaReiDaPraiaProps {
@@ -192,7 +190,7 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
 
       <ActionsRow>
         <Button
-          $variant="danger"
+          variant="danger"
           onClick={() => setModalCancelarAberto(true)}
           disabled={loading || etapaFinalizada}
         >
@@ -200,7 +198,6 @@ export const FaseEliminatoriaReiDaPraia: React.FC<
         </Button>
         {finalFinalizada && (
           <Button
-            $variant="warning"
             onClick={() => setModalEncerrarAberto(true)}
             disabled={loading || etapaFinalizada}
           >
@@ -373,20 +370,21 @@ const VisualizacaoLista: React.FC<{
                     {confronto.status ===
                       StatusConfrontoEliminatorio.AGENDADA && (
                       <ActionSection>
-                        <ActionButton
-                          $variant="register"
+                        <Button
+                          fullWidth
                           onClick={() => setConfrontoSelecionado(confronto)}
                         >
                           <span>Registrar Resultado</span>
-                        </ActionButton>
+                        </Button>
                       </ActionSection>
                     )}
 
                     {confronto.status ===
                       StatusConfrontoEliminatorio.FINALIZADA && (
                       <ActionSection>
-                        <ActionButton
-                          $variant={etapaFinalizada ? "disabled" : "edit"}
+                        <Button
+                          variant={etapaFinalizada ? "secondary" : "outline"}
+                          fullWidth
                           onClick={() =>
                             !etapaFinalizada &&
                             setConfrontoSelecionado(confronto)
@@ -398,7 +396,7 @@ const VisualizacaoLista: React.FC<{
                               ? "Etapa Finalizada"
                               : "Editar Resultado"}
                           </span>
-                        </ActionButton>
+                        </Button>
                       </ActionSection>
                     )}
                   </>

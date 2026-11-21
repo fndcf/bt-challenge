@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { getEtapaService } from "@/services";
+import { Button } from "@/components/ui";
 import { EmpatePendente } from "@/types/etapa";
 import { ModalResolverEmpate } from "./ModalResolverEmpate";
 
@@ -77,21 +78,6 @@ const ItemEmpate = styled.li`
   }
 `;
 
-const BotaoResolver = styled.button`
-  flex-shrink: 0;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  background: #f59e0b;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  cursor: pointer;
-
-  &:hover {
-    background: #d97706;
-  }
-`;
 
 // ============== HELPERS ==============
 
@@ -191,12 +177,13 @@ export const PainelEmpatesPendentes: React.FC<PainelEmpatesPendentesProps> = ({
                   {empate.participantes.map((p) => p.nome).join(" × ")} (a
                   partir do {empate.posicaoInicial}º lugar)
                 </span>
-                <BotaoResolver
+                <Button
                   type="button"
                   onClick={() => setEmpateAberto(empate)}
+                  style={{ flexShrink: 0 }}
                 >
                   Resolver
-                </BotaoResolver>
+                </Button>
               </ItemEmpate>
             ))}
           </ListaEmpates>

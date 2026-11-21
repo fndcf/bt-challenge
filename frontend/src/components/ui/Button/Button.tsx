@@ -1,5 +1,11 @@
 /**
  * Componente de botão reutilizável e responsivo
+ *
+ * Cores por função (docs/ARCHITECTURE.md > "Cores por funcao"):
+ * - primary / outline / ghost: cor de ação (teal), igual em todos os formatos
+ * - danger: ação destrutiva
+ * - secondary: ação neutra (ex.: Cancelar)
+ * Botões nunca usam cor de formato nem de status.
  */
 
 import React, { ButtonHTMLAttributes } from "react";
@@ -23,6 +29,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconPosition?: "left" | "right";
 }
 
+const { acao, texto, superficie, status } = theme.semantic;
+
 const StyledButton = styled.button<{
   $variant: ButtonVariant;
   $size: ButtonSize;
@@ -34,11 +42,13 @@ const StyledButton = styled.button<{
   align-items: center;
   justify-content: center;
   gap: ${theme.spacing[2]};
-  border: none;
+  border: 1px solid transparent;
   border-radius: ${theme.borderRadius.lg};
-  font-weight: ${theme.typography.fontWeight.medium};
+  font-weight: ${theme.typography.fontWeight.semibold};
   cursor: pointer;
-  transition: all ${theme.transitions.base} ${theme.easing.easeInOut};
+  transition: background-color ${theme.transitions.base} ${theme.easing.easeInOut},
+    border-color ${theme.transitions.base} ${theme.easing.easeInOut},
+    color ${theme.transitions.base} ${theme.easing.easeInOut};
   white-space: nowrap;
   position: relative;
   font-family: ${theme.typography.fontFamily.sans};
@@ -67,95 +77,96 @@ const StyledButton = styled.button<{
 
   /* Focus state */
   &:focus-visible {
-    outline: 2px solid ${theme.colors.primary[500]};
+    outline: 2px solid ${acao.primaria};
     outline-offset: 2px;
   }
 
-  /* Size variants */
+  /*
+   * Tamanhos (altura = área de toque):
+   * - md: padrão, 44px
+   * - sm: 36px, só para ações secundárias em listas densas (cards de confronto)
+   * - lg: 48px
+   */
   ${({ $size }) => {
     switch ($size) {
       case "sm":
         return css`
-          padding: ${theme.spacing[2]} ${theme.spacing[4]};
+          padding: 0 ${theme.spacing[3]};
           font-size: ${theme.typography.fontSize.sm};
-          height: ${theme.components.button.height.sm};
+          min-height: 36px;
         `;
       case "lg":
         return css`
-          padding: ${theme.spacing[4]} ${theme.spacing[8]};
-          font-size: ${theme.typography.fontSize.lg};
-          height: ${theme.components.button.height.lg};
+          padding: 0 ${theme.spacing[8]};
+          font-size: ${theme.typography.fontSize.base};
+          min-height: 48px;
         `;
       case "md":
       default:
         return css`
-          padding: ${theme.spacing[3]} ${theme.spacing[6]};
-          font-size: ${theme.typography.fontSize.base};
-          height: ${theme.components.button.height.md};
+          padding: 0 ${theme.spacing[5]};
+          font-size: ${theme.typography.fontSize.sm};
+          min-height: 44px;
         `;
     }
   }}
 
-  /* Color variants */
+  /* Variantes de cor */
   ${({ $variant }) => {
     switch ($variant) {
       case "primary":
         return css`
-          background: ${theme.gradients.primary};
-          color: ${theme.colors.white};
+          background: ${acao.primaria};
+          color: ${acao.textoSobreAcao};
 
           &:hover:not(:disabled) {
-            background: ${theme.gradients.primaryHover};
-            transform: translateY(-1px);
-            box-shadow: ${theme.shadows.lg};
-          }
-
-          &:active:not(:disabled) {
-            transform: translateY(0);
+            background: ${acao.primariaHover};
           }
         `;
 
       case "secondary":
         return css`
-          background: ${theme.colors.neutral[100]};
-          color: ${theme.colors.neutral[900]};
+          background: ${superficie.pagina};
+          color: ${texto.principal};
+          border-color: ${superficie.bordaForte};
 
           &:hover:not(:disabled) {
-            background: ${theme.colors.neutral[200]};
+            background: ${superficie.borda};
           }
         `;
 
       case "outline":
         return css`
-          background: transparent;
-          color: ${theme.colors.primary[500]};
-          border: 2px solid ${theme.colors.primary[500]};
+          background: ${superficie.fundo};
+          color: ${acao.primaria};
+          border-color: ${acao.primaria};
 
           &:hover:not(:disabled) {
-            background: ${theme.colors.primary[500]};
-            color: ${theme.colors.white};
+            background: ${acao.fundoClaro};
           }
         `;
 
       case "ghost":
         return css`
           background: transparent;
-          color: ${theme.colors.primary[500]};
+          color: ${acao.primaria};
 
           &:hover:not(:disabled) {
-            background: ${theme.colors.primary[50]};
+            background: ${acao.fundoClaro};
           }
         `;
 
       case "danger":
         return css`
-          background: ${theme.colors.error[500]};
-          color: ${theme.colors.white};
+          background: ${acao.perigo};
+          color: ${acao.textoSobreAcao};
 
           &:hover:not(:disabled) {
-            background: ${theme.colors.error[700]};
-            transform: translateY(-1px);
-            box-shadow: ${theme.shadows.md};
+            background: ${acao.perigoHover};
+          }
+
+          &:focus-visible {
+            outline-color: ${status.erro.texto};
           }
         `;
 
@@ -165,11 +176,12 @@ const StyledButton = styled.button<{
   }}
 `;
 
+// Usa a cor do texto do botão: visível em todas as variantes
 const Spinner = styled.div`
   width: 1em;
   height: 1em;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 

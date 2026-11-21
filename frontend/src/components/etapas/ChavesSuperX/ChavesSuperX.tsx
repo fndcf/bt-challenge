@@ -5,7 +5,7 @@ import { Grupo } from "@/types/chave";
 import { EstatisticasJogador, PartidaReiDaPraia } from "@/types/reiDaPraia";
 import { VarianteSuperX } from "@/types/etapa";
 import { ModalLancamentoResultadosLoteSuperX } from "../ModalLancamentoResultadosLoteSuperX";
-import { LoadingOverlay } from "@/components/ui";
+import { LoadingOverlay, Button } from "@/components/ui";
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
@@ -291,32 +291,6 @@ const CompletoBadge = styled.span`
   font-weight: 600;
 `;
 
-const VerPartidasButton = styled.button`
-  width: 100%;
-  background: #7c3aed;
-  color: white;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #6d28d9;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 0.9375rem;
-  }
-`;
-
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -393,27 +367,6 @@ const ActionsRow = styled.div`
   gap: 1rem;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
-`;
-
-const EncerrarEtapaButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  border: none;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 
 const AlertBox = styled.div`
@@ -610,7 +563,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
         (grupo.partidasFinalizadas || 0) === totalPartidas &&
         totalPartidas > 0 && (
           <ActionsRow>
-            <EncerrarEtapaButton
+            <Button
               onClick={() => setModalEncerrarAberto(true)}
               disabled={temEmpatePendente}
               title={
@@ -620,7 +573,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
               }
             >
               Encerrar Etapa
-            </EncerrarEtapaButton>
+            </Button>
           </ActionsRow>
         )}
 
@@ -777,12 +730,13 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
             {grupo.completo && <CompletoBadge>Completo</CompletoBadge>}
           </FooterInfo>
 
-          <VerPartidasButton
+          <Button
+            fullWidth
             onClick={handleAbrirModalResultados}
             disabled={etapaFinalizada}
           >
             Registrar Resultados
-          </VerPartidasButton>
+          </Button>
         </GrupoFooter>
       </GrupoCard>
 

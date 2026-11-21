@@ -10,7 +10,7 @@ import {
   TipoFormacaoJogos,
 } from "@/types/teams";
 import { FaseEtapa } from "@/types/chave";
-import { LoadingOverlay } from "@/components/ui";
+import { LoadingOverlay, Button } from "@/components/ui";
 import { ModalLancamentoResultadosLoteTeams } from "../ModalLancamentoResultadosLoteTeams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
@@ -451,48 +451,6 @@ const ConfrontoActions = styled.div`
   align-items: center;
 `;
 
-const ActionButton = styled.button<{ $variant?: "primary" | "secondary" | "warning" }>`
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  border: none;
-  font-weight: 600;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "primary":
-        return `
-          background: #059669;
-          color: white;
-          &:hover:not(:disabled) { background: #047857; }
-        `;
-      case "warning":
-        return `
-          background: #f59e0b;
-          color: white;
-          &:hover:not(:disabled) { background: #d97706; }
-        `;
-      default:
-        return `
-          background: white;
-          color: #374151;
-          border: 1px solid #d1d5db;
-          &:hover:not(:disabled) { background: #f9fafb; }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
 const StatusBadge = styled.span<{ $status: StatusConfronto }>`
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
@@ -671,27 +629,6 @@ const ActionsRow = styled.div`
   flex-wrap: wrap;
 `;
 
-const EncerrarEtapaButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  border: none;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
 const AlertBox = styled.div`
   background: #fef3c7;
   border: 1px solid #fde68a;
@@ -730,26 +667,6 @@ const EliminatoriaAcoesCard = styled.div`
     margin-top: 0.75rem;
     color: #92400e;
     font-size: 0.8125rem;
-  }
-`;
-
-const EliminatoriaBotao = styled.button<{ $variant?: "perigo" }>`
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
-  border: none;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  color: #ffffff;
-  background: ${({ $variant }) => ($variant === "perigo" ? "#dc2626" : "#2563eb")};
-
-  &:hover:not(:disabled) {
-    background: ${({ $variant }) => ($variant === "perigo" ? "#b91c1c" : "#1d4ed8")};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 `;
 
@@ -1386,24 +1303,25 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
             {!etapaFinalizada && equipesDefinidas && !resultadosBloqueados && (
               <>
-                <ActionButton
-                  $variant={confronto.status === StatusConfronto.FINALIZADO ? "secondary" : "primary"}
+                <Button
+                  size="sm"
+                  variant={confronto.status === StatusConfronto.FINALIZADO ? "outline" : "primary"}
                   onClick={() => handleAbrirModalResultados(confronto)}
                 >
                   {confronto.status === StatusConfronto.FINALIZADO ? "Editar" : "Resultados"}
-                </ActionButton>
+                </Button>
                 {precisaDecider && (
-                  <ActionButton $variant="warning" onClick={() => handleGerarDecider(confronto.id)}>
+                  <Button size="sm" onClick={() => handleGerarDecider(confronto.id)}>
                     Gerar Decider
-                  </ActionButton>
+                  </Button>
                 )}
               </>
             )}
 
             {equipesDefinidas && (
-              <ActionButton onClick={() => handleExpandirConfronto(confronto.id, confronto)}>
+              <Button size="sm" variant="secondary" onClick={() => handleExpandirConfronto(confronto.id, confronto)}>
                 {isExpanded ? "Ocultar" : "Ver Partidas"}
-              </ActionButton>
+              </Button>
             )}
           </ConfrontoActions>
         </ConfrontoRow>
@@ -1446,20 +1364,21 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
                         <PartidaDuplas>
                           {dupla1Label} vs {dupla2Label}
                           {podeEditarJogadores && (
-                            <ActionButton
-                              $variant="warning"
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => handleDefinirJogadores(partida, confronto)}
-                              style={{ marginLeft: "0.5rem", fontSize: "0.7rem", padding: "0.15rem 0.5rem" }}
+                              style={{ marginLeft: "0.5rem" }}
                             >
                               Editar
-                            </ActionButton>
+                            </Button>
                           )}
                         </PartidaDuplas>
                       )}
                       {podeDefinirJogadores && (
-                        <ActionButton $variant="warning" onClick={() => handleDefinirJogadores(partida, confronto)}>
+                        <Button size="sm" onClick={() => handleDefinirJogadores(partida, confronto)}>
                           Definir Jogadores
-                        </ActionButton>
+                        </Button>
                       )}
                       {semJogadores && !podeDefinirJogadores && (
                         <PartidaDuplas style={{ color: "#9ca3af", fontStyle: "italic" }}>
@@ -1496,12 +1415,12 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
                 ? "A fase de grupos foi concluída! Gere a fase eliminatória para preencher as vagas com os classificados."
                 : "Finalize todos os confrontos da fase de grupos para gerar a fase eliminatória."}
             </p>
-            <EliminatoriaBotao
+            <Button
               onClick={handleGerarEliminatoria}
               disabled={!gruposConcluidos || temEmpatePendente}
             >
               Gerar Fase Eliminatória
-            </EliminatoriaBotao>
+            </Button>
             {gruposConcluidos && temEmpatePendente && (
               <small>Resolva o empate indicado acima para liberar esta ação.</small>
             )}
@@ -1510,13 +1429,13 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
         {eliminatoriaGerada && (
           <ActionsRow>
-            <EliminatoriaBotao
-              $variant="perigo"
+            <Button
+              variant="danger"
               onClick={() => setModalCancelarEliminatoriaAberto(true)}
               disabled={etapaFinalizada}
             >
               Cancelar Eliminatória
-            </EliminatoriaBotao>
+            </Button>
           </ActionsRow>
         )}
 
@@ -1549,7 +1468,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       {/* Botão de Encerrar Etapa no topo - só aparece quando todos os confrontos estiverem finalizados */}
       {!etapaFinalizada && confrontos.length > 0 && confrontosFinalizados === confrontos.length && (
         <ActionsRow>
-          <EncerrarEtapaButton
+          <Button
             onClick={() => setModalEncerrarAberto(true)}
             disabled={temEmpatePendente}
             title={
@@ -1559,7 +1478,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
             }
           >
             Encerrar Etapa
-          </EncerrarEtapaButton>
+          </Button>
         </ActionsRow>
       )}
 

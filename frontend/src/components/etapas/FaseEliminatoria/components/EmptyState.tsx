@@ -7,9 +7,9 @@ import {
   InfoBox,
   InfoText,
   ButtonGroup,
-  Button,
   HintText,
 } from "../styles";
+import { Button } from "@/components/ui";
 
 interface EmptyStateProps {
   isGrupoUnico: boolean;
@@ -91,7 +91,6 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
                     <ButtonGroup>
                       <Button
-                        $variant="warning"
                         onClick={onEncerrarEtapa}
                         disabled={loading || bloqueadoPorEmpate}
                       >

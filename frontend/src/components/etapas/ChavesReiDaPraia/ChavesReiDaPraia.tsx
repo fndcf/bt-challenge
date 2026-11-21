@@ -8,7 +8,7 @@ import {
   PartidaReiDaPraia,
 } from "@/types/reiDaPraia";
 import { FaseEliminatoriaReiDaPraia } from "../FaseEliminatoriaReiDaPraia";
-import { LoadingOverlay } from "@/components/ui";
+import { LoadingOverlay, Button } from "@/components/ui";
 import { ModalLancamentoResultadosLoteReiDaPraia } from "../ModalLancamentoResultadosLoteReiDaPraia";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 
@@ -361,27 +361,6 @@ const CompletoBadge = styled.span`
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-`;
-
-const VerPartidasButton = styled.button`
-  width: 100%;
-  background: #7c3aed;
-  color: white;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #6d28d9;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 0.9375rem;
-  }
 `;
 
 const LoadingContainer = styled.div`
@@ -767,13 +746,14 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
                       )}
                     </FooterInfo>
 
-                    <VerPartidasButton
+                    <Button
+                      fullWidth
                       onClick={() =>
                         handleAbrirModalResultados(grupo.id, grupo.nome)
                       }
                     >
                       Registrar Resultados
-                    </VerPartidasButton>
+                    </Button>
                   </GrupoFooter>
                 </GrupoCard>
               );

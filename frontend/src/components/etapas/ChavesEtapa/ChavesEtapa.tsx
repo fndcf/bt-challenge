@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo, Partida } from "@/types/chave";
 import { FaseEliminatoria } from "../FaseEliminatoria";
-import { LoadingOverlay } from "@/components/ui";
+import { LoadingOverlay, Button } from "@/components/ui";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { getNivelLabel } from "@/utils/formatters";
@@ -345,27 +345,6 @@ const CompletoBadge = styled.span`
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-`;
-
-const VerPartidasButton = styled.button`
-  width: 100%;
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #1d4ed8;
-  }
-
-  @media (min-width: 768px) {
-    font-size: 0.9375rem;
-  }
 `;
 
 const LoadingContainer = styled.div`
@@ -725,13 +704,14 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                       )}
                     </FooterInfo>
 
-                    <VerPartidasButton
+                    <Button
+                      fullWidth
                       onClick={() =>
                         handleAbrirModalResultados(grupo.id, grupo.nome)
                       }
                     >
                       Registrar Resultados
-                    </VerPartidasButton>
+                    </Button>
                   </GrupoFooter>
                 </GrupoCard>
               );

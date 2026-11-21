@@ -9,20 +9,19 @@
     "hex": 3
   },
   "src/components/etapas/ChavesEtapa/ChavesEtapa.tsx": {
-    "hex": 45,
-    "styledButton": 2
+    "hex": 43,
+    "styledButton": 1
   },
   "src/components/etapas/ChavesReiDaPraia/ChavesReiDaPraia.tsx": {
-    "hex": 47,
-    "styledButton": 2
+    "hex": 45,
+    "styledButton": 1
   },
   "src/components/etapas/ChavesSuperX/ChavesSuperX.tsx": {
-    "hex": 43,
-    "styledButton": 2
+    "hex": 37
   },
   "src/components/etapas/ChavesTeams/ChavesTeams.tsx": {
-    "hex": 126,
-    "styledButton": 5
+    "hex": 110,
+    "styledButton": 2
   },
   "src/components/etapas/EtapaCard/EtapaCard.tsx": {
     "hex": 19,
@@ -32,8 +31,7 @@
     "hex": 1
   },
   "src/components/etapas/FaseEliminatoria/styles.ts": {
-    "hex": 59,
-    "styledButton": 2
+    "hex": 40
   },
   "src/components/etapas/FaseEliminatoriaReiDaPraia/styles.ts": {
     "hex": 3
@@ -79,8 +77,7 @@
     "styledButton": 2
   },
   "src/components/etapas/PainelEmpatesPendentes/PainelEmpatesPendentes.tsx": {
-    "hex": 11,
-    "styledButton": 1
+    "hex": 8
   },
   "src/components/etapas/StatusBadge/StatusBadge.tsx": {
     "hex": 21

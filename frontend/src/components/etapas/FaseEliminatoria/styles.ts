@@ -51,64 +51,6 @@ export const ActionsRow = styled.div`
   flex-wrap: wrap;
 `;
 
-export const Button = styled.button<{
-  $variant?: "primary" | "danger" | "warning" | "gray";
-}>`
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  @media (min-width: 768px) {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.875rem;
-  }
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "danger":
-        return `
-          background: #ef4444;
-          color: white;
-          &:hover:not(:disabled) { background: #dc2626; }
-        `;
-      case "warning":
-        return `
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          font-weight: 700;
-          &:hover:not(:disabled) {
-            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-          }
-        `;
-      case "gray":
-        return `
-          background: #f3f4f6;
-          color: #374151;
-          &:hover:not(:disabled) { background: #e5e7eb; }
-        `;
-      default:
-        return `
-          background: #2563eb;
-          color: white;
-          &:hover:not(:disabled) { background: #1d4ed8; }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
 export const Controls = styled.div`
   background: white;
   border-radius: 0.5rem;
@@ -444,56 +386,5 @@ export const VsSeparator = styled.div`
 
 export const ActionSection = styled.div`
   margin-top: 1rem;
-`;
-
-export const ActionButton = styled.button<{
-  $variant?: "register" | "edit" | "disabled";
-}>`
-  width: 100%;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "register":
-        return `
-          background: #2563eb;
-          color: white;
-          &:hover { background: #1d4ed8; }
-        `;
-      case "edit":
-        return `
-          background: #f59e0b;
-          color: white;
-          &:hover { background: #d97706; }
-        `;
-      case "disabled":
-        return `
-          background: #9ca3af;
-          color: #e5e7eb;
-          cursor: not-allowed;
-        `;
-      default:
-        return `
-          background: #2563eb;
-          color: white;
-          &:hover { background: #1d4ed8; }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 

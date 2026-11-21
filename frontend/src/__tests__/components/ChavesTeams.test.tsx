@@ -35,6 +35,7 @@ jest.mock("@/services", () => ({
 
 // Mock do LoadingOverlay
 jest.mock("@/components/ui", () => ({
+  ...jest.requireActual("@/components/ui"),
   LoadingOverlay: ({ isLoading, message }: { isLoading: boolean; message: string }) =>
     isLoading ? <div data-testid="loading-overlay">{message}</div> : null,
 }));
