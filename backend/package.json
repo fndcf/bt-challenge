@@ -35,7 +35,11 @@
       "/__tests__/fixtures/",
       "/__tests__/mocks/",
       "/__tests__/types/",
-      "/__tests__/setup.ts"
+      "/__tests__/setup.ts",
+      "/__tests__/setupEnv.ts"
+    ],
+    "setupFiles": [
+      "<rootDir>/src/__tests__/setupEnv.ts"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/src/__tests__/setup.ts"
