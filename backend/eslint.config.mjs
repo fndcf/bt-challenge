@@ -28,6 +28,38 @@ export default tseslint.config(
     },
   },
   {
+    // Banco so por repositorio
+    files: [
+      "src/services/**/*.ts",
+      "src/controllers/**/*.ts",
+      "src/routes/**/*.ts",
+    ],
+    // Ainda acessam o banco direto (passo 8). A lista so pode diminuir.
+    ignores: [
+      "src/controllers/EtapaController.ts",
+      "src/routes/publicRoutes.ts",
+      "src/services/ArenaService.ts",
+      "src/services/CabecaDeChaveService.ts",
+      "src/services/EstatisticasJogadorService.ts",
+      "src/services/ExcelJogadorService.ts",
+      "src/services/HistoricoDuplaService.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/config/firebase"],
+              importNames: ["db"],
+              message: "Acesse o banco por um repository.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       "node_modules/**",
       "dist/**",

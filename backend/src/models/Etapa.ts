@@ -129,7 +129,6 @@ export interface Etapa {
   // Configurações
   maxJogadores: number; // Ex: 16, 24, 32
   jogadoresPorGrupo: number; // Ex: 3 ou 4 duplas por grupo
-  qtdGrupos?: number; // Calculado automaticamente
   grupoUnico?: boolean; // Todas as duplas em um único grupo (todos contra todos)
 
   // Status

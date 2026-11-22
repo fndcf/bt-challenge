@@ -11,6 +11,7 @@ import {
   ResultadoPartidaLoteSuperXDTO,
   RegistrarResultadosEmLoteSuperXResponse,
 } from "../types/reiDaPraia";
+import { EtapaParaGerarChaves } from "@/types/etapa";
 import { Grupo } from "../types/chave";
 
 /**
@@ -194,7 +195,7 @@ class SuperXService implements ISuperXService {
    *
    * @returns { podeGerar: boolean, mensagem?: string }
    */
-  validarGeracaoChaves(etapa: any): {
+  validarGeracaoChaves(etapa: EtapaParaGerarChaves): {
     podeGerar: boolean;
     mensagem?: string;
   } {

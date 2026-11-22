@@ -10,10 +10,7 @@
  * para funcionar igual em todos os formatos, inclusive TEAMS (sem documento de grupo).
  */
 
-import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
-import { db } from "../config/firebase";
 import {
-  Etapa,
   EmpatePendente,
   DesempateDefinido,
   ModoDesempate,
@@ -26,6 +23,8 @@ import {
   listarEmpatesPendentes,
   garantirSemEmpatesPendentes,
 } from "../utils/desempate";
+import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
+import { etapaRepository } from "../repositories/firebase/EtapaRepository";
 import { embaralhar } from "../utils/arrayUtils";
 import logger from "../utils/logger";
 
@@ -48,9 +47,7 @@ export interface ClassificarGrupoParams<T> {
 }
 
 export class DesempateService {
-  private get etapas() {
-    return db.collection("etapas");
-  }
+  constructor(private etapas: IEtapaRepository = etapaRepository) {}
 
   /**
    * Ordenar participantes do grupo e atualizar os empates pendentes
@@ -58,7 +55,7 @@ export class DesempateService {
   async classificarGrupo<T>(params: ClassificarGrupoParams<T>): Promise<T[]> {
     const { etapaId, grupoId, grupoNome, itens, getId, getNome } = params;
 
-    const etapa = await this.buscarEtapa(etapaId);
+    const etapa = await this.etapas.buscarPorId(etapaId);
     const { ordenados, empates } = ordenarComDesempate(
       itens,
       params.comparar,
@@ -85,14 +82,7 @@ export class DesempateService {
 
       const atuais = etapa.empatesPendentes?.[grupoId] ?? [];
       if (JSON.stringify(atuais) !== JSON.stringify(pendentes)) {
-        await this.etapas
-          .doc(etapaId)
-          .update(
-            new FieldPath("empatesPendentes", grupoId),
-            pendentes.length > 0 ? pendentes : FieldValue.delete(),
-            "atualizadoEm",
-            Timestamp.now()
-          );
+        await this.etapas.salvarEmpatesPendentes(etapaId, grupoId, pendentes);
 
         if (pendentes.length > 0) {
           logger.info("Empate pendente detectado", {
@@ -111,7 +101,7 @@ export class DesempateService {
    * Listar empates pendentes da etapa (todos os grupos)
    */
   async listarPendentes(etapaId: string): Promise<EmpatePendente[]> {
-    return listarEmpatesPendentes(await this.buscarEtapa(etapaId));
+    return listarEmpatesPendentes(await this.etapas.buscarPorId(etapaId));
   }
 
   /**
@@ -125,7 +115,7 @@ export class DesempateService {
     acao: string,
     filtro?: (empate: EmpatePendente) => boolean
   ): Promise<void> {
-    garantirSemEmpatesPendentes(await this.buscarEtapa(etapaId), acao, filtro);
+    garantirSemEmpatesPendentes(await this.etapas.buscarPorId(etapaId), acao, filtro);
   }
 
   /**
@@ -142,7 +132,7 @@ export class DesempateService {
     ids: string[],
     modo: ModoDesempate
   ): Promise<{ modo: ModoDesempate; participantes: ParticipanteEmpate[] }> {
-    const etapa = await this.buscarEtapa(etapaId);
+    const etapa = await this.etapas.buscarPorId(etapaId);
     if (!etapa) {
       throw new Error("Etapa não encontrada");
     }
@@ -171,16 +161,12 @@ export class DesempateService {
       (e) => e !== empate
     );
 
-    await this.etapas
-      .doc(etapaId)
-      .update(
-        new FieldPath("desempates", grupoId),
-        desempatesGrupo,
-        new FieldPath("empatesPendentes", grupoId),
-        pendentesRestantes.length > 0 ? pendentesRestantes : FieldValue.delete(),
-        "atualizadoEm",
-        Timestamp.now()
-      );
+    await this.etapas.salvarDesempates(
+      etapaId,
+      grupoId,
+      desempatesGrupo,
+      pendentesRestantes
+    );
 
     const nomes = new Map(empate.participantes.map((p) => [p.id, p.nome]));
     const participantes = ordem.map((id) => ({ id, nome: nomes.get(id) || "" }));
@@ -203,7 +189,7 @@ export class DesempateService {
     participanteId: string,
     nome: string
   ): Promise<void> {
-    const etapa = await this.buscarEtapa(etapaId);
+    const etapa = await this.etapas.buscarPorId(etapaId);
 
     for (const [grupoId, empates] of Object.entries(
       etapa?.empatesPendentes ?? {}
@@ -219,14 +205,7 @@ export class DesempateService {
           p.id === participanteId ? { ...p, nome } : p
         ),
       }));
-      await this.etapas
-        .doc(etapaId)
-        .update(
-          new FieldPath("empatesPendentes", grupoId),
-          atualizados,
-          "atualizadoEm",
-          Timestamp.now()
-        );
+      await this.etapas.salvarEmpatesPendentes(etapaId, grupoId, atualizados);
     }
   }
 
@@ -234,10 +213,7 @@ export class DesempateService {
    * Limpar empates e desempates (ao excluir/cancelar chaves)
    */
   async limpar(etapaId: string): Promise<void> {
-    await this.etapas.doc(etapaId).update({
-      empatesPendentes: FieldValue.delete(),
-      desempates: FieldValue.delete(),
-    });
+    await this.etapas.limparDesempates(etapaId);
   }
 
   /**
@@ -250,26 +226,11 @@ export class DesempateService {
     grupoIds: string[],
     incluirDesempates = false
   ): Promise<void> {
-    const campos: unknown[] = [];
-    for (const grupoId of grupoIds) {
-      campos.push(new FieldPath("empatesPendentes", grupoId), FieldValue.delete());
-      if (incluirDesempates) {
-        campos.push(new FieldPath("desempates", grupoId), FieldValue.delete());
-      }
-    }
-
-    await this.etapas
-      .doc(etapaId)
-      .update(
-        new FieldPath("atualizadoEm"),
-        Timestamp.now(),
-        ...campos
-      );
-  }
-
-  private async buscarEtapa(etapaId: string): Promise<Etapa | null> {
-    const doc = await this.etapas.doc(etapaId).get();
-    return doc.exists ? ({ id: doc.id, ...doc.data() } as Etapa) : null;
+    await this.etapas.limparEmpatesDosGrupos(
+      etapaId,
+      grupoIds,
+      incluirDesempates
+    );
   }
 }
 

@@ -1461,6 +1461,11 @@ describe("EtapaService", () => {
 
       expect(result.inscricoes).toHaveLength(2);
       expect(result.erros).toHaveLength(0);
+      expect(mockEtapaRepository.definirInscritos).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        ["j1", "j2"],
+        2
+      );
     });
 
     it("deve retornar erros para jogadores não encontrados", async () => {
@@ -2504,8 +2509,12 @@ describe("EtapaService", () => {
         TEST_ETAPA_ID,
         expect.objectContaining({
           maxJogadores: 12,
-          qtdGrupos: expect.any(Number),
+          jogadoresPorGrupo: 3,
         })
+      );
+      // A quantidade de grupos depende do formato: não é gravada
+      expect(mockEtapaRepository.atualizar.mock.calls[0][1]).not.toHaveProperty(
+        "qtdGrupos"
       );
     });
   });

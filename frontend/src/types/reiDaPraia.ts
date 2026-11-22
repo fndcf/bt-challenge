@@ -1,4 +1,10 @@
-import { FaseEtapa, StatusPartida } from "./chave";
+import {
+  ConfrontoEliminatorio,
+  Dupla,
+  FaseEtapa,
+  Grupo,
+  StatusPartida,
+} from "./chave";
 
 /**
  * Tipo de chaveamento para fase eliminatória
@@ -114,7 +120,7 @@ export interface GerarEliminatoriaReiDaPraiaDTO {
  */
 export interface ResultadoChavesReiDaPraia {
   jogadores: EstatisticasJogador[];
-  grupos: any[]; // Importar Grupo se necessário
+  grupos: Grupo[];
   partidas: PartidaReiDaPraia[];
 }
 
@@ -122,8 +128,8 @@ export interface ResultadoChavesReiDaPraia {
  * Resultado da geração de eliminatória Rei da Praia
  */
 export interface ResultadoEliminatoriaReiDaPraia {
-  duplas: any[]; // Duplas FIXAS formadas
-  confrontos: any[]; // ConfrontoEliminatorio[]
+  duplas: Dupla[]; // Duplas FIXAS formadas
+  confrontos: ConfrontoEliminatorio[];
 }
 
 /**

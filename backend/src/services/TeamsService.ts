@@ -28,7 +28,7 @@ import {
 } from "../models/Teams";
 import { Jogador } from "../models/Jogador";
 import { BadRequestError } from "../utils/errors";
-import { Etapa, StatusEtapa, FaseEtapa } from "../models/Etapa";
+import { Etapa, FaseEtapa } from "../models/Etapa";
 import { NivelJogador, GeneroJogador } from "../models/Jogador";
 import { IEquipeRepository } from "../repositories/interfaces/IEquipeRepository";
 import { IConfrontoEquipeRepository } from "../repositories/interfaces/IConfrontoEquipeRepository";
@@ -74,7 +74,7 @@ export class TeamsService {
     private confrontoRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository,
     private partidaRepository: IPartidaTeamsRepository = PartidaTeamsRepository,
     private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService(),
-    etapaRepository: IEtapaRepository = new EtapaRepository()
+    private etapaRepository: IEtapaRepository = new EtapaRepository()
   ) {
     // Criar services especializados com os repositórios injetados
     // Isso garante que os testes que mockam repositórios funcionem corretamente
@@ -632,13 +632,7 @@ export class TeamsService {
     ]);
 
     // Atualizar etapa para refletir que chaves foram canceladas
-    const { db } = await import("../config/firebase");
-    const { Timestamp } = await import("firebase-admin/firestore");
-    await db.collection("etapas").doc(etapaId).update({
-      chavesGeradas: false,
-      status: StatusEtapa.INSCRICOES_ENCERRADAS,
-      atualizadoEm: Timestamp.now(),
-    });
+    await this.etapaRepository.marcarChavesGeradas(etapaId, false);
     logger.info("Chaves TEAMS canceladas", { etapaId, arenaId });
   }
 }

@@ -3,7 +3,7 @@
  */
 
 import { db } from "../../config/firebase";
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import {
   Etapa,
   CriarEtapaDTO,
@@ -14,6 +14,8 @@ import {
   FaseEtapa,
   FormatoEtapa,
   EstatisticasEtapa,
+  EmpatePendente,
+  DesempateDefinido,
 } from "../../models/Etapa";
 import { IEtapaRepository } from "../interfaces/IEtapaRepository";
 import { NotFoundError } from "../../utils/errors";
@@ -57,11 +59,6 @@ export class EtapaRepository implements IEtapaRepository {
       maxJogadores: data.maxJogadores,
       jogadoresPorGrupo: data.jogadoresPorGrupo || data.maxJogadores,
       grupoUnico: data.grupoUnico || false,
-      qtdGrupos: data.grupoUnico
-        ? 1
-        : data.jogadoresPorGrupo
-          ? Math.ceil(data.maxJogadores / 2 / data.jogadoresPorGrupo)
-          : 1,
       status: StatusEtapa.INSCRICOES_ABERTAS,
       faseAtual: FaseEtapa.GRUPOS,
       totalInscritos: 0,
@@ -336,20 +333,19 @@ export class EtapaRepository implements IEtapaRepository {
   }
 
   /**
-   * Marcar chaves como geradas
+   * Marcar chaves como geradas, ou desfazer (volta para inscrições encerradas)
    */
   async marcarChavesGeradas(id: string, geradas: boolean): Promise<void> {
-    const updateData: any = {
+    const agora = Timestamp.now();
+
+    await this.collection.doc(id).update({
       chavesGeradas: geradas,
-      atualizadoEm: Timestamp.now(),
-    };
-
-    if (geradas) {
-      updateData.dataGeracaoChaves = Timestamp.now();
-      updateData.status = StatusEtapa.CHAVES_GERADAS;
-    }
-
-    await this.collection.doc(id).update(updateData);
+      dataGeracaoChaves: geradas ? agora : null,
+      status: geradas
+        ? StatusEtapa.CHAVES_GERADAS
+        : StatusEtapa.INSCRICOES_ENCERRADAS,
+      atualizadoEm: agora,
+    });
 
     logger.info("Chaves da etapa marcadas", { etapaId: id, geradas });
   }
@@ -400,6 +396,93 @@ export class EtapaRepository implements IEtapaRepository {
       quantidade,
       novoTotal: jogadoresInscritos.length,
     });
+  }
+
+  /**
+   * Trocar a lista de inscritos
+   */
+  async definirInscritos(
+    id: string,
+    jogadorIds: string[],
+    totalInscritos?: number
+  ): Promise<void> {
+    await this.collection.doc(id).update({
+      jogadoresInscritos: jogadorIds,
+      // Firestore não aceita campos undefined
+      ...(totalInscritos === undefined ? {} : { totalInscritos }),
+      atualizadoEm: Timestamp.now(),
+    });
+  }
+
+  /**
+   * Gravar os empates pendentes de um grupo (lista vazia apaga)
+   */
+  async salvarEmpatesPendentes(
+    id: string,
+    grupoId: string,
+    empates: EmpatePendente[]
+  ): Promise<void> {
+    // FieldPath: o id do grupo pode ter caractere que o Firestore interpreta
+    await this.collection
+      .doc(id)
+      .update(
+        new FieldPath("empatesPendentes", grupoId),
+        empates.length > 0 ? empates : FieldValue.delete(),
+        "atualizadoEm",
+        Timestamp.now()
+      );
+  }
+
+  /**
+   * Gravar as decisões de desempate de um grupo e o que ainda falta decidir
+   */
+  async salvarDesempates(
+    id: string,
+    grupoId: string,
+    desempates: DesempateDefinido[],
+    pendentes: EmpatePendente[]
+  ): Promise<void> {
+    await this.collection
+      .doc(id)
+      .update(
+        new FieldPath("desempates", grupoId),
+        desempates,
+        new FieldPath("empatesPendentes", grupoId),
+        pendentes.length > 0 ? pendentes : FieldValue.delete(),
+        "atualizadoEm",
+        Timestamp.now()
+      );
+  }
+
+  /**
+   * Apagar todos os empates e desempates da etapa
+   */
+  async limparDesempates(id: string): Promise<void> {
+    await this.collection.doc(id).update({
+      empatesPendentes: FieldValue.delete(),
+      desempates: FieldValue.delete(),
+    });
+  }
+
+  /**
+   * Apagar os empates de alguns grupos
+   */
+  async limparEmpatesDosGrupos(
+    id: string,
+    grupoIds: string[],
+    incluirDesempates = false
+  ): Promise<void> {
+    const campos = grupoIds.flatMap((grupoId) => [
+      new FieldPath("empatesPendentes", grupoId),
+      FieldValue.delete(),
+      ...(incluirDesempates
+        ? [new FieldPath("desempates", grupoId), FieldValue.delete()]
+        : []),
+    ]);
+
+    await this.collection
+      .doc(id)
+      .update(new FieldPath("atualizadoEm"), Timestamp.now(), ...campos);
   }
 
   /**

@@ -147,6 +147,15 @@ export interface IPartidaRepository
   deletarPorGrupo(grupoId: string): Promise<number>;
 
   /**
+   * Deletar partidas de uma fase da etapa
+   */
+  deletarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: FaseEtapa
+  ): Promise<number>;
+
+  /**
    * Deletar partidas eliminatórias de uma etapa
    */
   deletarEliminatoriasPorEtapa(

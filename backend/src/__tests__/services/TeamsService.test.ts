@@ -864,6 +864,10 @@ describe("TeamsService", () => {
         TEST_ETAPA_ID,
         TEST_ARENA_ID
       );
+      expect(mockEtapaRepository.marcarChavesGeradas).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        false
+      );
     });
   });
 

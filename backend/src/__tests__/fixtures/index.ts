@@ -157,7 +157,6 @@ export function createEtapaFixture(overrides: Partial<Etapa> = {}): Etapa {
     local: "Arena",
     maxJogadores: 16,
     jogadoresPorGrupo: 4,
-    qtdGrupos: 4,
     status: StatusEtapa.INSCRICOES_ABERTAS,
     faseAtual: FaseEtapa.GRUPOS,
     totalInscritos: 0,

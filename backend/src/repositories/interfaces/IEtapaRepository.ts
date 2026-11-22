@@ -10,6 +10,8 @@ import {
   ListagemEtapas,
   StatusEtapa,
   EstatisticasEtapa,
+  EmpatePendente,
+  DesempateDefinido,
 } from "../../models/Etapa";
 import { IBaseRepository } from "./IBaseRepository";
 
@@ -48,7 +50,7 @@ export interface IEtapaRepository
   atualizarStatus(id: string, status: StatusEtapa): Promise<Etapa>;
 
   /**
-   * Marcar chaves como geradas
+   * Marcar chaves como geradas, ou desfazer (volta para inscrições encerradas)
    */
   marcarChavesGeradas(id: string, geradas: boolean): Promise<void>;
 
@@ -64,6 +66,52 @@ export interface IEtapaRepository
     id: string,
     quantidade: number,
     jogadorIds: string[]
+  ): Promise<void>;
+
+  /**
+   * Trocar a lista de inscritos
+   *
+   * @param totalInscritos - Só quando o total também muda
+   */
+  definirInscritos(
+    id: string,
+    jogadorIds: string[],
+    totalInscritos?: number
+  ): Promise<void>;
+
+  /**
+   * Gravar os empates pendentes de um grupo (lista vazia apaga)
+   */
+  salvarEmpatesPendentes(
+    id: string,
+    grupoId: string,
+    empates: EmpatePendente[]
+  ): Promise<void>;
+
+  /**
+   * Gravar as decisões de desempate de um grupo e o que ainda falta decidir
+   */
+  salvarDesempates(
+    id: string,
+    grupoId: string,
+    desempates: DesempateDefinido[],
+    pendentes: EmpatePendente[]
+  ): Promise<void>;
+
+  /**
+   * Apagar todos os empates e desempates da etapa
+   */
+  limparDesempates(id: string): Promise<void>;
+
+  /**
+   * Apagar os empates de alguns grupos
+   *
+   * @param incluirDesempates - true também apaga as decisões já tomadas
+   */
+  limparEmpatesDosGrupos(
+    id: string,
+    grupoIds: string[],
+    incluirDesempates?: boolean
   ): Promise<void>;
 
   /**

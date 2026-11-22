@@ -9,8 +9,6 @@
  * - ClassificacaoService: cálculos de classificação
  */
 
-import { db } from "../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
 import { StatusEtapa, FaseEtapa } from "../models/Etapa";
 import { Dupla } from "../models/Dupla";
 import { Grupo } from "../models/Grupo";
@@ -38,10 +36,16 @@ import historicoDuplaService from "./HistoricoDuplaService";
 import desempateService from "./DesempateService";
 import logger from "../utils/logger";
 
-// Repositories para substituição
+// Repositories
+import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
+import { IPartidaRepository } from "../repositories/interfaces/IPartidaRepository";
+import { IPartidaReiDaPraiaRepository } from "../repositories/interfaces/IPartidaReiDaPraiaRepository";
+import { IEstatisticasJogadorRepository } from "../repositories/interfaces/IEstatisticasJogadorRepository";
 import { duplaRepository } from "../repositories/firebase/DuplaRepository";
-import { PartidaRepository } from "../repositories/firebase/PartidaRepository";
-import { EstatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
+import { etapaRepository } from "../repositories/firebase/EtapaRepository";
+import { partidaRepository } from "../repositories/firebase/PartidaRepository";
+import { partidaReiDaPraiaRepository } from "../repositories/firebase/PartidaReiDaPraiaRepository";
+import { estatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
 
 /**
  * Interface para injeção de dependência
@@ -99,7 +103,11 @@ export class ChaveService implements IChaveService {
     private duplas: IDuplaService = duplaService,
     private grupos: IGrupoService = grupoService,
     private partidasGrupo: IPartidaGrupoService = partidaGrupoService,
-    private eliminatoria: IEliminatoriaService = eliminatoriaService
+    private eliminatoria: IEliminatoriaService = eliminatoriaService,
+    private etapas: IEtapaRepository = etapaRepository,
+    private partidas: IPartidaRepository = partidaRepository,
+    private partidasReiDaPraia: IPartidaReiDaPraiaRepository = partidaReiDaPraiaRepository,
+    private estatisticas: IEstatisticasJogadorRepository = estatisticasJogadorRepository
   ) {}
 
   /**
@@ -180,12 +188,7 @@ export class ChaveService implements IChaveService {
       );
 
       // Atualizar status da etapa
-      await db.collection("etapas").doc(etapaId).update({
-        chavesGeradas: true,
-        dataGeracaoChaves: Timestamp.now(),
-        status: StatusEtapa.CHAVES_GERADAS,
-        atualizadoEm: Timestamp.now(),
-      });
+      await this.etapas.marcarChavesGeradas(etapaId, true);
 
       logger.info("Chaves geradas com sucesso", {
         etapaId,
@@ -282,12 +285,7 @@ export class ChaveService implements IChaveService {
       );
 
       // Atualizar status da etapa
-      await db.collection("etapas").doc(etapaId).update({
-        chavesGeradas: true,
-        dataGeracaoChaves: Timestamp.now(),
-        status: StatusEtapa.CHAVES_GERADAS,
-        atualizadoEm: Timestamp.now(),
-      });
+      await this.etapas.marcarChavesGeradas(etapaId, true);
 
       logger.info("Chaves geradas com duplas manuais", {
         etapaId,
@@ -356,36 +354,17 @@ export class ChaveService implements IChaveService {
 
       // Executar todas as deleções em paralelo (são independentes)
       await Promise.all([
-        (async () => {
-          await this.deletarPartidasGrupos(etapaId, arenaId);
-        })(),
-        (async () => {
-          await this.grupos.deletarPorEtapa(etapaId, arenaId);
-        })(),
-        (async () => {
-          await this.duplas.deletarPorEtapa(etapaId, arenaId);
-        })(),
-        (async () => {
-          await this.deletarPartidasReiDaPraia(etapaId, arenaId);
-        })(),
-        (async () => {
-          await this.deletarEstatisticas(etapaId, arenaId);
-        })(),
-        (async () => {
-          await historicoDuplaService.limparDaEtapa(arenaId, etapaId);
-        })(),
-        (async () => {
-          await desempateService.limpar(etapaId);
-        })(),
+        this.partidas.deletarPorFase(etapaId, arenaId, FaseEtapa.GRUPOS),
+        this.grupos.deletarPorEtapa(etapaId, arenaId),
+        this.duplas.deletarPorEtapa(etapaId, arenaId),
+        this.partidasReiDaPraia.deletarPorEtapa(etapaId, arenaId),
+        this.estatisticas.deletarPorEtapa(etapaId, arenaId),
+        historicoDuplaService.limparDaEtapa(arenaId, etapaId),
+        desempateService.limpar(etapaId),
       ]);
 
       // Atualizar etapa
-      await db.collection("etapas").doc(etapaId).update({
-        chavesGeradas: false,
-        dataGeracaoChaves: null,
-        status: StatusEtapa.INSCRICOES_ENCERRADAS,
-        atualizadoEm: Timestamp.now(),
-      });
+      await this.etapas.marcarChavesGeradas(etapaId, false);
 
       logger.info("Chaves excluídas", { etapaId, arenaId });
     } catch (error: any) {
@@ -479,69 +458,6 @@ export class ChaveService implements IChaveService {
     return this.eliminatoria.buscarConfrontos(etapaId, arenaId, fase);
   }
 
-  // ==================== MÉTODOS AUXILIARES DE LIMPEZA ====================
-
-  /**
-   * Deletar partidas de grupos
-   */
-  private async deletarPartidasGrupos(
-    etapaId: string,
-    arenaId: string
-  ): Promise<void> {
-    const snapshot = await db
-      .collection("partidas")
-      .where("etapaId", "==", etapaId)
-      .where("arenaId", "==", arenaId)
-      .where("fase", "==", FaseEtapa.GRUPOS)
-      .get();
-
-    if (!snapshot.empty) {
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-    }
-  }
-
-  /**
-   * Deletar partidas Rei da Praia
-   */
-  private async deletarPartidasReiDaPraia(
-    etapaId: string,
-    arenaId: string
-  ): Promise<void> {
-    const snapshot = await db
-      .collection("partidas_rei_da_praia")
-      .where("etapaId", "==", etapaId)
-      .where("arenaId", "==", arenaId)
-      .get();
-
-    if (!snapshot.empty) {
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-    }
-  }
-
-  /**
-   * Deletar estatísticas
-   */
-  private async deletarEstatisticas(
-    etapaId: string,
-    arenaId: string
-  ): Promise<void> {
-    const snapshot = await db
-      .collection("estatisticas_jogador")
-      .where("etapaId", "==", etapaId)
-      .where("arenaId", "==", arenaId)
-      .get();
-
-    if (!snapshot.empty) {
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-    }
-  }
-
   /**
    * Substituir jogador em uma etapa Dupla Fixa
    * Só permite se nenhuma partida da dupla foi jogada
@@ -552,9 +468,6 @@ export class ChaveService implements IChaveService {
     jogadorAntigoId: string,
     jogadorNovo: Jogador
   ): Promise<void> {
-    const partidaRepository = new PartidaRepository();
-    const estatisticasRepository = new EstatisticasJogadorRepository();
-
     try {
       logger.info("Iniciando substituição de jogador na Dupla Fixa", {
         etapaId,
@@ -569,7 +482,7 @@ export class ChaveService implements IChaveService {
       }
 
       // 2. Verificar se alguma partida da dupla já foi jogada
-      const partidasDaDupla = await partidaRepository.buscarPorDupla(etapaId, dupla.id);
+      const partidasDaDupla = await this.partidas.buscarPorDupla(etapaId, dupla.id);
       const partidasJogadas = partidasDaDupla.filter(
         (p) => p.status !== StatusPartida.AGENDADA
       );
@@ -614,7 +527,7 @@ export class ChaveService implements IChaveService {
         }
 
         if (Object.keys(atualizacaoPartida).length > 0) {
-          await partidaRepository.atualizar(partida.id, atualizacaoPartida);
+          await this.partidas.atualizar(partida.id, atualizacaoPartida);
         }
       }
 
@@ -631,12 +544,12 @@ export class ChaveService implements IChaveService {
       });
 
       // 7. Deletar estatísticas do jogador antigo
-      const estatisticaAntigo = await estatisticasRepository.buscarPorJogadorEEtapa(
+      const estatisticaAntigo = await this.estatisticas.buscarPorJogadorEEtapa(
         jogadorAntigoId,
         etapaId
       );
       if (estatisticaAntigo) {
-        await estatisticasRepository.deletar(estatisticaAntigo.id);
+        await this.estatisticas.deletar(estatisticaAntigo.id);
       }
 
       logger.info("Substituição de jogador concluída na Dupla Fixa", {

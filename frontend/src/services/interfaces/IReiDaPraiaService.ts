@@ -11,7 +11,8 @@ import {
   ResultadoPartidaLoteSuperXDTO,
   RegistrarResultadosEmLoteSuperXResponse,
 } from "@/types/reiDaPraia";
-import { Grupo } from "@/types/chave";
+import { ConfrontoEliminatorio, Dupla, Grupo } from "@/types/chave";
+import { EtapaParaGerarChaves } from "@/types/etapa";
 
 export interface IReiDaPraiaService {
   /**
@@ -75,21 +76,23 @@ export interface IReiDaPraiaService {
    * @param etapaId - ID da etapa
    * @returns Promise com lista de duplas eliminatórias
    */
-  buscarDuplasEliminatoria(etapaId: string): Promise<any[]>;
+  buscarDuplasEliminatoria(etapaId: string): Promise<Dupla[]>;
 
   /**
    * Buscar confrontos eliminatórios
    * @param etapaId - ID da etapa
    * @returns Promise com lista de confrontos
    */
-  buscarConfrontosEliminatorios(etapaId: string): Promise<any[]>;
+  buscarConfrontosEliminatorios(
+    etapaId: string
+  ): Promise<ConfrontoEliminatorio[]>;
 
   /**
    * Validar se etapa pode gerar chaves Rei da Praia
    * @param etapa - Dados da etapa
    * @returns Objeto com flag podeGerar e mensagem opcional de erro
    */
-  validarGeracaoChaves(etapa: any): {
+  validarGeracaoChaves(etapa: EtapaParaGerarChaves): {
     podeGerar: boolean;
     mensagem?: string;
   };
@@ -101,7 +104,7 @@ export interface IReiDaPraiaService {
    * @returns Objeto com flag podeGerar e mensagem opcional de erro
    */
   validarGeracaoEliminatoria(
-    etapa: any,
+    etapa: Pick<EtapaParaGerarChaves, "chavesGeradas">,
     grupos: Grupo[]
   ): {
     podeGerar: boolean;

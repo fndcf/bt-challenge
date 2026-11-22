@@ -18,6 +18,7 @@ import {
   GerarPartidasResponse,
   GerarDeciderResponse,
 } from "../types/teams";
+import { EtapaParaGerarChaves } from "@/types/etapa";
 import { VarianteTeams, TipoFormacaoEquipe } from "../types/etapa";
 
 /**
@@ -478,7 +479,7 @@ class TeamsService implements ITeamsService {
    *
    * @returns { podeGerar: boolean, mensagem?: string }
    */
-  validarGeracaoEquipes(etapa: any): {
+  validarGeracaoEquipes(etapa: EtapaParaGerarChaves): {
     podeGerar: boolean;
     mensagem?: string;
   } {

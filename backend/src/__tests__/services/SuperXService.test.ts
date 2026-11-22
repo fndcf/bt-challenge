@@ -1204,10 +1204,6 @@ describe("SuperXService", () => {
         TEST_ETAPA_ID,
         false
       );
-      expect(mockEtapaRepository.atualizarStatus).toHaveBeenCalledWith(
-        TEST_ETAPA_ID,
-        StatusEtapa.INSCRICOES_ENCERRADAS
-      );
     });
   });
 });

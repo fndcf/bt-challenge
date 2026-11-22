@@ -30,7 +30,10 @@ export interface UseEditarEtapaReturn {
   chavesGeradas: boolean;
 
   // Funções
-  handleChange: (field: keyof AtualizarEtapaDTO, value: any) => void;
+  handleChange: <K extends keyof AtualizarEtapaDTO>(
+    field: K,
+    value: AtualizarEtapaDTO[K]
+  ) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   calcularMinimoJogadores: () => number;
   ajustarValorJogadores: (valor: number) => number;
@@ -76,13 +79,17 @@ export const useEditarEtapa = (
 
   // ============== CARREGAR ETAPA ==============
 
-  const toInputDate = useCallback((timestamp: any): string => {
-    if (!timestamp) return "";
-    const date = timestamp._seconds
-      ? new Date(timestamp._seconds * 1000)
-      : new Date(timestamp);
-    return format(date, "yyyy-MM-dd");
-  }, []);
+  // A API pode devolver texto ou o Timestamp do Firestore
+  const toInputDate = useCallback(
+    (data: string | { _seconds: number }): string => {
+      if (!data) return "";
+      return format(
+        typeof data === "string" ? new Date(data) : new Date(data._seconds * 1000),
+        "yyyy-MM-dd"
+      );
+    },
+    []
+  );
 
   const carregarEtapa = useCallback(async () => {
     try {
@@ -191,7 +198,10 @@ export const useEditarEtapa = (
   // ============== HANDLERS ==============
 
   const handleChange = useCallback(
-    (field: keyof AtualizarEtapaDTO, value: any) => {
+    <K extends keyof AtualizarEtapaDTO>(
+      field: K,
+      value: AtualizarEtapaDTO[K]
+    ) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
     []

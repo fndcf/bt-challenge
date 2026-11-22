@@ -92,7 +92,7 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
             const superXService = getSuperXService();
             const partidas = await superXService.buscarPartidas(etapaId);
             const todasFinalizadas = partidas.length > 0 &&
-              partidas.every((p: any) => p.status === "finalizada");
+              partidas.every((p) => p.status === "finalizada");
             setTodasPartidasFinalizadas(todasFinalizadas);
           } else if (etapaData.formato === FormatoEtapa.TEAMS) {
             const teamsService = getTeamsService();

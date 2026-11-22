@@ -45,7 +45,7 @@
     "preview": "vite preview",
     "deploy:staging": "npm run build:staging && cd .. && firebase use staging && firebase deploy --only hosting",
     "deploy:prod": "npm run build && cd .. && firebase use default && firebase deploy --only hosting",
-    "lint": "eslint src --report-unused-disable-directives --max-warnings 95",
+    "lint": "eslint src --report-unused-disable-directives --max-warnings 73",
     "lint:cores": "node scripts/verificar-cores.mjs",
     "test": "jest",
     "test:watch": "jest --watch",

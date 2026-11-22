@@ -6,8 +6,6 @@ import { FormatoEtapa, TipoFormacaoDupla, TipoFormacaoEquipe } from "../models/E
 import { Jogador, GeneroJogador } from "../models/Jogador";
 import logger from "../utils/logger";
 import { BadRequestError, NotFoundError } from "../utils/errors";
-import { db } from "../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
 
 // Repositories
 import { EtapaRepository } from "../repositories/firebase/EtapaRepository";
@@ -164,15 +162,12 @@ class SubstituicaoService {
       });
     }
 
-    // 7. Atualizar array jogadoresInscritos na etapa (acesso direto ao db pois o DTO não inclui esse campo)
+    // 7. Atualizar array jogadoresInscritos na etapa
     const jogadoresInscritos = etapa.jogadoresInscritos || [];
     const novaListaJogadores = jogadoresInscritos
       .filter((id: string) => id !== jogadorAntigoId)
       .concat([jogadorNovo.id]);
-    await db.collection("etapas").doc(etapaId).update({
-      jogadoresInscritos: novaListaJogadores,
-      atualizadoEm: Timestamp.now(),
-    });
+    await this.etapaRepository.definirInscritos(etapaId, novaListaJogadores);
 
     // 8. Delegar para o service específico do formato
     switch (etapa.formato) {

@@ -84,8 +84,7 @@ export const contarConfrontosTeams = (equipes: number): number =>
   distribuirEmGrupos(equipes).reduce((soma, n) => soma + (n * (n - 1)) / 2, 0);
 
 /**
- * Quantos grupos a etapa tem (ou terá). O `qtdGrupos` gravado é uma estimativa
- * do cadastro que conta duplas em todos os formatos: não usar.
+ * Quantos grupos a etapa tem (ou terá)
  */
 export const getQtdGrupos = (
   etapa: Pick<

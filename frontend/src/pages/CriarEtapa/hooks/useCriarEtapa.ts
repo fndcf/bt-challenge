@@ -86,7 +86,10 @@ export interface UseCriarEtapaReturn {
   infoAtual: DistribuicaoDuplaFixa | DistribuicaoReiDaPraia | DistribuicaoSuperX | DistribuicaoTeams;
 
   // Funções
-  handleChange: (field: keyof CriarEtapaFormData, value: any) => void;
+  handleChange: <K extends keyof CriarEtapaFormData>(
+    field: K,
+    value: CriarEtapaFormData[K]
+  ) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
@@ -497,7 +500,10 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
   // ============== HANDLERS ==============
 
   const handleChange = useCallback(
-    (field: keyof CriarEtapaFormData, value: any) => {
+    <K extends keyof CriarEtapaFormData>(
+      field: K,
+      value: CriarEtapaFormData[K]
+    ) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
     []
@@ -652,7 +658,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         }
 
         // Formatar datas para ISO
-        const dadosFormatados: any = {
+        const dadosFormatados: CriarEtapaDTO = {
           ...formData,
           dataInicio: formData.dataInicio
             ? new Date(formData.dataInicio + "T00:00:00").toISOString()

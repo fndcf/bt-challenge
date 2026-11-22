@@ -874,13 +874,7 @@ export class SuperXService {
       ]);
 
       // Atualizar etapa (sequencial pois depende das deleções)
-      await Promise.all([
-        this.etapaRepository.marcarChavesGeradas(etapaId, false),
-        this.etapaRepository.atualizarStatus(
-          etapaId,
-          StatusEtapa.INSCRICOES_ENCERRADAS
-        ),
-      ]);
+      await this.etapaRepository.marcarChavesGeradas(etapaId, false);
 
       logger.info("Chaves Super X canceladas", {
         etapaId,

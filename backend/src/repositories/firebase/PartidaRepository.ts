@@ -436,6 +436,40 @@ export class PartidaRepository implements IPartidaRepository {
   }
 
   /**
+   * Deletar partidas de uma fase da etapa
+   */
+  async deletarPorFase(
+    etapaId: string,
+    arenaId: string,
+    fase: FaseEtapa
+  ): Promise<number> {
+    const snapshot = await this.collection
+      .where("etapaId", "==", etapaId)
+      .where("arenaId", "==", arenaId)
+      .where("fase", "==", fase)
+      .get();
+
+    if (snapshot.empty) {
+      return 0;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    logger.info("Partidas da fase deletadas", {
+      etapaId,
+      arenaId,
+      fase,
+      quantidade: snapshot.size,
+    });
+
+    return snapshot.size;
+  }
+
+  /**
    * Deletar partidas eliminatórias de uma etapa
    */
   async deletarEliminatoriasPorEtapa(

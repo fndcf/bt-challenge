@@ -3,7 +3,6 @@
  */
 
 import { Timestamp } from "firebase-admin/firestore";
-import { db } from "../config/firebase";
 import {
   Etapa,
   CriarEtapaDTO,
@@ -115,11 +114,6 @@ export class EtapaService {
         throw new Error("Número máximo de jogadores deve ser par");
       }
 
-      const totalDuplas = dadosValidados.maxJogadores / 2;
-      const qtdGrupos = dadosValidados.jogadoresPorGrupo
-        ? Math.ceil(totalDuplas / dadosValidados.jogadoresPorGrupo)
-        : 1;
-
       // Log para debug - tipoFormacaoDupla
       logger.info("DEBUG tipoFormacaoDupla", {
         recebido: data.tipoFormacaoDupla,
@@ -164,7 +158,6 @@ export class EtapaService {
         genero: novaEtapa.genero,
         formato: novaEtapa.formato,
         maxJogadores: novaEtapa.maxJogadores,
-        qtdGrupos,
         arenaId,
       });
 
@@ -498,14 +491,11 @@ export class EtapaService {
         // Atualizar contador de inscritos na etapa (uma única vez)
         const totalInscritos =
           inscricoesExistentes.length + novasInscricoes.length;
-        await db
-          .collection("etapas")
-          .doc(etapaId)
-          .update({
-            jogadoresInscritos: Array.from(jogadoresInscritos),
-            totalInscritos,
-            atualizadoEm: Timestamp.now(),
-          });
+        await this.etapaRepository.definirInscritos(
+          etapaId,
+          Array.from(jogadoresInscritos),
+          totalInscritos
+        );
       }
 
       logger.info("Inscrições em lote processadas", {
@@ -661,14 +651,14 @@ export class EtapaService {
 
       const dadosAtualizacao: AtualizarEtapaDTO = { ...dadosValidados };
 
-      // Recalcular grupos se maxJogadores mudou
+      // Recalcular o tamanho do grupo se maxJogadores mudou. A quantidade não é
+      // gravada: depende do formato e sai da distribuição ao gerar as chaves.
       if (
         dadosValidados.maxJogadores &&
         dadosValidados.maxJogadores !== etapa.maxJogadores
       ) {
         const totalDuplas = dadosValidados.maxJogadores / 2;
-        let jogadoresPorGrupo = 3;
-        let qtdGrupos = Math.ceil(totalDuplas / jogadoresPorGrupo);
+        let qtdGrupos = Math.ceil(totalDuplas / 3);
 
         if (qtdGrupos === 1 && totalDuplas > 5) {
           qtdGrupos = 2;
@@ -678,10 +668,9 @@ export class EtapaService {
           qtdGrupos = Math.max(1, Math.floor(totalDuplas / 3));
         }
 
-        jogadoresPorGrupo = Math.ceil(totalDuplas / qtdGrupos);
-
-        (dadosAtualizacao as any).qtdGrupos = qtdGrupos;
-        (dadosAtualizacao as any).jogadoresPorGrupo = jogadoresPorGrupo;
+        (dadosAtualizacao as any).jogadoresPorGrupo = Math.ceil(
+          totalDuplas / qtdGrupos
+        );
       }
 
       // Converter datas

@@ -14,7 +14,8 @@ import {
   ResultadoPartidaLoteSuperXDTO,
   RegistrarResultadosEmLoteSuperXResponse,
 } from "../types/reiDaPraia";
-import { Grupo } from "../types/chave";
+import { ConfrontoEliminatorio, Dupla, Grupo } from "../types/chave";
+import { EtapaParaGerarChaves } from "../types/etapa";
 import { IReiDaPraiaService } from "./interfaces/IReiDaPraiaService";
 
 /**
@@ -190,9 +191,9 @@ class ReiDaPraiaService implements IReiDaPraiaService {
    *
    * GET /api/etapas/:etapaId/rei-da-praia/duplas-eliminatoria
    */
-  async buscarDuplasEliminatoria(etapaId: string): Promise<any[]> {
+  async buscarDuplasEliminatoria(etapaId: string): Promise<Dupla[]> {
     try {
-      const response = await apiClient.get<any[]>(
+      const response = await apiClient.get<Dupla[]>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/duplas-eliminatoria`
       );
 
@@ -211,9 +212,11 @@ class ReiDaPraiaService implements IReiDaPraiaService {
    *
    * GET /api/etapas/:etapaId/rei-da-praia/confrontos
    */
-  async buscarConfrontosEliminatorios(etapaId: string): Promise<any[]> {
+  async buscarConfrontosEliminatorios(
+    etapaId: string
+  ): Promise<ConfrontoEliminatorio[]> {
     try {
-      const response = await apiClient.get<any[]>(
+      const response = await apiClient.get<ConfrontoEliminatorio[]>(
         `${this.basePath}/${etapaId}${this.reiDaPraiaPath}/confrontos`
       );
 
@@ -236,7 +239,7 @@ class ReiDaPraiaService implements IReiDaPraiaService {
    *
    * @returns { podeGerar: boolean, mensagem?: string }
    */
-  validarGeracaoChaves(etapa: any): {
+  validarGeracaoChaves(etapa: EtapaParaGerarChaves): {
     podeGerar: boolean;
     mensagem?: string;
   } {
@@ -289,7 +292,7 @@ class ReiDaPraiaService implements IReiDaPraiaService {
    * @returns { podeGerar: boolean, mensagem?: string }
    */
   validarGeracaoEliminatoria(
-    etapa: any,
+    etapa: Pick<EtapaParaGerarChaves, "chavesGeradas">,
     grupos: Grupo[]
   ): {
     podeGerar: boolean;
