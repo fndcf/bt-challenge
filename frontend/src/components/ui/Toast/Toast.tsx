@@ -257,6 +257,20 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [exitingToasts, setExitingToasts] = useState<Set<string>>(new Set());
 
+  const hideToast = useCallback((id: string) => {
+    setExitingToasts((prev) => new Set([...prev, id]));
+
+    // Remove after animation
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      setExitingToasts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }, 200); // Animation duration
+  }, []);
+
   const showToast = useCallback(
     (
       message: string,
@@ -275,22 +289,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
         }, duration);
       }
     },
-    [defaultDuration]
+    [defaultDuration, hideToast]
   );
-
-  const hideToast = useCallback((id: string) => {
-    setExitingToasts((prev) => new Set([...prev, id]));
-
-    // Remove after animation
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-      setExitingToasts((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-    }, 200); // Animation duration
-  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>

@@ -15,6 +15,7 @@ import {
   resultadoVazio,
   validarResultado,
 } from "@/utils/resultadosLote";
+import { getMensagemErro } from "@/utils/erro";
 
 type Partidas = Parameters<typeof montarResultadosIniciais>[0];
 
@@ -137,9 +138,9 @@ export const useResultadosLote = ({
 
       alert(`${processados} resultado(s) salvo(s) com sucesso!`);
       onSuccess();
-    } catch (err: any) {
+    } catch (err) {
       setErroGlobal(
-        err.message || "Erro ao salvar resultados. Tente novamente."
+        getMensagemErro(err, "Erro ao salvar resultados. Tente novamente.")
       );
     } finally {
       setLoading(false);

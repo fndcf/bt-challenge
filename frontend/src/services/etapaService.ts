@@ -13,6 +13,7 @@ import {
   ResolverEmpateDTO,
   ResultadoDesempate,
 } from "../types/etapa";
+import { getMensagemErro } from "@/utils/erro";
 import { handleError } from "@/utils/errorHandler";
 import logger from "@/utils/logger";
 import { IEtapaService } from "./interfaces/IEtapaService";
@@ -66,16 +67,13 @@ class EtapaService implements IEtapaService {
       const url = queryString ? `${this.baseURL}?${queryString}` : this.baseURL;
 
       return await apiClient.get<ListagemEtapas>(url);
-    } catch (error: any) {
+    } catch (error) {
       logger.warn("Erro ao listar etapas - retornando lista vazia", {
-        erro: error.message,
+        erro: getMensagemErro(error, ""),
       });
 
       // Se erro de autenticação, deixar o apiClient redirecionar
-      if (
-        error.message?.includes("Token") ||
-        error.message?.includes("autenticação")
-      ) {
+      if (/Token|autenticação/.test(getMensagemErro(error, ""))) {
         throw error;
       }
 
@@ -196,10 +194,10 @@ class EtapaService implements IEtapaService {
       return await apiClient.get<Inscricao[]>(
         `${this.baseURL}/${etapaId}/inscricoes`
       );
-    } catch (error: any) {
+    } catch (error) {
       logger.warn("Erro ao listar inscrições - retornando lista vazia", {
         etapaId,
-        erro: error.message,
+        erro: getMensagemErro(error, ""),
       });
 
       return [];
@@ -307,16 +305,13 @@ class EtapaService implements IEtapaService {
   async obterEstatisticas(): Promise<EstatisticasEtapa> {
     try {
       return await apiClient.get<EstatisticasEtapa>(`${this.baseURL}/stats`);
-    } catch (error: any) {
+    } catch (error) {
       logger.warn("Erro ao obter estatísticas - retornando valores padrão", {
-        erro: error.message,
+        erro: getMensagemErro(error, ""),
       });
 
       // Se erro de autenticação, deixar o apiClient redirecionar
-      if (
-        error.message?.includes("Token") ||
-        error.message?.includes("autenticação")
-      ) {
+      if (/Token|autenticação/.test(getMensagemErro(error, ""))) {
         throw error;
       }
 

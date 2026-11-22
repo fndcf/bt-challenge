@@ -6,6 +6,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { ApiResponse } from "../types";
+import { getMensagemErro, paraError } from "../utils/erro";
 import logger from "../utils/logger";
 import { refreshTokenManually } from "../hooks/useTokenRefresh";
 
@@ -151,12 +152,12 @@ class ApiClient {
             this.redirectToLogin();
             return Promise.reject(new Error("Sessão expirada"));
           }
-        } catch (refreshError: any) {
+        } catch (refreshError) {
           logger.error("Token refresh failed", {
-            error: refreshError.message,
+            error: getMensagemErro(refreshError, ""),
           });
 
-          processQueue(refreshError);
+          processQueue(paraError(refreshError));
           this.redirectToLogin();
           return Promise.reject(new Error("Sessão expirada"));
         } finally {

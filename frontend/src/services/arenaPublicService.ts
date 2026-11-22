@@ -6,6 +6,7 @@ import { apiClient } from "./apiClient";
 import { Etapa } from "../types/etapa";
 import logger from "../utils/logger";
 import { IArenaPublicService } from "./interfaces/IArenaPublicService";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 // ============================================
 // TIPOS
@@ -144,9 +145,9 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}`
       );
       return arena;
-    } catch (error: any) {
-      logger.error("Erro ao buscar arena pública", { slug }, error);
-      throw new Error(error.message || "Arena não encontrada");
+    } catch (error) {
+      logger.error("Erro ao buscar arena pública", { slug }, paraError(error));
+      throw new Error(getMensagemErro(error, "Arena não encontrada"));
     }
   }
 
@@ -159,8 +160,8 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/estatisticas`
       );
       return estatisticas;
-    } catch (error: any) {
-      logger.error("Erro ao buscar estatísticas da arena", { slug }, error);
+    } catch (error) {
+      logger.error("Erro ao buscar estatísticas da arena", { slug }, paraError(error));
       return null;
     }
   }
@@ -196,8 +197,8 @@ class ArenaPublicService implements IArenaPublicService {
       }>(url);
 
       return response.etapas;
-    } catch (error: any) {
-      logger.error("Erro ao buscar etapas públicas", { slug }, error);
+    } catch (error) {
+      logger.error("Erro ao buscar etapas públicas", { slug }, paraError(error));
       return [];
     }
   }
@@ -211,9 +212,9 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/etapas/${etapaId}`
       );
       return etapa;
-    } catch (error: any) {
-      logger.error("Erro ao buscar etapa pública", { slug, etapaId }, error);
-      throw new Error(error.message || "Etapa não encontrada");
+    } catch (error) {
+      logger.error("Erro ao buscar etapa pública", { slug, etapaId }, paraError(error));
+      throw new Error(getMensagemErro(error, "Etapa não encontrada"));
     }
   }
 
@@ -226,8 +227,8 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/etapas/${etapaId}/grupos`
       );
       return grupos;
-    } catch (error: any) {
-      logger.error("Erro ao buscar grupos da etapa", { slug, etapaId }, error);
+    } catch (error) {
+      logger.error("Erro ao buscar grupos da etapa", { slug, etapaId }, paraError(error));
       return null;
     }
   }
@@ -241,8 +242,8 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/etapas/${etapaId}/chaves`
       );
       return chaves;
-    } catch (error: any) {
-      logger.error("Erro ao buscar chaves da etapa", { slug, etapaId }, error);
+    } catch (error) {
+      logger.error("Erro ao buscar chaves da etapa", { slug, etapaId }, paraError(error));
       return null;
     }
   }
@@ -268,11 +269,11 @@ class ArenaPublicService implements IArenaPublicService {
         seed: inscricao.seed || index + 1,
         statusInscricao: inscricao.status,
       }));
-    } catch (error: any) {
+    } catch (error) {
       logger.error(
         "Erro ao buscar inscritos da etapa",
         { slug, etapaId },
-        error
+        paraError(error)
       );
       return [];
     }
@@ -302,8 +303,8 @@ class ArenaPublicService implements IArenaPublicService {
       const ranking = await apiClient.get<JogadorPublico[]>(url);
 
       return ranking;
-    } catch (error: any) {
-      logger.error("Erro ao buscar ranking", { slug }, error);
+    } catch (error) {
+      logger.error("Erro ao buscar ranking", { slug }, paraError(error));
       return [];
     }
   }
@@ -340,8 +341,8 @@ class ArenaPublicService implements IArenaPublicService {
       }>(url);
 
       return response;
-    } catch (error: any) {
-      logger.error("Erro ao buscar jogadores públicos", { slug }, error);
+    } catch (error) {
+      logger.error("Erro ao buscar jogadores públicos", { slug }, paraError(error));
       return { jogadores: [], total: 0 };
     }
   }
@@ -358,11 +359,11 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/jogadores/${jogadorId}`
       );
       return jogador;
-    } catch (error: any) {
+    } catch (error) {
       logger.error(
         "Erro ao buscar jogador público",
         { slug, jogadorId },
-        error
+        paraError(error)
       );
       return null;
     }
@@ -377,11 +378,11 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/jogadores/${jogadorId}/historico`
       );
       return historico;
-    } catch (error: any) {
+    } catch (error) {
       logger.error(
         "Erro ao buscar histórico do jogador",
         { slug, jogadorId },
-        error
+        paraError(error)
       );
       return null;
     }
@@ -399,11 +400,11 @@ class ArenaPublicService implements IArenaPublicService {
         `${this.basePath}/${slug}/jogadores/${jogadorId}/estatisticas`
       );
       return stats;
-    } catch (error: any) {
+    } catch (error) {
       logger.error(
         "Erro ao buscar estatísticas do jogador",
         { slug, jogadorId },
-        error
+        paraError(error)
       );
 
       // Retornar valores zerados em caso de erro

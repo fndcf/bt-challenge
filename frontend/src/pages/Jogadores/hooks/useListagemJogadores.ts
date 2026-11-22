@@ -3,7 +3,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { getJogadorService, getArenaAdminService } from "@/services";
+import { useArena } from "@/contexts/ArenaContext";
+import { getJogadorService } from "@/services";
 import logger from "@/utils/logger";
 import {
   Jogador,
@@ -13,6 +14,7 @@ import {
   GeneroJogador,
 } from "@/types/jogador";
 import { Arena } from "@/types/arena";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 export interface UseListagemJogadoresReturn {
   // Estados principais
@@ -63,7 +65,8 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
   // Estados principais
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
   const [loading, setLoading] = useState(true);
-  const [arena, setArena] = useState<Arena | null>(null);
+  // A arena ativa: é dela a lista, e é o slug dela que vai no link "Ver"
+  const { arena } = useArena();
 
   // Mensagens
   const [errorMessage, setErrorMessage] = useState("");
@@ -93,44 +96,6 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
     statusFiltro ||
     generoFiltro
   );
-
-  /**
-   * Carregar arena ao montar
-   */
-  useEffect(() => {
-    const carregarArena = async () => {
-      try {
-        logger.info("Carregando arena do usuário logado");
-        const arenaAdminService = getArenaAdminService();
-        const arenaData = await arenaAdminService.obterMinhaArena();
-        setArena(arenaData);
-        logger.info("Arena carregada com sucesso", {
-          arena: arenaData?.nome || "Arena sem nome",
-        });
-      } catch (error: any) {
-        logger.warn("Erro ao carregar arena via API, tentando localStorage", {
-          error: error.message,
-        });
-
-        // Fallback - pegar do localStorage se tiver
-        const arenaLocalStorage = localStorage.getItem("arena");
-        if (arenaLocalStorage) {
-          try {
-            const arenaParsed = JSON.parse(arenaLocalStorage);
-            setArena(arenaParsed);
-            logger.info("Arena carregada do localStorage", {
-              arena: arenaParsed.nome,
-            });
-          } catch (e) {
-            const error = e instanceof Error ? e : new Error(String(e));
-            logger.error("Erro ao parsear arena do localStorage", {}, error);
-          }
-        }
-      }
-    };
-
-    carregarArena();
-  }, []);
 
   /**
    * Carregar jogadores
@@ -171,10 +136,10 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
         total: resultado.total,
         quantidade: resultado.jogadores.length,
       });
-    } catch (error: any) {
-      const mensagemErro = error.message || "Erro ao carregar jogadores";
+    } catch (error) {
+      const mensagemErro = getMensagemErro(error, "Erro ao carregar jogadores");
       setErrorMessage(mensagemErro);
-      logger.error("Erro ao carregar jogadores", {}, error);
+      logger.error("Erro ao carregar jogadores", {}, paraError(error));
     } finally {
       setLoading(false);
     }
@@ -239,13 +204,13 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
         // Recarregar lista
         carregarJogadores();
         return true;
-      } catch (error: any) {
-        const mensagemErro = error.message || "Erro ao deletar jogador";
+      } catch (error) {
+        const mensagemErro = getMensagemErro(error, "Erro ao deletar jogador");
         setErrorMessage(mensagemErro);
         logger.error(
           "Erro ao deletar jogador",
           { jogadorId: jogador.id },
-          error
+          paraError(error)
         );
         return false;
       }
@@ -286,8 +251,8 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
       const jogadorService = getJogadorService();
       await jogadorService.exportarExcel();
       setSuccessMessage("Jogadores exportados com sucesso");
-    } catch (error: any) {
-      setErrorMessage(error.message || "Erro ao exportar jogadores");
+    } catch (error) {
+      setErrorMessage(getMensagemErro(error, "Erro ao exportar jogadores"));
     } finally {
       setExportando(false);
     }

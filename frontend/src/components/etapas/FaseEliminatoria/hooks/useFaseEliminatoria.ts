@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ConfrontoEliminatorio,
   TipoFase,
@@ -7,6 +7,7 @@ import {
 } from "@/types/chave";
 import { getChaveService, getEtapaService } from "@/services";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface UseFaseEliminatoriaProps {
   etapaId: string;
@@ -91,44 +92,44 @@ export const useFaseEliminatoria = ({
   useEffect(() => {
     const verificarStatusEtapa = async () => {
       try {
-        const etapa = await etapaService.buscarPorId(etapaId);
+        const etapa = await getEtapaService().buscarPorId(etapaId);
         if (etapa) {
           setEtapaFinalizada(etapa.status === "finalizada");
         }
-      } catch (error) {
-        // Silently fail - não é crítico
+      } catch {
+        // Não crítico: sem o status, segue como não finalizada
       }
     };
 
     verificarStatusEtapa();
   }, [etapaId]);
 
-  // Carregar confrontos quando etapaId mudar
-  useEffect(() => {
-    carregarConfrontos();
-  }, [etapaId]);
-
   /**
    * Carrega os confrontos eliminatórios
    */
-  const carregarConfrontos = async () => {
+  const carregarConfrontos = useCallback(async () => {
     try {
       setLoading(true);
       setErro(null);
 
       // Sempre buscar todos os confrontos (sem filtro de fase)
-      const dados = await chaveService.buscarConfrontosEliminatorios(
+      const dados = await getChaveService().buscarConfrontosEliminatorios(
         etapaId,
         undefined
       );
 
       setConfrontos(dados);
-    } catch (err: any) {
-      setErro(err.message || "Erro ao carregar confrontos");
+    } catch (err) {
+      setErro(getMensagemErro(err, "Erro ao carregar confrontos"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [etapaId]);
+
+  // Carregar confrontos quando etapaId mudar
+  useEffect(() => {
+    carregarConfrontos();
+  }, [carregarConfrontos]);
 
   /**
    * Gera a fase eliminatória
@@ -141,8 +142,8 @@ export const useFaseEliminatoria = ({
       await new Promise((resolve) => setTimeout(resolve, 1000));
       alert("Fase eliminatória gerada com sucesso!");
       await carregarConfrontos();
-    } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+    } catch (err) {
+      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -159,8 +160,8 @@ export const useFaseEliminatoria = ({
       await chaveService.cancelarFaseEliminatoria(etapaId);
       alert("Fase eliminatória cancelada!");
       await carregarConfrontos();
-    } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+    } catch (err) {
+      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -179,8 +180,8 @@ export const useFaseEliminatoria = ({
       invalidateRankingCache();
       alert("Etapa encerrada com sucesso!");
       window.location.reload();
-    } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+    } catch (err) {
+      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

@@ -9,7 +9,11 @@ import { DuplasManuaisTab } from "@/pages/DetalhesEtapa/components/DuplasManuais
 import { EtapaInfoCards } from "@/pages/DetalhesEtapa/components/EtapaInfoCards";
 import { InscricoesTab } from "@/pages/DetalhesEtapa/components/InscricoesTab";
 import { FormatoEtapa, StatusEtapa } from "@/types/etapa";
-import { calcularGruposTeams, getFormatoEtapaLabel } from "@/utils/etapa";
+import {
+  distribuirEmGrupos,
+  getFormatoEtapaLabel,
+  getQtdGrupos,
+} from "@/utils/etapa";
 
 const etapa = (extra: object = {}): any => ({
   id: "etapa-1",
@@ -62,7 +66,32 @@ describe("utils/etapa", () => {
     [16, [3, 3, 3, 3, 4]],
     [26, [3, 3, 3, 3, 3, 3, 4, 4]],
   ])("%i equipes no Teams viram os grupos %j", (equipes, grupos) => {
-    expect(calcularGruposTeams(equipes)).toEqual(grupos);
+    expect(distribuirEmGrupos(equipes)).toEqual(grupos);
+  });
+});
+
+describe("getQtdGrupos", () => {
+  // Casos reais do emulador, onde o qtdGrupos gravado vinha errado
+  it.each([
+    ["Rei da Praia 16", { formato: FormatoEtapa.REI_DA_PRAIA, totalInscritos: 16, qtdGrupos: 2 }, 4],
+    ["Rei da Praia 12", { formato: FormatoEtapa.REI_DA_PRAIA, totalInscritos: 12, qtdGrupos: 2 }, 3],
+    ["Teams 4 com 16", { formato: FormatoEtapa.TEAMS, varianteTeams: 4, totalInscritos: 16, qtdGrupos: 2 }, 1],
+    ["Teams 4 com 24", { formato: FormatoEtapa.TEAMS, varianteTeams: 4, totalInscritos: 24, qtdGrupos: 3 }, 2],
+    ["Teams 4 com 48", { formato: FormatoEtapa.TEAMS, varianteTeams: 4, totalInscritos: 48, qtdGrupos: 6 }, 4],
+    ["Dupla Fixa 16", { totalInscritos: 16, qtdGrupos: 2 }, 2],
+    ["Dupla Fixa 52", { totalInscritos: 52, qtdGrupos: 7 }, 8],
+    ["Dupla Fixa grupo único", { totalInscritos: 16, grupoUnico: true }, 1],
+    ["Super X", { formato: FormatoEtapa.SUPER_X, totalInscritos: 8 }, 1],
+  ])("%s", (_, dados, esperado) => {
+    expect(getQtdGrupos(etapa({ ...dados, chavesGeradas: true }))).toBe(esperado);
+  });
+
+  it("antes de gerar usa as vagas da etapa", () => {
+    expect(
+      getQtdGrupos(
+        etapa({ formato: FormatoEtapa.REI_DA_PRAIA, totalInscritos: 3, maxJogadores: 12 })
+      )
+    ).toBe(3);
   });
 });
 

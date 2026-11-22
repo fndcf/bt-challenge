@@ -12,6 +12,7 @@ import { AcoesChaves } from "@/components/torneio";
 import { Alert, Button } from "@/components/ui";
 import { FormatoEtapa, Inscricao } from "@/types/etapa";
 import { Cartao } from "@/components/layout/Pagina";
+import { getMensagemErro } from "@/utils/erro";
 
 interface DuplasManuaisTabProps {
   inscricoes: Inscricao[];
@@ -91,8 +92,8 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
       await onConfirm(
         duplas.map(([jogador1Id, jogador2Id]) => ({ jogador1Id, jogador2Id }))
       );
-    } catch (err: any) {
-      setError(err.message || "Erro ao formar duplas");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao formar duplas"));
     } finally {
       setLoading(false);
     }

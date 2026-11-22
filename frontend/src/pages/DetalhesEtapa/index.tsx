@@ -19,7 +19,7 @@ import { Alert, Badge, Button, LoadingOverlay, Tabs } from "@/components/ui";
 import { getEtapaService } from "@/services";
 import { AbaEtapa } from "@/hooks/useEtapaUI";
 import { StatusEtapa } from "@/types/etapa";
-import { calcularGruposTeams } from "@/utils/etapa";
+import { getQtdGrupos } from "@/utils/etapa";
 import logger from "@/utils/logger";
 
 // Componentes extraídos
@@ -32,6 +32,7 @@ import { DuplasManuaisTab } from "./components/DuplasManuaisTab";
 
 // Estilos
 import * as S from "./DetalhesEtapa.styles";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 const DetalhesEtapa: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -125,8 +126,8 @@ const DetalhesEtapa: React.FC = () => {
     try {
       setExportandoSumula(true);
       await etapaService.exportarSumula(etapa.id);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro ao exportar súmula";
+    } catch (err) {
+      const message = getMensagemErro(err, "Erro ao exportar súmula");
       alert(message);
     } finally {
       setExportandoSumula(false);
@@ -157,9 +158,9 @@ const DetalhesEtapa: React.FC = () => {
       });
       alert("Etapa excluída com sucesso!");
       navigate("/admin/etapas");
-    } catch (err: any) {
-      logger.error("Erro ao excluir etapa", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao excluir etapa");
+    } catch (err) {
+      logger.error("Erro ao excluir etapa", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao excluir etapa"));
     } finally {
       setLoadingExcluir(false);
     }
@@ -181,13 +182,6 @@ const DetalhesEtapa: React.FC = () => {
   const temDuplasManuais =
     isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas;
 
-  // No Teams o número de grupos vem das equipes, não do cadastro da etapa
-  const qtdGrupos = isTeams
-    ? calcularGruposTeams(
-        Math.floor(etapa.totalInscritos / (etapa.varianteTeams || 4))
-      ).length
-    : etapa.qtdGrupos || 0;
-
   const abas: { id: AbaEtapa; label: React.ReactNode }[] = [
     {
       id: "inscricoes",
@@ -207,7 +201,7 @@ const DetalhesEtapa: React.FC = () => {
       id: "chaves",
       label: (
         <S.RotuloAba>
-          Chaves/Grupos <Badge>{qtdGrupos}</Badge>
+          Chaves/Grupos <Badge>{getQtdGrupos(etapa)}</Badge>
         </S.RotuloAba>
       ),
     });

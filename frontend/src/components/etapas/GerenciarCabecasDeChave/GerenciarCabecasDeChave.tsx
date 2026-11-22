@@ -18,6 +18,7 @@ import { getCabecaDeChaveService } from "@/services";
 import { theme } from "@/styles/theme";
 import { CabecaDeChave } from "@/types/cabecaDeChave";
 import { FormatoEtapa, Inscricao } from "@/types/etapa";
+import { getMensagemErro } from "@/utils/erro";
 import { getNivelLabel } from "@/utils/formatters";
 
 const { texto, superficie, acao } = theme.semantic;
@@ -211,7 +212,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
   /** Executa a operação, recarrega as cabeças e avisa a página */
   const executar = async (
     mensagem: string,
-    mensagemErro: (error: any) => string,
+    mensagemErro: (error: unknown) => string,
     operar: () => Promise<unknown>
   ) => {
     try {
@@ -219,7 +220,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
       await operar();
       await carregarCabecas();
       onUpdate();
-    } catch (error: any) {
+    } catch (error) {
       alert(mensagemErro(error));
     } finally {
       setOperacao(null);
@@ -249,7 +250,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
   const remover = ({ jogadorId, jogadorNome }: CabecaDeChave) =>
     executar(
       `Removendo ${jogadorNome} das cabeças de chave...`,
-      (error) => error.message || "Erro ao remover cabeça",
+      (error) => getMensagemErro(error, "Erro ao remover cabeça"),
       () => cabecaDeChaveService.remover(arenaId, etapaId, jogadorId)
     );
 
@@ -273,7 +274,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
 
     return executar(
       `Adicionando ${selecionados.size} cabeça(s) de chave...`,
-      (error) => error.message || "Erro ao adicionar cabeças",
+      (error) => getMensagemErro(error, "Erro ao adicionar cabeças"),
       async () => {
         await Promise.all(
           Array.from(selecionados).map((id, indice) => {

@@ -7,6 +7,7 @@ import { Etapa } from "@/types/etapa";
 import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 export interface UseEtapaInscricoesParams {
   etapa: Etapa | null;
@@ -54,9 +55,9 @@ export const useEtapaInscricoes = ({
       if (onSuccess) await onSuccess();
 
       alert("Inscrições reabertas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao reabrir inscrições", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao reabrir inscrições");
+    } catch (err) {
+      logger.error("Erro ao reabrir inscrições", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao reabrir inscrições"));
       throw err;
     }
   }, [etapa, onSuccess]);
@@ -81,9 +82,9 @@ export const useEtapaInscricoes = ({
       if (onSuccess) await onSuccess();
 
       alert("Inscrições encerradas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao encerrar inscrições", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao encerrar inscrições");
+    } catch (err) {
+      logger.error("Erro ao encerrar inscrições", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao encerrar inscrições"));
       throw err;
     }
   }, [etapa, onSuccess]);
@@ -111,9 +112,9 @@ export const useEtapaInscricoes = ({
       if (onSuccess) await onSuccess();
 
       alert("Etapa finalizada com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao finalizar etapa", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao finalizar etapa");
+    } catch (err) {
+      logger.error("Erro ao finalizar etapa", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao finalizar etapa"));
       throw err;
     }
   }, [etapa, onSuccess]);
@@ -138,13 +139,13 @@ export const useEtapaInscricoes = ({
         if (onSuccess) await onSuccess();
 
         alert("Inscrição cancelada com sucesso!");
-      } catch (err: any) {
+      } catch (err) {
         logger.error(
           "Erro ao cancelar inscrição",
           { etapaId: etapa.id, inscricaoId },
-          err
+          paraError(err)
         );
-        alert(err.message || "Erro ao cancelar inscrição");
+        alert(getMensagemErro(err, "Erro ao cancelar inscrição"));
         throw err;
       }
     },
@@ -184,11 +185,11 @@ export const useEtapaInscricoes = ({
             `${resultado.canceladas} inscrição(ões) cancelada(s) com sucesso!`
           );
         }
-      } catch (err: any) {
+      } catch (err) {
         logger.error(
           "Erro ao cancelar múltiplas inscrições",
           { etapaId: etapa.id, count: inscricaoIds.length },
-          err
+          paraError(err)
         );
         throw err; // Re-throw para o componente tratar
       }

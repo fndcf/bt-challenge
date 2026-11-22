@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo, Partida } from "@/types/chave";
 import { FaseEliminatoria } from "../FaseEliminatoria";
@@ -15,6 +15,7 @@ import {
 } from "@/components/torneio";
 import { FormatoEtapa } from "@/types/etapa";
 import { COLUNAS_ADMIN, linhasDeDuplas, temJogos } from "@/utils/classificacao";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -41,7 +42,6 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   melhorDe3Eliminatoria = false,
 }) => {
   const chaveService = getChaveService();
-  const etapaService = getEtapaService();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [duplas, setDuplas] = useState<Dupla[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,25 +62,21 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   } | null>(null);
   const [partidasModal, setPartidasModal] = useState<Partida[]>([]);
 
-  useEffect(() => {
-    carregarChaves();
-  }, [etapaId, abaAtiva]);
-
-  const carregarChaves = async () => {
+  const carregarChaves = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
       const [gruposData, duplasData] = await Promise.all([
-        chaveService.buscarGrupos(etapaId),
-        chaveService.buscarDuplas(etapaId),
+        getChaveService().buscarGrupos(etapaId),
+        getChaveService().buscarDuplas(etapaId),
       ]);
 
       setGrupos(gruposData);
       setDuplas(duplasData);
 
       try {
-        const etapa = await etapaService.buscarPorId(etapaId);
+        const etapa = await getEtapaService().buscarPorId(etapaId);
         if (etapa) {
           setEtapaFinalizada(etapa.status === "finalizada");
         }
@@ -89,19 +85,24 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
       }
 
       try {
-        const confrontos = await chaveService.buscarConfrontosEliminatorios(
+        const confrontos = await getChaveService().buscarConfrontosEliminatorios(
           etapaId
         );
         setEliminatoriaExiste(confrontos && confrontos.length > 0);
       } catch {
         setEliminatoriaExiste(false);
       }
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar chaves");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao carregar chaves"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [etapaId]);
+
+  // Recarrega também ao trocar de aba
+  useEffect(() => {
+    carregarChaves();
+  }, [carregarChaves, abaAtiva]);
 
   const handleAbrirModalResultados = async (
     grupoId: string,
@@ -118,8 +119,8 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
 
       setPartidasModal(partidasDoGrupo);
       setGrupoModalAberto({ id: grupoId, nome: grupoNome });
-    } catch (err: any) {
-      alert(err.message || "Erro ao carregar partidas");
+    } catch (err) {
+      alert(getMensagemErro(err, "Erro ao carregar partidas"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

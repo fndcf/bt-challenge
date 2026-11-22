@@ -8,11 +8,12 @@ import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormaca
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import {
-  calcularGruposTeams,
+  distribuirEmGrupos,
   contarConfrontosTeams,
   MAX_EQUIPES_TEAMS,
 } from "@/utils/etapa";
 import { getEtapaService } from "@/services";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface CriarEtapaFormData extends CriarEtapaDTO {
   tipoChaveamento?: TipoChaveamentoReiDaPraia;
@@ -344,7 +345,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
       };
     }
 
-    const grupos = calcularGruposTeams(totalEquipes);
+    const grupos = distribuirEmGrupos(totalEquipes);
     const totalConfrontos = contarConfrontosTeams(totalEquipes);
     const jogosPorConfronto = variante === VarianteTeams.TEAMS_4 ? 2 : 3;
 
@@ -708,8 +709,8 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         const etapaService = getEtapaService();
         await etapaService.criar(dadosFormatados);
         navigate("/admin/etapas");
-      } catch (err: any) {
-        setError(err.message || "Erro ao criar etapa");
+      } catch (err) {
+        setError(getMensagemErro(err, "Erro ao criar etapa"));
         setLoading(false);
       } finally {
         setGlobalLoading(false);

@@ -75,9 +75,7 @@ describe("useDashboard", () => {
   });
 
   it("deve tratar erro no carregamento", async () => {
-    mockObterEstatisticas.mockRejectedValue({
-      response: { data: { error: "Erro de conexão" } },
-    });
+    mockObterEstatisticas.mockRejectedValue(new Error("Erro de conexão"));
     mockListarJogadores.mockResolvedValue({ total: 0, jogadores: [] });
 
     const { result } = renderHook(() => useDashboard());

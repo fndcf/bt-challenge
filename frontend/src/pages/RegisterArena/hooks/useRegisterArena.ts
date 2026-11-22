@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getArenaAdminService } from "@/services";
 import { useForm, useDebounce } from "@/hooks";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface RegisterArenaForm {
   nome: string;
@@ -66,7 +67,7 @@ export const useRegisterArena = (): UseRegisterArenaReturn => {
             debouncedSlug
           );
           setSlugAvailable(available);
-        } catch (error) {
+        } catch {
           setSlugAvailable(null);
         } finally {
           setCheckingSlug(false);
@@ -167,9 +168,9 @@ export const useRegisterArena = (): UseRegisterArenaReturn => {
         setTimeout(() => {
           navigate("/login");
         }, 3000);
-      } catch (error: any) {
+      } catch (error) {
         setErrorMessage(
-          error.message || "Erro ao criar arena. Tente novamente."
+          getMensagemErro(error, "Erro ao criar arena. Tente novamente.")
         );
       } finally {
         setLoading(false);

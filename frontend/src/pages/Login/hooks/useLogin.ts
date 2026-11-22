@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useForm } from "@/hooks";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface LoginForm {
   email: string;
@@ -109,8 +110,8 @@ export const useLogin = (): UseLoginReturn => {
         setLoading(true);
         await login(values.email, values.password, rememberMe);
         navigate(from, { replace: true });
-      } catch (error: any) {
-        setErrorMessage(error.message || "Erro ao fazer login");
+      } catch (error) {
+        setErrorMessage(getMensagemErro(error, "Erro ao fazer login"));
       } finally {
         setLoading(false);
       }

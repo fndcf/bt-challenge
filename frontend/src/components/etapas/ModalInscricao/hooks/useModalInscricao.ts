@@ -17,6 +17,7 @@ import {
   ValorFiltroGenero,
 } from "@/components/jogadores/Genero";
 import { getEtapaService, getJogadorService } from "@/services";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface UseModalInscricaoParams {
   etapaId: string;
@@ -210,8 +211,8 @@ export const useModalInscricao = ({
 
       setSuccessMessage(`✓ ${criado.nome} cadastrado com sucesso!`);
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
-      setError(err.message || "Erro ao cadastrar jogador");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao cadastrar jogador"));
     } finally {
       setLoading(false);
     }
@@ -241,8 +242,8 @@ export const useModalInscricao = ({
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Erro ao inscrever jogadores");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao inscrever jogadores"));
     } finally {
       setLoading(false);
     }

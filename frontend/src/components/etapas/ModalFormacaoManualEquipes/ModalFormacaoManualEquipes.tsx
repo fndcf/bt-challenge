@@ -13,6 +13,7 @@ import { Alert, Button, Modal } from "@/components/ui";
 import { theme } from "@/styles/theme";
 import { FormatoEtapa, Inscricao, VarianteTeams } from "@/types/etapa";
 import { FormacaoManualEquipeDTO } from "@/types/teams";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ModalFormacaoManualEquipesProps {
   isOpen: boolean;
@@ -132,8 +133,8 @@ export const ModalFormacaoManualEquipes: React.FC<
 
     try {
       await onConfirm(equipes);
-    } catch (err: any) {
-      setError(err.message || "Erro ao formar equipes");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao formar equipes"));
     } finally {
       setLoading(false);
     }

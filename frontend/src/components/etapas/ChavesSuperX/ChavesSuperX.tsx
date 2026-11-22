@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getSuperXService, getEtapaService } from "@/services";
 import { Grupo } from "@/types/chave";
 import { EstatisticasJogador, PartidaReiDaPraia } from "@/types/reiDaPraia";
@@ -21,6 +21,7 @@ import {
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ChavesSuperXProps {
   etapaId: string;
@@ -72,28 +73,28 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
 
   const varianteInfo = getVarianteInfo(varianteSuperX);
 
-  useEffect(() => {
-    carregarChaves();
-  }, [etapaId]);
-
-  const carregarChaves = async () => {
+  const carregarChaves = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
       const [grupoData, jogadoresData] = await Promise.all([
-        superXService.buscarGrupo(etapaId),
-        superXService.buscarJogadores(etapaId),
+        getSuperXService().buscarGrupo(etapaId),
+        getSuperXService().buscarJogadores(etapaId),
       ]);
 
       setGrupo(grupoData);
       setJogadores(jogadoresData);
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar chaves");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao carregar chaves"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [etapaId]);
+
+  useEffect(() => {
+    carregarChaves();
+  }, [carregarChaves]);
 
   const handleAbrirModalResultados = async () => {
     try {
@@ -102,8 +103,8 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       const partidasData = await superXService.buscarPartidas(etapaId);
       setPartidas(partidasData);
       setMostrarModalResultados(true);
-    } catch (err: any) {
-      alert(err.message || "Erro ao carregar partidas");
+    } catch (err) {
+      alert(getMensagemErro(err, "Erro ao carregar partidas"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -132,8 +133,8 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       if (onAtualizar) {
         await onAtualizar();
       }
-    } catch (err: any) {
-      alert(err.message || "Erro ao encerrar etapa");
+    } catch (err) {
+      alert(getMensagemErro(err, "Erro ao encerrar etapa"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

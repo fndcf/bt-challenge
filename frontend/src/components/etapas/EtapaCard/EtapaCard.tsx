@@ -13,6 +13,7 @@ import {
   getChaveamentoLabel,
   getFormacaoEquipeLabel,
   getFormatoEtapaLabel,
+  getQtdGrupos,
 } from "@/utils/etapa";
 import { formatarData, getGeneroLabel, getNivelLabel } from "@/utils/formatters";
 
@@ -113,6 +114,11 @@ const Grupo = styled.div`
 
 // ============== HELPERS ==============
 
+const rotuloGrupos = (etapa: Etapa): string => {
+  const total = getQtdGrupos(etapa);
+  return `${total} ${total === 1 ? "grupo" : "grupos"}`;
+};
+
 /** Textos do rodapé (grupos, equipes, rodadas) conforme o formato */
 const getEstrutura = (etapa: Etapa): string[] => {
   switch (etapa.formato) {
@@ -129,11 +135,11 @@ const getEstrutura = (etapa: Etapa): string[] => {
       ];
     }
     case FormatoEtapa.REI_DA_PRAIA:
-      return [`${etapa.qtdGrupos || 0} grupos`, "4 jogadores/grupo"];
+      return [rotuloGrupos(etapa), "4 jogadores/grupo"];
     default:
       return [
-        ...(etapa.qtdGrupos ? [`${etapa.qtdGrupos} grupos`] : []),
-        `${etapa.jogadoresPorGrupo} duplas/grupo`,
+        rotuloGrupos(etapa),
+        etapa.grupoUnico ? "Todos contra todos" : "3 ou 4 duplas/grupo",
       ];
   }
 };

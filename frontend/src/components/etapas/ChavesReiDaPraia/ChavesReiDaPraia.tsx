@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getReiDaPraiaService } from "@/services";
 import { Grupo } from "@/types/chave";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@/utils/classificacao";
 import { ModalLancamentoResultadosLoteReiDaPraia } from "../ModalLancamentoResultadosLoteReiDaPraia";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ChavesReiDaPraiaProps {
   etapaId: string;
@@ -73,18 +74,14 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
   } | null>(null);
   const [partidasModal, setPartidasModal] = useState<PartidaReiDaPraia[]>([]);
 
-  useEffect(() => {
-    carregarChaves();
-  }, [etapaId, abaAtiva]);
-
-  const carregarChaves = async () => {
+  const carregarChaves = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
       const [gruposData, jogadoresData] = await Promise.all([
-        reiDaPraiaService.buscarGrupos(etapaId),
-        reiDaPraiaService.buscarJogadores(etapaId),
+        getReiDaPraiaService().buscarGrupos(etapaId),
+        getReiDaPraiaService().buscarJogadores(etapaId),
       ]);
 
       setGrupos(gruposData);
@@ -93,17 +90,22 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
       // Verificar se existe fase eliminatória
       try {
         const confrontos =
-          await reiDaPraiaService.buscarConfrontosEliminatorios(etapaId);
+          await getReiDaPraiaService().buscarConfrontosEliminatorios(etapaId);
         setEliminatoriaExiste(confrontos && confrontos.length > 0);
       } catch {
         setEliminatoriaExiste(false);
       }
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar chaves");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao carregar chaves"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [etapaId]);
+
+  // Recarrega também ao trocar de aba
+  useEffect(() => {
+    carregarChaves();
+  }, [carregarChaves, abaAtiva]);
 
   const handleAbrirModalResultados = async (
     grupoId: string,
@@ -120,8 +122,8 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
 
       setPartidasModal(partidasDoGrupo);
       setGrupoModalAberto({ id: grupoId, nome: grupoNome });
-    } catch (err: any) {
-      alert(err.message || "Erro ao carregar partidas");
+    } catch (err) {
+      alert(getMensagemErro(err, "Erro ao carregar partidas"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

@@ -194,12 +194,13 @@ describe("EtapaCard", () => {
   describe("footer info", () => {
     it("deve mostrar quantidade de grupos", () => {
       renderWithRouter(<EtapaCard etapa={mockEtapa} />);
-      expect(screen.getByText("4 grupos")).toBeInTheDocument();
+      // 16 vagas = 8 duplas = 2 grupos de 4 (o qtdGrupos gravado não conta)
+      expect(screen.getByText("2 grupos")).toBeInTheDocument();
     });
 
     it("deve mostrar duplas por grupo para Dupla Fixa", () => {
       renderWithRouter(<EtapaCard etapa={mockEtapa} />);
-      expect(screen.getByText("4 duplas/grupo")).toBeInTheDocument();
+      expect(screen.getByText("3 ou 4 duplas/grupo")).toBeInTheDocument();
     });
   });
 

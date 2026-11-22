@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface UseRecuperarSenhaReturn {
   // Estado do formulário
@@ -74,8 +75,8 @@ export const useRecuperarSenha = (): UseRecuperarSenhaReturn => {
 
         setEmailEnviado(true);
         setSuccessMessage("Link de recuperação enviado! Verifique seu email.");
-      } catch (error: any) {
-        setErrorMessage(error.message || "Erro ao enviar email de recuperação");
+      } catch (error) {
+        setErrorMessage(getMensagemErro(error, "Erro ao enviar email de recuperação"));
       } finally {
         setLoading(false);
       }

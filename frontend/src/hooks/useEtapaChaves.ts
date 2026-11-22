@@ -7,6 +7,8 @@ import { Etapa, FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/ty
 import { getChaveService, getReiDaPraiaService, getSuperXService, getTeamsService } from "@/services";
 import { FormacaoManualEquipeDTO } from "@/types/teams";
 import logger from "@/utils/logger";
+import { getQtdGrupos } from "@/utils/etapa";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 export interface UseEtapaChavesParams {
   etapa: Etapa | null;
@@ -79,7 +81,7 @@ export const useEtapaChaves = ({
         `• Estatísticas individuais por jogador`;
     } else {
       detalhes =
-        `• ${etapa.qtdGrupos} grupos\n` +
+        `• ${getQtdGrupos(etapa)} grupo(s)\n` +
         `• ${Math.floor(etapa.totalInscritos / 2)} duplas\n` +
         `• Todos os confrontos da fase de grupos`;
     }
@@ -111,9 +113,9 @@ export const useEtapaChaves = ({
       if (onSuccess) await onSuccess("chaves");
 
       alert(isTeams ? "Equipes e confrontos gerados com sucesso!" : "Chaves geradas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao gerar chaves", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao gerar chaves");
+    } catch (err) {
+      logger.error("Erro ao gerar chaves", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao gerar chaves"));
       throw err;
     }
   }, [etapa, isReiDaPraia, isSuperX, isTeams, onSuccess]);
@@ -140,9 +142,9 @@ export const useEtapaChaves = ({
       if (onSuccess) await onSuccess("inscricoes");
 
       alert(isTeams ? "Equipes e confrontos apagados com sucesso!" : "Chaves apagadas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao apagar chaves", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao apagar chaves");
+    } catch (err) {
+      logger.error("Erro ao apagar chaves", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao apagar chaves"));
       throw err;
     }
   }, [etapa, isSuperX, isTeams, onSuccess]);
@@ -160,9 +162,9 @@ export const useEtapaChaves = ({
       if (onSuccess) await onSuccess("chaves");
 
       alert("Equipes formadas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao formar equipes manualmente", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao formar equipes");
+    } catch (err) {
+      logger.error("Erro ao formar equipes manualmente", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao formar equipes"));
       throw err;
     }
   }, [etapa, isTeams, onSuccess]);
@@ -182,9 +184,9 @@ export const useEtapaChaves = ({
       if (onSuccess) await onSuccess("chaves");
 
       alert("Duplas formadas e chaves geradas com sucesso!");
-    } catch (err: any) {
-      logger.error("Erro ao formar duplas manualmente", { etapaId: etapa.id }, err);
-      alert(err.message || "Erro ao formar duplas");
+    } catch (err) {
+      logger.error("Erro ao formar duplas manualmente", { etapaId: etapa.id }, paraError(err));
+      alert(getMensagemErro(err, "Erro ao formar duplas"));
       throw err;
     }
   }, [etapa, isDuplaFixa, onSuccess]);

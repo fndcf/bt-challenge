@@ -10,6 +10,7 @@ import {
 } from "@/services/arenaPublicService";
 import { getArenaPublicService } from "@/services";
 import logger from "@/utils/logger";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 export interface UseJogadorPerfilReturn {
   // Estados principais
@@ -153,11 +154,11 @@ export const useJogadorPerfil = (
         logger.info("Histórico carregado", {
           total: historicoData?.length || 0,
         });
-      } catch (err: any) {
+      } catch (err) {
         const mensagemErro =
-          err.message || "Erro ao carregar perfil do jogador";
+          getMensagemErro(err, "Erro ao carregar perfil do jogador");
         setError(mensagemErro);
-        logger.error("Erro ao carregar perfil", { slug, jogadorId }, err);
+        logger.error("Erro ao carregar perfil", { slug, jogadorId }, paraError(err));
       } finally {
         setLoading(false);
       }

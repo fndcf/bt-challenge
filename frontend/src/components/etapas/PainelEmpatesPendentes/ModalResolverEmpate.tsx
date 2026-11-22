@@ -22,6 +22,7 @@ import {
   ParticipanteEmpate,
   ResultadoDesempate,
 } from "@/types/etapa";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ModalResolverEmpateProps {
   etapaId: string;
@@ -156,8 +157,8 @@ export const ModalResolverEmpate: React.FC<ModalResolverEmpateProps> = ({
       } else {
         await onResolvido();
       }
-    } catch (err: any) {
-      setErro(err.message || "Erro ao resolver empate");
+    } catch (err) {
+      setErro(getMensagemErro(err, "Erro ao resolver empate"));
     } finally {
       setSalvando(false);
     }

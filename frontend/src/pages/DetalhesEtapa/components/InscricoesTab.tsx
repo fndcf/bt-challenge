@@ -11,6 +11,7 @@ import { theme } from "@/styles/theme";
 import { Etapa, Inscricao } from "@/types/etapa";
 import { GeneroJogador } from "@/types/jogador";
 import { getNivelLabel } from "@/utils/formatters";
+import { getMensagemErro } from "@/utils/erro";
 
 const { texto, superficie, acao } = theme.semantic;
 const { fontSize, fontWeight } = theme.typography;
@@ -148,8 +149,8 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
       setExcluindo(true);
       await onCancelarMultiplos(Array.from(selecionados));
       setSelecionados(new Set());
-    } catch (error: any) {
-      alert(error.message || "Erro ao cancelar inscrições");
+    } catch (error) {
+      alert(getMensagemErro(error, "Erro ao cancelar inscrições"));
     } finally {
       setExcluindo(false);
     }

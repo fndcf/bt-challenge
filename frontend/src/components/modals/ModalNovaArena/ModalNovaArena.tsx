@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import { Formulario } from "@/components/layout/Pagina";
 import { Alert, Button, Input, Modal } from "@/components/ui";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ModalNovaArenaProps {
   isOpen: boolean;
@@ -47,8 +48,8 @@ export const ModalNovaArena: React.FC<ModalNovaArenaProps> = ({
       setError("");
       await onCriar(nome.trim(), slug.trim() || undefined);
       handleClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao criar arena");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao criar arena"));
     } finally {
       setLoading(false);
     }

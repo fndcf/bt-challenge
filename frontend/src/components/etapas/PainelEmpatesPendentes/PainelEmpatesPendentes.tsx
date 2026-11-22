@@ -82,7 +82,6 @@ export const PainelEmpatesPendentes: React.FC<PainelEmpatesPendentesProps> = ({
   desabilitado = false,
   onEmpatesChange,
 }) => {
-  const etapaService = getEtapaService();
   const [empates, setEmpates] = useState<EmpatePendente[]>([]);
   const [empateAberto, setEmpateAberto] = useState<EmpatePendente | null>(null);
 
@@ -102,7 +101,7 @@ export const PainelEmpatesPendentes: React.FC<PainelEmpatesPendentesProps> = ({
     }
 
     try {
-      const lista = await etapaService.listarEmpatesPendentes(etapaId);
+      const lista = await getEtapaService().listarEmpatesPendentes(etapaId);
       atualizarLista(lista);
 
       // Primeira carga da etapa nesta página: só o aviso, sem abrir o modal

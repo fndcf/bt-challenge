@@ -7,6 +7,7 @@ import styled from "styled-components";
 import { CheckCircle, FileSpreadsheet, Upload } from "lucide-react";
 import { Alert, Button, Modal } from "@/components/ui";
 import { theme } from "@/styles/theme";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ImportResult {
   criados: number;
@@ -73,8 +74,8 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
       const resultado = await onImportar(file);
       onSuccess({ criados: resultado.criados, ignorados: resultado.ignorados });
       handleClose();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro ao importar";
+    } catch (err) {
+      const message = getMensagemErro(err, "Erro ao importar");
       setError(message);
     } finally {
       setLoading(false);

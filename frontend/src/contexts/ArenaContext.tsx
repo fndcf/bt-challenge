@@ -14,6 +14,7 @@ import { Arena } from "../types/arena";
 import { useArenaLoader } from "../hooks/useArenaLoader";
 import logger from "../utils/logger";
 import { getArenaAdminService } from "@/services";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 const ArenaContext = createContext<ArenaContextType | undefined>(undefined);
 
@@ -49,9 +50,9 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       }
 
       setArena(arenaData);
-    } catch (err: any) {
-      logger.error("Erro ao carregar arena por slug", { slug }, err);
-      setError(err.message || "Erro ao carregar arena");
+    } catch (err) {
+      logger.error("Erro ao carregar arena por slug", { slug }, paraError(err));
+      setError(getMensagemErro(err, "Erro ao carregar arena"));
       setArena(null);
     } finally {
       setLoading(false);
@@ -96,9 +97,9 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
 
       setArena(activeArena);
       localStorage.setItem("selectedArenaId", activeArena.id);
-    } catch (err: any) {
-      logger.error("Erro ao carregar arenas do admin", {}, err);
-      setError(err.message || "Erro ao carregar arena");
+    } catch (err) {
+      logger.error("Erro ao carregar arenas do admin", {}, paraError(err));
+      setError(getMensagemErro(err, "Erro ao carregar arena"));
       setArena(null);
     } finally {
       setLoading(false);
@@ -113,8 +114,8 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
       const arenaAdminService = getArenaAdminService();
       const { arenas: adminArenas } = await arenaAdminService.obterMinhasArenas();
       setArenas(adminArenas);
-    } catch (err: any) {
-      logger.error("Erro ao recarregar arenas", {}, err);
+    } catch (err) {
+      logger.error("Erro ao recarregar arenas", {}, paraError(err));
     }
   }, []);
 
@@ -135,8 +136,8 @@ export const ArenaProvider: React.FC<ArenaProviderProps> = ({ children }) => {
 
         // Recarregar página para atualizar dados
         window.location.reload();
-      } catch (err: any) {
-        logger.error("Erro ao trocar arena", { arenaId }, err);
+      } catch (err) {
+        logger.error("Erro ao trocar arena", { arenaId }, paraError(err));
         throw err;
       }
     },

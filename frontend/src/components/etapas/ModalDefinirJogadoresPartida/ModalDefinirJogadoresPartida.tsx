@@ -11,6 +11,7 @@ import { theme } from "@/styles/theme";
 import { getCoresFormato } from "@/styles/semantic";
 import { FormatoEtapa } from "@/types/etapa";
 import { PartidaTeams, JogadorEquipe } from "@/types/teams";
+import { getMensagemErro } from "@/utils/erro";
 
 interface ModalDefinirJogadoresPartidaProps {
   isOpen: boolean;
@@ -232,8 +233,8 @@ export const ModalDefinirJogadoresPartida: React.FC<ModalDefinirJogadoresPartida
       // Resetar estado
       setSelectedEquipe1([]);
       setSelectedEquipe2([]);
-    } catch (err: any) {
-      setError(err.message || "Erro ao definir jogadores");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao definir jogadores"));
       setLoading(false);
     }
   };

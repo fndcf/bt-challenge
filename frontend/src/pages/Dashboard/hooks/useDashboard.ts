@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEtapaService, getJogadorService } from "@/services";
 import logger from "@/utils/logger";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 export interface DashboardStats {
   totalJogadores: number;
@@ -59,11 +60,11 @@ export const useDashboard = (): UseDashboardReturn => {
       setStats(novasStats);
 
       logger.info("Estatísticas do dashboard carregadas", novasStats);
-    } catch (err: any) {
+    } catch (err) {
       const mensagemErro =
-        err.response?.data?.error || "Erro ao carregar estatísticas";
+        getMensagemErro(err, "Erro ao carregar estatísticas");
       setError(mensagemErro);
-      logger.error("Erro ao carregar dashboard", {}, err);
+      logger.error("Erro ao carregar dashboard", {}, paraError(err));
     } finally {
       setLoading(false);
     }

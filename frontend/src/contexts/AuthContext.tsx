@@ -24,6 +24,7 @@ import { User, AuthState } from "../types";
 import { getErrorMessage } from "../utils/errorHandler";
 import logger from "../utils/logger";
 import { useTokenRefresh } from "../hooks/useTokenRefresh";
+import { getCodigoErro, paraError } from "@/utils/erro";
 
 interface AuthContextType extends AuthState {
   login: (
@@ -120,7 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: userCredential.user.email,
         rememberMe,
       });
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
@@ -128,9 +129,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         "Falha no login",
         {
           email,
-          errorCode: err.code,
+          errorCode: getCodigoErro(err),
         },
-        err
+        paraError(err)
       );
 
       throw new Error(errorMessage);
@@ -155,11 +156,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
 
       logger.info("Logout realizado", { uid, email });
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
-      logger.error("Erro ao fazer logout", {}, err);
+      logger.error("Erro ao fazer logout", {}, paraError(err));
 
       throw new Error(errorMessage);
     }
@@ -188,7 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
       });
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
@@ -196,9 +197,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         "Falha no registro",
         {
           email,
-          errorCode: err.code,
+          errorCode: getCodigoErro(err),
         },
-        err
+        paraError(err)
       );
 
       throw new Error(errorMessage);
@@ -216,7 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await sendPasswordResetEmail(auth, email);
 
       logger.info("Email de recuperação enviado", { email });
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
 
@@ -224,9 +225,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         "Falha ao enviar email de recuperação",
         {
           email,
-          errorCode: err.code,
+          errorCode: getCodigoErro(err),
         },
-        err
+        paraError(err)
       );
 
       throw new Error(errorMessage);

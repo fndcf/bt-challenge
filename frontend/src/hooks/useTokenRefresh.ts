@@ -10,6 +10,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { auth } from "../config/firebase";
 import logger from "../utils/logger";
+import { getCodigoErro, getMensagemErro, paraError } from "@/utils/erro";
 
 // Intervalo de renovação: 50 minutos (token expira em ~60 min)
 const TOKEN_REFRESH_INTERVAL = 50 * 60 * 1000;
@@ -73,20 +74,21 @@ export const useTokenRefresh = (
       });
 
       return newToken;
-    } catch (error: any) {
+    } catch (error) {
+      const codigo = getCodigoErro(error);
       logger.error("Failed to refresh token", {
-        errorCode: error.code,
-        errorMessage: error.message,
+        errorCode: codigo,
+        errorMessage: getMensagemErro(error, ""),
       });
 
       // Se o erro for de autenticação, o token é inválido
       if (
-        error.code === "auth/user-token-expired" ||
-        error.code === "auth/user-disabled" ||
-        error.code === "auth/user-not-found"
+        codigo === "auth/user-token-expired" ||
+        codigo === "auth/user-disabled" ||
+        codigo === "auth/user-not-found"
       ) {
         localStorage.removeItem("authToken");
-        onRefreshError?.(error);
+        onRefreshError?.(paraError(error));
       }
 
       return null;
@@ -171,9 +173,9 @@ export const refreshTokenManually = async (): Promise<string | null> => {
     localStorage.setItem("authToken", newToken);
     logger.info("Token refreshed manually");
     return newToken;
-  } catch (error: any) {
+  } catch (error) {
     logger.error("Failed to refresh token manually", {
-      errorCode: error.code,
+      errorCode: getCodigoErro(error),
     });
     return null;
   }

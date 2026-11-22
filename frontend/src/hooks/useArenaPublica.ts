@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { ArenaPublica, EtapaPublica } from "../services/arenaPublicService";
 import { getArenaPublicService } from "../services";
 import logger from "../utils/logger";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 interface UseArenaPublicaReturn {
   arena: ArenaPublica | null;
@@ -44,9 +45,9 @@ export const useArenaPublica = (slug?: string): UseArenaPublicaReturn => {
         // Buscar etapas públicas
         const etapasData = await arenaPublicService.listarEtapas(slug);
         setEtapas(etapasData);
-      } catch (err: any) {
-        logger.error("Erro ao carregar arena pública", { slug }, err);
-        setError(err.message || "Erro ao carregar informações da arena");
+      } catch (err) {
+        logger.error("Erro ao carregar arena pública", { slug }, paraError(err));
+        setError(getMensagemErro(err, "Erro ao carregar informações da arena"));
       } finally {
         setLoading(false);
       }

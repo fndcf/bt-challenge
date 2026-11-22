@@ -7,6 +7,7 @@ import { Etapa, StatusEtapa, FiltrosEtapa, FormatoEtapa } from "@/types/etapa";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 export interface EstatisticasEtapas {
   totalEtapas: number;
@@ -171,9 +172,9 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
         totalPaginas: Math.ceil(resultado.total / etapasPorPagina),
         stats: estatisticas,
       });
-    } catch (err: any) {
+    } catch (err) {
       const mensagemErro =
-        err.response?.data?.error || "Erro ao carregar etapas";
+        getMensagemErro(err, "Erro ao carregar etapas");
       setError(mensagemErro);
       logger.error(
         "Erro ao carregar listagem de etapas",
@@ -190,7 +191,7 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
             limite: etapasPorPagina,
           },
         },
-        err
+        paraError(err)
       );
     } finally {
       setLoading(false);

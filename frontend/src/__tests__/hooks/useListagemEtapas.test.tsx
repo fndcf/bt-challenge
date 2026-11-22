@@ -105,9 +105,7 @@ describe("useListagemEtapas", () => {
     });
 
     it("deve tratar erro ao carregar etapas", async () => {
-      mockListarEtapas.mockRejectedValue({
-        response: { data: { error: "Erro no servidor" } },
-      });
+      mockListarEtapas.mockRejectedValue(new Error("Erro no servidor"));
 
       const { result } = renderHook(() => useListagemEtapas());
 
@@ -118,8 +116,8 @@ describe("useListagemEtapas", () => {
       expect(result.current.error).toBe("Erro no servidor");
     });
 
-    it("deve usar mensagem padrão quando erro não tem resposta", async () => {
-      mockListarEtapas.mockRejectedValue(new Error("Network error"));
+    it("deve usar mensagem padrão quando erro não tem mensagem", async () => {
+      mockListarEtapas.mockRejectedValue({});
 
       const { result } = renderHook(() => useListagemEtapas());
 

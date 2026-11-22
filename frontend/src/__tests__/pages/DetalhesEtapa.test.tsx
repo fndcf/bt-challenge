@@ -706,26 +706,21 @@ describe("DetalhesEtapa - Renderização", () => {
       expect(mockSetAbaAtiva).toHaveBeenCalledWith("chaves");
     });
 
-    it("deve exibir badge com quantidade de grupos na tab de chaves", () => {
+    it("deve exibir badge com a quantidade real de grupos na tab de chaves", () => {
       mockUseDetalhesEtapa.mockReturnValue({
         ...defaultMockReturn,
-        etapa: { ...mockEtapa, chavesGeradas: true, qtdGrupos: 4 },
+        etapa: {
+          ...mockEtapa,
+          formato: "rei_da_praia",
+          chavesGeradas: true,
+          totalInscritos: 28,
+          qtdGrupos: 4, // Gravado errado: não é usado
+        },
       });
 
       renderWithRouter(<DetalhesEtapa />);
 
-      expect(screen.getByText("4")).toBeInTheDocument();
-    });
-
-    it("deve exibir 0 quando qtdGrupos é undefined", () => {
-      mockUseDetalhesEtapa.mockReturnValue({
-        ...defaultMockReturn,
-        etapa: { ...mockEtapa, chavesGeradas: true, qtdGrupos: undefined },
-      });
-
-      renderWithRouter(<DetalhesEtapa />);
-
-      expect(screen.getByText("0")).toBeInTheDocument();
+      expect(screen.getByText("7")).toBeInTheDocument();
     });
   });
 });

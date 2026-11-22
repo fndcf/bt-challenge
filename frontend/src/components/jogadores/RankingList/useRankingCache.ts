@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getArenaPublicService } from "@/services";
 import { JogadorPublico } from "@/services/arenaPublicService";
+import { getMensagemErro } from "@/utils/erro";
 
 // ============== TIPOS ==============
 
@@ -158,8 +159,8 @@ export const useRankingCache = ({
       lastRefreshRef.current = Date.now();
       setIsLoaded(true);
       forceUpdate((n) => n + 1);
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar ranking");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao carregar ranking"));
     } finally {
       setLoading(false);
       loadingRef.current = false;

@@ -20,15 +20,16 @@ jest.mock("@/utils/logger", () => ({
 // Mocks dos services
 const mockListarJogadores = jest.fn();
 const mockDeletarJogador = jest.fn();
-const mockObterMinhaArena = jest.fn();
+const mockUseArena = jest.fn();
+
+jest.mock("@/contexts/ArenaContext", () => ({
+  useArena: () => mockUseArena(),
+}));
 
 jest.mock("@/services", () => ({
   getJogadorService: () => ({
     listar: mockListarJogadores,
     deletar: mockDeletarJogador,
-  }),
-  getArenaAdminService: () => ({
-    obterMinhaArena: mockObterMinhaArena,
   }),
 }));
 
@@ -38,10 +39,8 @@ describe("useListagemJogadores", () => {
     localStorage.clear();
 
     // Setup padrão dos mocks
-    mockObterMinhaArena.mockResolvedValue({
-      id: "arena-1",
-      nome: "Arena Teste",
-      slug: "arena-teste",
+    mockUseArena.mockReturnValue({
+      arena: { id: "arena-1", nome: "Arena Teste", slug: "arena-teste" },
     });
     mockListarJogadores.mockResolvedValue({
       jogadores: [],
@@ -68,33 +67,12 @@ describe("useListagemJogadores", () => {
       });
     });
 
-    it("deve carregar arena ao montar", async () => {
-      const { result } = renderHook(() => useListagemJogadores());
-
-      await waitFor(() => {
-        expect(result.current.arena).not.toBeNull();
+    // Com mais de uma arena, a lista é da ativa: o link "Ver" tem que usar o
+    // slug dela, e não o da primeira arena do admin
+    it("usa a arena ativa do contexto", async () => {
+      mockUseArena.mockReturnValue({
+        arena: { id: "arena-2", nome: "Segunda Arena", slug: "segunda-arena" },
       });
-
-      expect(result.current.arena?.nome).toBe("Arena Teste");
-    });
-
-    it("deve usar localStorage como fallback para arena", async () => {
-      mockObterMinhaArena.mockRejectedValue(new Error("Erro API"));
-      localStorage.setItem(
-        "arena",
-        JSON.stringify({ id: "arena-local", nome: "Arena Local" })
-      );
-
-      const { result } = renderHook(() => useListagemJogadores());
-
-      await waitFor(() => {
-        expect(result.current.arena?.nome).toBe("Arena Local");
-      });
-    });
-
-    it("deve tratar erro ao parsear arena do localStorage", async () => {
-      mockObterMinhaArena.mockRejectedValue(new Error("Erro API"));
-      localStorage.setItem("arena", "invalid-json");
 
       const { result } = renderHook(() => useListagemJogadores());
 
@@ -102,7 +80,18 @@ describe("useListagemJogadores", () => {
         expect(result.current.loading).toBe(false);
       });
 
-      // Arena deve continuar null pois não conseguiu parsear
+      expect(result.current.arena?.slug).toBe("segunda-arena");
+    });
+
+    it("fica sem arena enquanto o contexto carrega", async () => {
+      mockUseArena.mockReturnValue({ arena: null });
+
+      const { result } = renderHook(() => useListagemJogadores());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
       expect(result.current.arena).toBeNull();
     });
   });

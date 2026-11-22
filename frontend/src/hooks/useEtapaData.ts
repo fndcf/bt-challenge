@@ -7,6 +7,7 @@ import { Etapa, Inscricao, FormatoEtapa } from "@/types/etapa";
 import { getEtapaService, getSuperXService, getTeamsService } from "@/services";
 import { StatusConfronto } from "@/types/teams";
 import logger from "@/utils/logger";
+import { getMensagemErro, paraError } from "@/utils/erro";
 
 // Etapa estendida com inscrições
 export interface EtapaComInscricoes extends Etapa {
@@ -110,9 +111,9 @@ export const useEtapaData = (etapaId?: string): UseEtapaDataReturn => {
       } else {
         setTodasPartidasFinalizadas(false);
       }
-    } catch (err: any) {
-      logger.error("Erro ao carregar etapa", { etapaId }, err);
-      setError(err.message || "Erro ao carregar etapa");
+    } catch (err) {
+      logger.error("Erro ao carregar etapa", { etapaId }, paraError(err));
+      setError(getMensagemErro(err, "Erro ao carregar etapa"));
     } finally {
       setLoading(false);
     }

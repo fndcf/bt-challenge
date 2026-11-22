@@ -12,6 +12,7 @@ import {
   NivelJogador,
   StatusJogador,
 } from "@/types/jogador";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface UseEditarJogadorReturn {
   // Estado do jogador
@@ -89,8 +90,8 @@ export const useEditarJogador = (): UseEditarJogadorReturn => {
           status: data.status,
           observacoes: data.observacoes || "",
         });
-      } catch (error: any) {
-        setErrorMessage(error.message || "Erro ao carregar jogador");
+      } catch (error) {
+        setErrorMessage(getMensagemErro(error, "Erro ao carregar jogador"));
       } finally {
         setLoading(false);
       }
@@ -248,8 +249,8 @@ export const useEditarJogador = (): UseEditarJogadorReturn => {
         setTimeout(() => {
           navigate("/admin/jogadores");
         }, 1500);
-      } catch (error: any) {
-        setErrorMessage(error.message || "Erro ao atualizar jogador");
+      } catch (error) {
+        setErrorMessage(getMensagemErro(error, "Erro ao atualizar jogador"));
       } finally {
         setSaving(false);
       }

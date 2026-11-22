@@ -8,6 +8,7 @@ import { Etapa, AtualizarEtapaDTO, FormatoEtapa } from "@/types/etapa";
 import { MAX_EQUIPES_TEAMS } from "@/utils/etapa";
 import { getEtapaService } from "@/services";
 import { format } from "date-fns";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface UseEditarEtapaReturn {
   // Estado da Etapa
@@ -113,8 +114,8 @@ export const useEditarEtapa = (
         melhorDe3Eliminatoria: data.melhorDe3Eliminatoria ?? false,
         tipoFormacaoJogos: data.tipoFormacaoJogos, // TEAMS
       });
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar etapa");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao carregar etapa"));
     } finally {
       setLoading(false);
     }
@@ -328,8 +329,8 @@ export const useEditarEtapa = (
         const etapaService = getEtapaService();
         await etapaService.atualizar(id, dadosParaEnviar);
         navigate(`/admin/etapas/${id}`);
-      } catch (err: any) {
-        setError(err.message || "Erro ao atualizar etapa");
+      } catch (err) {
+        setError(getMensagemErro(err, "Erro ao atualizar etapa"));
         setSalvando(false);
       } finally {
         setGlobalLoading(false);

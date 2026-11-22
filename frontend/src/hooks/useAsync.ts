@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { getMensagemErro } from "@/utils/erro";
 
 export const useAsync = <T, E = string>(
   asyncFunction: () => Promise<T>,
@@ -24,8 +25,8 @@ export const useAsync = <T, E = string>(
       setData(response);
       setStatus("success");
       return response;
-    } catch (error: any) {
-      setError(error.message || "Erro desconhecido");
+    } catch (error) {
+      setError(getMensagemErro(error, "Erro desconhecido") as E);
       setStatus("error");
       throw error;
     }

@@ -5,6 +5,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getJogadorService } from "@/services";
+import { getMensagemErro } from "@/utils/erro";
 import {
   CriarJogadorDTO,
   GeneroJogador,
@@ -186,14 +187,8 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
         setTimeout(() => {
           navigate("/admin/jogadores");
         }, 1500);
-      } catch (error: any) {
-        let mensagem = "Erro ao cadastrar jogador";
-
-        if (error.message) {
-          mensagem = error.message;
-        }
-
-        setErrorMessage(mensagem);
+      } catch (error) {
+        setErrorMessage(getMensagemErro(error, "Erro ao cadastrar jogador"));
       } finally {
         setLoading(false);
         setGlobalLoading(false);

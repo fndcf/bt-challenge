@@ -8,10 +8,11 @@ import { Badge, BarraProgresso } from "@/components/ui";
 import { theme } from "@/styles/theme";
 import { Etapa } from "@/types/etapa";
 import {
-  calcularGruposTeams,
+  distribuirEmGrupos,
   getChaveamentoLabel,
   getFormacaoEquipeLabel,
   getFormatoEtapaLabel,
+  getQtdGrupos,
 } from "@/utils/etapa";
 import { formatarData, getGeneroLabel, getNivelLabel } from "@/utils/formatters";
 import {
@@ -94,7 +95,7 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
 }) => {
   const jogadoresPorEquipe = etapa.varianteTeams || 4;
   const numEquipes = Math.floor(etapa.totalInscritos / jogadoresPorEquipe);
-  const gruposTeams = calcularGruposTeams(numEquipes).length;
+  const gruposTeams = distribuirEmGrupos(numEquipes).length;
 
   const getEstrutura = (): {
     rotulo: string;
@@ -129,14 +130,16 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
     if (isReiDaPraia) {
       return {
         rotulo: "Grupos de 4",
-        total: etapa.qtdGrupos || 0,
+        total: getQtdGrupos(etapa),
         itens: ["4 jogadores por grupo", "3 partidas por grupo"],
       };
     }
     return {
       rotulo: "Grupos",
-      total: etapa.qtdGrupos || 0,
-      itens: [`${etapa.jogadoresPorGrupo} duplas por grupo`],
+      total: getQtdGrupos(etapa),
+      itens: [
+        etapa.grupoUnico ? "Todos contra todos" : "3 ou 4 duplas por grupo",
+      ],
     };
   };
 

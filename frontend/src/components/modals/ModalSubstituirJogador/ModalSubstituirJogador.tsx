@@ -11,6 +11,7 @@ import { getEtapaService } from "@/services";
 import { theme } from "@/styles/theme";
 import { Inscricao } from "@/types/etapa";
 import { getNivelLabel } from "@/utils/formatters";
+import { getMensagemErro } from "@/utils/erro";
 
 interface JogadorDisponivel {
   id: string;
@@ -209,8 +210,6 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const etapaService = getEtapaService();
-
   useEffect(() => {
     if (!isOpen) {
       setAntigoId(null);
@@ -222,9 +221,11 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
     const carregarDisponiveis = async () => {
       try {
         setCarregando(true);
-        setDisponiveis(await etapaService.buscarJogadoresDisponiveis(etapaId));
-      } catch (err: any) {
-        setError(err.message || "Erro ao carregar jogadores disponíveis");
+        setDisponiveis(
+          await getEtapaService().buscarJogadoresDisponiveis(etapaId)
+        );
+      } catch (err) {
+        setError(getMensagemErro(err, "Erro ao carregar jogadores disponíveis"));
       } finally {
         setCarregando(false);
       }
@@ -251,10 +252,10 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
     try {
       setLoading(true);
       setError(null);
-      await etapaService.substituirJogador(etapaId, antigoId, novoId);
+      await getEtapaService().substituirJogador(etapaId, antigoId, novoId);
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "Erro ao substituir jogador");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao substituir jogador"));
     } finally {
       setLoading(false);
     }

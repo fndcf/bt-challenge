@@ -6,6 +6,7 @@ import React from "react";
 import { GerenciarCabecasDeChave } from "@/components/etapas/GerenciarCabecasDeChave";
 import { Alert } from "@/components/ui";
 import { Etapa, Inscricao, StatusEtapa } from "@/types/etapa";
+import { getQtdGrupos } from "@/utils/etapa";
 import { Cartao, CartaoTitulo, Texto } from "@/components/layout/Pagina";
 
 interface CabecasTabProps {
@@ -36,7 +37,7 @@ export const CabecasTab: React.FC<CabecasTabProps> = ({ etapa, onUpdate }) => {
       inscricoes={etapa.inscricoes || []}
       formato={etapa.formato}
       totalInscritos={etapa.totalInscritos}
-      qtdGrupos={etapa.qtdGrupos}
+      qtdGrupos={getQtdGrupos(etapa)}
       onUpdate={onUpdate}
       // Depois de gerar as chaves, só visualização
       readOnly={!!etapa.chavesGeradas}

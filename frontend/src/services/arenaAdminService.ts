@@ -63,7 +63,7 @@ class ArenaAdminService implements IArenaAdminService {
     try {
       const arena = await apiClient.get<Arena>(`${this.basePath}/slug/${slug}`);
       return arena;
-    } catch (error) {
+    } catch {
       logger.warn("Arena não encontrada por slug", { slug });
       return null;
     }
@@ -76,7 +76,7 @@ class ArenaAdminService implements IArenaAdminService {
     try {
       const arena = await apiClient.get<Arena>(`${this.basePath}/${id}`);
       return arena;
-    } catch (error) {
+    } catch {
       logger.warn("Arena não encontrada por ID", { id });
       return null;
     }
@@ -89,7 +89,7 @@ class ArenaAdminService implements IArenaAdminService {
     try {
       const arena = await apiClient.get<Arena>(`${this.basePath}/me`);
       return arena;
-    } catch (error) {
+    } catch {
       logger.warn("Erro ao buscar arena do admin autenticado");
       return null;
     }
@@ -104,7 +104,7 @@ class ArenaAdminService implements IArenaAdminService {
         this.basePath
       );
       return response.arenas;
-    } catch (error) {
+    } catch {
       logger.warn("Erro ao listar arenas - retornando lista vazia");
       return [];
     }
@@ -155,7 +155,7 @@ class ArenaAdminService implements IArenaAdminService {
         message: string;
       }>(`${this.basePath}/check-slug/${slug}`);
       return response.available;
-    } catch (error) {
+    } catch {
       logger.warn("Erro ao verificar slug - retornando indisponível", { slug });
       return false;
     }

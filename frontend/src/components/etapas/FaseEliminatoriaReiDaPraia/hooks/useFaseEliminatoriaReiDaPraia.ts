@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { getChaveamentoLabel } from "@/utils/etapa";
 import { getReiDaPraiaService, getEtapaService } from "@/services";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface ConfrontoEliminatorioReiDaPraia {
   id: string;
@@ -120,42 +121,42 @@ export const useFaseEliminatoriaReiDaPraia = ({
   useEffect(() => {
     const verificarStatusEtapa = async () => {
       try {
-        const etapa = await etapaService.buscarPorId(etapaId);
+        const etapa = await getEtapaService().buscarPorId(etapaId);
         if (etapa) {
           setEtapaFinalizada(etapa.status === "finalizada");
         }
-      } catch (error) {
-        // Silently fail - não é crítico
+      } catch {
+        // Não crítico: sem o status, segue como não finalizada
       }
     };
 
     verificarStatusEtapa();
   }, [etapaId]);
 
-  // Carregar confrontos quando etapaId mudar
-  useEffect(() => {
-    carregarConfrontos();
-  }, [etapaId]);
-
   /**
    * Carrega os confrontos eliminatórios do Rei da Praia
    */
-  const carregarConfrontos = async () => {
+  const carregarConfrontos = useCallback(async () => {
     try {
       setLoading(true);
       setErro(null);
 
       // Sempre buscar todos os confrontos (filtragem será feita no frontend)
-      const dados = await reiDaPraiaService.buscarConfrontosEliminatorios(
+      const dados = await getReiDaPraiaService().buscarConfrontosEliminatorios(
         etapaId
       );
       setConfrontos(dados);
-    } catch (err: any) {
-      setErro(err.message || "Erro ao carregar confrontos");
+    } catch (err) {
+      setErro(getMensagemErro(err, "Erro ao carregar confrontos"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [etapaId]);
+
+  // Carregar confrontos quando etapaId mudar
+  useEffect(() => {
+    carregarConfrontos();
+  }, [carregarConfrontos]);
 
   /**
    * Gera a fase eliminatória Rei da Praia
@@ -180,13 +181,13 @@ export const useFaseEliminatoriaReiDaPraia = ({
       await new Promise((resolve) => setTimeout(resolve, 1000));
       alert("Fase eliminatória Rei da Praia gerada com sucesso!");
       await carregarConfrontos();
-    } catch (err: any) {
+    } catch (err) {
       // Empate (no grupo ou entre 1ºs/2ºs colocados): o painel de empates
       // abre o modal para o admin decidir, em vez de mostrar erro
-      if (onEmpatePendente && err.message?.includes("empate pendente")) {
+      if (onEmpatePendente && getMensagemErro(err, "").includes("empate pendente")) {
         onEmpatePendente();
       } else {
-        alert(`Erro: ${err.message}`);
+        alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
       }
     } finally {
       setGlobalLoading(false);
@@ -204,8 +205,8 @@ export const useFaseEliminatoriaReiDaPraia = ({
       await reiDaPraiaService.cancelarEliminatoria(etapaId);
       alert("Fase eliminatória cancelada!");
       await carregarConfrontos();
-    } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+    } catch (err) {
+      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -224,8 +225,8 @@ export const useFaseEliminatoriaReiDaPraia = ({
       invalidateRankingCache();
       alert("Etapa Rei da Praia encerrada com sucesso!");
       window.location.reload();
-    } catch (err: any) {
-      alert(`Erro: ${err.message}`);
+    } catch (err) {
+      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

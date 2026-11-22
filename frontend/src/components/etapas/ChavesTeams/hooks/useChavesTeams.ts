@@ -15,6 +15,7 @@ import {
 } from "@/types/teams";
 import { contarFinalizados, ordenarConfrontos } from "@/utils/teams";
 import { ordenarEquipes } from "@/utils/classificacao";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface GrupoTeams {
   id: string;
@@ -123,8 +124,8 @@ export const useChavesTeams = ({
       ]);
       setEquipes(ordenarEquipes(equipesData));
       setConfrontos(confrontosData);
-    } catch (err: any) {
-      setError(err.message || "Erro ao carregar dados");
+    } catch (err) {
+      setError(getMensagemErro(err, "Erro ao carregar dados"));
     } finally {
       setLoading(false);
     }
@@ -144,8 +145,8 @@ export const useChavesTeams = ({
     try {
       setOperacao(mensagem);
       await acao();
-    } catch (err: any) {
-      alert(err.message || erroPadrao);
+    } catch (err) {
+      alert(getMensagemErro(err, erroPadrao));
     } finally {
       setOperacao(null);
     }
@@ -309,8 +310,8 @@ export const useChavesTeams = ({
         prev.map((e) => (e.id === equipeId ? { ...e, nome } : e))
       );
       return true;
-    } catch (err: any) {
-      alert(err.message || "Erro ao renomear equipe");
+    } catch (err) {
+      alert(getMensagemErro(err, "Erro ao renomear equipe"));
       return false;
     }
   };

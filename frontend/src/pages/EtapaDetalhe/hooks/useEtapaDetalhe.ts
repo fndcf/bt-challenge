@@ -9,6 +9,7 @@ import {
   JogadorPublico,
 } from "@/services/arenaPublicService";
 import { getArenaPublicService } from "@/services";
+import { getMensagemErro } from "@/utils/erro";
 
 export interface UseEtapaDetalheReturn {
   // Dados
@@ -77,8 +78,8 @@ export const useEtapaDetalhe = (
           etapaId
         );
         setChaves(chavesData);
-      } catch (err: any) {
-        setError(err.message || "Erro ao carregar detalhes da etapa");
+      } catch (err) {
+        setError(getMensagemErro(err, "Erro ao carregar detalhes da etapa"));
       } finally {
         setLoading(false);
       }
