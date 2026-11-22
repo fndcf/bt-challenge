@@ -2,7 +2,7 @@
  * Testes do componente ChavesTeams
  */
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 // Mock dos services
 const mockBuscarEquipes = jest.fn();
@@ -510,8 +510,9 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" />);
 
       await waitFor(() => {
-        expect(screen.getByText("2")).toBeInTheDocument();
-        expect(screen.getByText("1")).toBeInTheDocument();
+        const confronto = screen.getByRole("article");
+        expect(within(confronto).getByText("2")).toBeInTheDocument();
+        expect(within(confronto).getByText("1")).toBeInTheDocument();
       });
     });
 
@@ -581,12 +582,12 @@ describe("ChavesTeams", () => {
       });
     });
 
-    it("deve chamar gerarDecider ao clicar no botão", async () => {
-      const equipes = [
+    const renderComEmpate = async (decider: object) => {
+      mockBuscarEquipes.mockResolvedValue([
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
         criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
-      ];
-      const confrontos = [
+      ]);
+      mockBuscarConfrontos.mockResolvedValue([
         criarConfrontoMock({
           jogosEquipe1: 1,
           jogosEquipe2: 1,
@@ -594,23 +595,54 @@ describe("ChavesTeams", () => {
           temDecider: false,
           grupoId: "A",
         }),
-      ];
-
-      mockBuscarEquipes.mockResolvedValue(equipes);
-      mockBuscarConfrontos.mockResolvedValue(confrontos);
+      ]);
       mockGerarDecider.mockResolvedValue({});
+      mockBuscarPartidasConfronto.mockResolvedValue([
+        criarPartidaMock({ id: "p1" }),
+        criarPartidaMock({ id: "p3", tipoJogo: "decider", ...decider }),
+      ]);
 
       render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_4} />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Gerar Decider")).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText("Gerar Decider"));
-
+      fireEvent.click(await screen.findByText("Gerar Decider"));
       await waitFor(() => {
         expect(mockGerarDecider).toHaveBeenCalledWith("etapa-1", "confronto-1");
       });
+    };
+
+    it("deve abrir a escolha dos jogadores ao gerar o decider sem duplas", async () => {
+      await renderComEmpate({ dupla1: [], dupla2: [], equipe1Nome: undefined, equipe2Nome: undefined });
+
+      expect(await screen.findByTestId("modal-definir-jogadores")).toBeInTheDocument();
+      // Confronto aberto por trás, com o nome das equipes do confronto
+      const decider = screen.getByText("Jogo 2").closest("article") as HTMLElement;
+      expect(within(decider).getByText("Equipe Alpha")).toBeInTheDocument();
+      expect(within(decider).getByText("Equipe Beta")).toBeInTheDocument();
+    });
+
+    it("deve só mostrar as partidas quando o decider já vem com duplas (sorteio)", async () => {
+      await renderComEmpate({});
+
+      expect(await screen.findByText("Jogo 2")).toBeInTheDocument();
+      expect(screen.queryByTestId("modal-definir-jogadores")).not.toBeInTheDocument();
+    });
+
+    it("deve avisar o erro e não abrir o modal quando falha", async () => {
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+      mockGerarDecider.mockReset();
+      mockBuscarEquipes.mockResolvedValue([
+        criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
+        criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
+      ]);
+      mockBuscarConfrontos.mockResolvedValue([
+        criarConfrontoMock({ jogosEquipe1: 1, jogosEquipe2: 1, temDecider: false, grupoId: "A" }),
+      ]);
+      mockGerarDecider.mockRejectedValue(new Error("Decider já existe"));
+
+      render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_4} />);
+      fireEvent.click(await screen.findByText("Gerar Decider"));
+
+      await waitFor(() => expect(alertMock).toHaveBeenCalledWith("Decider já existe"));
+      expect(screen.queryByTestId("modal-definir-jogadores")).not.toBeInTheDocument();
     });
   });
 
@@ -751,7 +783,7 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" />);
 
       await waitFor(() => {
-        expect(screen.getByText("Equipe Alpha")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Equipe Alpha" })).toBeInTheDocument();
       });
 
       // Encontrar o botão de editar pelo título
@@ -800,7 +832,7 @@ describe("ChavesTeams", () => {
       fireEvent.keyDown(input, { key: "Escape" });
 
       await waitFor(() => {
-        expect(screen.getByText("Equipe Alpha")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Equipe Alpha" })).toBeInTheDocument();
         expect(mockRenomearEquipe).not.toHaveBeenCalled();
       });
     });
@@ -1375,7 +1407,9 @@ describe("ChavesTeams", () => {
       await waitFor(() => {
         // O confronto deve mostrar as equipes
         expect(screen.getByText("Finalizado")).toBeInTheDocument();
-        expect(screen.getByText("2")).toBeInTheDocument();
+        const confronto = screen.getByRole("article");
+        expect(within(confronto).getByText("2")).toBeInTheDocument();
+        expect(within(confronto).getAllByLabelText("Vencedor")).toHaveLength(1);
       });
     });
 
@@ -1405,7 +1439,9 @@ describe("ChavesTeams", () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText("6 x 4")).toBeInTheDocument();
+        const partida = screen.getByText("Jogo 1").closest("article") as HTMLElement;
+        expect(within(partida).getByText("6")).toBeInTheDocument();
+        expect(within(partida).getByText("4")).toBeInTheDocument();
       });
     });
 
@@ -1421,8 +1457,9 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" />);
 
       await waitFor(() => {
-        expect(screen.getByText("Equipe Alpha")).toBeInTheDocument();
-        expect(screen.getByText("Equipe Zeta")).toBeInTheDocument();
+        expect(
+          screen.getAllByRole("rowheader").map((celula) => celula.textContent)
+        ).toEqual(["Equipe Alpha", "Equipe Zeta"]);
       });
     });
 
@@ -1438,8 +1475,9 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" />);
 
       await waitFor(() => {
-        expect(screen.getByText("Mais Pontos")).toBeInTheDocument();
-        expect(screen.getByText("Menos Pontos")).toBeInTheDocument();
+        expect(
+          screen.getAllByRole("rowheader").map((celula) => celula.textContent)
+        ).toEqual(["Mais Pontos", "Menos Pontos"]);
       });
     });
 
@@ -1472,8 +1510,9 @@ describe("ChavesTeams", () => {
 
       await waitFor(() => {
         // Alpha vem primeiro por ordem alfabética
-        expect(screen.getByText("Alpha")).toBeInTheDocument();
-        expect(screen.getByText("Zebra")).toBeInTheDocument();
+        expect(
+          screen.getAllByRole("rowheader").map((celula) => celula.textContent)
+        ).toEqual(["Alpha", "Zebra"]);
       });
     });
 
@@ -1762,7 +1801,7 @@ describe("ChavesTeams", () => {
 
       await waitFor(() => {
         // Deve cancelar a edição e manter o nome original
-        expect(screen.getByText("Equipe Alpha")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Equipe Alpha" })).toBeInTheDocument();
         expect(mockRenomearEquipe).not.toHaveBeenCalled();
       });
     });

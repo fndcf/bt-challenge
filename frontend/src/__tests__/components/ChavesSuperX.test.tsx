@@ -916,7 +916,7 @@ describe("ChavesSuperX", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Nivel: profissional")).toBeInTheDocument();
+        expect(screen.getByText("Nível: profissional")).toBeInTheDocument();
       });
     });
   });

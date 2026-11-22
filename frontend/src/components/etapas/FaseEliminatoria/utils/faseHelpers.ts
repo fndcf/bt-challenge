@@ -42,7 +42,9 @@ export const agruparPorFase = (
 /**
  * Conta quantos confrontos de uma fase estão finalizados
  */
-export const contarStatus = (fase: ConfrontoEliminatorio[]): string => {
+export const contarStatus = (
+  fase: Pick<ConfrontoEliminatorio, "status">[]
+): string => {
   const finalizados = fase.filter(
     (c) =>
       c.status === StatusConfrontoEliminatorio.FINALIZADA ||

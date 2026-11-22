@@ -222,7 +222,7 @@ describe("ChavesReiDaPraia", () => {
       render(<ChavesReiDaPraia etapaId="etapa-1" arenaId="arena-1" />);
 
       await waitFor(() => {
-        expect(screen.getByText("✓ Completo")).toBeInTheDocument();
+        expect(screen.getByText("Completo")).toBeInTheDocument();
       });
     });
 

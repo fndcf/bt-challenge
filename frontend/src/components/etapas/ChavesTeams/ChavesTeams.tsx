@@ -5,12 +5,27 @@ import {
   Equipe,
   ConfrontoEquipe,
   StatusConfronto,
+  TipoJogoTeams,
   VarianteTeams,
   PartidaTeams,
   TipoFormacaoJogos,
 } from "@/types/teams";
 import { FaseEtapa } from "@/types/chave";
 import { LoadingOverlay, Button, Badge, BadgeTom } from "@/components/ui";
+import {
+  CardConfronto,
+  GrupoPainel,
+  ListaConfrontos,
+  TabelaClassificacao,
+} from "@/components/torneio";
+import { theme } from "@/styles/theme";
+import { CoresStatus } from "@/styles/semantic";
+import { FormatoEtapa } from "@/types/etapa";
+import {
+  COLUNAS_ADMIN_TEAMS,
+  linhasDeEquipes,
+  ordenarEquipes,
+} from "@/utils/classificacao";
 import { ModalLancamentoResultadosLoteTeams } from "../ModalLancamentoResultadosLoteTeams";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
@@ -29,6 +44,8 @@ interface ChavesTeamsProps {
 }
 
 // ============== STYLED COMPONENTS ==============
+
+const { texto, superficie, acao, medalha, status } = theme.semantic;
 
 const Container = styled.div`
   max-width: 1400px;
@@ -118,51 +135,11 @@ const TabContent = styled.div`
   padding: 1.5rem 0;
 `;
 
-const GrupoSection = styled.div`
-  margin-bottom: 2rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+const Espacado = styled.div`
+  margin-bottom: 1.5rem;
 `;
 
-const GrupoHeader = styled.div<{ $grupo: string }>`
-  background: ${(props) => {
-    switch (props.$grupo) {
-      case "A":
-        return "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
-      case "B":
-        return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
-      default:
-        return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
-    }
-  }};
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const GrupoTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: white;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const GrupoStats = styled.div`
-  display: flex;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.9);
-`;
-
-const GrupoContent = styled.div`
+const PainelConteudo = styled.div`
   padding: 1rem;
 `;
 
@@ -189,21 +166,26 @@ const EquipeCard = styled.div`
   border: 1px solid #e5e7eb;
 `;
 
+const coresDaPosicao = (posicao: number): CoresStatus => {
+  if (posicao === 1) return medalha.ouro;
+  if (posicao === 2) return medalha.prata;
+  if (posicao === 3) return medalha.bronze;
+  return status.neutro;
+};
+
 const EquipeHeader = styled.div<{ $posicao: number }>`
-  background: ${(props) => {
-    if (props.$posicao === 1) return "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)";
-    if (props.$posicao === 2) return "linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)";
-    if (props.$posicao === 3) return "linear-gradient(135deg, #cd7f32 0%, #a0522d 100%)";
-    return "linear-gradient(135deg, #059669 0%, #047857 100%)";
-  }};
+  background: ${({ $posicao }) => coresDaPosicao($posicao).fundo};
+  border-bottom: 1px solid ${({ $posicao }) => coresDaPosicao($posicao).borda};
+  color: ${({ $posicao }) => coresDaPosicao($posicao).texto};
   padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 `;
 
 const EquipeNome = styled.h4`
-  color: white;
+  color: inherit;
   font-size: 1rem;
   font-weight: 700;
   margin: 0;
@@ -211,20 +193,20 @@ const EquipeNome = styled.h4`
 `;
 
 const EquipeNomeInput = styled.input`
-  color: white;
+  color: ${texto.principal};
   font-size: 1rem;
   font-weight: 700;
   margin: 0;
   flex: 1;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  min-width: 0;
+  background: ${superficie.fundo};
+  border: 1px solid ${superficie.bordaForte};
   border-radius: 0.375rem;
   padding: 0.25rem 0.5rem;
-  outline: none;
 
-  &:focus {
-    border-color: white;
-    background: rgba(255, 255, 255, 0.3);
+  &:focus-visible {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 1px;
   }
 `;
 
@@ -235,11 +217,11 @@ const HeaderActions = styled.div`
 `;
 
 const EditButton = styled.button`
-  background: rgba(255, 255, 255, 0.2);
+  background: transparent;
   border: none;
   padding: 0.375rem;
   border-radius: 0.375rem;
-  color: white;
+  color: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -247,7 +229,7 @@ const EditButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.08);
   }
 
   svg {
@@ -257,11 +239,7 @@ const EditButton = styled.button`
 `;
 
 const PosicaoBadge = styled.div`
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  color: white;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 700;
 `;
 
@@ -330,162 +308,22 @@ const GeneroBadge = styled.span<{ $genero: string }>`
   }}
 `;
 
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.25rem;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 0.5rem;
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.125rem;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.625rem;
-  color: #9ca3af;
-  font-weight: 600;
-  text-transform: uppercase;
-`;
-
-const StatValue = styled.div<{ $variant?: "primary" | "success" | "error" | "neutral" }>`
-  font-weight: 700;
-  font-size: 0.875rem;
-
-  color: ${(props) => {
-    switch (props.$variant) {
-      case "primary":
-        return "#059669";
-      case "success":
-        return "#16a34a";
-      case "error":
-        return "#dc2626";
-      default:
-        return "#374151";
-    }
-  }};
-`;
-
 const ConfrontosSection = styled.div`
   border-top: 2px solid #e5e7eb;
   padding-top: 1rem;
 `;
 
-const ConfrontosHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-`;
-
 const ConfrontosTitulo = styled.h4`
   font-size: 1rem;
   font-weight: 600;
-  color: #374151;
-  margin: 0;
-`;
-
-const ConfrontosList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const ConfrontoCard = styled.div<{ $status: StatusConfronto }>`
-  background: white;
-  border-radius: 0.5rem;
-  border: 1px solid ${(props) => {
-    switch (props.$status) {
-      case StatusConfronto.FINALIZADO:
-        return "#bbf7d0";
-      case StatusConfronto.EM_ANDAMENTO:
-        return "#bfdbfe";
-      default:
-        return "#e5e7eb";
-    }
-  }};
-  overflow: hidden;
-`;
-
-const ConfrontoRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const ConfrontoEquipes = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-  min-width: 200px;
-`;
-
-const ConfrontoEquipeNome = styled.span<{ $isWinner?: boolean }>`
-  font-weight: ${(props) => (props.$isWinner ? 700 : 500)};
-  color: ${(props) => (props.$isWinner ? "#166534" : "#374151")};
-  font-size: 0.875rem;
-`;
-
-const ConfrontoPlacar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  min-width: 50px;
-  justify-content: center;
-`;
-
-const ConfrontoActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  color: ${texto.principal};
+  margin: 0 0 1rem 0;
 `;
 
 const PartidasExpanded = styled.div`
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-  padding: 0.75rem;
-`;
-
-const PartidasGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const PartidaItem = styled.div<{ $status: string }>`
-  background: white;
-  border: 1px solid ${(props) => (props.$status === "finalizada" ? "#bbf7d0" : "#e5e7eb")};
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const PartidaInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-`;
-
-const PartidaLabel = styled.span`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid ${superficie.borda};
 `;
 
 const TipoBadge = styled.span<{ $tipo: string }>`
@@ -506,17 +344,6 @@ const TipoBadge = styled.span<{ $tipo: string }>`
         return `background: #e5e7eb; color: #374151;`;
     }
   }}
-`;
-
-const PartidaDuplas = styled.span`
-  font-size: 0.75rem;
-  color: #374151;
-`;
-
-const PartidaPlacar = styled.span`
-  font-weight: 700;
-  font-size: 0.875rem;
-  color: #111827;
 `;
 
 const DeciderAlert = styled.div`
@@ -653,44 +480,6 @@ const EliminatoriaAcoesCard = styled.div`
 `;
 
 // Styled component para fases eliminatórias
-const FaseSection = styled.section`
-  margin-bottom: 2rem;
-`;
-
-const FaseHeader = styled.div<{ $tipo: string }>`
-  background: ${(props) => {
-    switch (props.$tipo) {
-      case "final":
-        return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
-      case "semifinal":
-        return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
-      case "quartas":
-        return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
-      case "oitavas":
-        return "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)";
-      default:
-        return "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)";
-    }
-  }};
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem 0.5rem 0 0;
-`;
-
-const FaseTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 700;
-  color: white;
-  margin: 0;
-`;
-
-const FaseContent = styled.div`
-  border: 1px solid #e5e7eb;
-  border-top: none;
-  border-radius: 0 0 0.5rem 0.5rem;
-  padding: 1rem;
-  background: #fafafa;
-`;
-
 // ============== HELPERS ==============
 
 const getNivelLabel = (nivel?: string): string => {
@@ -914,20 +703,37 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
     }
   };
 
-  const handleGerarDecider = async (confrontoId: string) => {
+  const handleGerarDecider = async (confronto: ConfrontoEquipe) => {
     try {
       setGlobalLoading(true);
       setGlobalLoadingMessage("Gerando decider...");
-      await teamsService.gerarDecider(etapaId, confrontoId);
+      await teamsService.gerarDecider(etapaId, confronto.id);
+      await carregarDados(true);
 
-      // Limpar cache e recarregar
+      const partidas = await teamsService.buscarPartidasConfronto(etapaId, confronto.id);
+      setPartidasConfronto((prev) => new Map(prev).set(confronto.id, partidas));
+      // Se o admin fechar o modal, o decider já fica à vista para definir depois
+      setConfrontoExpandido(confronto.id);
+
+      // No sorteio o decider já vem com as duplas; na formação manual, escolhe agora
+      const decider = partidas.find((p) => p.tipoJogo === TipoJogoTeams.DECIDER);
+      const equipe1 = equipes.find((e) => e.id === confronto.equipe1Id);
+      const equipe2 = equipes.find((e) => e.id === confronto.equipe2Id);
+      if (decider && !decider.dupla1?.length && equipe1 && equipe2) {
+        setModalDefinirJogadores({
+          partida: decider,
+          equipe1,
+          equipe2,
+          partidasConfronto: partidas,
+        });
+      }
+    } catch (err: any) {
+      // As partidas guardadas podem estar sem o decider
       setPartidasConfronto((prev) => {
         const novo = new Map(prev);
-        novo.delete(confrontoId);
+        novo.delete(confronto.id);
         return novo;
       });
-      await carregarDados(true);
-    } catch (err: any) {
       alert(err.message || "Erro ao gerar decider");
     } finally {
       setGlobalLoading(false);
@@ -1131,22 +937,6 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       }, {} as Record<string, Equipe[]>)
     : null;
 
-  // Ordenar equipes dentro de cada grupo
-  if (equipesPorGrupo) {
-    Object.keys(equipesPorGrupo).forEach((grupoId) => {
-      equipesPorGrupo[grupoId].sort((a, b) => {
-        // Posição calculada pelo backend (critérios + desempate do admin)
-        if (a.posicao !== undefined && b.posicao !== undefined) {
-          return a.posicao - b.posicao;
-        }
-        if (a.pontos !== b.pontos) return b.pontos - a.pontos;
-        if (a.saldoJogos !== b.saldoJogos) return b.saldoJogos - a.saldoJogos;
-        if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
-        return a.nome.localeCompare(b.nome);
-      });
-    });
-  }
-
   // Separar confrontos por fase
   const confrontosGrupos = confrontos.filter((c) => c.fase === FaseEtapa.GRUPOS);
   const confrontosEliminatoria = confrontos.filter((c) => c.fase !== FaseEtapa.GRUPOS);
@@ -1220,29 +1010,6 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
               </JogadorItem>
             ))}
           </JogadoresList>
-
-          <StatsGrid>
-            <StatItem>
-              <StatLabel>PTS</StatLabel>
-              <StatValue $variant="primary">{equipe.pontos}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>V-D</StatLabel>
-              <StatValue>{equipe.vitorias}-{equipe.derrotas}</StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>SJ</StatLabel>
-              <StatValue $variant={equipe.saldoJogos > 0 ? "success" : equipe.saldoJogos < 0 ? "error" : "neutral"}>
-                {equipe.saldoJogos > 0 ? "+" : ""}{equipe.saldoJogos}
-              </StatValue>
-            </StatItem>
-            <StatItem>
-              <StatLabel>SG</StatLabel>
-              <StatValue $variant={equipe.saldoGames > 0 ? "success" : equipe.saldoGames < 0 ? "error" : "neutral"}>
-                {equipe.saldoGames > 0 ? "+" : ""}{equipe.saldoGames}
-              </StatValue>
-            </StatItem>
-          </StatsGrid>
         </EquipeContent>
       </EquipeCard>
     );
@@ -1251,8 +1018,8 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
   // Renderizar confronto
   const renderConfronto = (confronto: ConfrontoEquipe) => {
     const isExpanded = confrontoExpandido === confronto.id;
-    const isEquipe1Winner = confronto.vencedoraId === confronto.equipe1Id;
-    const isEquipe2Winner = confronto.vencedoraId === confronto.equipe2Id;
+    const isEquipe1Winner = !!confronto.vencedoraId && confronto.vencedoraId === confronto.equipe1Id;
+    const isEquipe2Winner = !!confronto.vencedoraId && confronto.vencedoraId === confronto.equipe2Id;
     const equipesDefinidas = !!confronto.equipe1Id && !!confronto.equipe2Id;
     const precisaDecider =
       varianteTeams === VarianteTeams.TEAMS_4 &&
@@ -1266,51 +1033,45 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
       confronto.fase === FaseEtapa.GRUPOS && eliminatoriaGerada;
 
     return (
-      <ConfrontoCard key={confronto.id} $status={confronto.status}>
-        <ConfrontoRow>
-          <ConfrontoEquipes>
-            <ConfrontoEquipeNome $isWinner={isEquipe1Winner}>
-              {confronto.equipe1Nome || confronto.equipe1Origem || "A definir"}
-            </ConfrontoEquipeNome>
-            <ConfrontoPlacar>
-              <span>{confronto.jogosEquipe1}</span>
-              <span style={{ color: "#9ca3af" }}>x</span>
-              <span>{confronto.jogosEquipe2}</span>
-            </ConfrontoPlacar>
-            <ConfrontoEquipeNome $isWinner={isEquipe2Winner}>
-              {confronto.equipe2Nome || confronto.equipe2Origem || "A definir"}
-            </ConfrontoEquipeNome>
-          </ConfrontoEquipes>
-
-          <ConfrontoActions>
-            <Badge tom={getStatusConfronto(confronto.status).tom}>
-              {getStatusConfronto(confronto.status).label}
-            </Badge>
-
-            {!etapaFinalizada && equipesDefinidas && !resultadosBloqueados && (
-              <>
-                <Button
-                  size="sm"
-                  variant={confronto.status === StatusConfronto.FINALIZADO ? "outline" : "primary"}
-                  onClick={() => handleAbrirModalResultados(confronto)}
-                >
-                  {confronto.status === StatusConfronto.FINALIZADO ? "Editar" : "Resultados"}
-                </Button>
-                {precisaDecider && (
-                  <Button size="sm" onClick={() => handleGerarDecider(confronto.id)}>
-                    Gerar Decider
+      <CardConfronto
+        key={confronto.id}
+        situacao={getStatusConfronto(confronto.status)}
+        lado1={{
+          nome: confronto.equipe1Nome || confronto.equipe1Origem || "A definir",
+          placar: confronto.jogosEquipe1,
+          vencedor: isEquipe1Winner,
+        }}
+        lado2={{
+          nome: confronto.equipe2Nome || confronto.equipe2Origem || "A definir",
+          placar: confronto.jogosEquipe2,
+          vencedor: isEquipe2Winner,
+        }}
+        acoes={
+          equipesDefinidas && (
+            <>
+              {!etapaFinalizada && !resultadosBloqueados && (
+                <>
+                  <Button
+                    size="sm"
+                    variant={confronto.status === StatusConfronto.FINALIZADO ? "outline" : "primary"}
+                    onClick={() => handleAbrirModalResultados(confronto)}
+                  >
+                    {confronto.status === StatusConfronto.FINALIZADO ? "Editar" : "Resultados"}
                   </Button>
-                )}
-              </>
-            )}
-
-            {equipesDefinidas && (
+                  {precisaDecider && (
+                    <Button size="sm" onClick={() => handleGerarDecider(confronto)}>
+                      Gerar Decider
+                    </Button>
+                  )}
+                </>
+              )}
               <Button size="sm" variant="secondary" onClick={() => handleExpandirConfronto(confronto.id, confronto)}>
                 {isExpanded ? "Ocultar" : "Ver Partidas"}
               </Button>
-            )}
-          </ConfrontoActions>
-        </ConfrontoRow>
+            </>
+          )
+        }
+      >
 
         {precisaDecider && (
           <DeciderAlert>
@@ -1320,76 +1081,126 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
 
         {isExpanded && partidas.length > 0 && (
           <PartidasExpanded>
-            <PartidasGrid>
+            <ListaConfrontos>
               {partidas.map((partida, idx) => {
                 // Verifica se precisa definir jogadores (sem duplas definidas)
                 const semJogadores = !partida.dupla1 || partida.dupla1.length === 0;
                 const podeDefinirJogadores = semJogadores && !etapaFinalizada && partida.status !== "finalizada";
                 const podeEditarJogadores = !semJogadores && !etapaFinalizada && partida.status !== "finalizada";
-                const placarStr =
-                  partida.status === "finalizada" && partida.placar?.length > 0
-                    ? `${partida.placar[0].gamesDupla1} x ${partida.placar[0].gamesDupla2}`
-                    : "-";
+                const temPlacar = partida.status === "finalizada" && partida.placar?.length > 0;
+                const placar1 = temPlacar ? partida.placar.map((s) => s.gamesDupla1).join(", ") : undefined;
+                const placar2 = temPlacar ? partida.placar.map((s) => s.gamesDupla2).join(", ") : undefined;
 
                 // Montar label das duplas
                 const dupla1Label = partida.dupla1?.length > 0
                   ? partida.dupla1.map((j) => j.nome).join(" / ")
-                  : partida.equipe1Nome || "Equipe 1";
+                  : confronto.equipe1Nome || "A definir";
                 const dupla2Label = partida.dupla2?.length > 0
                   ? partida.dupla2.map((j) => j.nome).join(" / ")
-                  : partida.equipe2Nome || "Equipe 2";
+                  : confronto.equipe2Nome || "A definir";
 
                 return (
-                  <PartidaItem key={partida.id} $status={partida.status}>
-                    <PartidaInfo>
-                      <PartidaLabel>Jogo {idx + 1}</PartidaLabel>
-                      {partida.tipoJogo && (
-                        <TipoBadge $tipo={partida.tipoJogo}>{getTipoJogoLabel(partida.tipoJogo)}</TipoBadge>
-                      )}
-                      {!semJogadores && (
-                        <PartidaDuplas>
-                          {dupla1Label} vs {dupla2Label}
-                          {podeEditarJogadores && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDefinirJogadores(partida, confronto)}
-                              style={{ marginLeft: "0.5rem" }}
-                            >
-                              Editar
-                            </Button>
-                          )}
-                        </PartidaDuplas>
-                      )}
-                      {podeDefinirJogadores && (
-                        <Button size="sm" onClick={() => handleDefinirJogadores(partida, confronto)}>
-                          Definir Jogadores
+                  <CardConfronto
+                    key={partida.id}
+                    compacto
+                    titulo={`Jogo ${idx + 1}`}
+                    etiquetas={
+                      <>
+                        {partida.tipoJogo && (
+                          <TipoBadge $tipo={partida.tipoJogo}>{getTipoJogoLabel(partida.tipoJogo)}</TipoBadge>
+                        )}
+                        {semJogadores && <Badge tom="neutro">Sem jogadores definidos</Badge>}
+                      </>
+                    }
+                    lado1={{
+                      nome: dupla1Label,
+                      placar: placar1,
+                      vencedor: !!partida.vencedoraEquipeId && partida.vencedoraEquipeId === partida.equipe1Id,
+                    }}
+                    lado2={{
+                      nome: dupla2Label,
+                      placar: placar2,
+                      vencedor: !!partida.vencedoraEquipeId && partida.vencedoraEquipeId === partida.equipe2Id,
+                    }}
+                    acoes={
+                      (podeDefinirJogadores || podeEditarJogadores) && (
+                        <Button
+                          size="sm"
+                          variant={podeEditarJogadores ? "outline" : "primary"}
+                          onClick={() => handleDefinirJogadores(partida, confronto)}
+                        >
+                          {podeEditarJogadores ? "Editar" : "Definir Jogadores"}
                         </Button>
-                      )}
-                      {semJogadores && !podeDefinirJogadores && (
-                        <PartidaDuplas style={{ color: "#9ca3af", fontStyle: "italic" }}>
-                          {dupla1Label} vs {dupla2Label} (sem jogadores definidos)
-                        </PartidaDuplas>
-                      )}
-                    </PartidaInfo>
-                    <PartidaPlacar>{placarStr}</PartidaPlacar>
-                  </PartidaItem>
+                      )
+                    }
+                  />
                 );
               })}
-            </PartidasGrid>
+            </ListaConfrontos>
           </PartidasExpanded>
         )}
-      </ConfrontoCard>
+      </CardConfronto>
+    );
+  };
+
+  // Renderizar grupo: classificação, equipes e confrontos
+  const renderGrupo = (
+    id: string,
+    nome: string,
+    equipesGrupo: Equipe[],
+    confrontosGrupo: ConfrontoEquipe[],
+    tituloConfrontos: string
+  ) => {
+    const finalizados = confrontosGrupo.filter(
+      (c) => c.status === StatusConfronto.FINALIZADO
+    ).length;
+
+    return (
+      <Espacado key={id}>
+        <GrupoPainel
+          formato={FormatoEtapa.TEAMS}
+          nome={nome}
+          etiquetas={[
+            `${equipesGrupo.length} equipes`,
+            `${finalizados}/${confrontosGrupo.length} confrontos`,
+          ]}
+        >
+          <TabelaClassificacao
+            formato={FormatoEtapa.TEAMS}
+            legenda={`Classificação: ${nome}`}
+            rotuloNome="Equipe"
+            colunas={COLUNAS_ADMIN_TEAMS}
+            linhas={linhasDeEquipes(equipesGrupo)}
+          />
+
+          <PainelConteudo>
+            <EquipesGrid>
+              {ordenarEquipes(equipesGrupo).map(renderEquipeCard)}
+            </EquipesGrid>
+
+            {confrontosGrupo.length > 0 && (
+              <ConfrontosSection>
+                <ConfrontosTitulo>{tituloConfrontos}</ConfrontosTitulo>
+                <ListaConfrontos>
+                  {[...confrontosGrupo]
+                    .sort((a, b) => a.ordem - b.ordem)
+                    .map(renderConfronto)}
+                </ListaConfrontos>
+              </ConfrontosSection>
+            )}
+          </PainelConteudo>
+        </GrupoPainel>
+      </Espacado>
     );
   };
 
   // Renderizar seção de fase eliminatória
   const renderFaseEliminatoria = () => {
     const fases = [
-      { fase: FaseEtapa.OITAVAS, nome: "Oitavas de Final", tipo: "oitavas" },
-      { fase: FaseEtapa.QUARTAS, nome: "Quartas de Final", tipo: "quartas" },
-      { fase: FaseEtapa.SEMIFINAL, nome: "Semifinais", tipo: "semifinal" },
-      { fase: FaseEtapa.FINAL, nome: "Final", tipo: "final" },
+      { fase: FaseEtapa.OITAVAS, nome: "Oitavas de Final" },
+      { fase: FaseEtapa.QUARTAS, nome: "Quartas de Final" },
+      { fase: FaseEtapa.SEMIFINAL, nome: "Semifinais" },
+      { fase: FaseEtapa.FINAL, nome: "Final" },
     ];
 
     return (
@@ -1425,7 +1236,7 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           </ActionsRow>
         )}
 
-        {fases.map(({ fase, nome, tipo }) => {
+        {fases.map(({ fase, nome }) => {
           const confrontosFase = confrontosEliminatoria
             .filter((c) => c.fase === fase)
             .sort((a, b) => a.ordem - b.ordem);
@@ -1433,16 +1244,15 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
           if (confrontosFase.length === 0) return null;
 
           return (
-            <FaseSection key={fase}>
-              <FaseHeader $tipo={tipo}>
-                <FaseTitle>{nome}</FaseTitle>
-              </FaseHeader>
-              <FaseContent>
-                <ConfrontosList>
-                  {confrontosFase.map(renderConfronto)}
-                </ConfrontosList>
-              </FaseContent>
-            </FaseSection>
+            <Espacado key={fase}>
+              <GrupoPainel formato={FormatoEtapa.TEAMS} nome={nome}>
+                <PainelConteudo>
+                  <ListaConfrontos>
+                    {confrontosFase.map(renderConfronto)}
+                  </ListaConfrontos>
+                </PainelConteudo>
+              </GrupoPainel>
+            </Espacado>
           );
         })}
       </>
@@ -1515,75 +1325,24 @@ export const ChavesTeams: React.FC<ChavesTeamsProps> = ({
                 Object.keys(equipesPorGrupo).sort().map((grupoId) => {
                   const equipesGrupo = equipesPorGrupo[grupoId];
                   const confrontosGrupo = confrontosPorGrupo[grupoId] || [];
-                  const confrontosGrupoFinalizados = confrontosGrupo.filter(
-                    (c) => c.status === StatusConfronto.FINALIZADO
-                  ).length;
 
-                  return (
-                    <GrupoSection key={grupoId}>
-                      <GrupoHeader $grupo={grupoId}>
-                        <GrupoTitle>Grupo {grupoId}</GrupoTitle>
-                        <GrupoStats>
-                          <span>{equipesGrupo.length} equipes</span>
-                          <span>
-                            {confrontosGrupoFinalizados}/{confrontosGrupo.length} confrontos
-                          </span>
-                        </GrupoStats>
-                      </GrupoHeader>
-
-                      <GrupoContent>
-                        <EquipesGrid>
-                          {equipesGrupo.map((equipe, index) => renderEquipeCard(equipe, index))}
-                        </EquipesGrid>
-
-                        {confrontosGrupo.length > 0 && (
-                          <ConfrontosSection>
-                            <ConfrontosHeader>
-                              <ConfrontosTitulo>Confrontos do Grupo</ConfrontosTitulo>
-                            </ConfrontosHeader>
-                            <ConfrontosList>
-                              {confrontosGrupo
-                                .sort((a, b) => a.ordem - b.ordem)
-                                .map(renderConfronto)}
-                            </ConfrontosList>
-                          </ConfrontosSection>
-                        )}
-                      </GrupoContent>
-                    </GrupoSection>
+                  return renderGrupo(
+                    grupoId,
+                    `Grupo ${grupoId}`,
+                    equipesGrupo,
+                    confrontosGrupo,
+                    "Confrontos do Grupo"
                   );
                 })
               ) : (
                 // Sem grupos - todas equipes juntas
-                <GrupoSection>
-                  <GrupoHeader $grupo="A">
-                    <GrupoTitle>Todas as Equipes</GrupoTitle>
-                    <GrupoStats>
-                      <span>{equipes.length} equipes</span>
-                      <span>
-                        {confrontosFinalizados}/{confrontosGrupos.length} confrontos
-                      </span>
-                    </GrupoStats>
-                  </GrupoHeader>
-
-                  <GrupoContent>
-                    <EquipesGrid>
-                      {equipes.map((equipe, index) => renderEquipeCard(equipe, index))}
-                    </EquipesGrid>
-
-                    {confrontosGrupos.length > 0 && (
-                      <ConfrontosSection>
-                        <ConfrontosHeader>
-                          <ConfrontosTitulo>Confrontos</ConfrontosTitulo>
-                        </ConfrontosHeader>
-                        <ConfrontosList>
-                          {confrontosGrupos
-                            .sort((a, b) => a.ordem - b.ordem)
-                            .map(renderConfronto)}
-                        </ConfrontosList>
-                      </ConfrontosSection>
-                    )}
-                  </GrupoContent>
-                </GrupoSection>
+                renderGrupo(
+                  "todas",
+                  "Todas as Equipes",
+                  equipes,
+                  confrontosGrupos,
+                  "Confrontos"
+                )
               )}
 
               <InfoCard>

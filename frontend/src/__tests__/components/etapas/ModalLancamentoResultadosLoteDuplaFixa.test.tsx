@@ -353,7 +353,7 @@ describe("ModalLancamentoResultadosLoteDuplaFixa", () => {
       fireEvent.click(screen.getByText("Salvar Resultados (2)"));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso, 1 erro(s).");
+        expect(screen.getByText("1 resultado(s) salvo(s), mas 1 erro(s) encontrado(s).")).toBeInTheDocument();
       });
     });
 

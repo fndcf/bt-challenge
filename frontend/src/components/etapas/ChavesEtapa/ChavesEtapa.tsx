@@ -3,10 +3,12 @@ import styled from "styled-components";
 import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo, Partida } from "@/types/chave";
 import { FaseEliminatoria } from "../FaseEliminatoria";
-import { LoadingOverlay, Button } from "@/components/ui";
+import { LoadingOverlay, Button, EmptyState } from "@/components/ui";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
-import { getNivelLabel } from "@/utils/formatters";
+import { GrupoPainel, GruposGrid, TabelaClassificacao } from "@/components/torneio";
+import { FormatoEtapa } from "@/types/etapa";
+import { COLUNAS_ADMIN, linhasDeDuplas, temJogos } from "@/utils/classificacao";
 
 interface ChavesEtapaProps {
   etapaId: string;
@@ -115,238 +117,6 @@ const Stats = styled.div`
   color: #6b7280;
 `;
 
-const GruposGrid = styled.div`
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: 1fr;
-
-  /* TABLET: Também 2 colunas (antes era só a partir de 1024px) */
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-`;
-
-const GrupoCard = styled.div`
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-`;
-
-const GrupoHeader = styled.div`
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  padding: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const GrupoNome = styled.h3`
-  color: white;
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.5rem;
-  }
-`;
-
-const GrupoBadge = styled.div`
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-`;
-
-const DuplasList = styled.div`
-  > * + * {
-    border-top: 1px solid #f3f4f6;
-  }
-`;
-
-const DuplaItem = styled.div`
-  padding: 1.25rem;
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #f9fafb;
-  }
-
-  @media (min-width: 768px) {
-    align-items: center;
-    gap: 1.5rem;
-  }
-`;
-
-const PosicaoBadge = styled.div`
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  background: #dbeafe;
-  color: #2563eb;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.875rem;
-
-  @media (min-width: 768px) {
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 1rem;
-  }
-`;
-
-const DuplaContent = styled.div`
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-
-  /* DESKTOP: Só fica horizontal a partir de 1024px */
-  @media (min-width: 1025px) {
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 2rem;
-  }
-`;
-
-const DuplaInfo = styled.div`
-  min-width: 0;
-
-  @media (min-width: 1024px) {
-    flex: 1 1 65%;
-    max-width: 75%;
-  }
-`;
-
-const JogadoresNome = styled.div`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.9375rem;
-  margin-bottom: 0.25rem;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  hyphens: auto;
-
-  @media (min-width: 768px) {
-    font-size: 1rem;
-  }
-
-  /* TABLET: Linha única se couber */
-  @media (min-width: 768px) and (max-width: 1023px) {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-
-  /* DESKTOP: Pode quebrar normalmente */
-  @media (min-width: 1024px) {
-    white-space: normal;
-  }
-`;
-
-const NivelText = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-`;
-
-// Estatísticas em GRID 2x2 no mobile, inline no desktop
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-
-  /* DESKTOP: Inline só a partir de 1024px */
-  @media (min-width: 1024px) {
-    display: flex;
-    gap: 1.5rem;
-  }
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 60px;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.6875rem;
-  color: #9ca3af;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-
-  @media (min-width: 768px) {
-    font-size: 0.75rem;
-  }
-`;
-
-const StatValue = styled.div<{
-  $variant?: "primary" | "success" | "error" | "neutral";
-}>`
-  font-weight: 700;
-  font-size: ${(props) =>
-    props.$variant === "primary" ? "1.25rem" : "0.9375rem"};
-
-  color: ${(props) => {
-    switch (props.$variant) {
-      case "primary":
-        return "#2563eb";
-      case "success":
-        return "#16a34a";
-      case "error":
-        return "#dc2626";
-      default:
-        return "#374151";
-    }
-  }};
-
-  @media (min-width: 768px) {
-    font-size: ${(props) =>
-      props.$variant === "primary" ? "1.5rem" : "1.125rem"};
-  }
-`;
-
-const GrupoFooter = styled.div`
-  background: #f9fafb;
-  padding: 1rem 1.25rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const FooterInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  font-size: 0.8125rem;
-  color: #6b7280;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-`;
-
-const CompletoBadge = styled.span`
-  background: #dcfce7;
-  color: #15803d;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-`;
-
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -375,13 +145,6 @@ const ErrorContainer = styled.div`
   border-radius: 0.5rem;
   padding: 1rem;
   color: #991b1b;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #6b7280;
-  font-size: 0.9375rem;
 `;
 
 const InfoCard = styled.div`
@@ -534,7 +297,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
   if (grupos.length === 0) {
     return (
       <Container>
-        <EmptyState> Nenhuma chave gerada ainda</EmptyState>
+        <EmptyState titulo="Nenhuma chave gerada ainda" />
       </Container>
     );
   }
@@ -577,133 +340,19 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
 
           <GruposGrid>
             {grupos.map((grupo) => {
-              const duplasDoGrupo = duplas.filter(
-                (d) => d.grupoId === grupo.id
+              const linhas = linhasDeDuplas(
+                duplas.filter((d) => d.grupoId === grupo.id)
               );
 
               return (
-                <GrupoCard key={grupo.id}>
-                  <GrupoHeader>
-                    <GrupoNome>{grupo.nome}</GrupoNome>
-                    <GrupoBadge>{duplasDoGrupo.length} duplas</GrupoBadge>
-                  </GrupoHeader>
-
-                  <DuplasList>
-                    {duplasDoGrupo.length === 0 ? (
-                      <EmptyState>Nenhuma dupla neste grupo</EmptyState>
-                    ) : (
-                      duplasDoGrupo
-                        // ============== ORDENAÇÃO ==============
-                        .sort((a, b) => {
-                          //  Se tem posição definida pelo backend, usar ela!
-                          if (
-                            a.posicaoGrupo !== undefined &&
-                            b.posicaoGrupo !== undefined
-                          ) {
-                            return a.posicaoGrupo - b.posicaoGrupo;
-                          }
-
-                          // FALLBACK: Se posicaoGrupo não existe ainda
-                          // Pontos
-                          if (a.pontos !== b.pontos) {
-                            return b.pontos - a.pontos;
-                          }
-
-                          // Saldo de games
-                          if (a.saldoGames !== b.saldoGames) {
-                            return b.saldoGames - a.saldoGames;
-                          }
-
-                          // Saldo de sets
-                          if (a.saldoSets !== b.saldoSets) {
-                            return b.saldoSets - a.saldoSets;
-                          }
-
-                          // Games vencidos
-                          if (a.gamesVencidos !== b.gamesVencidos) {
-                            return b.gamesVencidos - a.gamesVencidos;
-                          }
-
-                          // Desempate final: ordem alfabética
-                          const nomeA = `${a.jogador1Nome} & ${a.jogador2Nome}`;
-                          const nomeB = `${b.jogador1Nome} & ${b.jogador2Nome}`;
-                          return nomeA.localeCompare(nomeB);
-                        })
-                        // ============== RENDERIZAÇÃO ==============
-                        .map((dupla, index) => (
-                          <DuplaItem key={dupla.id}>
-                            <PosicaoBadge>{index + 1}</PosicaoBadge>
-
-                            <DuplaContent>
-                              <DuplaInfo>
-                                <JogadoresNome>
-                                  {dupla.jogador1Nome} & {dupla.jogador2Nome}
-                                </JogadoresNome>
-                                <NivelText>
-                                  {dupla.jogador1Nivel !== dupla.jogador2Nivel
-                                    ? `Nível: ${getNivelLabel(dupla.jogador1Nivel).toLowerCase()} + ${getNivelLabel(dupla.jogador2Nivel).toLowerCase()}`
-                                    : `Nível: ${getNivelLabel(dupla.jogador1Nivel).toLowerCase()}`}
-                                </NivelText>
-                              </DuplaInfo>
-
-                              {dupla.jogos > 0 && (
-                                <StatsGrid>
-                                  <StatItem>
-                                    <StatLabel>PTS</StatLabel>
-                                    <StatValue $variant="primary">
-                                      {dupla.pontos}
-                                    </StatValue>
-                                  </StatItem>
-
-                                  <StatItem>
-                                    <StatLabel>V-D</StatLabel>
-                                    <StatValue>
-                                      {dupla.vitorias}-{dupla.derrotas}
-                                    </StatValue>
-                                  </StatItem>
-
-                                  <StatItem>
-                                    <StatLabel>GF-GC</StatLabel>
-                                    <StatValue>
-                                      {dupla.gamesVencidos}-
-                                      {dupla.gamesPerdidos}
-                                    </StatValue>
-                                  </StatItem>
-
-                                  <StatItem>
-                                    <StatLabel>SG</StatLabel>
-                                    <StatValue
-                                      $variant={
-                                        dupla.saldoGames > 0
-                                          ? "success"
-                                          : dupla.saldoGames < 0
-                                          ? "error"
-                                          : "neutral"
-                                      }
-                                    >
-                                      {dupla.saldoGames > 0 ? "+" : ""}
-                                      {dupla.saldoGames}
-                                    </StatValue>
-                                  </StatItem>
-                                </StatsGrid>
-                              )}
-                            </DuplaContent>
-                          </DuplaItem>
-                        ))
-                    )}
-                  </DuplasList>
-
-                  <GrupoFooter>
-                    <FooterInfo>
-                      <span>
-                        {grupo.partidasFinalizadas} / {grupo.totalPartidas}{" "}
-                        partidas
-                      </span>
-                      {grupo.completo && (
-                        <CompletoBadge> Completo</CompletoBadge>
-                      )}
-                    </FooterInfo>
-
+                <GrupoPainel
+                  key={grupo.id}
+                  formato={FormatoEtapa.DUPLA_FIXA}
+                  nome={grupo.nome}
+                  etiquetas={[`${linhas.length} duplas`]}
+                  progresso={`${grupo.partidasFinalizadas} / ${grupo.totalPartidas} partidas`}
+                  completo={grupo.completo}
+                  acao={
                     <Button
                       fullWidth
                       onClick={() =>
@@ -712,8 +361,21 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
                     >
                       Registrar Resultados
                     </Button>
-                  </GrupoFooter>
-                </GrupoCard>
+                  }
+                >
+                  {linhas.length === 0 ? (
+                    <EmptyState titulo="Nenhuma dupla neste grupo" />
+                  ) : (
+                    <TabelaClassificacao
+                      formato={FormatoEtapa.DUPLA_FIXA}
+                      legenda={`Classificação do ${grupo.nome}`}
+                      rotuloNome="Dupla"
+                      colunas={COLUNAS_ADMIN}
+                      linhas={linhas}
+                      mostrarEstatisticas={temJogos(linhas)}
+                    />
+                  )}
+                </GrupoPainel>
               );
             })}
           </GruposGrid>

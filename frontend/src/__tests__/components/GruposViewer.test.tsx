@@ -324,7 +324,9 @@ describe("GruposViewer", () => {
       // Expandir para ver detalhes
       fireEvent.click(screen.getByText("▼ Expandir"));
 
-      expect(screen.getByText("Classificação")).toBeInTheDocument();
+      expect(
+        screen.getAllByRole("table", { name: /Classificação/ }).length
+      ).toBeGreaterThan(0);
       // Os nomes aparecem tanto na tabela quanto nas partidas
       expect(screen.getAllByText("João & Maria").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Pedro & Ana").length).toBeGreaterThan(0);
@@ -342,7 +344,7 @@ describe("GruposViewer", () => {
       expect(screen.getAllByText("J").length).toBeGreaterThan(0);
       expect(screen.getAllByText("V").length).toBeGreaterThan(0);
       expect(screen.getAllByText("D").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Pts").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("PTS").length).toBeGreaterThan(0);
       expect(screen.getAllByText("SG").length).toBeGreaterThan(0);
     });
 
@@ -532,11 +534,12 @@ describe("GruposViewer", () => {
 
       // Expandir
       fireEvent.click(screen.getByText("▼ Expandir"));
-      expect(screen.getByText("Classificação")).toBeInTheDocument();
+      expect(screen.getAllByRole("table").length).toBeGreaterThan(0);
 
       // Recolher
       fireEvent.click(screen.getByText("▲ Recolher"));
       expect(screen.getByText("▼ Expandir")).toBeInTheDocument();
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
     });
   });
 
@@ -1046,7 +1049,7 @@ describe("GruposViewer", () => {
       // V, D, Pts, SJ estão na tabela
       expect(screen.getAllByText("V").length).toBeGreaterThan(0);
       expect(screen.getAllByText("D").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Pts").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("PTS").length).toBeGreaterThan(0);
       expect(screen.getByText("SJ")).toBeInTheDocument();
     });
 

@@ -179,9 +179,9 @@ describe("ModalLancamentoResultadosLoteTeams", () => {
     it("deve mostrar resumo de partidas", () => {
       render(<ModalLancamentoResultadosLoteTeams {...defaultProps} />);
 
-      expect(screen.getByText("Total Partidas")).toBeInTheDocument();
+      expect(screen.getByText("Total de Partidas")).toBeInTheDocument();
       expect(screen.getByText("2")).toBeInTheDocument();
-      expect(screen.getByText("Finalizadas")).toBeInTheDocument();
+      expect(screen.getByText("Já Finalizadas")).toBeInTheDocument();
       expect(screen.getByText("Serão Salvas")).toBeInTheDocument();
     });
 
@@ -479,7 +479,7 @@ describe("ModalLancamentoResultadosLoteTeams", () => {
       fireEvent.click(screen.getByText("Salvar Resultados (1)"));
 
       await waitFor(() => {
-        expect(screen.getByText(/0 resultado\(s\) salvo\(s\), mas 1 erro\(s\) ocorreram/)).toBeInTheDocument();
+        expect(screen.getByText(/Nenhum resultado foi salvo/)).toBeInTheDocument();
       });
     });
 
@@ -761,20 +761,34 @@ describe("ModalLancamentoResultadosLoteTeams", () => {
       expect(screen.getAllByText("Time Beta").length).toBeGreaterThan(0);
     });
 
+    const partidaSemNomes = () => [
+      criarPartidaTeams("partida-1", TipoJogoTeams.DECIDER, {
+        dupla1: [],
+        dupla2: [],
+        equipe1Nome: undefined,
+        equipe2Nome: undefined,
+      }),
+    ];
+
+    it("deve usar o nome das equipes do confronto quando a partida não tem", () => {
+      render(<ModalLancamentoResultadosLoteTeams {...defaultProps} partidas={partidaSemNomes()} tipoFormacaoManual={false} />);
+
+      // Cabeçalho do confronto e linha da partida
+      expect(screen.getAllByText("Equipe Alpha")).toHaveLength(2);
+      expect(screen.getAllByText("Equipe Beta")).toHaveLength(2);
+    });
+
     it("deve mostrar 'A definir' quando sem equipe e sem dupla", () => {
-      const partidas = [
-        criarPartidaTeams("partida-1", TipoJogoTeams.MASCULINO, {
-          dupla1: [],
-          dupla2: [],
-          equipe1Nome: undefined,
-          equipe2Nome: undefined,
-        }),
-      ];
+      render(
+        <ModalLancamentoResultadosLoteTeams
+          {...defaultProps}
+          confronto={{ ...criarConfronto(), equipe1Nome: "", equipe2Nome: "" }}
+          partidas={partidaSemNomes()}
+          tipoFormacaoManual={false}
+        />
+      );
 
-      render(<ModalLancamentoResultadosLoteTeams {...defaultProps} partidas={partidas} tipoFormacaoManual={false} />);
-
-      const aDefinir = screen.getAllByText("A definir");
-      expect(aDefinir.length).toBe(2);
+      expect(screen.getAllByText("A definir")).toHaveLength(2);
     });
   });
 

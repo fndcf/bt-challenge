@@ -242,59 +242,6 @@ export const FaseStatus = styled.span`
   color: #6b7280;
 `;
 
-export const ConfrontosList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-export const ConfrontoCard = styled.div`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  transition: box-shadow 0.2s;
-
-  &:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-export const ConfrontoHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-export const ConfrontoInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-export const StatusInfo = styled.span`
-  display: flex;
-
-  @media (max-width: 414px) {
-    display: none;
-  }
-`;
-
-export const ConfrontoLabel = styled.span`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-`;
-
-export const ConfrontoContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
 export const ByeBox = styled.div`
   background: #dcfce7;
   border: 2px solid #86efac;
@@ -323,49 +270,5 @@ export const ByeLabel = styled.div`
   font-size: 0.75rem;
   font-weight: 600;
   color: #15803d;
-`;
-
-export const DuplaRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-export const DuplaNome = styled.span<{ $isWinner?: boolean }>`
-  font-weight: ${(props) => (props.$isWinner ? 700 : 500)};
-  color: ${(props) => (props.$isWinner ? "#16a34a" : "#374151")};
-  font-size: 0.875rem;
-
-  @media (min-width: 768px) {
-    font-size: 0.9375rem;
-  }
-`;
-
-export const DuplaOrigemText = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.125rem;
-`;
-
-export const Score = styled.span`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-`;
-
-export const VsSeparator = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  span {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    font-weight: 600;
-  }
-`;
-
-export const ActionSection = styled.div`
-  margin-top: 1rem;
 `;
 

@@ -88,7 +88,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
     it("deve renderizar modal com título", () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
-      expect(screen.getByText("Lançamento de Resultados - Super X")).toBeInTheDocument();
+      expect(screen.getByText("Registrar Resultados - Super X")).toBeInTheDocument();
     });
 
     it("deve mostrar resumo de partidas", () => {
@@ -159,7 +159,6 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
     it("deve mostrar informação explicativa", () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
-      expect(screen.getByText(/Preencha os resultados das partidas abaixo/)).toBeInTheDocument();
       expect(screen.getByText(/Apenas os resultados preenchidos serão salvos/)).toBeInTheDocument();
     });
   });
@@ -228,9 +227,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
     it("deve atualizar contador de partidas a salvar", () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
-      // Inicialmente 0 a salvar - botão deve estar desabilitado ou mostrar 0
-      const submitButton = screen.getByRole("button", { name: /Salvar 0 Resultados/i });
-      expect(submitButton).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Salvar Resultados \(0\)/ })).toBeEnabled();
 
       // Preencher uma partida completamente
       const inputs = screen.getAllByRole("spinbutton");
@@ -238,7 +235,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
       // Agora 1 a salvar
-      expect(screen.getByText(/Salvar 1 Resultado/)).toBeInTheDocument();
+      expect(screen.getByText(/Salvar Resultados \(1\)/)).toBeInTheDocument();
     });
 
     it("deve limpar erro ao digitar", () => {
@@ -254,7 +251,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[1], { target: { value: "0" } });
 
       // Submeter
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       // Deve mostrar erro
       expect(screen.getByText(/O placar não pode ser 0 x 0/)).toBeInTheDocument();
@@ -300,7 +297,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
 
       // Não há forma de submeter pois não conta como preenchido
       // Vamos testar preenchendo parcialmente e tentando submeter via form
-      const form = document.getElementById("form-resultados-lote");
+      const form = document.querySelector("form");
       if (form) {
         fireEvent.submit(form);
       }
@@ -316,7 +313,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "0" } });
       fireEvent.change(inputs[1], { target: { value: "0" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       expect(screen.getByText(/O placar não pode ser 0 x 0/)).toBeInTheDocument();
     });
@@ -330,7 +327,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "4" } });
       fireEvent.change(inputs[1], { target: { value: "0" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
         expect(mockSuperXService.registrarResultadosEmLote).toHaveBeenCalled();
@@ -346,7 +343,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
         expect(mockSuperXService.registrarResultadosEmLote).toHaveBeenCalled();
@@ -362,7 +359,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "7" } });
       fireEvent.change(inputs[1], { target: { value: "5" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
         expect(mockSuperXService.registrarResultadosEmLote).toHaveBeenCalled();
@@ -378,7 +375,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "7" } });
       fireEvent.change(inputs[1], { target: { value: "6" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
         expect(mockSuperXService.registrarResultadosEmLote).toHaveBeenCalled();
@@ -391,16 +388,16 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
   // ============================================
 
   describe("submissão", () => {
-    it("deve mostrar alerta quando nenhum resultado preenchido", async () => {
+    it("deve avisar quando nenhum resultado preenchido", async () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
       // Forçar submit via form
-      const form = document.getElementById("form-resultados-lote");
+      const form = document.querySelector("form");
       if (form) {
         fireEvent.submit(form);
       }
 
-      expect(mockAlert).toHaveBeenCalledWith("Nenhum resultado foi preenchido");
+      expect(screen.getByText("Nenhum resultado foi preenchido")).toBeInTheDocument();
     });
 
     it("deve chamar service com dados corretos", async () => {
@@ -412,7 +409,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
         expect(mockSuperXService.registrarResultadosEmLote).toHaveBeenCalledWith(
@@ -436,10 +433,10 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo com sucesso!");
+        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!");
         expect(defaultProps.onSuccess).toHaveBeenCalled();
       });
     });
@@ -455,10 +452,10 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[2], { target: { value: "7" } });
       fireEvent.change(inputs[3], { target: { value: "5" } });
 
-      fireEvent.click(screen.getByText(/Salvar 2 Resultados/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(2\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("2 resultado(s) salvos com sucesso!");
+        expect(mockAlert).toHaveBeenCalledWith("2 resultado(s) salvo(s) com sucesso!");
       });
     });
 
@@ -474,10 +471,12 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("Nenhum resultado foi salvo. Verifique os erros.");
+        expect(screen.getByText("Nenhum resultado foi salvo. Verifique os erros.")).toBeInTheDocument();
+        // O erro aparece na partida recusada
+        expect(screen.getByText("Erro ao salvar")).toBeInTheDocument();
       });
     });
 
@@ -495,10 +494,11 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[2], { target: { value: "7" } });
       fireEvent.change(inputs[3], { target: { value: "5" } });
 
-      fireEvent.click(screen.getByText(/Salvar 2 Resultados/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(2\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso, 1 erro(s).");
+        expect(screen.getByText("1 resultado(s) salvo(s), mas 1 erro(s) encontrado(s).")).toBeInTheDocument();
+        expect(screen.getByText("Erro na partida 2")).toBeInTheDocument();
       });
     });
 
@@ -511,10 +511,10 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("Erro de rede");
+        expect(screen.getByText("Erro de rede")).toBeInTheDocument();
       });
     });
 
@@ -527,10 +527,10 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("Erro ao salvar resultados");
+        expect(screen.getByText("Erro ao salvar resultados. Tente novamente.")).toBeInTheDocument();
       });
     });
 
@@ -545,7 +545,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[2], { target: { value: "7" } });
       fireEvent.change(inputs[3], { target: { value: "5" } });
 
-      fireEvent.click(screen.getByText(/Salvar 2 Resultados/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(2\)/));
 
       await waitFor(() => {
         expect(mockSuperXService.registrarResultadosEmLote).toHaveBeenCalledWith(
@@ -564,35 +564,34 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       });
     });
 
-    it("deve mostrar alerta quando nenhuma partida encontrada", async () => {
+    it("deve avisar quando nenhuma partida encontrada", async () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} partidas={[]} />);
 
       // Forçar submit via form
-      const form = document.getElementById("form-resultados-lote");
+      const form = document.querySelector("form");
       if (form) {
         fireEvent.submit(form);
       }
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("Nenhum resultado foi preenchido");
+        expect(screen.getByText("Nenhum resultado foi preenchido")).toBeInTheDocument();
       });
     });
 
-    it("deve parar no primeiro erro de validação", async () => {
+    it("deve destacar todas as partidas com erro de validação", async () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
       const inputs = screen.getAllByRole("spinbutton");
-      // Preencher primeira partida com erro
       fireEvent.change(inputs[0], { target: { value: "0" } });
       fireEvent.change(inputs[1], { target: { value: "0" } });
-      // Preencher segunda partida válida
       fireEvent.change(inputs[2], { target: { value: "6" } });
-      fireEvent.change(inputs[3], { target: { value: "4" } });
+      fireEvent.change(inputs[3], { target: { value: "6" } });
 
-      fireEvent.click(screen.getByText(/Salvar 2 Resultados/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(2\)/));
 
-      // Deve mostrar apenas o primeiro erro
+      expect(screen.getByText(/2 partida\(s\) com erro de validação/)).toBeInTheDocument();
       expect(screen.getByText(/O placar não pode ser 0 x 0/)).toBeInTheDocument();
+      expect(screen.getByText(/Não há um vencedor definido/)).toBeInTheDocument();
       expect(mockSuperXService.registrarResultadosEmLote).not.toHaveBeenCalled();
     });
   });
@@ -668,7 +667,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       expect(screen.getByText("Salvando...")).toBeInTheDocument();
     });
@@ -684,7 +683,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       const allInputs = screen.getAllByRole("spinbutton");
       allInputs.forEach((input) => {
@@ -703,7 +702,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       const closeButton = screen.getByRole("button", { name: "Fechar modal" });
       expect(closeButton).toBeDisabled();
@@ -720,7 +719,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.change(inputs[0], { target: { value: "6" } });
       fireEvent.change(inputs[1], { target: { value: "4" } });
 
-      fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       expect(screen.getByText("Cancelar")).toBeDisabled();
     });
@@ -731,34 +730,15 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
   // ============================================
 
   describe("validação de preenchimento parcial", () => {
-    it("não deve contar resultado com apenas um campo preenchido", async () => {
+    it("deve avisar qual lado falta ao salvar com um campo só", () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
       const inputs = screen.getAllByRole("spinbutton");
-      // Preencher apenas o primeiro campo
       fireEvent.change(inputs[0], { target: { value: "6" } });
+      fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
-      // O contador de "Serão Salvas" deve ser 0 pois precisa de ambos os campos
-      const summaryValues = screen.getAllByText("0");
-      expect(summaryValues.length).toBeGreaterThan(0);
-
-      // O botão deve estar desabilitado
-      const submitButton = screen.getByRole("button", { name: /Salvar 0 Resultados/i });
-      expect(submitButton).toBeDisabled();
-    });
-
-    it("deve contar resultado apenas quando ambos os campos estão preenchidos", async () => {
-      render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
-
-      const inputs = screen.getAllByRole("spinbutton");
-
-      // Preencher apenas o primeiro campo - deve ter 0 a salvar
-      fireEvent.change(inputs[0], { target: { value: "6" } });
-      expect(screen.getByRole("button", { name: /Salvar 0 Resultados/i })).toBeDisabled();
-
-      // Preencher o segundo campo - agora deve ter 1 a salvar
-      fireEvent.change(inputs[1], { target: { value: "4" } });
-      expect(screen.getByText(/Salvar 1 Resultado/)).toBeInTheDocument();
+      expect(screen.getByText(/Preencha o placar da segunda dupla/)).toBeInTheDocument();
+      expect(mockSuperXService.registrarResultadosEmLote).not.toHaveBeenCalled();
     });
   });
 });

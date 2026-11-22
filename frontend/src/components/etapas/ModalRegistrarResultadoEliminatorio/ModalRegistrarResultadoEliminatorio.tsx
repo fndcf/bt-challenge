@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
+import React, { useEffect, useId, useState } from "react";
 import {
   ConfrontoEliminatorio,
   StatusConfrontoEliminatorio,
 } from "@/types/chave";
 import { getChaveService } from "@/services";
 import { Modal, Button } from "@/components/ui";
+import { CampoPlacar } from "@/components/torneio";
+import { CampoSet, ChaveSet } from "@/utils/resultadosLote";
 import {
   SetScore,
   venceuSet,
@@ -23,124 +24,13 @@ interface ModalRegistrarResultadoEliminatorioProps {
   onSuccess: () => void;
 }
 
-// ============== STYLED COMPONENTS ==============
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-`;
-
-const InfoBox = styled.div`
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #eff6ff;
-  border-radius: 0.5rem;
-`;
-
-const InfoLabel = styled.div`
-  font-size: 0.875rem;
-  color: #1d4ed8;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-`;
-
-const InfoText = styled.div`
-  font-size: 0.75rem;
-  color: #2563eb;
-`;
-
-const PlacarSection = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const SectionLabel = styled.label`
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.75rem;
-`;
-
-const PlacarGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  align-items: end;
-  margin-bottom: 0.75rem;
-
-  &:last-of-type {
-    margin-bottom: 0;
-  }
-`;
-
-const SetLabelHeader = styled.div`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-  margin-bottom: 0.375rem;
-`;
-
-const InputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const InputLabel = styled.label`
-  display: block;
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 0.25rem;
-  min-height: 2.5rem;
-  display: flex;
-  align-items: flex-end;
-`;
-
-const ScoreInput = styled.input`
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  text-align: center;
-  font-size: 1.125rem;
-  font-weight: 700;
-
-  &:focus {
-    outline: none;
-    ring: 2px;
-    ring-color: #2563eb;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &::placeholder {
-    color: #d1d5db;
-  }
-`;
-
-const ErrorBox = styled.div`
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 0.5rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-`;
-
-const ButtonsRow = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
 // ============== COMPONENTE ==============
 
 export const ModalRegistrarResultadoEliminatorio: React.FC<
   ModalRegistrarResultadoEliminatorioProps
 > = ({ confronto, melhorDe3 = false, onClose, onSuccess }) => {
   const chaveService = getChaveService();
+  const formId = useId();
   const isEdicao = confronto.status === StatusConfrontoEliminatorio.FINALIZADA;
 
   const [set1, setSet1] = useState<SetScore>({});
@@ -158,7 +48,14 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
     }
   }, [isEdicao, confronto.placar]);
 
-  const mostrarTerceiroSet = melhorDe3 && deveExibirTerceiroSet(set1, set2);
+  const alterarPlacar = (
+    chave: ChaveSet,
+    campo: CampoSet,
+    valor: number | undefined
+  ) => {
+    const setSet = { set1: setSet1, set2: setSet2, set3: setSet3 }[chave];
+    setSet((prev) => ({ ...prev, [campo]: valor }));
+  };
 
   const calcularVencedor = (): { vencedor: string; placar: string } | null => {
     const formatarSet = (set: SetScore) => `${set.gamesDupla1} x ${set.gamesDupla2}`;
@@ -262,180 +159,60 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
 
   const resultado = calcularVencedor();
 
+  const textoSalvar = () => {
+    if (loading) return isEdicao ? "Atualizando..." : "Salvando...";
+    return isEdicao ? "Atualizar Resultado" : "Salvar Resultado";
+  };
+
   return (
     <Modal
       isOpen
       onClose={onClose}
       title={isEdicao ? "Editar Resultado" : "Registrar Resultado"}
-      size="lg"
+      subtitle={
+        <>
+          <strong>Confronto Eliminatório</strong>
+          <div>
+            {confronto.dupla1Origem} vs {confronto.dupla2Origem}
+          </div>
+        </>
+      }
+      size="md"
       loading={loading}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            disabled={loading || !resultado}
+            loading={loading}
+          >
+            {textoSalvar()}
+          </Button>
+        </>
+      }
     >
-          {/* Botões ficam dentro do form (submit), não no rodapé do Modal */}
-          <Form onSubmit={handleSubmit}>
-            <InfoBox>
-              <InfoLabel>Confronto Eliminatório</InfoLabel>
-              <InfoText>
-                {confronto.dupla1Origem} vs {confronto.dupla2Origem}
-              </InfoText>
-            </InfoBox>
-
-            <PlacarSection>
-              <SectionLabel>{melhorDe3 ? "Placar (melhor de 3 sets)" : "Placar do Set"}</SectionLabel>
-
-              {melhorDe3 && <SetLabelHeader>Set 1</SetLabelHeader>}
-              <PlacarGrid>
-                <InputGroup>
-                  <InputLabel>{confronto.dupla1Nome}</InputLabel>
-                  <ScoreInput
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={set1.gamesDupla1 ?? ""}
-                    onChange={(e) =>
-                      setSet1((prev) => ({
-                        ...prev,
-                        gamesDupla1: e.target.value === "" ? undefined : parseInt(e.target.value),
-                      }))
-                    }
-                    placeholder="0"
-                    required
-                    disabled={loading}
-                  />
-                </InputGroup>
-
-                <InputGroup>
-                  <InputLabel>{confronto.dupla2Nome}</InputLabel>
-                  <ScoreInput
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={set1.gamesDupla2 ?? ""}
-                    onChange={(e) =>
-                      setSet1((prev) => ({
-                        ...prev,
-                        gamesDupla2: e.target.value === "" ? undefined : parseInt(e.target.value),
-                      }))
-                    }
-                    placeholder="0"
-                    required
-                    disabled={loading}
-                  />
-                </InputGroup>
-              </PlacarGrid>
-
-              {melhorDe3 && (
-                <>
-                  <SetLabelHeader>Set 2</SetLabelHeader>
-                  <PlacarGrid>
-                    <InputGroup>
-                      <InputLabel>{confronto.dupla1Nome}</InputLabel>
-                      <ScoreInput
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={set2.gamesDupla1 ?? ""}
-                        onChange={(e) =>
-                          setSet2((prev) => ({
-                            ...prev,
-                            gamesDupla1: e.target.value === "" ? undefined : parseInt(e.target.value),
-                          }))
-                        }
-                        placeholder="0"
-                        required
-                        disabled={loading}
-                      />
-                    </InputGroup>
-
-                    <InputGroup>
-                      <InputLabel>{confronto.dupla2Nome}</InputLabel>
-                      <ScoreInput
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={set2.gamesDupla2 ?? ""}
-                        onChange={(e) =>
-                          setSet2((prev) => ({
-                            ...prev,
-                            gamesDupla2: e.target.value === "" ? undefined : parseInt(e.target.value),
-                          }))
-                        }
-                        placeholder="0"
-                        required
-                        disabled={loading}
-                      />
-                    </InputGroup>
-                  </PlacarGrid>
-                </>
-              )}
-
-              {mostrarTerceiroSet && (
-                <>
-                  <SetLabelHeader>Set 3 (desempate)</SetLabelHeader>
-                  <PlacarGrid>
-                    <InputGroup>
-                      <InputLabel>{confronto.dupla1Nome}</InputLabel>
-                      <ScoreInput
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={set3.gamesDupla1 ?? ""}
-                        onChange={(e) =>
-                          setSet3((prev) => ({
-                            ...prev,
-                            gamesDupla1: e.target.value === "" ? undefined : parseInt(e.target.value),
-                          }))
-                        }
-                        placeholder="0"
-                        required
-                        disabled={loading}
-                      />
-                    </InputGroup>
-
-                    <InputGroup>
-                      <InputLabel>{confronto.dupla2Nome}</InputLabel>
-                      <ScoreInput
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={set3.gamesDupla2 ?? ""}
-                        onChange={(e) =>
-                          setSet3((prev) => ({
-                            ...prev,
-                            gamesDupla2: e.target.value === "" ? undefined : parseInt(e.target.value),
-                          }))
-                        }
-                        placeholder="0"
-                        required
-                        disabled={loading}
-                      />
-                    </InputGroup>
-                  </PlacarGrid>
-                </>
-              )}
-            </PlacarSection>
-
-            {erro && <ErrorBox>❌ {erro}</ErrorBox>}
-
-            <ButtonsRow>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading || !resultado} loading={loading}>
-                {loading
-                  ? isEdicao
-                    ? "Atualizando..."
-                    : "Salvando..."
-                  : isEdicao
-                    ? "Atualizar Resultado"
-                    : "Salvar Resultado"}
-              </Button>
-            </ButtonsRow>
-          </Form>
+      <form id={formId} onSubmit={handleSubmit}>
+        <CampoPlacar
+          titulo={melhorDe3 ? "Placar (melhor de 3 sets)" : "Placar do Set"}
+          lado1={{ nome: confronto.dupla1Nome || "A definir" }}
+          lado2={{ nome: confronto.dupla2Nome || "A definir" }}
+          placar={{ set1, set2, set3 }}
+          melhorDe3={melhorDe3}
+          onChange={alterarPlacar}
+          disabled={loading}
+          obrigatorio
+          erro={erro ?? undefined}
+        />
+      </form>
     </Modal>
   );
 };

@@ -504,7 +504,7 @@ describe("ModalLancamentoResultadosLoteReiDaPraia", () => {
       fireEvent.click(screen.getByText("Salvar Resultados (1)"));
 
       await waitFor(() => {
-        expect(screen.getByText(/0 resultado\(s\) salvo\(s\), mas 1 erro\(s\) encontrado\(s\)/)).toBeInTheDocument();
+        expect(screen.getByText(/Nenhum resultado foi salvo/)).toBeInTheDocument();
       });
     });
 
