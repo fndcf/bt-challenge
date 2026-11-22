@@ -6,7 +6,7 @@ import React from "react";
 import { GerenciarCabecasDeChave } from "@/components/etapas/GerenciarCabecasDeChave";
 import { Alert } from "@/components/ui";
 import { Etapa, Inscricao, StatusEtapa } from "@/types/etapa";
-import { Cartao, CartaoTitulo, Texto } from "../DetalhesEtapa.styles";
+import { Cartao, CartaoTitulo, Texto } from "@/components/layout/Pagina";
 
 interface CabecasTabProps {
   etapa: Etapa & { inscricoes?: Inscricao[] };

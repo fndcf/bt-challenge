@@ -4,7 +4,8 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import * as S from "../RecuperarSenha.styles";
+import { AcoesFormulario } from "@/components/layout/Pagina";
+import { Alert, Button } from "@/components/ui";
 
 export interface SuccessViewProps {
   email: string;
@@ -20,36 +21,28 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
   const navigate = useNavigate();
 
   return (
-    <S.SuccessContainer>
-      <S.SuccessIcon>✉️</S.SuccessIcon>
-
-      <S.SuccessTitle>Email enviado com sucesso!</S.SuccessTitle>
-
-      <S.SuccessText>
+    <>
+      <Alert variant="success" title="Email enviado com sucesso!">
         Enviamos um link de recuperação de senha para <strong>{email}</strong>.
         Verifique sua caixa de entrada e siga as instruções.
-      </S.SuccessText>
+      </Alert>
 
-      <S.HelpBox>
-        <h3>Não recebeu o email?</h3>
+      <Alert title="Não recebeu o email?">
         <ul>
           <li>Verifique sua caixa de spam ou lixo eletrônico</li>
           <li>Aguarde alguns minutos e tente novamente</li>
           <li>Certifique-se de que digitou o email corretamente</li>
           <li>Entre em contato com o suporte se o problema persistir</li>
         </ul>
-      </S.HelpBox>
+      </Alert>
 
-      <S.ActionButtons>
-        <S.SecondaryButton onClick={onResend} disabled={loading}>
-          {loading ? <S.Spinner /> : "Reenviar email"}
-        </S.SecondaryButton>
-
-        <S.PrimaryButton onClick={() => navigate("/login")}>
-          Voltar ao login
-        </S.PrimaryButton>
-      </S.ActionButtons>
-    </S.SuccessContainer>
+      <AcoesFormulario>
+        <Button variant="outline" onClick={onResend} loading={loading}>
+          Reenviar email
+        </Button>
+        <Button onClick={() => navigate("/login")}>Voltar ao login</Button>
+      </AcoesFormulario>
+    </>
   );
 };
 

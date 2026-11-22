@@ -7,17 +7,21 @@ import { BrowserRouter } from "react-router-dom";
 import { EtapaCardList } from "@/components/arena/EtapaCardList/EtapaCardList";
 import { EtapaCardItem } from "@/components/arena/EtapaCardList/EtapaCardItem";
 import { EtapaPublica } from "@/services/arenaPublicService";
+import { FormatoEtapa, StatusEtapa, VarianteTeams } from "@/types/etapa";
+import { GeneroJogador, NivelJogador } from "@/types/jogador";
 
 const mockEtapa: EtapaPublica = {
   id: "etapa-1",
-  numero: 1,
+  arenaId: "arena-1",
   nome: "Etapa Teste",
-  status: "em_andamento",
+  status: StatusEtapa.CHAVES_GERADAS,
   dataRealizacao: "2024-12-15",
-  formato: "dupla_fixa",
-  nivel: "intermediario",
-  genero: "masculino",
-  totalJogadores: 16,
+  formato: FormatoEtapa.TEAMS,
+  varianteTeams: VarianteTeams.TEAMS_6,
+  nivel: NivelJogador.INTERMEDIARIO,
+  genero: GeneroJogador.MASCULINO,
+  totalInscritos: 12,
+  maxJogadores: 16,
   descricao: "Descrição da etapa teste",
 };
 
@@ -27,13 +31,6 @@ const renderWithRouter = (component: React.ReactNode) => {
 
 describe("EtapaCardItem", () => {
   describe("renderização básica", () => {
-    it("deve renderizar número da etapa", () => {
-      renderWithRouter(
-        <EtapaCardItem etapa={mockEtapa} arenaSlug="minha-arena" />
-      );
-      expect(screen.getByText("#1")).toBeInTheDocument();
-    });
-
     it("deve renderizar nome da etapa", () => {
       renderWithRouter(
         <EtapaCardItem etapa={mockEtapa} arenaSlug="minha-arena" />
@@ -45,7 +42,7 @@ describe("EtapaCardItem", () => {
       renderWithRouter(
         <EtapaCardItem etapa={mockEtapa} arenaSlug="minha-arena" />
       );
-      expect(screen.getByText("Em Andamento")).toBeInTheDocument();
+      expect(screen.getByText("Chaves Geradas")).toBeInTheDocument();
     });
 
     it("deve renderizar data de realização", () => {
@@ -71,20 +68,19 @@ describe("EtapaCardItem", () => {
       expect(screen.getByText("Masculino")).toBeInTheDocument();
     });
 
-    it("deve renderizar total de jogadores quando fornecido", () => {
+    it("deve renderizar inscritos e vagas", () => {
       renderWithRouter(
         <EtapaCardItem etapa={mockEtapa} arenaSlug="minha-arena" />
       );
       expect(screen.getByText(/Jogadores:/)).toBeInTheDocument();
-      expect(screen.getByText("16")).toBeInTheDocument();
+      expect(screen.getByText("12 / 16")).toBeInTheDocument();
     });
 
     it("deve renderizar formato da etapa", () => {
       renderWithRouter(
         <EtapaCardItem etapa={mockEtapa} arenaSlug="minha-arena" />
       );
-      expect(screen.getByText(/Formato:/)).toBeInTheDocument();
-      expect(screen.getByText("Dupla Fixa")).toBeInTheDocument();
+      expect(screen.getByText("Teams 6")).toBeInTheDocument();
     });
 
     it("deve renderizar descrição quando fornecida", () => {
@@ -124,22 +120,6 @@ describe("EtapaCardItem", () => {
         <EtapaCardItem etapa={etapaSemNivel} arenaSlug="minha-arena" />
       );
       expect(screen.queryByText(/Nível:/)).not.toBeInTheDocument();
-    });
-
-    it("não deve renderizar gênero quando não fornecido", () => {
-      const etapaSemGenero = { ...mockEtapa, genero: undefined };
-      renderWithRouter(
-        <EtapaCardItem etapa={etapaSemGenero} arenaSlug="minha-arena" />
-      );
-      expect(screen.queryByText(/Gênero:/)).not.toBeInTheDocument();
-    });
-
-    it("não deve renderizar total de jogadores quando não fornecido", () => {
-      const etapaSemJogadores = { ...mockEtapa, totalJogadores: undefined };
-      renderWithRouter(
-        <EtapaCardItem etapa={etapaSemJogadores} arenaSlug="minha-arena" />
-      );
-      expect(screen.queryByText(/Jogadores:/)).not.toBeInTheDocument();
     });
   });
 });

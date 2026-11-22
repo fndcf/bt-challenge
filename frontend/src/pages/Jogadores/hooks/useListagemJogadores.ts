@@ -47,6 +47,7 @@ export interface UseListagemJogadoresReturn {
   totalPaginas: number;
   handlePaginaAnterior: () => void;
   handleProximaPagina: () => void;
+  irParaPagina: (pagina: number) => void;
 
   // Ações
   carregarJogadores: () => void;
@@ -215,6 +216,11 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
     }
   }, [offset, limite, temMais]);
 
+  const irParaPagina = useCallback(
+    (pagina: number) => setOffset((pagina - 1) * limite),
+    [limite]
+  );
+
   /**
    * Handler de deletar jogador
    * Retorna true se sucesso, false se erro
@@ -333,6 +339,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
     totalPaginas,
     handlePaginaAnterior,
     handleProximaPagina,
+    irParaPagina,
 
     // Ações
     carregarJogadores,

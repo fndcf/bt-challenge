@@ -13,17 +13,13 @@ import { FormatoEtapa } from "@/types/etapa";
 const { texto } = theme.semantic;
 const { fontSize, fontWeight } = theme.typography;
 
+// Largura, margem e respiro são da página: aqui só preenche o espaço
 export const TelaChaves = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing[6]};
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: ${theme.spacing[4]};
-
-  @media (min-width: ${theme.breakpoints.md}) {
-    padding: ${theme.spacing[6]};
-  }
+  width: 100%;
+  min-width: 0;
 `;
 
 export const AcoesChaves = styled.div`

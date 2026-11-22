@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
+import { theme } from "@/styles/theme";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArena } from "@/contexts/ArenaContext";
@@ -16,7 +17,7 @@ const Layout = styled.div`
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height - resolve problema da barra de endereço no mobile */
   overflow: hidden;
-  background: #f5f7fa;
+  background: ${theme.semantic.superficie.pagina};
 `;
 
 // ===========================
@@ -24,7 +25,7 @@ const Layout = styled.div`
 // ===========================
 
 const Sidebar = styled.aside<{ $open: boolean }>`
-  background: linear-gradient(180deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.semantic.acao.primaria};
   color: white;
   width: ${(props) => (props.$open ? "260px" : "70px")};
   transition: width 0.3s ease;
@@ -120,7 +121,7 @@ const NavButton = styled.button<{ $open: boolean }>`
   &:hover {
     background: rgba(231, 76, 60, 0.2);
     color: white;
-    border-left-color: #e74c3c;
+    border-left-color: ${theme.semantic.acao.perigo};
   }
 
   span:first-child {
@@ -190,7 +191,7 @@ const Main = styled.main`
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2rem;
-  background: #f5f7fa;
+  background: ${theme.semantic.superficie.pagina};
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -220,7 +221,7 @@ const ToggleButton = styled.button`
   width: 24px;
   height: 24px;
   background: white;
-  color: #134e5e;
+  color: ${theme.semantic.acao.primaria};
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -250,7 +251,7 @@ const MenuButton = styled.button`
     right: 2rem;
     width: 56px;
     height: 56px;
-    background: #134e5e;
+    background: ${theme.semantic.acao.primaria};
     color: white;
     border: none;
     border-radius: 50%;
@@ -297,7 +298,7 @@ const ArenaSelectorSelect = styled.select`
   cursor: pointer;
 
   option {
-    background: #134e5e;
+    background: ${theme.semantic.acao.primaria};
     color: white;
   }
 `;

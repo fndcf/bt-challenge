@@ -3,53 +3,44 @@
  */
 
 import React from "react";
+import { Grade } from "@/components/layout/Pagina";
 import * as S from "../Dashboard.styles";
 
 export interface QuickActionsProps {
   arenaSlug?: string;
 }
 
-interface Action {
-  label: string;
-  description: string;
-  link: string;
-  color: string;
-}
-
 export const QuickActions: React.FC<QuickActionsProps> = ({ arenaSlug }) => {
-  const actions: Action[] = [
+  const acoes = [
     {
       label: "Cadastrar Jogador",
       description: "Adicione novos jogadores à arena",
       link: "/admin/jogadores/novo",
-      color: "#134e5e",
     },
     {
       label: "Criar Etapa",
       description: "Inicie uma nova etapa de torneio",
       link: "/admin/etapas/criar",
-      color: "#f093fb",
     },
     {
       label: "Página Pública",
       description: "Link público para jogadores",
       link: `/arena/${arenaSlug || ""}`,
-      color: "#4facfe",
     },
   ];
 
   return (
-    <S.ActionsGrid>
-      {actions.map((action, index) => (
-        <S.ActionCard key={index} to={action.link}>
-          <S.ActionContent>
-            <h3>{action.label}</h3>
-            <p>{action.description}</p>
-          </S.ActionContent>
-          <S.ActionArrow $color={action.color}>→</S.ActionArrow>
+    <Grade>
+      {acoes.map((acao) => (
+        <S.ActionCard key={acao.label} to={acao.link}>
+          <div>
+            <h3>{acao.label}</h3>
+            <p>{acao.description}</p>
+          </div>
+          <span aria-hidden="true">→</span>
         </S.ActionCard>
       ))}
-    </S.ActionsGrid>
+    </Grade>
   );
 };
 

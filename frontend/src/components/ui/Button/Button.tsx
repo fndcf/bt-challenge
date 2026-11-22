@@ -9,6 +9,7 @@
  */
 
 import React, { ButtonHTMLAttributes } from "react";
+import { Link, LinkProps } from "react-router-dom";
 import styled, { css } from "styled-components";
 import { theme } from "@/styles/theme";
 
@@ -38,6 +39,7 @@ const StyledButton = styled.button<{
   $loading: boolean;
 }>`
   /* Base styles */
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -219,5 +221,28 @@ export const Button: React.FC<ButtonProps> = ({
     </StyledButton>
   );
 };
+
+interface ButtonLinkProps extends LinkProps {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
+}
+
+/** Link com cara de botão (navega em vez de executar uma ação) */
+export const ButtonLink: React.FC<ButtonLinkProps> = ({
+  variant = "primary",
+  size = "md",
+  fullWidth = false,
+  ...props
+}) => (
+  <StyledButton
+    as={Link}
+    $variant={variant}
+    $size={size}
+    $fullWidth={fullWidth}
+    $loading={false}
+    {...props}
+  />
+);
 
 export default Button;

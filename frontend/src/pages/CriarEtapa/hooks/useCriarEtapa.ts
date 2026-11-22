@@ -7,6 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos, TipoFormacaoDupla } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
+import {
+  calcularGruposTeams,
+  contarConfrontosTeams,
+  MAX_EQUIPES_TEAMS,
+} from "@/utils/etapa";
 import { getEtapaService } from "@/services";
 
 export interface CriarEtapaFormData extends CriarEtapaDTO {
@@ -49,6 +54,8 @@ export interface DistribuicaoTeams {
   totalJogadores: number;
   totalEquipes: number;
   jogadoresPorEquipe: number;
+  /** Equipes em cada grupo */
+  grupos: number[];
   totalConfrontos: number;
   jogosPorConfronto: number;
   descricao: string;
@@ -300,6 +307,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         totalJogadores,
         totalEquipes: 0,
         jogadoresPorEquipe,
+        grupos: [],
         totalConfrontos: 0,
         jogosPorConfronto: variante === VarianteTeams.TEAMS_4 ? 2 : 3,
         descricao: `Informe o número de jogadores (mínimo ${minimoJogadores} para 2 equipes)`,
@@ -313,6 +321,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         totalJogadores,
         totalEquipes: 0,
         jogadoresPorEquipe,
+        grupos: [],
         totalConfrontos: 0,
         jogosPorConfronto: variante === VarianteTeams.TEAMS_4 ? 2 : 3,
         descricao: `Número de jogadores deve ser múltiplo de ${variante}`,
@@ -321,16 +330,35 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
     }
 
     const totalEquipes = totalJogadores / variante;
-    const totalConfrontos = (totalEquipes * (totalEquipes - 1)) / 2; // Round-robin
+    if (totalEquipes > MAX_EQUIPES_TEAMS) {
+      return {
+        variante,
+        totalJogadores,
+        totalEquipes,
+        jogadoresPorEquipe,
+        grupos: [],
+        totalConfrontos: 0,
+        jogosPorConfronto: variante === VarianteTeams.TEAMS_4 ? 2 : 3,
+        descricao: `Máximo de ${variante * MAX_EQUIPES_TEAMS} jogadores (${MAX_EQUIPES_TEAMS} equipes)`,
+        valido: false,
+      };
+    }
+
+    const grupos = calcularGruposTeams(totalEquipes);
+    const totalConfrontos = contarConfrontosTeams(totalEquipes);
     const jogosPorConfronto = variante === VarianteTeams.TEAMS_4 ? 2 : 3;
 
-    const descricao = `${totalEquipes} equipes de ${jogadoresPorEquipe} jogadores | ${totalConfrontos} confrontos | ${jogosPorConfronto} jogos por confronto`;
+    const descricao =
+      grupos.length > 1
+        ? `${grupos.length} grupos (${grupos.join(", ")} equipes) | ${totalConfrontos} confrontos na fase de grupos + eliminatória`
+        : `Todos contra todos | ${totalConfrontos} confronto${totalConfrontos === 1 ? "" : "s"}`;
 
     return {
       variante,
       totalJogadores,
       totalEquipes,
       jogadoresPorEquipe,
+      grupos,
       totalConfrontos,
       jogosPorConfronto,
       descricao,
@@ -539,6 +567,12 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
           const minimoJogadores = formData.varianteTeams * 2;
           if (formData.maxJogadores < minimoJogadores) {
             setError(`TEAMS ${formData.varianteTeams}: mínimo ${minimoJogadores} jogadores para 2 equipes`);
+            setLoading(false);
+            return;
+          }
+          const maximoJogadores = formData.varianteTeams * MAX_EQUIPES_TEAMS;
+          if (formData.maxJogadores > maximoJogadores) {
+            setError(`TEAMS ${formData.varianteTeams}: máximo de ${maximoJogadores} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
             setLoading(false);
             return;
           }

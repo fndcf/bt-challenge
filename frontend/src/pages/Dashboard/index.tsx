@@ -3,84 +3,70 @@
  */
 
 import React from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useArena } from "@/contexts/ArenaContext";
-import { useDocumentTitle } from "@/hooks";
-import { Footer } from "@/components/layout/Footer";
 import { RankingList } from "@/components/jogadores/RankingList";
-import { useDashboard } from "./hooks/useDashboard";
-import { WelcomeBanner } from "./components/WelcomeBanner";
-import { StatsCards } from "./components/StatsCards";
+import { Footer } from "@/components/layout/Footer";
+import { CarregandoPagina, Pagina } from "@/components/layout/Pagina";
+import { Alert, Button } from "@/components/ui";
+import { useArena } from "@/contexts/ArenaContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDocumentTitle } from "@/hooks";
 import { QuickActions } from "./components/QuickActions";
+import { StatsCards } from "./components/StatsCards";
+import { WelcomeBanner } from "./components/WelcomeBanner";
+import { useDashboard } from "./hooks/useDashboard";
 import * as S from "./Dashboard.styles";
 
 export const Dashboard: React.FC = () => {
   useDocumentTitle("Dashboard");
   const { user } = useAuth();
   const { arena } = useArena();
-
-  // Hook centralizado com toda a lógica de negócio
   const { stats, loading, error, recarregar } = useDashboard();
 
   // Extrair nome do usuário do email
   const userName = user?.email?.split("@")[0] || "Usuário";
 
-  // Estados de loading e erro
   if (loading) {
-    return (
-      <S.Container>
-        <S.LoadingContainer>
-          <S.Spinner />
-        </S.LoadingContainer>
-      </S.Container>
-    );
+    return <CarregandoPagina mensagem="Carregando dashboard..." />;
   }
 
   if (error) {
     return (
-      <S.Container>
-        <S.ErrorContainer>
-          <p>{error}</p>
-          <button onClick={recarregar}>Tentar Novamente</button>
-        </S.ErrorContainer>
-      </S.Container>
+      <Pagina>
+        <Alert variant="error">{error}</Alert>
+        <div>
+          <Button onClick={recarregar}>Tentar Novamente</Button>
+        </div>
+      </Pagina>
     );
   }
 
   return (
-    <S.Container>
-      {/* Welcome Banner (apenas desktop) */}
+    <Pagina>
       <WelcomeBanner
         userName={userName}
         arenaName={arena?.nome}
         arenaSlug={arena?.slug}
       />
 
-      {/* Cards de Estatísticas */}
-      <S.Section>
-        <h2>Visão Geral</h2>
+      <S.Secao>
+        <S.SecaoTitulo>Visão Geral</S.SecaoTitulo>
         <StatsCards stats={stats} />
-      </S.Section>
+      </S.Secao>
 
-      {/* Ações Rápidas */}
-      <S.Section>
-        <h2>Ações Rápidas</h2>
+      <S.Secao>
+        <S.SecaoTitulo>Ações Rápidas</S.SecaoTitulo>
         <QuickActions arenaSlug={arena?.slug} />
-      </S.Section>
+      </S.Secao>
 
-      {/* TOP 5 JOGADORES - Usando componente RankingList */}
-      <S.Section>
-        <RankingList
-          arenaSlug={arena?.slug}
-          limitPorNivel={10}
-          showPagination={true}
-          itensPorPagina={5}
-        />
-      </S.Section>
+      <RankingList
+        arenaSlug={arena?.slug}
+        limitPorNivel={10}
+        showPagination={true}
+        itensPorPagina={5}
+      />
 
-      {/* Rodapé */}
       <Footer />
-    </S.Container>
+    </Pagina>
   );
 };
 

@@ -13,8 +13,13 @@ import { InformacoesBasicas } from "./components/InformacoesBasicas";
 import { ConfiguracoesDatas } from "./components/ConfiguracoesDatas";
 import { ConfiguracoesJogadores } from "./components/ConfiguracoesJogadores";
 import { DistribuicaoPreview } from "./components/DistribuicaoPreview";
-import { LoadingOverlay } from "@/components/ui";
-import * as S from "./CriarEtapa.styles";
+import {
+  AcoesFormulario,
+  CabecalhoPagina,
+  Formulario,
+  Pagina,
+} from "@/components/layout/Pagina";
+import { Alert, Button, LoadingOverlay } from "@/components/ui";
 
 export const CriarEtapa: React.FC = () => {
   const navigate = useNavigate();
@@ -45,23 +50,22 @@ export const CriarEtapa: React.FC = () => {
   }, [error]);
 
   return (
-    <S.Container>
-      <S.Header>
-        <S.BackButton onClick={() => navigate(-1)}>← Voltar</S.BackButton>
-        <S.Title>Criar Nova Etapa</S.Title>
-        <S.Subtitle>
-          Preencha os dados para criar uma nova etapa do torneio
-        </S.Subtitle>
-      </S.Header>
+    <Pagina $estreita>
+      <CabecalhoPagina
+        titulo="Criar Nova Etapa"
+        subtitulo="Preencha os dados para criar uma nova etapa do torneio"
+        voltar={{ onClick: () => navigate(-1) }}
+      />
 
       {error && (
-        <S.ErrorAlert ref={errorRef}>
-          <p>Erro ao criar etapa</p>
-          <p>{error}</p>
-        </S.ErrorAlert>
+        <div ref={errorRef} role="alert">
+          <Alert variant="error" title="Erro ao criar etapa">
+            {error}
+          </Alert>
+        </div>
       )}
 
-      <S.Form onSubmit={handleSubmit}>
+      <Formulario onSubmit={handleSubmit}>
         {/* Seletor de Formato */}
         <FormatoSelector
           formatoAtual={formData.formato}
@@ -164,30 +168,29 @@ export const CriarEtapa: React.FC = () => {
         />
 
         {/* Botões de Ação */}
-        <S.ButtonsRow>
-          <S.Button
+        <AcoesFormulario>
+          <Button
             type="button"
-            $variant="secondary"
+            variant="secondary"
             onClick={() => navigate(-1)}
           >
             Cancelar
-          </S.Button>
-          <S.Button
+          </Button>
+          <Button
             type="submit"
-            $variant="primary"
             disabled={
               loading || !infoAtual.valido || Object.keys(errosDatas).length > 0
             }
           >
             {loading ? "Criando..." : "Criar Etapa"}
-          </S.Button>
-        </S.ButtonsRow>
-      </S.Form>
+          </Button>
+        </AcoesFormulario>
+      </Formulario>
 
       <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
 
       <Footer />
-    </S.Container>
+    </Pagina>
   );
 };
 

@@ -5,7 +5,11 @@
 
 export { TabelaClassificacao } from "./TabelaClassificacao/TabelaClassificacao";
 export { GrupoPainel, GruposGrid } from "./GrupoPainel/GrupoPainel";
-export { CardConfronto, ListaConfrontos } from "./CardConfronto/CardConfronto";
+export {
+  CardConfronto,
+  ConfrontosEliminatoria,
+  ListaConfrontos,
+} from "./CardConfronto/CardConfronto";
 export { CampoPlacar, ListaPlacares } from "./CampoPlacar/CampoPlacar";
 export { ModalResultadosLote } from "./ModalResultadosLote/ModalResultadosLote";
 export {

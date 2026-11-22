@@ -3,16 +3,21 @@
  */
 
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks";
-import { useEtapaDetalhe } from "./hooks/useEtapaDetalhe";
-import { EtapaHeader } from "./components/EtapaHeader";
-import { EtapaInfo } from "./components/EtapaInfo";
-import { JogadoresList } from "./components/JogadoresList";
+import { useNavigate, useParams } from "react-router-dom";
+import { StatusBadge } from "@/components/etapas/StatusBadge";
+import { Footer } from "@/components/layout/Footer";
+import {
+  CarregandoPublico,
+  NaoEncontrado,
+  PaginaPublica,
+} from "@/components/layout/PaginaPublica";
+import { Button, ButtonLink } from "@/components/ui";
 import { BracketViewer } from "@/components/visualizadores/BracketViewer";
 import { GruposViewer } from "@/components/visualizadores/GruposViewer";
-import * as S from "./EtapaDetalhe.styles";
-import { Footer } from "@/components/layout/Footer";
+import { useDocumentTitle } from "@/hooks";
+import { EtapaInfo } from "./components/EtapaInfo";
+import { JogadoresList } from "./components/JogadoresList";
+import { useEtapaDetalhe } from "./hooks/useEtapaDetalhe";
 
 export const EtapaDetalhe: React.FC = () => {
   const { slug, etapaId } = useParams<{ slug: string; etapaId: string }>();
@@ -26,72 +31,48 @@ export const EtapaDetalhe: React.FC = () => {
     etapa && arena ? `${etapa.nome} - ${arena.nome}` : "Detalhes da Etapa"
   );
 
-  // Loading state
   if (loading) {
-    return (
-      <S.Page>
-        <S.Loading>
-          <S.Spinner />
-          <S.LoadingText>Carregando...</S.LoadingText>
-        </S.Loading>
-      </S.Page>
-    );
+    return <CarregandoPublico mensagem="Carregando..." />;
   }
 
-  // Error state
   if (error || !arena || !etapa) {
     return (
-      <S.Page>
-        <S.Container>
-          <S.ErrorCard>
-            <S.ErrorIcon>❌</S.ErrorIcon>
-            <S.ErrorTitle>Etapa Não Encontrada</S.ErrorTitle>
-            <S.ErrorText>
-              {error || "A etapa que você está procurando não existe."}
-            </S.ErrorText>
-            <S.ErrorBtn to={slug ? `/arena/${slug}` : "/"}>
-              Voltar para Arena
-            </S.ErrorBtn>
-          </S.ErrorCard>
-        </S.Container>
-      </S.Page>
+      <NaoEncontrado
+        titulo="Etapa Não Encontrada"
+        mensagem={error || "A etapa que você está procurando não existe."}
+        acao={
+          <ButtonLink to={slug ? `/arena/${slug}` : "/"}>
+            Voltar para Arena
+          </ButtonLink>
+        }
+      />
     );
   }
 
-  // Verificar se é formato TEAMS (não mostra BracketViewer)
+  // TEAMS não mostra a chave: os confrontos já aparecem nos grupos
   const isTeams = etapa.formato === "teams";
 
   return (
-    <S.Page>
-      {/* Header */}
-      <EtapaHeader
-        slug={slug || ""}
-        arenaName={arena.nome}
-        etapa={etapa}
-        onBack={() => navigate(-1)}
-      />
-
-      {/* Content */}
-      <S.Container>
-        <S.Layout>
-          {/* Main */}
-          <S.Main>
-            {/* Informações da Etapa */}
-            <EtapaInfo etapa={etapa} totalJogadores={jogadores.length} />
-
-            {/* Jogadores Inscritos */}
-            <JogadoresList slug={slug || ""} jogadores={jogadores} />
-
-            {/* Grupos (se existirem) */}
-            {grupos?.length > 0 && <GruposViewer grupos={grupos} />}
-
-            {/* Chaves (se existirem) - NÃO mostrar para TEAMS */}
-            {chaves && !isTeams && <BracketViewer chaves={chaves} />}
-          </S.Main>
-        </S.Layout>
-      </S.Container>
-      <Footer />
-    </S.Page>
+    <PaginaPublica
+      titulo={etapa.nome}
+      selos={<StatusBadge status={etapa.status} />}
+      trilha={{
+        arenaSlug: slug || "",
+        arenaNome: arena.nome,
+        atual: etapa.nome,
+      }}
+      acao={
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+          ← Voltar
+        </Button>
+      }
+      rodape={<Footer />}
+    >
+      <EtapaInfo etapa={etapa} totalJogadores={jogadores.length} />
+      <JogadoresList slug={slug || ""} jogadores={jogadores} />
+      {grupos?.length > 0 && <GruposViewer grupos={grupos} />}
+      {chaves && !isTeams && <BracketViewer chaves={chaves} />}
+    </PaginaPublica>
   );
 };
 

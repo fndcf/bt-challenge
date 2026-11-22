@@ -5,7 +5,11 @@
 import React from "react";
 import styled from "styled-components";
 import { Button } from "@/components/ui";
-import { AcoesChaves, GrupoPainel, ListaConfrontos } from "@/components/torneio";
+import {
+  AcoesChaves,
+  ConfrontosEliminatoria,
+  GrupoPainel,
+} from "@/components/torneio";
 import { theme } from "@/styles/theme";
 import { FormatoEtapa } from "@/types/etapa";
 import { ConfrontoEquipe } from "@/types/teams";
@@ -93,9 +97,9 @@ export const EliminatoriaTeams: React.FC<EliminatoriaTeamsProps> = ({
       return (
         <GrupoPainel key={fase} formato={FormatoEtapa.TEAMS} nome={nome}>
           <PainelConteudo>
-            <ListaConfrontos>
+            <ConfrontosEliminatoria>
               {ordenarConfrontos(confrontosFase).map(renderConfronto)}
-            </ListaConfrontos>
+            </ConfrontosEliminatoria>
           </PainelConteudo>
         </GrupoPainel>
       );

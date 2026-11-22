@@ -3,9 +3,11 @@
  */
 
 import React from "react";
-import * as S from "../JogadorPerfil.styles";
+import { Games } from "./Games";
+import { CartaoNumero, Grade } from "@/components/layout/Pagina";
 
 export interface StatsGridProps {
+  posicaoAtual: number;
   totalVitorias: number;
   totalDerrotas: number;
   totalEtapas: number;
@@ -14,43 +16,28 @@ export interface StatsGridProps {
 }
 
 export const StatsGrid: React.FC<StatsGridProps> = ({
+  posicaoAtual,
   totalVitorias,
   totalDerrotas,
   totalEtapas,
   totalGamesVencidos,
   totalGamesPerdidos,
-}) => {
-  return (
-    <>
-      {/* Vitórias */}
-      <S.StatCard>
-        <S.StatValue>{totalVitorias}</S.StatValue>
-        <S.StatLabel>Vitórias</S.StatLabel>
-      </S.StatCard>
-
-      {/* Derrotas */}
-      <S.StatCard>
-        <S.StatValue>{totalDerrotas}</S.StatValue>
-        <S.StatLabel>Derrotas</S.StatLabel>
-      </S.StatCard>
-
-      {/* Games */}
-      <S.StatCard>
-        <S.StatValue>
-          <span style={{ color: "#16a34a" }}>{totalGamesVencidos}</span>
-          <span style={{ color: "#6b7280" }}>/</span>
-          <span style={{ color: "#dc2626" }}>{totalGamesPerdidos}</span>
-        </S.StatValue>
-        <S.StatLabel>Games</S.StatLabel>
-      </S.StatCard>
-
-      {/* Etapas Participadas */}
-      <S.StatCard>
-        <S.StatValue>{totalEtapas}</S.StatValue>
-        <S.StatLabel>Etapas Participadas</S.StatLabel>
-      </S.StatCard>
-    </>
-  );
-};
+}) => (
+  <Grade $minimo="9rem">
+    <CartaoNumero
+      rotulo="Posição no Ranking"
+      valor={posicaoAtual > 0 ? `${posicaoAtual}º` : "-"}
+    />
+    <CartaoNumero rotulo="Vitórias" valor={totalVitorias} />
+    <CartaoNumero rotulo="Derrotas" valor={totalDerrotas} />
+    <CartaoNumero
+      rotulo="Games"
+      valor={
+        <Games vencidos={totalGamesVencidos} perdidos={totalGamesPerdidos} />
+      }
+    />
+    <CartaoNumero rotulo="Etapas Participadas" valor={totalEtapas} />
+  </Grade>
+);
 
 export default StatsGrid;

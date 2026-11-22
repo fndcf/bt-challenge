@@ -1,5 +1,8 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
+import { theme } from "@/styles/theme";
+
+const { texto, superficie, acao } = theme.semantic;
 
 export const Container = styled.div`
   min-height: 100vh;
@@ -24,7 +27,7 @@ export const InfoSection = styled.div`
 export const InfoTitle = styled.h2`
   font-size: 2rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   text-align: center;
   margin: 0 0 3rem 0;
 
@@ -66,7 +69,7 @@ export const Step = styled.div`
       right: -1rem;
       top: 1.5rem;
       font-size: 2rem;
-      color: #d1d5db;
+      color: ${superficie.bordaForte};
       font-weight: 700;
     }
   }
@@ -78,7 +81,7 @@ export const StepNumber = styled.span`
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.gradients.primary};
   color: white;
   border-radius: 50%;
   font-size: 1.5rem;
@@ -96,7 +99,7 @@ export const StepNumber = styled.span`
 export const StepTitle = styled.h4`
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   margin: 0 0 0.5rem 0;
 
   @media (min-width: 768px) {
@@ -106,7 +109,7 @@ export const StepTitle = styled.h4`
 
 export const StepText = styled.p`
   font-size: 0.875rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   margin: 0;
   line-height: 1.5;
 
@@ -118,7 +121,7 @@ export const StepText = styled.p`
 // ============== HERO SECTION ==============
 
 export const HeroSection = styled.section`
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.gradients.primary};
   padding: 4rem 1rem;
   text-align: center;
 
@@ -184,7 +187,7 @@ export const FormatosSection = styled.section`
 export const SectionTitle = styled.h2`
   font-size: 2rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   text-align: center;
   margin: 0 0 1rem 0;
 
@@ -199,7 +202,7 @@ export const SectionTitle = styled.h2`
 
 export const SectionSubtitle = styled.p`
   font-size: 1rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   text-align: center;
   margin: 0 auto 3rem auto;
   max-width: 600px;
@@ -227,7 +230,7 @@ export const FormatosGrid = styled.div`
 `;
 
 export const FormatoCard = styled.div`
-  background: #f9fafb;
+  background: ${superficie.fundoAlternativo};
   border-radius: 1rem;
   padding: 2rem 1.5rem;
   text-align: center;
@@ -237,7 +240,7 @@ export const FormatoCard = styled.div`
   &:hover {
     transform: translateY(-8px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-    border-color: #71b280;
+    border-color: ${acao.primaria};
   }
 
   @media (min-width: 768px) {
@@ -248,7 +251,7 @@ export const FormatoCard = styled.div`
 export const FormatoTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   margin: 0 0 0.75rem 0;
 
   @media (min-width: 768px) {
@@ -258,7 +261,7 @@ export const FormatoTitle = styled.h3`
 
 export const FormatoDescription = styled.p`
   font-size: 0.875rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   margin: 0 0 1rem 0;
   line-height: 1.5;
 
@@ -276,7 +279,7 @@ export const FormatoFeatures = styled.ul`
 
 export const FormatoFeature = styled.li`
   font-size: 0.8125rem;
-  color: #374151;
+  color: ${texto.principal};
   padding: 0.25rem 0;
   display: flex;
   align-items: center;
@@ -284,7 +287,7 @@ export const FormatoFeature = styled.li`
 
   &::before {
     content: "✓";
-    color: #71b280;
+    color: ${acao.primaria};
     font-weight: 700;
   }
 
@@ -296,7 +299,7 @@ export const FormatoFeature = styled.li`
 // ============== FEATURES SECTION ==============
 
 export const FeaturesSection = styled.section`
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.gradients.primary};
   padding: 4rem 1rem;
 
   @media (min-width: 768px) {
@@ -362,7 +365,7 @@ export const FeatureCard = styled.div`
 export const FeatureTitle = styled.h3`
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   margin: 0 0 0.5rem 0;
 
   @media (min-width: 768px) {
@@ -372,7 +375,7 @@ export const FeatureTitle = styled.h3`
 
 export const FeatureText = styled.p`
   font-size: 0.875rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   margin: 0;
   line-height: 1.5;
 
@@ -384,7 +387,7 @@ export const FeatureText = styled.p`
 // ============== GALERIA SECTION ==============
 
 export const GaleriaSection = styled.section`
-  background: #f9fafb;
+  background: ${superficie.fundoAlternativo};
   padding: 4rem 1rem;
 
   @media (min-width: 768px) {
@@ -399,7 +402,7 @@ export const GaleriaSection = styled.section`
 export const GaleriaSectionTitle = styled.h2`
   font-size: 2rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   text-align: center;
   margin: 0 0 1rem 0;
 
@@ -414,7 +417,7 @@ export const GaleriaSectionTitle = styled.h2`
 
 export const GaleriaSectionSubtitle = styled.p`
   font-size: 1rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   text-align: center;
   margin: 0 auto 2rem auto;
   max-width: 600px;
@@ -450,19 +453,19 @@ export const GaleriaTab = styled.button<{ $active: boolean }>`
   ${(props) =>
     props.$active
       ? `
-    background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+    background: ${theme.gradients.primary};
     color: white;
     border-color: transparent;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   `
       : `
     background: white;
-    color: #374151;
-    border-color: #e5e7eb;
+    color: ${texto.principal};
+    border-color: ${superficie.borda};
 
     &:hover {
-      border-color: #71b280;
-      color: #134e5e;
+      border-color: ${acao.primaria};
+      color: ${acao.primaria};
     }
   `}
 
@@ -508,7 +511,7 @@ export const GaleriaImageWrapper = styled.div`
   width: 100%;
   padding-top: 62.5%; /* Aspect ratio 16:10 */
   overflow: hidden;
-  background: #e5e7eb;
+  background: ${superficie.borda};
 `;
 
 export const GaleriaImage = styled.img`
@@ -534,7 +537,7 @@ export const GaleriaPlaceholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.gradients.primary};
   color: white;
   font-size: 3rem;
 `;
@@ -546,13 +549,13 @@ export const GaleriaContent = styled.div`
 export const GaleriaTitle = styled.h3`
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   margin: 0 0 0.5rem 0;
 `;
 
 export const GaleriaDescription = styled.p`
   font-size: 0.875rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   margin: 0;
   line-height: 1.5;
 `;
@@ -638,7 +641,7 @@ export const GaleriaModalImageWrapper = styled.div`
   width: 100%;
   max-height: 70vh;
   overflow: hidden;
-  background: #e5e7eb;
+  background: ${superficie.borda};
 `;
 
 export const GaleriaModalImage = styled.img`
@@ -655,7 +658,7 @@ export const GaleriaModalPlaceholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.gradients.primary};
   color: white;
   font-size: 5rem;
 
@@ -673,7 +676,7 @@ export const GaleriaModalInfo = styled.div`
 export const GaleriaModalTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: ${texto.principal};
   margin: 0 0 0.5rem 0;
 
   @media (min-width: 768px) {
@@ -683,7 +686,7 @@ export const GaleriaModalTitle = styled.h3`
 
 export const GaleriaModalDescription = styled.p`
   font-size: 1rem;
-  color: #6b7280;
+  color: ${texto.secundario};
   margin: 0;
   line-height: 1.5;
 `;
@@ -761,15 +764,15 @@ export const GaleriaModalDot = styled.button<{ $active: boolean }>`
   transition: all 0.2s;
   background: ${(props) =>
     props.$active
-      ? "linear-gradient(135deg, #134e5e 0%, #71b280 100%)"
-      : "#d1d5db"};
+      ? theme.gradients.primary
+      : superficie.bordaForte};
   transform: ${(props) => (props.$active ? "scale(1.2)" : "scale(1)")};
 
   &:hover {
     background: ${(props) =>
       props.$active
-        ? "linear-gradient(135deg, #134e5e 0%, #71b280 100%)"
-        : "#9ca3af"};
+        ? theme.gradients.primary
+        : texto.desabilitado};
   }
 `;
 
@@ -804,21 +807,21 @@ export const CTAButton = styled(Link)<{ $variant?: "primary" | "secondary" }>`
     props.$variant === "secondary"
       ? `
     background: white;
-    color: #134e5e;
-    border: 2px solid #134e5e;
+    color: ${acao.primaria};
+    border: 2px solid ${acao.primaria};
 
     &:hover {
-      background: #f9fafb;
+      background: ${superficie.fundoAlternativo};
       transform: translateY(-2px);
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
   `
       : `
-    background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+    background: ${theme.gradients.primary};
     color: white;
 
     &:hover {
-      background: linear-gradient(135deg, #0f3f4c 0%, #5a9a6a 100%);
+      background: ${acao.primariaHover};
       transform: translateY(-2px);
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
     }

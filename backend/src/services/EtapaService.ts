@@ -15,6 +15,7 @@ import {
   EstatisticasEtapa,
   CriarEtapaSchema,
   AtualizarEtapaSchema,
+  getLimiteJogadores,
   InscreverJogadorSchema,
   FormatoEtapa,
 } from "../models/Etapa";
@@ -627,6 +628,11 @@ export class EtapaService {
 
       if (etapa.chavesGeradas) {
         throw new Error("Não é possível editar etapa após geração de chaves");
+      }
+
+      const limite = getLimiteJogadores(etapa.formato, etapa.varianteTeams);
+      if ((dadosValidados.maxJogadores ?? 0) > limite) {
+        throw new Error(`Máximo de ${limite} jogadores`);
       }
 
       if (etapa.totalInscritos > 0) {

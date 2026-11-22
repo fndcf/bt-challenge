@@ -33,30 +33,10 @@ jest.mock("@/pages/Jogadores/hooks/useListagemJogadores", () => ({
 }));
 
 // Mock dos componentes filhos
-jest.mock("@/pages/Jogadores/components/PageHeader", () => ({
-  PageHeader: ({ title, subtitle }: any) => (
-    <div data-testid="page-header">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-    </div>
-  ),
-}));
-
-jest.mock("@/pages/Jogadores/components/SearchBar", () => ({
-  SearchBar: ({ value, onChange }: any) => (
-    <div data-testid="search-bar">
-      <input
-        data-testid="search-input"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Buscar"
-      />
-    </div>
-  ),
-}));
-
 jest.mock("@/pages/Jogadores/components/FiltersBar", () => ({
   FiltersBar: ({
+    busca,
+    setBusca,
     nivelFiltro,
     setNivelFiltro,
     statusFiltro,
@@ -67,6 +47,11 @@ jest.mock("@/pages/Jogadores/components/FiltersBar", () => ({
     onLimparFiltros,
   }: any) => (
     <div data-testid="filters-bar">
+      <input
+        data-testid="search-input"
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+      />
       <select
         data-testid="nivel-select"
         value={nivelFiltro}
@@ -136,36 +121,6 @@ jest.mock("@/pages/Jogadores/components/JogadoresList", () => ({
   ),
 }));
 
-jest.mock("@/pages/Jogadores/components/Pagination", () => ({
-  Pagination: ({
-    paginaAtual,
-    totalPaginas,
-    temMais,
-    offset,
-    onPaginaAnterior,
-    onProximaPagina,
-  }: any) => (
-    <div data-testid="pagination">
-      <span data-testid="pagina-atual">Página {paginaAtual}</span>
-      <span data-testid="total-paginas">de {totalPaginas}</span>
-      <button
-        data-testid="btn-anterior"
-        onClick={onPaginaAnterior}
-        disabled={offset === 0}
-      >
-        Anterior
-      </button>
-      <button
-        data-testid="btn-proxima"
-        onClick={onProximaPagina}
-        disabled={!temMais}
-      >
-        Próxima
-      </button>
-    </div>
-  ),
-}));
-
 jest.mock("@/components/layout/Footer", () => ({
   Footer: () => <footer data-testid="footer">Footer</footer>,
 }));
@@ -229,7 +184,6 @@ describe("ListagemJogadores - Renderização", () => {
     it("deve renderizar PageHeader", () => {
       renderWithRouter(<ListagemJogadores />);
 
-      expect(screen.getByTestId("page-header")).toBeInTheDocument();
       expect(screen.getByText("Jogadores")).toBeInTheDocument();
       expect(
         screen.getByText("Gerencie os jogadores da sua arena")
@@ -239,7 +193,7 @@ describe("ListagemJogadores - Renderização", () => {
     it("deve renderizar SearchBar", () => {
       renderWithRouter(<ListagemJogadores />);
 
-      expect(screen.getByTestId("search-bar")).toBeInTheDocument();
+      expect(screen.getByTestId("search-input")).toBeInTheDocument();
     });
 
     it("deve renderizar FiltersBar", () => {
@@ -263,31 +217,38 @@ describe("ListagemJogadores - Renderização", () => {
 
   describe("Paginação", () => {
     it("deve renderizar Pagination quando tem jogadores e não está carregando", () => {
+      mockUseListagemJogadores.mockReturnValue({
+        ...defaultMockReturn,
+        totalPaginas: 3,
+      });
+
       renderWithRouter(<ListagemJogadores />);
 
-      expect(screen.getByTestId("pagination")).toBeInTheDocument();
+      expect(screen.getByLabelText("Paginação")).toBeInTheDocument();
     });
 
     it("não deve renderizar Pagination quando está carregando", () => {
       mockUseListagemJogadores.mockReturnValue({
         ...defaultMockReturn,
+        totalPaginas: 3,
         loading: true,
       });
 
       renderWithRouter(<ListagemJogadores />);
 
-      expect(screen.queryByTestId("pagination")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Paginação")).not.toBeInTheDocument();
     });
 
     it("não deve renderizar Pagination quando não tem jogadores", () => {
       mockUseListagemJogadores.mockReturnValue({
         ...defaultMockReturn,
+        totalPaginas: 3,
         jogadores: [],
       });
 
       renderWithRouter(<ListagemJogadores />);
 
-      expect(screen.queryByTestId("pagination")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Paginação")).not.toBeInTheDocument();
     });
 
     it("deve exibir página atual e total de páginas", () => {
@@ -299,8 +260,11 @@ describe("ListagemJogadores - Renderização", () => {
 
       renderWithRouter(<ListagemJogadores />);
 
-      expect(screen.getByText("Página 2")).toBeInTheDocument();
-      expect(screen.getByText("de 5")).toBeInTheDocument();
+      expect(screen.getByText("2", { selector: "button" })).toHaveAttribute(
+        "aria-current",
+        "page"
+      );
+      expect(screen.getByText("5", { selector: "button" })).toBeInTheDocument();
     });
   });
 
@@ -309,7 +273,7 @@ describe("ListagemJogadores - Renderização", () => {
       renderWithRouter(<ListagemJogadores />);
 
       // Verifica que não há botões de fechar (×)
-      expect(screen.queryByText("×")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Fechar alerta")).not.toBeInTheDocument();
     });
 
     it("deve renderizar alerta de sucesso quando há successMessage", () => {
@@ -347,7 +311,7 @@ describe("ListagemJogadores - Renderização", () => {
       renderWithRouter(<ListagemJogadores />);
 
       // Encontrar o botão de fechar (×)
-      const closeButtons = screen.getAllByText("×");
+      const closeButtons = screen.getAllByLabelText("Fechar alerta");
       fireEvent.click(closeButtons[0]);
 
       expect(mockSetSuccessMessage).toHaveBeenCalledWith("");
@@ -363,7 +327,7 @@ describe("ListagemJogadores - Renderização", () => {
 
       renderWithRouter(<ListagemJogadores />);
 
-      const closeButtons = screen.getAllByText("×");
+      const closeButtons = screen.getAllByLabelText("Fechar alerta");
       fireEvent.click(closeButtons[0]);
 
       expect(mockSetErrorMessage).toHaveBeenCalledWith("");
@@ -500,34 +464,24 @@ describe("ListagemJogadores - Renderização", () => {
   });
 
   describe("Interações - Paginação", () => {
-    it("deve chamar handlePaginaAnterior ao clicar em Anterior", () => {
-      const mockHandlePaginaAnterior = jest.fn();
+    it.each([
+      ["← Anterior", 1],
+      ["Próxima →", 3],
+    ])("deve ir para a página certa ao clicar em %s", (botao, pagina) => {
+      const mockIrParaPagina = jest.fn();
       mockUseListagemJogadores.mockReturnValue({
         ...defaultMockReturn,
-        offset: 12,
-        handlePaginaAnterior: mockHandlePaginaAnterior,
+        paginaAtual: 2,
+        totalPaginas: 3,
+        total: 30,
+        irParaPagina: mockIrParaPagina,
       });
 
       renderWithRouter(<ListagemJogadores />);
 
-      fireEvent.click(screen.getByTestId("btn-anterior"));
+      fireEvent.click(screen.getByText(botao));
 
-      expect(mockHandlePaginaAnterior).toHaveBeenCalled();
-    });
-
-    it("deve chamar handleProximaPagina ao clicar em Próxima", () => {
-      const mockHandleProximaPagina = jest.fn();
-      mockUseListagemJogadores.mockReturnValue({
-        ...defaultMockReturn,
-        temMais: true,
-        handleProximaPagina: mockHandleProximaPagina,
-      });
-
-      renderWithRouter(<ListagemJogadores />);
-
-      fireEvent.click(screen.getByTestId("btn-proxima"));
-
-      expect(mockHandleProximaPagina).toHaveBeenCalled();
+      expect(mockIrParaPagina).toHaveBeenCalledWith(pagina);
     });
   });
 

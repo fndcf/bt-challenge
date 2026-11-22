@@ -264,7 +264,7 @@ describe("NovoJogador - Renderização", () => {
       renderWithRouter(<NovoJogador />);
 
       // Clicar no botão de fechar
-      const closeButtons = screen.getAllByText("×");
+      const closeButtons = screen.getAllByLabelText("Fechar alerta");
       fireEvent.click(closeButtons[0]);
 
       expect(mockSetErrorMessage).toHaveBeenCalledWith("");
@@ -281,7 +281,7 @@ describe("NovoJogador - Renderização", () => {
       renderWithRouter(<NovoJogador />);
 
       // Clicar no botão de fechar
-      const closeButtons = screen.getAllByText("×");
+      const closeButtons = screen.getAllByLabelText("Fechar alerta");
       fireEvent.click(closeButtons[0]);
 
       expect(mockSetSuccessMessage).toHaveBeenCalledWith("");

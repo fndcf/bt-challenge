@@ -41,6 +41,23 @@ export const ListaConfrontos = styled.div`
   gap: ${theme.spacing[3]};
 `;
 
+/** Confrontos da eliminatória: até 2 colunas; sozinho (final), centralizado */
+export const ConfrontosEliminatoria = styled.div`
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(max(min(100%, 22rem), calc(50% - ${theme.spacing[3]})), 1fr)
+  );
+  align-items: start;
+  gap: ${theme.spacing[3]};
+
+  > :only-child {
+    justify-self: center;
+    width: 100%;
+    max-width: 34rem;
+  }
+`;
+
 const Card = styled.article<{ $compacto: boolean }>`
   padding: ${({ $compacto }) =>
     $compacto ? theme.spacing[2] : theme.spacing[4]};

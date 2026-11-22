@@ -1,54 +1,77 @@
 /**
- * Responsabilidade única: Cabeçalho do perfil com avatar, nome, badges e posição
+ * Responsabilidade única: Cabeçalho do perfil com avatar, nome e selos
  */
 
 import React from "react";
-import * as S from "../JogadorPerfil.styles";
+import styled from "styled-components";
+import { SeloGenero } from "@/components/jogadores/Genero";
+import { Cartao, CartaoTitulo, Texto } from "@/components/layout/Pagina";
+import { Badge } from "@/components/ui";
+import { theme } from "@/styles/theme";
+import { getGeneroLabel, getNivelLabel } from "@/utils/formatters";
 
 export interface ProfileHeaderProps {
   nomeJogador: string;
   arenaNome: string;
   nivelJogador?: string;
   generoJogador?: string;
-  posicaoAtual: number;
   getInitials: (nome: string) => string;
 }
+
+const { acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
+
+const Linha = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[4]};
+`;
+
+const Avatar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 5rem;
+  height: 5rem;
+  border-radius: ${theme.borderRadius.full};
+  background: ${acao.fundoClaro};
+  color: ${acao.primaria};
+  font-size: ${fontSize["2xl"]};
+  font-weight: ${fontWeight.bold};
+`;
+
+const Selos = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${theme.spacing[2]};
+  margin-top: ${theme.spacing[2]};
+`;
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   nomeJogador,
   arenaNome,
   nivelJogador,
   generoJogador,
-  posicaoAtual,
   getInitials,
-}) => {
-  return (
-    <S.ProfileHeader>
-      <S.Avatar>{getInitials(nomeJogador)}</S.Avatar>
-      <S.ProfileInfo>
-        <h1>{nomeJogador}</h1>
-        <p>Jogador da {arenaNome}</p>
-
-        {/* Badges de nível e gênero */}
-        <S.BadgeGroup>
-          {nivelJogador && (
-            <S.NivelTag $nivel={nivelJogador} $genero={generoJogador}>
-              {nivelJogador}
-            </S.NivelTag>
-          )}
+}) => (
+  <Cartao>
+    <Linha>
+      <Avatar aria-hidden="true">{getInitials(nomeJogador)}</Avatar>
+      <div>
+        <CartaoTitulo>{nomeJogador}</CartaoTitulo>
+        <Texto>Jogador da {arenaNome}</Texto>
+        <Selos>
+          {nivelJogador && <Badge>{getNivelLabel(nivelJogador)}</Badge>}
           {generoJogador && (
-            <S.GeneroTag $genero={generoJogador}>{generoJogador}</S.GeneroTag>
+            <SeloGenero genero={generoJogador}>
+              {getGeneroLabel(generoJogador)}
+            </SeloGenero>
           )}
-        </S.BadgeGroup>
-      </S.ProfileInfo>
-
-      {/* Melhor Posição */}
-      <S.StatCard>
-        <S.StatValue>{posicaoAtual > 0 ? `${posicaoAtual}º` : "-"}</S.StatValue>
-        <S.StatLabel>Posição no Ranking</S.StatLabel>
-      </S.StatCard>
-    </S.ProfileHeader>
-  );
-};
+        </Selos>
+      </div>
+    </Linha>
+  </Cartao>
+);
 
 export default ProfileHeader;

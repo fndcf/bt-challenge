@@ -395,6 +395,29 @@ describe("EtapaService", () => {
       ).rejects.toThrow("Etapa não encontrada");
     });
 
+    it.each([
+      [FormatoEtapa.TEAMS, 4, 104, true],
+      [FormatoEtapa.TEAMS, 4, 108, false],
+      [FormatoEtapa.TEAMS, 6, 156, true],
+      [FormatoEtapa.REI_DA_PRAIA, undefined, 68, false],
+    ])("%s (%s) com %i jogadores: aceita = %s", async (formato, varianteTeams, maxJogadores, aceita) => {
+      const etapa = createEtapaFixture({
+        formato,
+        varianteTeams: varianteTeams as any,
+        chavesGeradas: false,
+        totalInscritos: 0,
+      });
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockEtapaRepository.atualizar.mockResolvedValue(etapa);
+
+      const atualizar = etapaService.atualizar(TEST_ETAPA_ID, TEST_ARENA_ID, {
+        maxJogadores,
+      });
+
+      if (aceita) await expect(atualizar).resolves.toBeDefined();
+      else await expect(atualizar).rejects.toThrow(/Máximo de \d+ jogadores/);
+    });
+
     it("deve lançar erro se chaves já foram geradas", async () => {
       const etapa = createEtapaFixture({ chavesGeradas: true });
       mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);

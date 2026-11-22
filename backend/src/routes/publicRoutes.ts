@@ -395,7 +395,8 @@ router.get(
 
           const confrontosPorFase = new Map<string, any[]>();
           confrontosEliminatorios.forEach((confronto) => {
-            const fase = confronto.fase;
+            // Gravada em minúsculas ("semifinal")
+            const fase = confronto.fase.toUpperCase();
             if (!confrontosPorFase.has(fase)) {
               confrontosPorFase.set(fase, []);
             }

@@ -14,7 +14,14 @@ import {
   getFormatoEtapaLabel,
 } from "@/utils/etapa";
 import { formatarData, getGeneroLabel, getNivelLabel } from "@/utils/formatters";
-import { Cartao, CartaoTitulo, Texto } from "../DetalhesEtapa.styles";
+import {
+  Cartao,
+  CartaoTitulo,
+  Grade,
+  Numero,
+  Rotulo,
+  Texto,
+} from "@/components/layout/Pagina";
 
 const { texto } = theme.semantic;
 const { fontSize, fontWeight } = theme.typography;
@@ -26,25 +33,6 @@ interface EtapaInfoCardsProps {
   isSuperX?: boolean;
   isTeams?: boolean;
 }
-
-const Grade = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
-  gap: ${theme.spacing[4]};
-`;
-
-const Rotulo = styled.p`
-  margin: 0;
-  font-size: ${fontSize.sm};
-  color: ${texto.secundario};
-`;
-
-const Numero = styled.p`
-  margin: 0;
-  font-size: ${fontSize["2xl"]};
-  font-weight: ${fontWeight.bold};
-  color: ${texto.principal};
-`;
 
 const Itens = styled.ul`
   margin: 0;
@@ -106,7 +94,7 @@ export const EtapaInfoCards: React.FC<EtapaInfoCardsProps> = ({
 }) => {
   const jogadoresPorEquipe = etapa.varianteTeams || 4;
   const numEquipes = Math.floor(etapa.totalInscritos / jogadoresPorEquipe);
-  const gruposTeams = calcularGruposTeams(numEquipes);
+  const gruposTeams = calcularGruposTeams(numEquipes).length;
 
   const getEstrutura = (): {
     rotulo: string;

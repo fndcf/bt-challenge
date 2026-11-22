@@ -3,13 +3,14 @@
  */
 
 import React from "react";
-import { GeneroJogador, NivelJogador } from "@/types/jogador";
+import { Campos, Cartao, CartaoTitulo } from "@/components/layout/Pagina";
+import { Input, Select, Textarea } from "@/components/ui";
 import {
   FormatoEtapa,
-  TipoFormacaoEquipe,
   TipoFormacaoDupla,
+  TipoFormacaoEquipe,
 } from "@/types/etapa";
-import * as S from "../CriarEtapa.styles";
+import { GeneroJogador, NivelJogador } from "@/types/jogador";
 
 export interface InformacoesBasicasProps {
   nome: string;
@@ -32,6 +33,17 @@ export interface InformacoesBasicasProps {
   onLocalChange: (local: string) => void;
 }
 
+const GENEROS = [
+  { value: GeneroJogador.MASCULINO, label: "Masculino" },
+  { value: GeneroJogador.FEMININO, label: "Feminino" },
+];
+
+const NIVEIS = [
+  { value: NivelJogador.INICIANTE, label: "Iniciante" },
+  { value: NivelJogador.INTERMEDIARIO, label: "Intermediário" },
+  { value: NivelJogador.AVANCADO, label: "Avançado" },
+];
+
 export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   nome,
   descricao,
@@ -52,120 +64,92 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   onNivelChange,
   onLocalChange,
 }) => {
-  const isSuperX = formato === FormatoEtapa.SUPER_X;
   const isTeams = formato === FormatoEtapa.TEAMS;
   const isDuplaFixa = formato === FormatoEtapa.DUPLA_FIXA;
-  const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
+  const permiteMisto = isTeams || isDuplaFixa;
 
-  // TEAMS com "Mesmo Nível" requer seleção de nível
-  const teamsMesmoNivel =
-    isTeams && tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL;
-
-  // Dupla Fixa com "Balanceado" permite todos os níveis
-  const duplaFixaBalanceado =
-    isDuplaFixa && tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
-
-  // Nível obrigatório: apenas Dupla Fixa (exceto Balanceado) e TEAMS com Mesmo Nível
-  // Nível opcional: Super X, TEAMS (exceto Mesmo Nível), Dupla Fixa Balanceada, Rei da Praia
+  // Nível obrigatório: Dupla Fixa (exceto Balanceado) e TEAMS com Mesmo Nível.
+  // Nos demais casos a etapa pode aceitar todos os níveis.
   const nivelObrigatorio =
-    (isDuplaFixa && !duplaFixaBalanceado) || teamsMesmoNivel;
-
-  // Permitir "Todos os níveis" para Super X, TEAMS (exceto MESMO_NIVEL), Dupla Fixa Balanceada e Rei da Praia
-  const permiteTodosNiveis =
-    isSuperX ||
-    (isTeams && !teamsMesmoNivel) ||
-    duplaFixaBalanceado ||
-    isReiDaPraia;
+    (isDuplaFixa && tipoFormacaoDupla !== TipoFormacaoDupla.BALANCEADO) ||
+    (isTeams && tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL);
 
   return (
-    <S.Card>
-      <S.CardTitle>Informações Básicas</S.CardTitle>
+    <Cartao>
+      <CartaoTitulo>Informações Básicas</CartaoTitulo>
 
-      <S.FieldsContainer>
-        <S.Field>
-          <S.Label>Nome da Etapa *</S.Label>
-          <S.Input
-            type="text"
-            required
-            disabled={disabled}
-            value={nome}
-            onChange={(e) => onNomeChange(e.target.value)}
-            placeholder="Ex: Etapa 1 - Classificatória"
-          />
-        </S.Field>
+      <Input
+        label="Nome da Etapa"
+        required
+        fullWidth
+        disabled={disabled}
+        value={nome}
+        onChange={(e) => onNomeChange(e.target.value)}
+        placeholder="Ex: Etapa 1 - Classificatória"
+      />
 
-        <S.Field>
-          <S.Label>Descrição</S.Label>
-          <S.Textarea
-            disabled={disabled}
-            value={descricao}
-            onChange={(e) => onDescricaoChange(e.target.value)}
-            placeholder="Descreva os detalhes da etapa..."
-            rows={3}
-          />
-        </S.Field>
+      <Textarea
+        label="Descrição"
+        disabled={disabled}
+        value={descricao}
+        onChange={(e) => onDescricaoChange(e.target.value)}
+        placeholder="Descreva os detalhes da etapa..."
+        rows={3}
+      />
 
-        <S.Field>
-          <S.Label>Gênero da Etapa *</S.Label>
-          <S.Select
-            required
-            disabled={disabledGenero}
-            value={genero}
-            onChange={(e) => onGeneroChange(e.target.value as GeneroJogador)}
-          >
-            <option value={GeneroJogador.MASCULINO}>Masculino</option>
-            <option value={GeneroJogador.FEMININO}>Feminino</option>
-            {(isTeams || isDuplaFixa) && (
-              <option value={GeneroJogador.MISTO}>Misto</option>
-            )}
-          </S.Select>
-          <S.HelperText>
-            {helperGenero ||
-              (isTeams || isDuplaFixa
-                ? "Misto: duplas com 1 masculino + 1 feminino"
-                : "Apenas jogadores deste gênero poderão se inscrever")}
-          </S.HelperText>
-        </S.Field>
+      <Campos $colunas>
+        <Select
+          label="Gênero da Etapa"
+          required
+          fullWidth
+          disabled={disabledGenero}
+          options={
+            permiteMisto
+              ? [...GENEROS, { value: GeneroJogador.MISTO, label: "Misto" }]
+              : GENEROS
+          }
+          value={genero}
+          onChange={(e) => onGeneroChange(e.target.value as GeneroJogador)}
+          helperText={
+            helperGenero ||
+            (permiteMisto
+              ? "Misto: duplas com 1 masculino + 1 feminino"
+              : "Apenas jogadores deste gênero poderão se inscrever")
+          }
+        />
 
-        <S.Field>
-          <S.Label>Nível da Etapa {nivelObrigatorio && "*"}</S.Label>
-          <S.Select
-            required={nivelObrigatorio}
-            disabled={disabledNivel}
-            value={nivel || ""}
-            onChange={(e) =>
-              onNivelChange(
-                e.target.value ? (e.target.value as NivelJogador) : undefined
-              )
-            }
-          >
-            {permiteTodosNiveis && <option value="">Todos os níveis</option>}
-            <option value={NivelJogador.INICIANTE}>Iniciante</option>
-            <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
-            <option value={NivelJogador.AVANCADO}>Avançado</option>
-          </S.Select>
-          <S.HelperText>
-            {helperNivel ||
-              (permiteTodosNiveis
-                ? teamsMesmoNivel
-                  ? "Selecione o nível (obrigatório para formação 'Mesmo Nível')"
-                  : "Opcional: deixe em branco para permitir todos os níveis"
-                : "Apenas jogadores deste nível poderão se inscrever")}
-          </S.HelperText>
-        </S.Field>
+        <Select
+          label="Nível da Etapa"
+          required={nivelObrigatorio}
+          fullWidth
+          disabled={disabledNivel}
+          options={
+            nivelObrigatorio
+              ? NIVEIS
+              : [{ value: "", label: "Todos os níveis" }, ...NIVEIS]
+          }
+          value={nivel || ""}
+          onChange={(e) =>
+            onNivelChange((e.target.value as NivelJogador) || undefined)
+          }
+          helperText={
+            helperNivel ||
+            (nivelObrigatorio
+              ? "Apenas jogadores deste nível poderão se inscrever"
+              : "Opcional: deixe em branco para permitir todos os níveis")
+          }
+        />
+      </Campos>
 
-        <S.Field>
-          <S.Label>Local</S.Label>
-          <S.Input
-            type="text"
-            disabled={disabled}
-            value={local}
-            onChange={(e) => onLocalChange(e.target.value)}
-            placeholder="Ex: Quadras Arena"
-          />
-        </S.Field>
-      </S.FieldsContainer>
-    </S.Card>
+      <Input
+        label="Local"
+        fullWidth
+        disabled={disabled}
+        value={local}
+        onChange={(e) => onLocalChange(e.target.value)}
+        placeholder="Ex: Quadras Arena"
+      />
+    </Cartao>
   );
 };
 

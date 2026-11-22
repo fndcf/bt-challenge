@@ -3,15 +3,16 @@
  */
 
 import React from "react";
+import { Alert } from "@/components/ui";
 import { FormatoEtapa } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
+import { getChaveamentoLabel } from "@/utils/etapa";
 import {
   DistribuicaoDuplaFixa,
   DistribuicaoReiDaPraia,
   DistribuicaoSuperX,
   DistribuicaoTeams,
 } from "../hooks/useCriarEtapa";
-import * as S from "../CriarEtapa.styles";
 
 export interface DistribuicaoPreviewProps {
   formato: FormatoEtapa;
@@ -22,153 +23,118 @@ export interface DistribuicaoPreviewProps {
   infoTeams?: DistribuicaoTeams;
 }
 
-export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = ({
+interface Preview {
+  titulo: string;
+  valido: boolean;
+  /** De onde para onde (ex.: "16 jogadores" → "4 grupos") */
+  de: [numero: number, nome: string];
+  para: [numero: number, nome: string];
+  descricao: string;
+  notas: string[];
+}
+
+const plural = (
+  quantidade: number,
+  singular: string
+): [numero: number, nome: string] => [
+  quantidade,
+  quantidade === 1 ? singular : `${singular}s`,
+];
+
+const montarPreview = ({
   formato,
   tipoChaveamento,
   infoDuplaFixa,
   infoReiDaPraia,
   infoSuperX,
   infoTeams,
-}) => {
-  // Preview para Super X
+}: DistribuicaoPreviewProps): Preview => {
   if (formato === FormatoEtapa.SUPER_X && infoSuperX) {
-    return (
-      <S.PreviewCard>
-        <S.PreviewTitle>Distribuição Super {infoSuperX.variante}</S.PreviewTitle>
-
-        <S.PreviewContent>
-          <S.PreviewRow>
-            <span>
-              <strong>{infoSuperX.totalJogadores}</strong> jogadores
-            </span>
-            <span>→</span>
-            <span>
-              <strong>1</strong> grupo único
-            </span>
-          </S.PreviewRow>
-
-          <S.PreviewBox>{infoSuperX.descricao}</S.PreviewBox>
-
-          <S.PreviewNote>
-            Duplas rotativas a cada rodada - todos jogam com todos
-          </S.PreviewNote>
-          <S.PreviewNote>
-            Sem fase eliminatória - classificação final individual
-          </S.PreviewNote>
-        </S.PreviewContent>
-      </S.PreviewCard>
-    );
+    return {
+      titulo: `Distribuição Super ${infoSuperX.variante}`,
+      valido: true,
+      de: [infoSuperX.totalJogadores, "jogadores"],
+      para: [1, "grupo único"],
+      descricao: infoSuperX.descricao,
+      notas: [
+        "Duplas rotativas a cada rodada - todos jogam com todos",
+        "Sem fase eliminatória - classificação final individual",
+      ],
+    };
   }
 
-  // Preview para TEAMS
   if (formato === FormatoEtapa.TEAMS && infoTeams) {
-    return (
-      <S.PreviewCard>
-        <S.PreviewTitle>Distribuição TEAMS {infoTeams.variante}</S.PreviewTitle>
-
-        {infoTeams.valido ? (
-          <S.PreviewContent>
-            <S.PreviewRow>
-              <span>
-                <strong>{infoTeams.totalJogadores}</strong> jogadores
-              </span>
-              <span>→</span>
-              <span>
-                <strong>{infoTeams.totalEquipes}</strong>{" "}
-                {infoTeams.totalEquipes === 1 ? "equipe" : "equipes"}
-              </span>
-            </S.PreviewRow>
-
-            <S.PreviewBox>{infoTeams.descricao}</S.PreviewBox>
-
-            <S.PreviewNote>
-              {infoTeams.jogadoresPorEquipe} jogadores por equipe
-            </S.PreviewNote>
-            <S.PreviewNote>
-              {infoTeams.jogosPorConfronto} jogos por confronto
-              {infoTeams.variante === 4 ? " (+ decider se 1-1)" : ""}
-            </S.PreviewNote>
-            <S.PreviewNote>
-              Todos contra todos - vitória no confronto = 3 pontos
-            </S.PreviewNote>
-          </S.PreviewContent>
-        ) : (
-          <S.PreviewRow>{infoTeams.descricao}</S.PreviewRow>
-        )}
-      </S.PreviewCard>
-    );
+    return {
+      titulo: `Distribuição TEAMS ${infoTeams.variante}`,
+      valido: infoTeams.valido,
+      de: [infoTeams.totalJogadores, "jogadores"],
+      para: plural(infoTeams.totalEquipes, "equipe"),
+      descricao: infoTeams.descricao,
+      notas: [
+        `${infoTeams.jogadoresPorEquipe} jogadores por equipe`,
+        `${infoTeams.jogosPorConfronto} jogos por confronto${
+          infoTeams.variante === 4 ? " (+ decider se 1-1)" : ""
+        }`,
+        infoTeams.grupos.length > 1
+          ? "Todos contra todos dentro do grupo - vitória no confronto = 3 pontos"
+          : "Todos contra todos - vitória no confronto = 3 pontos",
+      ],
+    };
   }
 
-  // Preview para Rei da Praia
   if (formato === FormatoEtapa.REI_DA_PRAIA) {
+    return {
+      titulo: "Distribuição Rei da Praia",
+      valido: infoReiDaPraia.valido,
+      de: [infoReiDaPraia.totalJogadores, "jogadores"],
+      para: plural(infoReiDaPraia.qtdGrupos, "grupo"),
+      descricao: infoReiDaPraia.descricao,
+      notas: [
+        "Cada grupo: 4 jogadores, 3 partidas",
+        `Chaveamento: ${getChaveamentoLabel(tipoChaveamento)}`,
+      ],
+    };
+  }
+
+  return {
+    titulo: "Distribuição de Grupos",
+    valido: infoDuplaFixa.valido,
+    de: [infoDuplaFixa.totalDuplas, "duplas"],
+    para: plural(infoDuplaFixa.qtdGrupos, "grupo"),
+    descricao: infoDuplaFixa.descricao,
+    notas: [
+      infoDuplaFixa.qtdGrupos === 1
+        ? "Todas as duplas jogam entre si"
+        : "Grupos com 3 duplas cada (mínimo)",
+    ],
+  };
+};
+
+export const DistribuicaoPreview: React.FC<DistribuicaoPreviewProps> = (
+  props
+) => {
+  const { titulo, valido, de, para, descricao, notas } = montarPreview(props);
+
+  if (!valido) {
     return (
-      <S.PreviewCard>
-        <S.PreviewTitle>Distribuição Rei da Praia</S.PreviewTitle>
-
-        {infoReiDaPraia.valido ? (
-          <S.PreviewContent>
-            <S.PreviewRow>
-              <span>
-                <strong>{infoReiDaPraia.totalJogadores}</strong> jogadores
-              </span>
-              <span>→</span>
-              <span>
-                <strong>{infoReiDaPraia.qtdGrupos}</strong>{" "}
-                {infoReiDaPraia.qtdGrupos === 1 ? "grupo" : "grupos"}
-              </span>
-            </S.PreviewRow>
-
-            <S.PreviewBox>{infoReiDaPraia.descricao}</S.PreviewBox>
-
-            <S.PreviewNote>Cada grupo: 4 jogadores, 3 partidas</S.PreviewNote>
-            <S.PreviewNote>
-              Chaveamento:{" "}
-              {tipoChaveamento ===
-              TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
-                ? "Melhores com Melhores"
-                : tipoChaveamento ===
-                  TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING
-                ? "Pareamento por Ranking"
-                : "Sorteio Aleatório"}
-            </S.PreviewNote>
-          </S.PreviewContent>
-        ) : (
-          <S.PreviewRow>{infoReiDaPraia.descricao}</S.PreviewRow>
-        )}
-      </S.PreviewCard>
+      <Alert variant="warning" title={titulo}>
+        {descricao}
+      </Alert>
     );
   }
 
-  // Preview para Dupla Fixa
   return (
-    <S.PreviewCard>
-      <S.PreviewTitle>Distribuição de Grupos</S.PreviewTitle>
-
-      {infoDuplaFixa.valido ? (
-        <S.PreviewContent>
-          <S.PreviewRow>
-            <span>
-              <strong>{infoDuplaFixa.totalDuplas}</strong> duplas
-            </span>
-            <span>→</span>
-            <span>
-              <strong>{infoDuplaFixa.qtdGrupos}</strong>{" "}
-              {infoDuplaFixa.qtdGrupos === 1 ? "grupo" : "grupos"}
-            </span>
-          </S.PreviewRow>
-
-          <S.PreviewBox>{infoDuplaFixa.descricao}</S.PreviewBox>
-
-          <S.PreviewNote>
-            {infoDuplaFixa.qtdGrupos === 1
-              ? "Todas as duplas jogam entre si"
-              : "Grupos com 3 duplas cada (mínimo)"}
-          </S.PreviewNote>
-        </S.PreviewContent>
-      ) : (
-        <S.PreviewRow>{infoDuplaFixa.descricao}</S.PreviewRow>
-      )}
-    </S.PreviewCard>
+    <Alert title={titulo}>
+      <p>
+        <strong>{de[0]}</strong> {de[1]} → <strong>{para[0]}</strong> {para[1]}
+      </p>
+      <p>{descricao}</p>
+      <ul>
+        {notas.map((nota) => (
+          <li key={nota}>{nota}</li>
+        ))}
+      </ul>
+    </Alert>
   );
 };
 

@@ -3,7 +3,8 @@
  */
 
 import React from "react";
-import * as S from "../RecuperarSenha.styles";
+import { Formulario } from "@/components/layout/Pagina";
+import { Alert, Button, Input } from "@/components/ui";
 
 export interface RecoveryFormProps {
   email: string;
@@ -19,41 +20,31 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
   loading,
   onEmailChange,
   onSubmit,
-}) => {
-  return (
-    <>
-      <S.InfoBox>
-        <p>
-          Digite seu email cadastrado e enviaremos um link para redefinir sua
-          senha.
-        </p>
-      </S.InfoBox>
+}) => (
+  <Formulario onSubmit={onSubmit} noValidate>
+    <Alert>
+      Digite seu email cadastrado e enviaremos um link para redefinir sua senha.
+    </Alert>
 
-      <S.Form onSubmit={onSubmit}>
-        <S.FormGroup>
-          <S.Label htmlFor="email">
-            Email <S.Required>*</S.Required>
-          </S.Label>
-          <S.Input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            $hasError={!!emailError}
-            disabled={loading}
-            placeholder="seu@email.com"
-            autoComplete="email"
-            autoFocus
-          />
-          {emailError && <S.ErrorText>{emailError}</S.ErrorText>}
-        </S.FormGroup>
+    <Input
+      label="Email"
+      type="email"
+      id="email"
+      required
+      fullWidth
+      value={email}
+      onChange={(e) => onEmailChange(e.target.value)}
+      error={emailError}
+      disabled={loading}
+      placeholder="seu@email.com"
+      autoComplete="email"
+      autoFocus
+    />
 
-        <S.SubmitButton type="submit" disabled={loading}>
-          {loading ? <S.Spinner /> : "Enviar link de recuperação"}
-        </S.SubmitButton>
-      </S.Form>
-    </>
-  );
-};
+    <Button type="submit" fullWidth loading={loading}>
+      {loading ? "Enviando..." : "Enviar link de recuperação"}
+    </Button>
+  </Formulario>
+);
 
 export default RecoveryForm;

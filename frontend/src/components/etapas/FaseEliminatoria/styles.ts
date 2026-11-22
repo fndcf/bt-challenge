@@ -87,6 +87,11 @@ export const FaseStatus = styled.span`
 `;
 
 export const ByeBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Acompanha a altura do confronto ao lado */
+  align-self: stretch;
   padding: ${theme.spacing[6]};
   border: 1px solid ${status.sucesso.borda};
   border-radius: ${theme.borderRadius.lg};

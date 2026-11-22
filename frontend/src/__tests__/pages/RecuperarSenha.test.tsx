@@ -207,7 +207,7 @@ describe("RecuperarSenha - Renderização", () => {
 
       renderWithRouter(<RecuperarSenha />);
 
-      expect(screen.getByText("×")).toBeInTheDocument();
+      expect(screen.getByLabelText("Fechar alerta")).toBeInTheDocument();
     });
 
     it("deve chamar setErrorMessage ao fechar alerta de erro", () => {
@@ -220,7 +220,7 @@ describe("RecuperarSenha - Renderização", () => {
 
       renderWithRouter(<RecuperarSenha />);
 
-      fireEvent.click(screen.getByText("×"));
+      fireEvent.click(screen.getByLabelText("Fechar alerta"));
 
       expect(mockSetErrorMessage).toHaveBeenCalledWith("");
     });

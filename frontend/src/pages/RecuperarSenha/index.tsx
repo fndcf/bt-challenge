@@ -3,11 +3,12 @@
  */
 
 import React from "react";
+import { PaginaAcesso } from "@/components/layout/PaginaAcesso";
+import { Alert } from "@/components/ui";
 import { useDocumentTitle } from "@/hooks";
-import { useRecuperarSenha } from "./hooks/useRecuperarSenha";
 import { RecoveryForm } from "./components/RecoveryForm";
 import { SuccessView } from "./components/SuccessView";
-import * as S from "./RecuperarSenha.styles";
+import { useRecuperarSenha } from "./hooks/useRecuperarSenha";
 
 export const RecuperarSenha: React.FC = () => {
   useDocumentTitle("Recuperar Senha");
@@ -27,55 +28,39 @@ export const RecuperarSenha: React.FC = () => {
   } = useRecuperarSenha();
 
   return (
-    <S.PageContainer>
-      <S.RecoveryContainer>
-        <S.Header>
-          <S.Logo>Dupley</S.Logo>
-          <S.HeaderText>
-            {emailEnviado ? "Verifique seu email" : "Recuperação de senha"}
-          </S.HeaderText>
-        </S.Header>
+    <PaginaAcesso
+      titulo="Dupley"
+      subtitulo={emailEnviado ? "Verifique seu email" : "Recuperação de senha"}
+      voltar={
+        emailEnviado
+          ? undefined
+          : { para: "/login", rotulo: "← Voltar para o login" }
+      }
+    >
+      {errorMessage && (
+        <Alert variant="error" onClose={() => setErrorMessage("")}>
+          {errorMessage}
+        </Alert>
+      )}
 
-        {/* Mensagens de erro/sucesso */}
-        {errorMessage && (
-          <S.Alert $variant="error">
-            <span>{errorMessage}</span>
-            <S.AlertClose onClick={() => setErrorMessage("")}>×</S.AlertClose>
-          </S.Alert>
-        )}
+      {successMessage && !emailEnviado && (
+        <Alert variant="success" onClose={() => setSuccessMessage("")}>
+          {successMessage}
+        </Alert>
+      )}
 
-        {successMessage && !emailEnviado && (
-          <S.Alert $variant="success">
-            <span>{successMessage}</span>
-            <S.AlertClose onClick={() => setSuccessMessage("")}>×</S.AlertClose>
-          </S.Alert>
-        )}
-
-        {/* Conteúdo condicional */}
-        {emailEnviado ? (
-          <SuccessView
-            email={email}
-            loading={loading}
-            onResend={handleResend}
-          />
-        ) : (
-          <RecoveryForm
-            email={email}
-            emailError={emailError}
-            loading={loading}
-            onEmailChange={handleEmailChange}
-            onSubmit={handleSubmit}
-          />
-        )}
-
-        {/* Link de voltar */}
-        {!emailEnviado && (
-          <S.BackLinkContainer>
-            <S.BackLink to="/login">← Voltar para o login</S.BackLink>
-          </S.BackLinkContainer>
-        )}
-      </S.RecoveryContainer>
-    </S.PageContainer>
+      {emailEnviado ? (
+        <SuccessView email={email} loading={loading} onResend={handleResend} />
+      ) : (
+        <RecoveryForm
+          email={email}
+          emailError={emailError}
+          loading={loading}
+          onEmailChange={handleEmailChange}
+          onSubmit={handleSubmit}
+        />
+      )}
+    </PaginaAcesso>
   );
 };
 

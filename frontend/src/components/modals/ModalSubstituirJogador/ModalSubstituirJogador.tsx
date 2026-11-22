@@ -2,11 +2,15 @@
  * Modal para substituir jogador após geração de chaves
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import styled from "styled-components";
+import { SeloGenero } from "@/components/jogadores/Genero";
+import { Alert, Badge, Button, Input, Modal } from "@/components/ui";
 import { getEtapaService } from "@/services";
-import { Modal, Button } from "@/components/ui";
+import { theme } from "@/styles/theme";
 import { Inscricao } from "@/types/etapa";
+import { getNivelLabel } from "@/utils/formatters";
 
 interface JogadorDisponivel {
   id: string;
@@ -25,166 +29,168 @@ interface ModalSubstituirJogadorProps {
 
 // ============== STYLED COMPONENTS ==============
 
-const Description = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 1.5rem 0;
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
+
+const Conteudo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing[4]};
 `;
 
-const SelectionGrid = styled.div`
+const Descricao = styled.p`
+  margin: 0;
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
+`;
+
+const Colunas = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 1rem;
-  align-items: start;
-  margin-bottom: 1.5rem;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: ${theme.spacing[4]};
 `;
 
-const SelectionColumn = styled.div`
+const Coluna = styled.section`
   display: flex;
   flex-direction: column;
+  gap: ${theme.spacing[2]};
+  min-width: 0;
 `;
 
-const ColumnTitle = styled.h4`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.75rem 0;
+const ColunaTitulo = styled.h4`
+  margin: 0;
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
-const PlayerList = styled.div`
-  max-height: 300px;
+const Lista = styled.div`
+  max-height: 18rem;
   overflow-y: auto;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.lg};
 `;
 
-const PlayerItem = styled.button<{ $selected?: boolean }>`
-  width: 100%;
-  padding: 0.75rem;
+const Jogador = styled.label<{ $selecionado: boolean }>`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  border: none;
-  background: ${(props) => (props.$selected ? "#dbeafe" : "transparent")};
+  align-items: center;
+  gap: ${theme.spacing[3]};
+  min-height: 48px;
+  padding: ${theme.spacing[2]} ${theme.spacing[3]};
+  background: ${({ $selecionado }) =>
+    $selecionado ? acao.fundoClaro : superficie.fundo};
+  color: ${texto.principal};
   cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid #e5e7eb;
 
-  &:last-child {
-    border-bottom: none;
+  & + & {
+    border-top: 1px solid ${superficie.borda};
   }
 
   &:hover {
-    background: ${(props) => (props.$selected ? "#dbeafe" : "#f9fafb")};
+    background: ${acao.fundoClaro};
+  }
+
+  input {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    accent-color: ${acao.primaria};
+  }
+
+  > span:first-of-type {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: ${fontWeight.medium};
   }
 `;
 
-const PlayerName = styled.span`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #111827;
+const Vazio = styled.p`
+  margin: 0;
+  padding: ${theme.spacing[8]} ${theme.spacing[4]};
+  text-align: center;
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
 `;
 
-const PlayerInfo = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.125rem;
-`;
-
-const Arrow = styled.div`
+const Resumo = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  color: #9ca3af;
-  padding-top: 2rem;
+  gap: ${theme.spacing[6]};
+  padding: ${theme.spacing[4]};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${superficie.pagina};
+  color: ${texto.secundario};
+  font-size: ${fontSize.sm};
 
-  @media (max-width: 640px) {
-    transform: rotate(90deg);
-    padding: 0.5rem 0;
+  strong {
+    display: block;
+    color: ${texto.principal};
   }
 `;
 
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+// ============== LISTA DE ESCOLHA ==============
 
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-`;
+interface ColunaJogadoresProps {
+  titulo: string;
+  jogadores: JogadorDisponivel[];
+  selecionadoId: string | null;
+  onSelecionar: (id: string) => void;
+  vazio: string;
+  carregando?: boolean;
+}
 
-const SelectedInfo = styled.div`
-  background: #f3f4f6;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-`;
+const ColunaJogadores: React.FC<ColunaJogadoresProps> = ({
+  titulo,
+  jogadores,
+  selecionadoId,
+  onSelecionar,
+  vazio,
+  carregando = false,
+}) => {
+  const [busca, setBusca] = useState("");
 
-const SelectedLabel = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  font-weight: 600;
-`;
+  const listados = jogadores
+    .filter((j) => j.nome.toLowerCase().includes(busca.toLowerCase()))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
-const SelectedName = styled.span`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-  display: block;
-  margin-top: 0.25rem;
-`;
-
-const LoadingMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-`;
-
-const EmptyMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-`;
-
-// ============== HELPER FUNCTIONS ==============
-
-const formatNivel = (nivel: string): string => {
-  switch (nivel) {
-    case "iniciante":
-      return "Iniciante";
-    case "intermediario":
-      return "Intermediário";
-    case "avancado":
-      return "Avançado";
-    default:
-      return nivel;
-  }
-};
-
-const formatGenero = (genero: string): string => {
-  switch (genero) {
-    case "masculino":
-      return "M";
-    case "feminino":
-      return "F";
-    case "misto":
-      return "Misto";
-    default:
-      return genero;
-  }
+  return (
+    <Coluna>
+      <ColunaTitulo>{titulo}</ColunaTitulo>
+      <Input
+        aria-label={`Buscar em ${titulo}`}
+        inputSize="sm"
+        fullWidth
+        placeholder="Buscar jogador..."
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+      />
+      <Lista role="radiogroup" aria-label={titulo}>
+        {carregando || listados.length === 0 ? (
+          <Vazio>{carregando ? "Carregando jogadores..." : vazio}</Vazio>
+        ) : (
+          listados.map((jogador) => (
+            <Jogador
+              key={jogador.id}
+              $selecionado={selecionadoId === jogador.id}
+            >
+              <input
+                type="radio"
+                name={titulo}
+                checked={selecionadoId === jogador.id}
+                onChange={() => onSelecionar(jogador.id)}
+              />
+              <span>{jogador.nome}</span>
+              <Badge>{getNivelLabel(jogador.nivel)}</Badge>
+              <SeloGenero genero={jogador.genero} />
+            </Jogador>
+          ))
+        )}
+      </Lista>
+    </Coluna>
+  );
 };
 
 // ============== COMPONENTE ==============
@@ -196,72 +202,56 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
   etapaId,
   inscricoes,
 }) => {
-  const [jogadoresDisponiveis, setJogadoresDisponiveis] = useState<JogadorDisponivel[]>([]);
-  const [loadingDisponiveis, setLoadingDisponiveis] = useState(true);
-  const [jogadorAntigoId, setJogadorAntigoId] = useState<string | null>(null);
-  const [jogadorNovoId, setJogadorNovoId] = useState<string | null>(null);
-  const [buscaAntigo, setBuscaAntigo] = useState("");
-  const [buscaNovo, setBuscaNovo] = useState("");
+  const [disponiveis, setDisponiveis] = useState<JogadorDisponivel[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [antigoId, setAntigoId] = useState<string | null>(null);
+  const [novoId, setNovoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const etapaService = getEtapaService();
 
-  // Carregar jogadores disponíveis
-  useEffect(() => {
-    if (isOpen) {
-      const carregarDisponiveis = async () => {
-        try {
-          setLoadingDisponiveis(true);
-          const disponiveis = await etapaService.buscarJogadoresDisponiveis(etapaId);
-          setJogadoresDisponiveis(disponiveis);
-        } catch (err: any) {
-          setError(err.message || "Erro ao carregar jogadores disponíveis");
-        } finally {
-          setLoadingDisponiveis(false);
-        }
-      };
-
-      carregarDisponiveis();
-    }
-  }, [isOpen, etapaId]);
-
-  // Resetar estado ao fechar
   useEffect(() => {
     if (!isOpen) {
-      setJogadorAntigoId(null);
-      setJogadorNovoId(null);
-      setBuscaAntigo("");
-      setBuscaNovo("");
+      setAntigoId(null);
+      setNovoId(null);
       setError(null);
+      return;
     }
-  }, [isOpen]);
 
-  // Filtrar jogadores inscritos
-  const jogadoresInscritos = inscricoes
-    .filter((i) =>
-      i.jogadorNome.toLowerCase().includes(buscaAntigo.toLowerCase())
-    )
-    .sort((a, b) => a.jogadorNome.localeCompare(b.jogadorNome));
+    const carregarDisponiveis = async () => {
+      try {
+        setCarregando(true);
+        setDisponiveis(await etapaService.buscarJogadoresDisponiveis(etapaId));
+      } catch (err: any) {
+        setError(err.message || "Erro ao carregar jogadores disponíveis");
+      } finally {
+        setCarregando(false);
+      }
+    };
 
-  // Filtrar jogadores disponíveis
-  const jogadoresDisponiveisFiltrados = jogadoresDisponiveis
-    .filter((j) =>
-      j.nome.toLowerCase().includes(buscaNovo.toLowerCase())
-    )
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+    carregarDisponiveis();
+  }, [isOpen, etapaId]);
 
-  // Jogadores selecionados
-  const jogadorAntigo = inscricoes.find((i) => i.jogadorId === jogadorAntigoId);
-  const jogadorNovo = jogadoresDisponiveis.find((j) => j.id === jogadorNovoId);
+  if (!isOpen) return null;
+
+  const inscritos: JogadorDisponivel[] = inscricoes.map((inscricao) => ({
+    id: inscricao.jogadorId,
+    nome: inscricao.jogadorNome,
+    nivel: inscricao.jogadorNivel,
+    genero: inscricao.jogadorGenero,
+  }));
+
+  const sai = inscritos.find((j) => j.id === antigoId);
+  const entra = disponiveis.find((j) => j.id === novoId);
 
   const handleConfirm = async () => {
-    if (!jogadorAntigoId || !jogadorNovoId) return;
+    if (!antigoId || !novoId) return;
 
     try {
       setLoading(true);
       setError(null);
-      await etapaService.substituirJogador(etapaId, jogadorAntigoId, jogadorNovoId);
+      await etapaService.substituirJogador(etapaId, antigoId, novoId);
       onSuccess();
     } catch (err: any) {
       setError(err.message || "Erro ao substituir jogador");
@@ -270,29 +260,21 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
     }
   };
 
-  const handleClose = () => {
-    if (loading) return;
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
   return (
     <Modal
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={onClose}
       title="Substituir Jogador"
       size="lg"
       loading={loading}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
           <Button
-            type="button"
             onClick={handleConfirm}
-            disabled={!jogadorAntigoId || !jogadorNovoId || loading}
+            disabled={!antigoId || !novoId}
             loading={loading}
           >
             {loading ? "Substituindo..." : "Confirmar Substituição"}
@@ -300,103 +282,50 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
         </>
       }
     >
-          <Description>
-            Selecione o jogador a ser substituído e o novo jogador.
-            Só é possível substituir antes de qualquer partida ser jogada.
-          </Description>
+      <Conteudo>
+        <Descricao>
+          Selecione o jogador a ser substituído e o novo jogador. Só é possível
+          substituir antes de qualquer partida ser jogada.
+        </Descricao>
 
-          {error && (
-            <SelectedInfo style={{ background: "#fef2f2", marginBottom: "1rem" }}>
-              <span style={{ color: "#dc2626", fontSize: "0.875rem" }}>{error}</span>
-            </SelectedInfo>
-          )}
+        {error && (
+          <div role="alert">
+            <Alert variant="error">{error}</Alert>
+          </div>
+        )}
 
-          <SelectionGrid>
-            {/* Coluna: Jogador a ser substituído */}
-            <SelectionColumn>
-              <ColumnTitle>Jogador a ser substituído</ColumnTitle>
-              <SearchInput
-                type="text"
-                placeholder="Buscar jogador..."
-                value={buscaAntigo}
-                onChange={(e) => setBuscaAntigo(e.target.value)}
-              />
-              <PlayerList>
-                {jogadoresInscritos.length === 0 ? (
-                  <EmptyMessage>Nenhum jogador encontrado</EmptyMessage>
-                ) : (
-                  jogadoresInscritos.map((inscricao) => (
-                    <PlayerItem
-                      key={inscricao.jogadorId}
-                      $selected={jogadorAntigoId === inscricao.jogadorId}
-                      onClick={() => setJogadorAntigoId(inscricao.jogadorId)}
-                    >
-                      <PlayerName>{inscricao.jogadorNome}</PlayerName>
-                      <PlayerInfo>
-                        {formatNivel(inscricao.jogadorNivel)} - {formatGenero(inscricao.jogadorGenero)}
-                      </PlayerInfo>
-                    </PlayerItem>
-                  ))
-                )}
-              </PlayerList>
-            </SelectionColumn>
+        <Colunas>
+          <ColunaJogadores
+            titulo="Jogador a ser substituído"
+            jogadores={inscritos}
+            selecionadoId={antigoId}
+            onSelecionar={setAntigoId}
+            vazio="Nenhum jogador encontrado"
+          />
+          <ColunaJogadores
+            titulo="Novo jogador"
+            jogadores={disponiveis}
+            selecionadoId={novoId}
+            onSelecionar={setNovoId}
+            vazio="Nenhum jogador disponível"
+            carregando={carregando}
+          />
+        </Colunas>
 
-            {/* Seta */}
-            <Arrow>→</Arrow>
-
-            {/* Coluna: Novo jogador */}
-            <SelectionColumn>
-              <ColumnTitle>Novo jogador</ColumnTitle>
-              <SearchInput
-                type="text"
-                placeholder="Buscar jogador..."
-                value={buscaNovo}
-                onChange={(e) => setBuscaNovo(e.target.value)}
-              />
-              <PlayerList>
-                {loadingDisponiveis ? (
-                  <LoadingMessage>Carregando jogadores...</LoadingMessage>
-                ) : jogadoresDisponiveisFiltrados.length === 0 ? (
-                  <EmptyMessage>Nenhum jogador disponível</EmptyMessage>
-                ) : (
-                  jogadoresDisponiveisFiltrados.map((jogador) => (
-                    <PlayerItem
-                      key={jogador.id}
-                      $selected={jogadorNovoId === jogador.id}
-                      onClick={() => setJogadorNovoId(jogador.id)}
-                    >
-                      <PlayerName>{jogador.nome}</PlayerName>
-                      <PlayerInfo>
-                        {formatNivel(jogador.nivel)} - {formatGenero(jogador.genero)}
-                      </PlayerInfo>
-                    </PlayerItem>
-                  ))
-                )}
-              </PlayerList>
-            </SelectionColumn>
-          </SelectionGrid>
-
-          {/* Resumo da seleção */}
-          {(jogadorAntigo || jogadorNovo) && (
-            <SelectedInfo>
-              <div style={{ display: "flex", gap: "2rem", justifyContent: "center" }}>
-                <div>
-                  <SelectedLabel>Sai</SelectedLabel>
-                  <SelectedName>
-                    {jogadorAntigo?.jogadorNome || "Não selecionado"}
-                  </SelectedName>
-                </div>
-                <div style={{ alignSelf: "center", color: "#9ca3af" }}>→</div>
-                <div>
-                  <SelectedLabel>Entra</SelectedLabel>
-                  <SelectedName>
-                    {jogadorNovo?.nome || "Não selecionado"}
-                  </SelectedName>
-                </div>
-              </div>
-            </SelectedInfo>
-          )}
-
+        {(sai || entra) && (
+          <Resumo>
+            <span>
+              Sai
+              <strong>{sai?.nome || "Não selecionado"}</strong>
+            </span>
+            <ArrowRight aria-hidden="true" size={20} />
+            <span>
+              Entra
+              <strong>{entra?.nome || "Não selecionado"}</strong>
+            </span>
+          </Resumo>
+        )}
+      </Conteudo>
     </Modal>
   );
 };

@@ -676,7 +676,7 @@ describe("useEditarEtapa", () => {
       });
 
       act(() => {
-        result.current.handleChange("maxJogadores", 100);
+        result.current.handleChange("maxJogadores", 108);
       });
 
       await act(async () => {
@@ -686,7 +686,7 @@ describe("useEditarEtapa", () => {
       });
 
       expect(result.current.error).toBe(
-        "TEAMS 4: máximo de 96 jogadores (24 equipes)"
+        "TEAMS 4: máximo de 104 jogadores (26 equipes)"
       );
     });
 

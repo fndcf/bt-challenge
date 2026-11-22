@@ -146,12 +146,12 @@ describe("JogadorCard", () => {
       renderWithRouter(
         <JogadorCard jogador={mockJogador} onDelete={onDelete} />
       );
-      expect(screen.getByText("Deletar")).toBeInTheDocument();
+      expect(screen.getByTitle("Deletar jogador")).toBeInTheDocument();
     });
 
     it("não deve mostrar botão Deletar quando onDelete não é fornecido", () => {
       renderWithRouter(<JogadorCard jogador={mockJogador} />);
-      expect(screen.queryByText("Deletar")).not.toBeInTheDocument();
+      expect(screen.queryByTitle("Deletar jogador")).not.toBeInTheDocument();
     });
 
     it("deve chamar onDelete com o jogador ao clicar", () => {
@@ -160,7 +160,7 @@ describe("JogadorCard", () => {
         <JogadorCard jogador={mockJogador} onDelete={onDelete} />
       );
 
-      fireEvent.click(screen.getByText("Deletar"));
+      fireEvent.click(screen.getByTitle("Deletar jogador"));
       expect(onDelete).toHaveBeenCalledWith(mockJogador);
     });
   });
@@ -180,7 +180,7 @@ describe("JogadorCard", () => {
 
       expect(screen.getByText("Ver")).toBeInTheDocument();
       expect(screen.getByText("Editar")).toBeInTheDocument();
-      expect(screen.getByText("Deletar")).toBeInTheDocument();
+      expect(screen.getByTitle("Deletar jogador")).toBeInTheDocument();
     });
 
     it("não deve mostrar nenhum botão quando nenhuma prop de ação é fornecida", () => {
@@ -188,7 +188,7 @@ describe("JogadorCard", () => {
 
       expect(screen.queryByText("Ver")).not.toBeInTheDocument();
       expect(screen.queryByText("Editar")).not.toBeInTheDocument();
-      expect(screen.queryByText("Deletar")).not.toBeInTheDocument();
+      expect(screen.queryByTitle("Deletar jogador")).not.toBeInTheDocument();
     });
   });
 

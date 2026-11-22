@@ -1,18 +1,24 @@
 /**
- * Responsabilidade única: Configuração de número de jogadores
+ * Responsabilidade única: Configuração de formação e número de jogadores
  */
 
 import React from "react";
-import { FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos, TipoFormacaoDupla } from "@/types/etapa";
-import * as S from "../CriarEtapa.styles";
+import { Campos, Cartao, CartaoTitulo } from "@/components/layout/Pagina";
+import { Checkbox, Input, Select } from "@/components/ui";
+import {
+  FormatoEtapa,
+  TipoFormacaoDupla,
+  TipoFormacaoEquipe,
+  TipoFormacaoJogos,
+  VarianteSuperX,
+  VarianteTeams,
+} from "@/types/etapa";
+import { MAX_EQUIPES_TEAMS } from "@/utils/etapa";
+import { OpcoesPontuacao, OpcoesPontuacaoProps } from "./OpcoesPontuacao";
 
-export interface ConfiguracoesJogadoresProps {
+export interface ConfiguracoesJogadoresProps
+  extends Omit<OpcoesPontuacaoProps, "bloqueado"> {
   maxJogadores: number;
-  formato: FormatoEtapa;
-  contaPontosRanking: boolean;
-  darPontosParticipacao: boolean;
-  melhorDe3: boolean;
-  melhorDe3Eliminatoria: boolean;
   grupoUnico?: boolean;
   varianteSuperX?: VarianteSuperX;
   varianteTeams?: VarianteTeams;
@@ -20,10 +26,6 @@ export interface ConfiguracoesJogadoresProps {
   tipoFormacaoJogos?: TipoFormacaoJogos;
   tipoFormacaoDupla?: TipoFormacaoDupla;
   onMaxJogadoresChange: (value: number) => void;
-  onContaPontosRankingChange: (value: boolean) => void;
-  onDarPontosParticipacaoChange: (value: boolean) => void;
-  onMelhorDe3Change: (value: boolean) => void;
-  onMelhorDe3EliminatoriaChange: (value: boolean) => void;
   onGrupoUnicoChange?: (value: boolean) => void;
   onVarianteSuperXChange?: (value: VarianteSuperX) => void;
   onVarianteTeamsChange?: (value: VarianteTeams) => void;
@@ -32,378 +34,246 @@ export interface ConfiguracoesJogadoresProps {
   onTipoFormacaoDuplaChange?: (value: TipoFormacaoDupla) => void;
 }
 
+const FORMACAO_DUPLA = [
+  {
+    value: TipoFormacaoDupla.MESMO_NIVEL,
+    label: "Mesmo Nível (jogadores do mesmo nível)",
+  },
+  {
+    value: TipoFormacaoDupla.BALANCEADO,
+    label: "Balanceado (Avançado + Iniciante, Intermediários entre si)",
+  },
+  {
+    value: TipoFormacaoDupla.MANUAL,
+    label: "Manual (organizador define as duplas)",
+  },
+];
+
+const AJUDA_FORMACAO_DUPLA: Record<TipoFormacaoDupla, string> = {
+  [TipoFormacaoDupla.MESMO_NIVEL]:
+    "Todas as duplas terão jogadores do mesmo nível",
+  [TipoFormacaoDupla.BALANCEADO]:
+    "Permite misturar jogadores de diferentes níveis",
+  [TipoFormacaoDupla.MANUAL]:
+    "O organizador definirá as duplas manualmente antes de gerar chaves",
+};
+
+const VARIANTES_SUPER_X = [
+  {
+    value: VarianteSuperX.SUPER_8,
+    label: "Super 8 (8 jogadores, 7 rodadas)",
+  },
+  {
+    value: VarianteSuperX.SUPER_12,
+    label: "Super 12 (12 jogadores, 11 rodadas)",
+  },
+];
+
+const VARIANTES_TEAMS = [
+  {
+    value: VarianteTeams.TEAMS_4,
+    label: "TEAMS 4 (4 jogadores por equipe, 2 jogos + decider)",
+  },
+  {
+    value: VarianteTeams.TEAMS_6,
+    label: "TEAMS 6 (6 jogadores por equipe, 3 jogos)",
+  },
+];
+
+const FORMACAO_EQUIPE = [
+  {
+    value: TipoFormacaoEquipe.BALANCEADO,
+    label: "Balanceado (distribuição equilibrada por nível)",
+  },
+  {
+    value: TipoFormacaoEquipe.MESMO_NIVEL,
+    label: "Mesmo Nível (apenas jogadores do mesmo nível)",
+  },
+  {
+    value: TipoFormacaoEquipe.MANUAL,
+    label: "Manual (organizador define as equipes)",
+  },
+];
+
+const FORMACAO_JOGOS = [
+  {
+    value: TipoFormacaoJogos.SORTEIO,
+    label: "Automático (sistema sorteia as duplas)",
+  },
+  {
+    value: TipoFormacaoJogos.MANUAL,
+    label: "Manual (equipes escolhem as duplas)",
+  },
+];
+
+/** Limites do número de jogadores; Super X é fixo pela variante */
+const getLimites = (formato: FormatoEtapa, varianteTeams: VarianteTeams) => {
+  switch (formato) {
+    case FormatoEtapa.REI_DA_PRAIA:
+      return {
+        min: 8,
+        max: 64,
+        multiplo: 4,
+        ajuda: "Múltiplo de 4 (mín: 8, máx: 64)",
+      };
+    case FormatoEtapa.TEAMS:
+      return {
+        min: varianteTeams * 2,
+        max: varianteTeams * MAX_EQUIPES_TEAMS,
+        multiplo: varianteTeams,
+        ajuda: `Múltiplo de ${varianteTeams} (mín: ${
+          varianteTeams * 2
+        }, máx: ${varianteTeams * MAX_EQUIPES_TEAMS}, ${MAX_EQUIPES_TEAMS} equipes)`,
+      };
+    default:
+      return {
+        min: 6,
+        max: 52,
+        multiplo: 2,
+        ajuda: "Número par (mín: 6, máx: 52)",
+      };
+  }
+};
+
 export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
   maxJogadores,
   formato,
-  contaPontosRanking,
-  darPontosParticipacao,
-  melhorDe3,
-  melhorDe3Eliminatoria,
   grupoUnico = false,
-  varianteSuperX,
-  varianteTeams,
-  tipoFormacaoEquipe,
-  tipoFormacaoJogos,
-  tipoFormacaoDupla,
+  varianteSuperX = VarianteSuperX.SUPER_8,
+  varianteTeams = VarianteTeams.TEAMS_4,
+  tipoFormacaoEquipe = TipoFormacaoEquipe.BALANCEADO,
+  tipoFormacaoJogos = TipoFormacaoJogos.SORTEIO,
+  tipoFormacaoDupla = TipoFormacaoDupla.MESMO_NIVEL,
   onMaxJogadoresChange,
-  onContaPontosRankingChange,
-  onDarPontosParticipacaoChange,
-  onMelhorDe3Change,
-  onMelhorDe3EliminatoriaChange,
   onGrupoUnicoChange,
   onVarianteSuperXChange,
   onVarianteTeamsChange,
   onTipoFormacaoEquipeChange,
   onTipoFormacaoJogosChange,
   onTipoFormacaoDuplaChange,
+  ...opcoesPontuacao
 }) => {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Permite digitação livre, inclusive valores vazios
-    if (value === "") {
-      onMaxJogadoresChange(0);
-    } else {
-      const numValue = parseInt(value);
-      if (!isNaN(numValue)) {
-        onMaxJogadoresChange(numValue);
-      }
-    }
-  };
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const valor = parseInt(e.target.value);
-
-    if (formato === FormatoEtapa.REI_DA_PRAIA) {
-      // Rei da Praia: mínimo 8, máximo 64, múltiplo de 4
-      if (isNaN(valor) || valor < 8) {
-        onMaxJogadoresChange(8);
-      } else if (valor > 64) {
-        onMaxJogadoresChange(64);
-      } else if (valor % 4 !== 0) {
-        onMaxJogadoresChange(Math.ceil(valor / 4) * 4);
-      }
-    } else if (formato === FormatoEtapa.DUPLA_FIXA) {
-      // Dupla Fixa: mínimo 6, máximo 52, par
-      if (isNaN(valor) || valor < 6) {
-        onMaxJogadoresChange(6);
-      } else if (valor > 52) {
-        onMaxJogadoresChange(52);
-      } else if (valor % 2 !== 0) {
-        onMaxJogadoresChange(valor + 1);
-      }
-    }
-    // Super X e TEAMS: valor é fixo pela variante selecionada, não precisa de ajuste no blur
-  };
-
-  const handleVarianteTeamsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = parseInt(e.target.value) as VarianteTeams;
-    if (onVarianteTeamsChange) {
-      onVarianteTeamsChange(value);
-    }
-  };
-
-  const handleTipoFormacaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value as TipoFormacaoEquipe;
-    if (onTipoFormacaoEquipeChange) {
-      onTipoFormacaoEquipeChange(value);
-    }
-  };
-
-  const handleTipoFormacaoJogosChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value as TipoFormacaoJogos;
-    if (onTipoFormacaoJogosChange) {
-      onTipoFormacaoJogosChange(value);
-    }
-  };
-
-  const handleTipoFormacaoDuplaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value as TipoFormacaoDupla;
-    if (onTipoFormacaoDuplaChange) {
-      onTipoFormacaoDuplaChange(value);
-    }
-  };
-
-  const handleVarianteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = parseInt(e.target.value) as VarianteSuperX;
-    if (onVarianteSuperXChange) {
-      onVarianteSuperXChange(value);
-    }
-    // Também atualiza maxJogadores para corresponder à variante
-    onMaxJogadoresChange(value);
-  };
-
-  // Para Super X e TEAMS, o campo de jogadores é somente leitura (controlado pela variante)
   const isSuperX = formato === FormatoEtapa.SUPER_X;
   const isTeams = formato === FormatoEtapa.TEAMS;
   const isDuplaFixa = formato === FormatoEtapa.DUPLA_FIXA;
 
+  const { min, max, multiplo, ajuda } = getLimites(formato, varianteTeams);
+
+  // Digitação livre (inclusive vazio); o valor é ajustado ao sair do campo
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    onMaxJogadoresChange(parseInt(e.target.value) || 0);
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const valor = parseInt(e.target.value) || 0;
+    const noLimite = Math.min(Math.max(valor, min), max);
+    const ajustado = Math.ceil(noLimite / multiplo) * multiplo;
+    if (ajustado !== valor) onMaxJogadoresChange(ajustado);
+  };
+
   return (
-    <S.Card>
-      <S.CardTitle>Configurações</S.CardTitle>
+    <Cartao>
+      <CartaoTitulo>Configurações</CartaoTitulo>
 
-      <S.FieldsContainer>
-        {/* Seletor de Tipo de Formação - apenas para Dupla Fixa */}
-        {isDuplaFixa && (
-          <S.Field>
-            <S.Label>Tipo de Formação de Duplas *</S.Label>
-            <S.Select
-              required
-              value={tipoFormacaoDupla || TipoFormacaoDupla.MESMO_NIVEL}
-              onChange={handleTipoFormacaoDuplaChange}
-            >
-              <option value={TipoFormacaoDupla.MESMO_NIVEL}>
-                Mesmo Nível (jogadores do mesmo nível)
-              </option>
-              <option value={TipoFormacaoDupla.BALANCEADO}>
-                Balanceado (Avançado + Iniciante, Intermediários entre si)
-              </option>
-              <option value={TipoFormacaoDupla.MANUAL}>
-                Manual (organizador define as duplas)
-              </option>
-            </S.Select>
-            <S.HelperText>
-              {tipoFormacaoDupla === TipoFormacaoDupla.MANUAL
-                ? "O organizador definirá as duplas manualmente antes de gerar chaves"
-                : tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO
-                ? "Permite misturar jogadores de diferentes níveis"
-                : "Todas as duplas terão jogadores do mesmo nível"}
-            </S.HelperText>
-          </S.Field>
+      {isDuplaFixa && (
+        <Select
+          label="Tipo de Formação de Duplas"
+          required
+          fullWidth
+          options={FORMACAO_DUPLA}
+          value={tipoFormacaoDupla}
+          onChange={(e) =>
+            onTipoFormacaoDuplaChange?.(e.target.value as TipoFormacaoDupla)
+          }
+          helperText={AJUDA_FORMACAO_DUPLA[tipoFormacaoDupla]}
+        />
+      )}
+
+      {isSuperX && (
+        <Select
+          label="Variante do Super X"
+          required
+          fullWidth
+          options={VARIANTES_SUPER_X}
+          value={varianteSuperX}
+          onChange={(e) => {
+            const variante = parseInt(e.target.value) as VarianteSuperX;
+            onVarianteSuperXChange?.(variante);
+            // O número de jogadores acompanha a variante
+            onMaxJogadoresChange(variante);
+          }}
+          helperText="Selecione o número de jogadores para o torneio Super X"
+        />
+      )}
+
+      {isTeams && (
+        <>
+          <Select
+            label="Variante TEAMS"
+            required
+            fullWidth
+            options={VARIANTES_TEAMS}
+            value={varianteTeams}
+            onChange={(e) =>
+              onVarianteTeamsChange?.(parseInt(e.target.value) as VarianteTeams)
+            }
+            helperText="Selecione o número de jogadores por equipe"
+          />
+          <Select
+            label="Tipo de Formação de Equipes"
+            required
+            fullWidth
+            options={FORMACAO_EQUIPE}
+            value={tipoFormacaoEquipe}
+            onChange={(e) =>
+              onTipoFormacaoEquipeChange?.(
+                e.target.value as TipoFormacaoEquipe
+              )
+            }
+            helperText="Como os jogadores serão distribuídos nas equipes"
+          />
+          <Select
+            label="Formação das Partidas"
+            required
+            fullWidth
+            options={FORMACAO_JOGOS}
+            value={tipoFormacaoJogos}
+            onChange={(e) =>
+              onTipoFormacaoJogosChange?.(e.target.value as TipoFormacaoJogos)
+            }
+            helperText="Como as duplas serão formadas dentro de cada confronto"
+          />
+        </>
+      )}
+
+      {!isSuperX && (
+        <Input
+          label={isTeams ? "Número de Jogadores" : "Máximo de Jogadores"}
+          type="number"
+          required
+          fullWidth
+          min={min}
+          max={max}
+          step={multiplo}
+          value={maxJogadores || ""}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          helperText={ajuda}
+        />
+      )}
+
+      <Campos>
+        {isDuplaFixa && onGrupoUnicoChange && (
+          <Checkbox
+            id="grupoUnico"
+            label="Grupo único (todos contra todos)"
+            checked={grupoUnico}
+            onChange={onGrupoUnicoChange}
+            helperText="Todas as duplas jogam entre si em um único grupo, sem divisão em múltiplos grupos"
+          />
         )}
-
-        {/* Seletor de Variante - apenas para Super X */}
-        {isSuperX && (
-          <S.Field>
-            <S.Label>Variante do Super X *</S.Label>
-            <S.Select
-              required
-              value={varianteSuperX || VarianteSuperX.SUPER_8}
-              onChange={handleVarianteChange}
-            >
-              <option value={VarianteSuperX.SUPER_8}>
-                Super 8 (8 jogadores, 7 rodadas)
-              </option>
-              <option value={VarianteSuperX.SUPER_12}>
-                Super 12 (12 jogadores, 11 rodadas)
-              </option>
-            </S.Select>
-            <S.HelperText>
-              Selecione o número de jogadores para o torneio Super X
-            </S.HelperText>
-          </S.Field>
-        )}
-
-        {/* Seletor de Variante - apenas para TEAMS */}
-        {isTeams && (
-          <>
-            <S.Field>
-              <S.Label>Variante TEAMS *</S.Label>
-              <S.Select
-                required
-                value={varianteTeams || VarianteTeams.TEAMS_4}
-                onChange={handleVarianteTeamsChange}
-              >
-                <option value={VarianteTeams.TEAMS_4}>
-                  TEAMS 4 (4 jogadores por equipe, 2 jogos + decider)
-                </option>
-                <option value={VarianteTeams.TEAMS_6}>
-                  TEAMS 6 (6 jogadores por equipe, 3 jogos)
-                </option>
-              </S.Select>
-              <S.HelperText>
-                Selecione o número de jogadores por equipe
-              </S.HelperText>
-            </S.Field>
-
-            <S.Field>
-              <S.Label>Tipo de Formação de Equipes *</S.Label>
-              <S.Select
-                required
-                value={tipoFormacaoEquipe || TipoFormacaoEquipe.BALANCEADO}
-                onChange={handleTipoFormacaoChange}
-              >
-                <option value={TipoFormacaoEquipe.BALANCEADO}>
-                  Balanceado (distribuição equilibrada por nível)
-                </option>
-                <option value={TipoFormacaoEquipe.MESMO_NIVEL}>
-                  Mesmo Nível (apenas jogadores do mesmo nível)
-                </option>
-                <option value={TipoFormacaoEquipe.MANUAL}>
-                  Manual (organizador define as equipes)
-                </option>
-              </S.Select>
-              <S.HelperText>
-                Como os jogadores serão distribuídos nas equipes
-              </S.HelperText>
-            </S.Field>
-
-            <S.Field>
-              <S.Label>Formação das Partidas *</S.Label>
-              <S.Select
-                required
-                value={tipoFormacaoJogos || TipoFormacaoJogos.SORTEIO}
-                onChange={handleTipoFormacaoJogosChange}
-              >
-                <option value={TipoFormacaoJogos.SORTEIO}>
-                  Automático (sistema sorteia as duplas)
-                </option>
-                <option value={TipoFormacaoJogos.MANUAL}>
-                  Manual (equipes escolhem as duplas)
-                </option>
-              </S.Select>
-              <S.HelperText>
-                Como as duplas serão formadas dentro de cada confronto
-              </S.HelperText>
-            </S.Field>
-
-            <S.Field>
-              <S.Label>Número de Jogadores *</S.Label>
-              <S.Input
-                type="number"
-                required
-                min={varianteTeams === VarianteTeams.TEAMS_6 ? "12" : "8"}
-                max="60"
-                step={varianteTeams || VarianteTeams.TEAMS_4}
-                value={maxJogadores || ""}
-                onChange={handleInputChange}
-                onBlur={(e) => {
-                  const valor = parseInt(e.target.value);
-                  const variante = varianteTeams || VarianteTeams.TEAMS_4;
-                  const minimo = variante * 2; // Mínimo de 2 equipes
-                  if (isNaN(valor) || valor < minimo) {
-                    onMaxJogadoresChange(minimo);
-                  } else if (valor % variante !== 0) {
-                    onMaxJogadoresChange(Math.ceil(valor / variante) * variante);
-                  }
-                }}
-              />
-              <S.HelperText>
-                Múltiplo de {varianteTeams || 4} (mín: {(varianteTeams || 4) * 2} para 2 equipes)
-              </S.HelperText>
-            </S.Field>
-          </>
-        )}
-
-        {/* Campo de Jogadores - oculto para Super X e TEAMS pois tem campos específicos */}
-        {!isSuperX && !isTeams && (
-          <S.Field>
-            <S.Label>Máximo de Jogadores *</S.Label>
-            <S.Input
-              type="number"
-              required
-              min={formato === FormatoEtapa.REI_DA_PRAIA ? "8" : "6"}
-              max={formato === FormatoEtapa.REI_DA_PRAIA ? "64" : "52"}
-              step={formato === FormatoEtapa.REI_DA_PRAIA ? "4" : "2"}
-              value={maxJogadores || ""}
-              onChange={handleInputChange}
-              onBlur={handleBlur}
-            />
-            <S.HelperText>
-              {formato === FormatoEtapa.REI_DA_PRAIA
-                ? "Múltiplo de 4 (mín: 8, máx: 64)"
-                : "Número par (mín: 6, máx: 52)"}
-            </S.HelperText>
-          </S.Field>
-        )}
-
-        {formato === FormatoEtapa.DUPLA_FIXA && onGrupoUnicoChange && (
-          <S.Field>
-            <S.CheckboxContainer>
-              <S.Checkbox
-                type="checkbox"
-                id="grupoUnico"
-                checked={grupoUnico}
-                onChange={(e) => onGrupoUnicoChange(e.target.checked)}
-              />
-              <S.CheckboxLabel htmlFor="grupoUnico">
-                Grupo único (todos contra todos)
-              </S.CheckboxLabel>
-            </S.CheckboxContainer>
-            <S.HelperText>
-              Todas as duplas jogam entre si em um único grupo, sem divisão em múltiplos grupos
-            </S.HelperText>
-          </S.Field>
-        )}
-
-        <S.Field>
-          <S.CheckboxContainer>
-            <S.Checkbox
-              type="checkbox"
-              id="contaPontosRanking"
-              checked={contaPontosRanking}
-              onChange={(e) => onContaPontosRankingChange(e.target.checked)}
-            />
-            <S.CheckboxLabel htmlFor="contaPontosRanking">
-              Conta pontos no ranking
-            </S.CheckboxLabel>
-          </S.CheckboxContainer>
-          <S.HelperText>
-            Se desmarcado, as estatísticas dos jogos serão registradas, mas não
-            somarão pontos no ranking geral
-          </S.HelperText>
-        </S.Field>
-
-        {/* Pontos de participação: só faz sentido quando conta pontos no ranking,
-            e não se aplica ao Super X (lá todo mundo pontua pela colocação final,
-            não existe uma faixa fixa de "participação") */}
-        {contaPontosRanking && !isSuperX && (
-          <S.Field>
-            <S.CheckboxContainer>
-              <S.Checkbox
-                type="checkbox"
-                id="darPontosParticipacao"
-                checked={darPontosParticipacao}
-                onChange={(e) => onDarPontosParticipacaoChange(e.target.checked)}
-              />
-              <S.CheckboxLabel htmlFor="darPontosParticipacao">
-                Dar pontos de participação
-              </S.CheckboxLabel>
-            </S.CheckboxContainer>
-            <S.HelperText>
-              Se desmarcado, quem não se classificar/colocar não recebe pontos
-              de participação — apenas quem chegar em alguma colocação pontua
-            </S.HelperText>
-          </S.Field>
-        )}
-
-        <S.Field>
-          <S.CheckboxContainer>
-            <S.Checkbox
-              type="checkbox"
-              id="melhorDe3"
-              checked={melhorDe3}
-              onChange={(e) => onMelhorDe3Change(e.target.checked)}
-            />
-            <S.CheckboxLabel htmlFor="melhorDe3">
-              Partidas melhor de 3 sets
-            </S.CheckboxLabel>
-          </S.CheckboxContainer>
-          <S.HelperText>
-            Ao lançar o resultado, serão pedidos 2 sets; se cada lado vencer
-            um, abre um 3º set de desempate
-          </S.HelperText>
-        </S.Field>
-
-        {melhorDe3 && (
-          <S.Field>
-            <S.CheckboxContainer>
-              <S.Checkbox
-                type="checkbox"
-                id="melhorDe3Eliminatoria"
-                checked={melhorDe3Eliminatoria}
-                onChange={(e) => onMelhorDe3EliminatoriaChange(e.target.checked)}
-              />
-              <S.CheckboxLabel htmlFor="melhorDe3Eliminatoria">
-                Aplicar também na fase eliminatória (mata-mata)
-              </S.CheckboxLabel>
-            </S.CheckboxContainer>
-            <S.HelperText>
-              Se desmarcado, o mata-mata continua sendo decidido em 1 set único
-            </S.HelperText>
-          </S.Field>
-        )}
-      </S.FieldsContainer>
-    </S.Card>
+        <OpcoesPontuacao formato={formato} {...opcoesPontuacao} />
+      </Campos>
+    </Cartao>
   );
 };
 

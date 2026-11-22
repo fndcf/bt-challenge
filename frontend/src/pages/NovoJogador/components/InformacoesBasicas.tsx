@@ -3,8 +3,9 @@
  */
 
 import React from "react";
+import { Campos, Cartao, CartaoTitulo } from "@/components/layout/Pagina";
+import { Input, Select } from "@/components/ui";
 import { GeneroJogador } from "@/types/jogador";
-import * as S from "../NovoJogador.styles";
 
 export interface InformacoesBasicasProps {
   nome: string;
@@ -18,6 +19,11 @@ export interface InformacoesBasicasProps {
   ) => void;
 }
 
+const GENEROS = [
+  { value: GeneroJogador.MASCULINO, label: "Masculino" },
+  { value: GeneroJogador.FEMININO, label: "Feminino" },
+];
+
 export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   nome,
   email,
@@ -26,94 +32,67 @@ export const InformacoesBasicas: React.FC<InformacoesBasicasProps> = ({
   genero,
   errors,
   onChange,
-}) => {
-  return (
-    <S.Card>
-      <S.CardTitle>Informações Básicas</S.CardTitle>
-      <S.FormGrid>
-        {/* Nome Completo */}
-        <S.FormGroup $fullWidth>
-          <S.Label htmlFor="nome">
-            Nome Completo <S.Required>*</S.Required>
-          </S.Label>
-          <S.Input
-            type="text"
-            id="nome"
-            name="nome"
-            value={nome}
-            onChange={onChange}
-            placeholder="Ex: João Silva"
-            $hasError={!!errors.nome}
-            required
-          />
-          {errors.nome && <S.ErrorText>{errors.nome}</S.ErrorText>}
-        </S.FormGroup>
-
-        {/* Email */}
-        <S.FormGroup>
-          <S.Label htmlFor="email">Email</S.Label>
-          <S.Input
-            type="email"
-            id="email"
-            name="email"
-            value={email}
-            onChange={onChange}
-            placeholder="joao@email.com"
-            $hasError={!!errors.email}
-          />
-          {errors.email && <S.ErrorText>{errors.email}</S.ErrorText>}
-        </S.FormGroup>
-
-        {/* Telefone */}
-        <S.FormGroup>
-          <S.Label htmlFor="telefone">Telefone</S.Label>
-          <S.Input
-            type="tel"
-            id="telefone"
-            name="telefone"
-            value={telefone}
-            onChange={onChange}
-            placeholder="(00) 00000-0000"
-            $hasError={!!errors.telefone}
-            maxLength={15}
-          />
-          {errors.telefone && <S.ErrorText>{errors.telefone}</S.ErrorText>}
-        </S.FormGroup>
-
-        {/* Data de Nascimento */}
-        <S.FormGroup>
-          <S.Label htmlFor="dataNascimento">Data de Nascimento</S.Label>
-          <S.Input
-            type="date"
-            id="dataNascimento"
-            name="dataNascimento"
-            value={dataNascimento}
-            onChange={onChange}
-            $hasError={!!errors.dataNascimento}
-          />
-          {errors.dataNascimento && (
-            <S.ErrorText>{errors.dataNascimento}</S.ErrorText>
-          )}
-        </S.FormGroup>
-
-        {/* Gênero */}
-        <S.FormGroup>
-          <S.Label htmlFor="genero">
-            Gênero <S.Required>*</S.Required>
-          </S.Label>
-          <S.Select
-            id="genero"
-            name="genero"
-            value={genero || ""}
-            onChange={onChange}
-          >
-            <option value="masculino">Masculino</option>
-            <option value="feminino">Feminino</option>
-          </S.Select>
-        </S.FormGroup>
-      </S.FormGrid>
-    </S.Card>
-  );
-};
+}) => (
+  <Cartao>
+    <CartaoTitulo>Informações Básicas</CartaoTitulo>
+    <Input
+      label="Nome Completo"
+      id="nome"
+      name="nome"
+      fullWidth
+      required
+      value={nome}
+      onChange={onChange}
+      placeholder="Ex: João Silva"
+      error={errors.nome}
+    />
+    <Campos $colunas>
+      <Input
+        label="Email"
+        type="email"
+        id="email"
+        name="email"
+        fullWidth
+        value={email}
+        onChange={onChange}
+        placeholder="joao@email.com"
+        error={errors.email}
+      />
+      <Input
+        label="Telefone"
+        type="tel"
+        id="telefone"
+        name="telefone"
+        fullWidth
+        value={telefone}
+        onChange={onChange}
+        placeholder="(00) 00000-0000"
+        maxLength={15}
+        error={errors.telefone}
+      />
+      <Input
+        label="Data de Nascimento"
+        type="date"
+        id="dataNascimento"
+        name="dataNascimento"
+        fullWidth
+        value={dataNascimento}
+        onChange={onChange}
+        error={errors.dataNascimento}
+      />
+      <Select
+        label="Gênero"
+        id="genero"
+        name="genero"
+        fullWidth
+        required
+        options={GENEROS}
+        value={genero || ""}
+        onChange={onChange}
+        error={errors.genero}
+      />
+    </Campos>
+  </Cartao>
+);
 
 export default InformacoesBasicas;

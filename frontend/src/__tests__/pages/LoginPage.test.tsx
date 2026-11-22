@@ -182,7 +182,7 @@ describe("Login - Renderização da Página", () => {
       renderPage();
 
       expect(
-        screen.queryByRole("button", { name: "×" })
+        screen.queryByLabelText("Fechar alerta")
       ).not.toBeInTheDocument();
     });
 
@@ -205,7 +205,7 @@ describe("Login - Renderização da Página", () => {
 
       renderPage();
 
-      expect(screen.getByText("×")).toBeInTheDocument();
+      expect(screen.getByLabelText("Fechar alerta")).toBeInTheDocument();
     });
 
     it("deve chamar setErrorMessage ao fechar alerta", () => {
@@ -218,7 +218,7 @@ describe("Login - Renderização da Página", () => {
 
       renderPage();
 
-      fireEvent.click(screen.getByText("×"));
+      fireEvent.click(screen.getByLabelText("Fechar alerta"));
 
       expect(mockSetErrorMessage).toHaveBeenCalledWith("");
     });
@@ -278,7 +278,7 @@ describe("Login - Renderização da Página", () => {
 
       renderPage();
 
-      const submitButton = screen.getByRole("button", { name: "" });
+      const submitButton = screen.getByRole("button", { name: "Entrando..." });
       expect(submitButton).toBeDisabled();
     });
 

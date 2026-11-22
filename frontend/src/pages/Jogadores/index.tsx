@@ -2,24 +2,24 @@
  * Responsabilidade única: Orquestrar componentes da página de listagem de jogadores
  */
 
-import React, { useRef, useEffect, useState } from "react";
-import { useDocumentTitle } from "@/hooks";
+import React, { useEffect, useRef, useState } from "react";
+import { Download, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Footer } from "@/components/layout/Footer";
+import { CabecalhoPagina, Pagina } from "@/components/layout/Pagina";
 import { ModalImportarJogadores } from "@/components/modals/ModalImportarJogadores";
+import { Alert, Button, Pagination } from "@/components/ui";
+import { useDocumentTitle } from "@/hooks";
 import { useListagemJogadores } from "./hooks/useListagemJogadores";
-import { PageHeader } from "./components/PageHeader";
-import { SearchBar } from "./components/SearchBar";
 import { FiltersBar } from "./components/FiltersBar";
 import { JogadoresList } from "./components/JogadoresList";
-import { Pagination } from "./components/Pagination";
-import * as S from "./Jogadores.styles";
 
 export const ListagemJogadores: React.FC = () => {
   useDocumentTitle("Jogadores");
+  const navigate = useNavigate();
   const alertRef = useRef<HTMLDivElement>(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
-  // Hook centralizado com toda a lógica de negócio
   const {
     jogadores,
     loading,
@@ -39,12 +39,10 @@ export const ListagemJogadores: React.FC = () => {
     limparFiltros,
     temFiltrosAtivos,
     total,
-    offset,
-    temMais,
+    limite,
     paginaAtual,
     totalPaginas,
-    handlePaginaAnterior,
-    handleProximaPagina,
+    irParaPagina,
     handleDeletarJogador,
     exportando,
     handleExportarExcel,
@@ -58,46 +56,69 @@ export const ListagemJogadores: React.FC = () => {
     }
   }, [errorMessage, successMessage]);
 
-  const handleImportSuccess = (resultado: { criados: number; ignorados: string[] }) => {
+  const handleNovoJogador = () => navigate("/admin/jogadores/novo");
+
+  const handleImportSuccess = (resultado: {
+    criados: number;
+    ignorados: string[];
+  }) => {
     let mensagem = `${resultado.criados} jogador(es) importado(s) com sucesso`;
     if (resultado.ignorados.length > 0) {
-      mensagem += `\n${resultado.ignorados.length} jogador(es) ignorado(s) por já existirem: ${resultado.ignorados.join(", ")}`;
+      mensagem += `. ${
+        resultado.ignorados.length
+      } jogador(es) ignorado(s) por já existirem: ${resultado.ignorados.join(
+        ", "
+      )}`;
     }
     setSuccessMessage(mensagem);
   };
 
   return (
-    <S.Container>
-      {/* Header */}
-      <PageHeader
-        title="Jogadores"
-        subtitle="Gerencie os jogadores da sua arena"
-        onExportar={handleExportarExcel}
-        onImportar={() => setShowImportModal(true)}
-        exportando={exportando}
+    <Pagina>
+      <CabecalhoPagina
+        titulo="Jogadores"
+        subtitulo="Gerencie os jogadores da sua arena"
+        acoes={
+          <>
+            <Button
+              variant="outline"
+              icon={<Download size={16} />}
+              onClick={handleExportarExcel}
+              disabled={exportando}
+            >
+              {exportando ? "Exportando..." : "Exportar"}
+            </Button>
+            <Button
+              variant="outline"
+              icon={<Upload size={16} />}
+              onClick={() => setShowImportModal(true)}
+            >
+              Importar
+            </Button>
+            <Button onClick={handleNovoJogador}>Novo Jogador</Button>
+          </>
+        }
       />
 
-      {/* Mensagens de Sucesso */}
       {successMessage && (
-        <S.Alert ref={alertRef} $type="success">
-          <S.AlertContent>{successMessage}</S.AlertContent>
-          <S.AlertClose onClick={() => setSuccessMessage("")}>×</S.AlertClose>
-        </S.Alert>
+        <div ref={alertRef}>
+          <Alert variant="success" onClose={() => setSuccessMessage("")}>
+            {successMessage}
+          </Alert>
+        </div>
       )}
 
-      {/* Mensagens de Erro */}
       {errorMessage && (
-        <S.Alert ref={alertRef} $type="error">
-          <S.AlertContent>{errorMessage}</S.AlertContent>
-          <S.AlertClose onClick={() => setErrorMessage("")}>×</S.AlertClose>
-        </S.Alert>
+        <div ref={alertRef}>
+          <Alert variant="error" onClose={() => setErrorMessage("")}>
+            {errorMessage}
+          </Alert>
+        </div>
       )}
 
-      {/* Busca */}
-      <SearchBar value={busca} onChange={setBusca} />
-
-      {/* Filtros */}
       <FiltersBar
+        busca={busca}
+        setBusca={setBusca}
         nivelFiltro={nivelFiltro}
         setNivelFiltro={setNivelFiltro}
         statusFiltro={statusFiltro}
@@ -108,29 +129,26 @@ export const ListagemJogadores: React.FC = () => {
         onLimparFiltros={limparFiltros}
       />
 
-      {/* Lista de Jogadores */}
       <JogadoresList
         jogadores={jogadores}
         loading={loading}
         total={total}
         arenaSlug={arena?.slug}
         temFiltrosAtivos={temFiltrosAtivos}
+        onNovo={handleNovoJogador}
         onDeletar={handleDeletarJogador}
       />
 
-      {/* Paginação */}
       {!loading && jogadores.length > 0 && (
         <Pagination
-          paginaAtual={paginaAtual}
-          totalPaginas={totalPaginas}
-          temMais={temMais}
-          offset={offset}
-          onPaginaAnterior={handlePaginaAnterior}
-          onProximaPagina={handleProximaPagina}
+          currentPage={paginaAtual}
+          totalPages={totalPaginas}
+          totalItems={total}
+          itemsPerPage={limite}
+          onPageChange={irParaPagina}
         />
       )}
 
-      {/* Modal de Importação */}
       <ModalImportarJogadores
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
@@ -139,9 +157,8 @@ export const ListagemJogadores: React.FC = () => {
         onExportarModelo={handleExportarExcel}
       />
 
-      {/* Rodapé */}
       <Footer />
-    </S.Container>
+    </Pagina>
   );
 };
 

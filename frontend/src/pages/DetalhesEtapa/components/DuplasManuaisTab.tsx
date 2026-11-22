@@ -11,7 +11,7 @@ import {
 import { AcoesChaves } from "@/components/torneio";
 import { Alert, Button } from "@/components/ui";
 import { FormatoEtapa, Inscricao } from "@/types/etapa";
-import { Cartao } from "../DetalhesEtapa.styles";
+import { Cartao } from "@/components/layout/Pagina";
 
 interface DuplasManuaisTabProps {
   inscricoes: Inscricao[];

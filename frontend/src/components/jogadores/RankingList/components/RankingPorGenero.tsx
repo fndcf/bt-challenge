@@ -60,6 +60,12 @@ const RotuloAba = styled.span`
   gap: ${theme.spacing[2]};
 `;
 
+const NIVEIS_POR_PREFERENCIA = [
+  NivelJogador.INTERMEDIARIO,
+  NivelJogador.AVANCADO,
+  NivelJogador.INICIANTE,
+];
+
 export const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
   genero,
   arenaSlug,
@@ -71,9 +77,14 @@ export const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
   loading,
   error,
 }) => {
-  const [nivelAtivo, setNivelAtivo] = useState<NivelJogador>(
-    NivelJogador.INTERMEDIARIO
+  const [nivelEscolhido, setNivelEscolhido] = useState<NivelJogador | null>(
+    null
   );
+  // Até o usuário escolher, abre num nível que tenha jogadores
+  const nivelAtivo =
+    nivelEscolhido ??
+    NIVEIS_POR_PREFERENCIA.find((nivel) => getContador(genero, nivel) > 0) ??
+    NivelJogador.INTERMEDIARIO;
   const [pagina, setPagina] = useState(1);
 
   const titulo = `Ranking ${getGeneroLabel(genero)}`;
@@ -87,7 +98,7 @@ export const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
 
   const handleNivelChange = (nivel: NivelJogador) => {
     setPagina(1);
-    setNivelAtivo(nivel);
+    setNivelEscolhido(nivel);
   };
 
   const renderRanking = () => {

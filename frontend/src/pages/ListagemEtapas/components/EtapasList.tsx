@@ -3,9 +3,10 @@
  */
 
 import React from "react";
-import { Etapa } from "@/types/etapa";
 import { EtapaCard } from "@/components/etapas/EtapaCard";
-import * as S from "../ListagemEtapas.styles";
+import { CarregandoPagina, Grade } from "@/components/layout/Pagina";
+import { Alert, Button, EmptyState } from "@/components/ui";
+import { Etapa } from "@/types/etapa";
 
 interface EtapasListProps {
   etapas: Etapa[];
@@ -22,44 +23,38 @@ export const EtapasList: React.FC<EtapasListProps> = ({
   temFiltrosAtivos,
   onCriarClick,
 }) => {
-  // Loading state
   if (loading) {
+    return <CarregandoPagina mensagem="Carregando etapas..." />;
+  }
+
+  if (error) {
+    return <Alert variant="error">{error}</Alert>;
+  }
+
+  if (etapas.length === 0) {
     return (
-      <S.LoadingContainer>
-        <S.Spinner />
-      </S.LoadingContainer>
+      <EmptyState
+        titulo="Nenhuma etapa encontrada"
+        descricao={
+          temFiltrosAtivos
+            ? "Não há etapas com os filtros selecionados."
+            : "Comece criando sua primeira etapa!"
+        }
+        acao={
+          !temFiltrosAtivos && (
+            <Button onClick={onCriarClick}>Criar Primeira Etapa</Button>
+          )
+        }
+      />
     );
   }
 
   return (
-    <>
-      {/* Error state */}
-      {error && <S.ErrorBox>{error}</S.ErrorBox>}
-
-      {/* Empty state */}
-      {etapas.length === 0 ? (
-        <S.EmptyState>
-          <S.EmptyTitle>Nenhuma etapa encontrada</S.EmptyTitle>
-          <S.EmptyText>
-            {temFiltrosAtivos
-              ? "Não há etapas com os filtros selecionados."
-              : "Comece criando sua primeira etapa!"}
-          </S.EmptyText>
-          {!temFiltrosAtivos && (
-            <S.CreateButton onClick={onCriarClick}>
-              Criar Primeira Etapa
-            </S.CreateButton>
-          )}
-        </S.EmptyState>
-      ) : (
-        // List of etapas
-        <S.EtapasGrid>
-          {etapas.map((etapa) => (
-            <EtapaCard key={etapa.id} etapa={etapa} />
-          ))}
-        </S.EtapasGrid>
-      )}
-    </>
+    <Grade $minimo="20rem" $preencher>
+      {etapas.map((etapa) => (
+        <EtapaCard key={etapa.id} etapa={etapa} />
+      ))}
+    </Grade>
   );
 };
 

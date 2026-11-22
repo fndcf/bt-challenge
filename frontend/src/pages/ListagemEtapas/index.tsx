@@ -5,18 +5,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "@/components/layout/Footer";
+import { CabecalhoPagina, Pagina } from "@/components/layout/Pagina";
+import { Button, Pagination } from "@/components/ui";
 import { useListagemEtapas } from "./hooks/useListagemEtapas";
-import { PageHeader } from "./components/PageHeader";
 import { StatsCards } from "./components/StatsCards";
 import { FiltersBar } from "./components/FiltersBar";
 import { EtapasList } from "./components/EtapasList";
-import { Pagination } from "./components/Pagination";
-import * as S from "./ListagemEtapas.styles";
 
 export const ListagemEtapas: React.FC = () => {
   const navigate = useNavigate();
 
-  // Hook centralizado com toda a lógica de negócio
   const {
     etapas,
     loading,
@@ -37,26 +35,24 @@ export const ListagemEtapas: React.FC = () => {
     setFiltroGenero,
     setOrdenacao,
     limparFiltros,
-    proximaPagina,
-    paginaAnterior,
     irParaPagina,
     temFiltrosAtivos,
   } = useListagemEtapas();
 
-  // Handlers
   const handleCriarEtapa = () => {
     navigate("/admin/etapas/criar");
   };
 
   return (
-    <S.Container>
-      {/* Cabeçalho */}
-      <PageHeader onCriarClick={handleCriarEtapa} />
+    <Pagina>
+      <CabecalhoPagina
+        titulo="Etapas"
+        subtitulo="Gerencie as etapas do torneio"
+        acoes={<Button onClick={handleCriarEtapa}>Criar Etapa</Button>}
+      />
 
-      {/* Cards de Estatísticas */}
       <StatsCards stats={stats} />
 
-      {/* Barra de Filtros */}
       <FiltersBar
         filtroStatus={filtroStatus}
         filtroFormato={filtroFormato}
@@ -72,7 +68,6 @@ export const ListagemEtapas: React.FC = () => {
         temFiltrosAtivos={temFiltrosAtivos}
       />
 
-      {/* Lista de Etapas */}
       <EtapasList
         etapas={etapas}
         loading={loading}
@@ -81,20 +76,18 @@ export const ListagemEtapas: React.FC = () => {
         onCriarClick={handleCriarEtapa}
       />
 
-      {/* Paginação */}
-      <Pagination
-        paginaAtual={paginaAtual}
-        totalPaginas={totalPaginas}
-        totalEtapas={totalEtapas}
-        etapasPorPagina={etapasPorPagina}
-        onProximaPagina={proximaPagina}
-        onPaginaAnterior={paginaAnterior}
-        onIrParaPagina={irParaPagina}
-      />
+      {totalEtapas > 0 && (
+        <Pagination
+          currentPage={paginaAtual}
+          totalPages={totalPaginas}
+          totalItems={totalEtapas}
+          itemsPerPage={etapasPorPagina}
+          onPageChange={irParaPagina}
+        />
+      )}
 
-      {/* Rodapé */}
       <Footer />
-    </S.Container>
+    </Pagina>
   );
 };
 

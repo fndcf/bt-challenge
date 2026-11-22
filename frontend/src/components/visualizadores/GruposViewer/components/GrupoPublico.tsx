@@ -67,6 +67,12 @@ interface GrupoPublicoProps {
   formato: FormatoEtapa;
 }
 
+const EmColunas = styled(ListaConfrontos)`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  align-items: start;
+`;
+
 export const GrupoPublico: React.FC<GrupoPublicoProps> = ({
   grupo,
   formato,
@@ -119,22 +125,22 @@ export const GrupoPublico: React.FC<GrupoPublicoProps> = ({
               {grupo.tipo !== "eliminatoria" && (
                 <Subtitulo>Confrontos</Subtitulo>
               )}
-              <ListaConfrontos>
+              <EmColunas>
                 {confrontos.map((confronto) => (
                   <ConfrontoPublico key={confronto.id} confronto={confronto} />
                 ))}
-              </ListaConfrontos>
+              </EmColunas>
             </>
           )}
 
           {partidas.length > 0 && (
             <>
               <Subtitulo>Partidas</Subtitulo>
-              <ListaConfrontos>
+              <EmColunas>
                 {partidas.map((partida) => (
                   <PartidaPublica key={partida.id} partida={partida} />
                 ))}
-              </ListaConfrontos>
+              </EmColunas>
             </>
           )}
         </Conteudo>

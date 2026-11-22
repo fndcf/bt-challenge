@@ -3,7 +3,8 @@
  */
 
 import React from "react";
-import * as S from "../RegisterArena.styles";
+import { Campos } from "@/components/layout/Pagina";
+import { Badge, Input } from "@/components/ui";
 
 export interface SlugFieldProps {
   value: string;
@@ -22,47 +23,38 @@ export const SlugField: React.FC<SlugFieldProps> = ({
   disabled,
   onChange,
 }) => {
+  const renderSituacao = () => {
+    if (checkingSlug) return <Badge>Verificando disponibilidade...</Badge>;
+    if (slugAvailable === true && value.length >= 3) {
+      return <Badge tom="sucesso">✓ Slug disponível!</Badge>;
+    }
+    if (slugAvailable === false) {
+      return <Badge tom="erro">✗ Slug já está em uso</Badge>;
+    }
+    return null;
+  };
+
+  const situacao = renderSituacao();
+
   return (
-    <S.FormGroup>
-      <S.Label htmlFor="slug">
-        Slug (URL da Arena)
-        <S.OptionalBadge>opcional</S.OptionalBadge>
-      </S.Label>
-      <S.SlugInputWrapper>
-        <S.SlugPrefix>challengebt.com.br/arena/</S.SlugPrefix>
-        <S.SlugInput
-          type="text"
-          id="slug"
-          value={value}
-          onChange={(e) => onChange(e.target.value.toLowerCase())}
-          $hasError={!!error}
-          disabled={disabled}
-          placeholder="deixe em branco para gerar automaticamente"
-        />
-      </S.SlugInputWrapper>
-
-      {checkingSlug && (
-        <S.SlugStatus $status="checking">
-          <S.SmallSpinner /> Verificando disponibilidade...
-        </S.SlugStatus>
-      )}
-
-      {!checkingSlug && slugAvailable === true && value.length >= 3 && (
-        <S.SlugStatus $status="available">✓ Slug disponível!</S.SlugStatus>
-      )}
-
-      {!checkingSlug && slugAvailable === false && (
-        <S.SlugStatus $status="unavailable">✗ Slug já está em uso</S.SlugStatus>
-      )}
-
-      {error && <S.ErrorText>{error}</S.ErrorText>}
-
-      <S.HelperText>
-        {value
-          ? "Apenas letras minúsculas, números e hífens."
-          : "Será gerado automaticamente a partir do nome da arena."}
-      </S.HelperText>
-    </S.FormGroup>
+    <Campos>
+      <Input
+        label="Slug (URL da Arena, opcional)"
+        id="slug"
+        fullWidth
+        value={value}
+        onChange={(e) => onChange(e.target.value.toLowerCase())}
+        error={error}
+        disabled={disabled}
+        placeholder="Ex: arena-azul"
+        helperText={
+          value
+            ? `challengebt.com.br/arena/${value} — apenas letras minúsculas, números e hífens.`
+            : "Será gerado automaticamente a partir do nome da arena."
+        }
+      />
+      {situacao && <div role="status">{situacao}</div>}
+    </Campos>
   );
 };
 

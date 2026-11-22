@@ -274,6 +274,33 @@ describe("useCriarEtapa", () => {
       expect(result.current.infoTeams.jogosPorConfronto).toBe(3);
     });
 
+    it("deve separar em grupos e contar só os confrontos da fase de grupos", () => {
+      const { result } = renderHook(() => useCriarEtapa());
+
+      act(() => {
+        result.current.handleChange("formato", FormatoEtapa.TEAMS);
+        result.current.handleChange("varianteTeams", VarianteTeams.TEAMS_4);
+        result.current.handleChange("maxJogadores", 104);
+      });
+
+      expect(result.current.infoTeams.valido).toBe(true);
+      expect(result.current.infoTeams.grupos).toEqual([3, 3, 3, 3, 3, 3, 4, 4]);
+      expect(result.current.infoTeams.totalConfrontos).toBe(30);
+    });
+
+    it("deve recusar mais de 26 equipes", () => {
+      const { result } = renderHook(() => useCriarEtapa());
+
+      act(() => {
+        result.current.handleChange("formato", FormatoEtapa.TEAMS);
+        result.current.handleChange("varianteTeams", VarianteTeams.TEAMS_6);
+        result.current.handleChange("maxJogadores", 162);
+      });
+
+      expect(result.current.infoTeams.valido).toBe(false);
+      expect(result.current.infoTeams.descricao).toContain("156");
+    });
+
     it("deve mostrar descrição com mínimo de jogadores para 2 equipes", () => {
       const { result } = renderHook(() => useCriarEtapa());
 

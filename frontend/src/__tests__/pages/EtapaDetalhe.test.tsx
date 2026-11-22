@@ -38,16 +38,6 @@ jest.mock("@/pages/EtapaDetalhe/hooks/useEtapaDetalhe", () => ({
 }));
 
 // Mock dos componentes filhos
-jest.mock("@/pages/EtapaDetalhe/components/EtapaHeader", () => ({
-  EtapaHeader: ({ arenaName, etapa, onBack }: any) => (
-    <div data-testid="etapa-header">
-      <span>Arena: {arenaName}</span>
-      <span>Etapa: {etapa.nome}</span>
-      <button onClick={onBack} data-testid="btn-voltar">Voltar</button>
-    </div>
-  ),
-}));
-
 jest.mock("@/pages/EtapaDetalhe/components/EtapaInfo", () => ({
   EtapaInfo: ({ etapa, totalJogadores }: any) => (
     <div data-testid="etapa-info">
@@ -157,7 +147,7 @@ describe("EtapaDetalhe - Renderização da Página", () => {
 
       renderPage();
 
-      expect(screen.queryByTestId("etapa-header")).not.toBeInTheDocument();
+      expect(screen.queryByText("← Voltar")).not.toBeInTheDocument();
       expect(screen.queryByTestId("etapa-info")).not.toBeInTheDocument();
     });
   });
@@ -209,10 +199,10 @@ describe("EtapaDetalhe - Renderização da Página", () => {
   });
 
   describe("Renderização com sucesso", () => {
-    it("deve renderizar EtapaHeader", () => {
+    it("deve renderizar o botão de voltar no topo", () => {
       renderPage();
 
-      expect(screen.getByTestId("etapa-header")).toBeInTheDocument();
+      expect(screen.getByText("← Voltar")).toBeInTheDocument();
     });
 
     it("deve renderizar EtapaInfo", () => {
@@ -230,16 +220,17 @@ describe("EtapaDetalhe - Renderização da Página", () => {
     it("deve exibir nome da arena no header", () => {
       renderPage();
 
-      expect(screen.getByTestId("etapa-header")).toHaveTextContent(
-        "Arena: Arena Teste"
+      expect(screen.getByText("Arena Teste")).toHaveAttribute(
+        "href",
+        "/arena/arena-teste"
       );
     });
 
     it("deve exibir nome da etapa no header", () => {
       renderPage();
 
-      expect(screen.getByTestId("etapa-header")).toHaveTextContent(
-        "Etapa: Etapa 1"
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+        "Etapa 1"
       );
     });
 
@@ -299,7 +290,7 @@ describe("EtapaDetalhe - Renderização da Página", () => {
     it("deve chamar navigate ao clicar em voltar", () => {
       renderPage();
 
-      fireEvent.click(screen.getByTestId("btn-voltar"));
+      fireEvent.click(screen.getByText("← Voltar"));
 
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });

@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
+import { theme } from "@/styles/theme";
 
 export const PageContainer = styled.div`
   min-height: 100vh;
@@ -7,7 +8,7 @@ export const PageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+  background: ${theme.gradients.primary};
   padding: 1rem;
   position: relative;
   overflow: hidden;
@@ -115,7 +116,7 @@ export const HomeButton = styled(Link)`
   gap: 0.5rem;
   padding: 1rem 2rem;
   background: white;
-  color: #134e5e;
+  color: ${theme.semantic.acao.primaria};
   border-radius: 0.75rem;
   font-weight: 700;
   font-size: 1rem;

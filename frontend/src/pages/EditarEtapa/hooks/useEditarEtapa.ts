@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Etapa, AtualizarEtapaDTO, FormatoEtapa } from "@/types/etapa";
+import { MAX_EQUIPES_TEAMS } from "@/utils/etapa";
 import { getEtapaService } from "@/services";
 import { format } from "date-fns";
 
@@ -248,8 +249,7 @@ export const useEditarEtapa = (
           // TEAMS: validação baseada na variante (4 ou 6 jogadores por equipe)
           const variante = etapa.varianteTeams || 4;
           const minimo = variante * 2; // Mínimo de 2 equipes
-          // Máximo: 24 equipes (8 grupos × 3 equipes) = 96 jogadores (TEAMS_4) ou 144 jogadores (TEAMS_6)
-          const maximo = variante === 4 ? 96 : 144;
+          const maximo = variante * MAX_EQUIPES_TEAMS;
 
           if (formData.maxJogadores < minimo) {
             setError(`TEAMS ${variante}: mínimo de ${minimo} jogadores (2 equipes)`);
@@ -258,7 +258,7 @@ export const useEditarEtapa = (
           }
 
           if (formData.maxJogadores > maximo) {
-            setError(`TEAMS ${variante}: máximo de ${maximo} jogadores (24 equipes)`);
+            setError(`TEAMS ${variante}: máximo de ${maximo} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
             setSalvando(false);
             return;
           }

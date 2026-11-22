@@ -1,31 +1,9 @@
 {
-  "src/components/arena/EtapaCardList/EtapaCard.styles.ts": {
-    "hex": 16
-  },
-  "src/components/arena/EtapaCardList/EtapaCardList.tsx": {
-    "hex": 2
-  },
   "src/components/etapas/FormacaoManual/FormacaoManual.tsx": {
     "styledButton": 1
   },
-  "src/components/jogadores/JogadorCard/JogadorCard.tsx": {
-    "hex": 39,
-    "styledButton": 1
-  },
   "src/components/layout/AdminLayout/AdminLayout.tsx": {
-    "hex": 8,
     "styledButton": 4
-  },
-  "src/components/modals/ModalImportarJogadores/ModalImportarJogadores.tsx": {
-    "hex": 19
-  },
-  "src/components/modals/ModalNovaArena/ModalNovaArena.tsx": {
-    "hex": 15,
-    "styledButton": 2
-  },
-  "src/components/modals/ModalSubstituirJogador/ModalSubstituirJogador.tsx": {
-    "hex": 20,
-    "styledButton": 1
   },
   "src/components/ui/Alert/Alert.tsx": {
     "styledButton": 1
@@ -35,9 +13,6 @@
   },
   "src/components/ui/IconButton/IconButton.tsx": {
     "styledButton": 1
-  },
-  "src/components/ui/LoadingOverlay/LoadingOverlay.tsx": {
-    "hex": 3
   },
   "src/components/ui/Modal/Modal.tsx": {
     "styledButton": 1
@@ -51,77 +26,8 @@
   "src/components/ui/Toast/Toast.tsx": {
     "styledButton": 1
   },
-  "src/pages/ArenaPublica/ArenaPublica.styles.ts": {
-    "hex": 12
-  },
-  "src/pages/CriarEtapa/CriarEtapa.styles.ts": {
-    "hex": 49,
-    "styledButton": 2
-  },
-  "src/pages/Dashboard/Dashboard.styles.ts": {
-    "hex": 16
-  },
-  "src/pages/Dashboard/components/QuickActions.tsx": {
-    "hex": 3
-  },
-  "src/pages/Dashboard/components/StatsCards.tsx": {
-    "hex": 5
-  },
-  "src/pages/EditarEtapa/EditarEtapa.styles.ts": {
-    "hex": 45,
-    "styledButton": 2
-  },
-  "src/pages/EditarJogador/EditarJogador.styles.ts": {
-    "hex": 18,
-    "styledButton": 3
-  },
-  "src/pages/EtapaDetalhe/EtapaDetalhe.styles.ts": {
-    "hex": 44,
-    "styledButton": 2
-  },
   "src/pages/Home/Home.styles.ts": {
-    "hex": 52,
     "styledButton": 4
-  },
-  "src/pages/JogadorPerfil/JogadorPerfil.styles.ts": {
-    "hex": 34,
-    "styledButton": 2
-  },
-  "src/pages/JogadorPerfil/components/HistoricoCard.tsx": {
-    "hex": 3
-  },
-  "src/pages/JogadorPerfil/components/StatsGrid.tsx": {
-    "hex": 3
-  },
-  "src/pages/Jogadores/Jogadores.styles.ts": {
-    "hex": 42,
-    "styledButton": 6
-  },
-  "src/pages/ListagemEtapas/ListagemEtapas.styles.ts": {
-    "hex": 41,
-    "styledButton": 4
-  },
-  "src/pages/Login/Login.styles.ts": {
-    "hex": 29,
-    "styledButton": 3
-  },
-  "src/pages/NotFound/NotFound.styles.ts": {
-    "hex": 3
-  },
-  "src/pages/NovoJogador/NovoJogador.styles.ts": {
-    "hex": 43,
-    "styledButton": 3
-  },
-  "src/pages/RecuperarSenha/RecuperarSenha.styles.ts": {
-    "hex": 40,
-    "styledButton": 4
-  },
-  "src/pages/RegisterArena/RegisterArena.styles.ts": {
-    "hex": 43,
-    "styledButton": 1
-  },
-  "src/pages/Unauthorized/Unauthorized.styles.ts": {
-    "hex": 3
   },
   "src/utils/logger.ts": {
     "hex": 4

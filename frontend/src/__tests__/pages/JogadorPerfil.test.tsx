@@ -36,23 +36,12 @@ jest.mock("@/pages/JogadorPerfil/hooks/useJogadorPerfil", () => ({
 }));
 
 // Mock dos componentes filhos
-jest.mock("@/pages/JogadorPerfil/components/PageHeader", () => ({
-  PageHeader: ({ arenaSlug, arenaNome, jogadorNome }: any) => (
-    <div data-testid="page-header">
-      <span>Arena: {arenaNome}</span>
-      <span>Jogador: {jogadorNome}</span>
-      <span>Slug: {arenaSlug}</span>
-    </div>
-  ),
-}));
-
 jest.mock("@/pages/JogadorPerfil/components/ProfileHeader", () => ({
   ProfileHeader: ({
     nomeJogador,
     arenaNome,
     nivelJogador,
     generoJogador,
-    posicaoAtual,
     getInitials,
   }: any) => (
     <div data-testid="profile-header">
@@ -60,7 +49,6 @@ jest.mock("@/pages/JogadorPerfil/components/ProfileHeader", () => ({
       <span>Arena: {arenaNome}</span>
       <span>Nível: {nivelJogador}</span>
       <span>Gênero: {generoJogador}</span>
-      <span>Posição: {posicaoAtual}</span>
       <span data-testid="initials">{getInitials(nomeJogador)}</span>
     </div>
   ),
@@ -68,6 +56,7 @@ jest.mock("@/pages/JogadorPerfil/components/ProfileHeader", () => ({
 
 jest.mock("@/pages/JogadorPerfil/components/StatsGrid", () => ({
   StatsGrid: ({
+    posicaoAtual,
     totalVitorias,
     totalDerrotas,
     totalEtapas,
@@ -75,6 +64,7 @@ jest.mock("@/pages/JogadorPerfil/components/StatsGrid", () => ({
     totalGamesPerdidos,
   }: any) => (
     <div data-testid="stats-grid">
+      <span>Posição: {posicaoAtual}</span>
       <span>Vitórias: {totalVitorias}</span>
       <span>Derrotas: {totalDerrotas}</span>
       <span>Etapas: {totalEtapas}</span>
@@ -222,10 +212,10 @@ describe("JogadorPerfil - Renderização", () => {
   });
 
   describe("Estrutura básica", () => {
-    it("deve renderizar PageHeader", () => {
+    it("deve renderizar o botão de voltar no topo", () => {
       renderWithRouter(<JogadorPerfil />);
 
-      expect(screen.getByTestId("page-header")).toBeInTheDocument();
+      expect(screen.getByText("← Voltar")).toBeInTheDocument();
     });
 
     it("deve renderizar ProfileHeader", () => {
@@ -254,19 +244,18 @@ describe("JogadorPerfil - Renderização", () => {
   });
 
   describe("Dados do jogador", () => {
-    it("deve exibir nome do jogador no PageHeader", () => {
+    it("deve exibir nome do jogador no topo", () => {
       renderWithRouter(<JogadorPerfil />);
 
-      expect(screen.getByTestId("page-header")).toHaveTextContent(
-        "Jogador: João Silva"
-      );
+      expect(screen.getByRole("navigation")).toHaveTextContent("João Silva");
     });
 
-    it("deve exibir nome da arena no PageHeader", () => {
+    it("deve exibir nome da arena no topo", () => {
       renderWithRouter(<JogadorPerfil />);
 
-      expect(screen.getByTestId("page-header")).toHaveTextContent(
-        "Arena: Arena Teste"
+      expect(screen.getByRole("link", { name: "Arena Teste" })).toHaveAttribute(
+        "href",
+        "/arena/arena-teste"
       );
     });
 
@@ -286,10 +275,10 @@ describe("JogadorPerfil - Renderização", () => {
       expect(screen.getByTestId("profile-header")).toHaveTextContent("Gênero: M");
     });
 
-    it("deve exibir posição atual no ProfileHeader", () => {
+    it("deve exibir posição atual nas estatísticas", () => {
       renderWithRouter(<JogadorPerfil />);
 
-      expect(screen.getByTestId("profile-header")).toHaveTextContent("Posição: 3");
+      expect(screen.getByTestId("stats-grid")).toHaveTextContent("Posição: 3");
     });
 
     it("deve exibir histórico", () => {

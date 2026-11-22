@@ -1,315 +1,97 @@
+/**
+ * Cartão do jogador na listagem do admin
+ */
+
 import React from "react";
+import { Trash2 } from "lucide-react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
-import { Jogador, NivelJogador, StatusJogador } from "@/types/jogador";
+import { SeloGenero } from "../Genero";
+import { Badge, BadgeTom, Button, ButtonLink, IconButton } from "@/components/ui";
+import { theme } from "@/styles/theme";
+import { Jogador, StatusJogador } from "@/types/jogador";
+import { getNivelLabel } from "@/utils/formatters";
 
 interface JogadorCardProps {
   jogador: Jogador;
   arenaSlug?: string;
   onEdit?: (jogador: Jogador) => void;
   onDelete?: (jogador: Jogador) => void;
-  onView?: (jogador: Jogador) => void;
 }
 
-// ============== STYLED COMPONENTS ==============
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
 
-const Card = styled.div`
-  background: white;
-  border-radius: 0.75rem;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-`;
-
-const Header = styled.div`
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+const Card = styled.article`
   display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  border-bottom: 1px solid #e5e7eb;
+  flex-direction: column;
+  gap: ${theme.spacing[4]};
+  padding: ${theme.spacing[4]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${superficie.fundo};
 `;
 
-const AvatarContainer = styled.div`
-  flex-shrink: 0;
+const Cabecalho = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[3]};
 `;
 
-const AvatarPlaceholder = styled.div`
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+const Avatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 700;
-  border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const InfoContainer = styled.div`
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: ${theme.borderRadius.full};
+  background: ${acao.fundoClaro};
+  color: ${acao.primaria};
+  font-size: ${fontSize.lg};
+  font-weight: ${fontWeight.bold};
 `;
 
 const Nome = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 0.5rem 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: ${fontSize.base};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
-const NivelBadge = styled.span<{ $cor: string }>`
-  background: ${(props) => `${props.$cor}20`};
-  color: ${(props) => props.$cor};
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
+const Contato = styled.p`
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
 `;
 
-const StatusBadge = styled.span<{ $status: StatusJogador }>`
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-
-  ${(props) => {
-    switch (props.$status) {
-      case StatusJogador.ATIVO:
-        return `
-          background: #dcfce7;
-          color: #166534;
-        `;
-      case StatusJogador.INATIVO:
-        return `
-          background: #fef3c7;
-          color: #92400e;
-        `;
-      case StatusJogador.SUSPENSO:
-        return `
-          background: #fee2e2;
-          color: #991b1b;
-        `;
-      default:
-        return `
-          background: #f3f4f6;
-          color: #6b7280;
-        `;
-    }
-  }}
-`;
-
-const Body = styled.div`
-  padding: 1.5rem;
+const Selos = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: ${theme.spacing[2]};
 `;
 
-const ContatoSection = styled.div`
+const Acoes = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: ${theme.spacing[2]};
+  margin-top: auto;
+  padding-top: ${theme.spacing[3]};
+  border-top: 1px solid ${superficie.borda};
+  color: ${texto.secundario};
+
+  > :not([aria-label]) {
+    flex: 1;
+  }
 `;
 
-const ContatoItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const ContatoTexto = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const StatItem = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-`;
-
-const Footer = styled.div`
-  padding: 0.5rem 1rem;
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  gap: 0.5rem;
-`;
-
-//  Botão que pode ser Link ou Button
-const ActionButton = styled.button<{ $variant: "view" | "edit" | "delete" }>`
-  flex: 1;
-  padding: 0.5rem 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  text-decoration: none;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "view":
-        return `
-          background: white;
-          color: #3b82f6;
-          border-color: #3b82f6;
-          
-          &:hover {
-            background: #3b82f6;
-            color: white;
-          }
-        `;
-      case "edit":
-        return `
-          background: white;
-          color: #f59e0b;
-          border-color: #f59e0b;
-          
-          &:hover {
-            background: #f59e0b;
-            color: white;
-          }
-        `;
-      case "delete":
-        return `
-          background: white;
-          color: #dc2626;
-          border-color: #dc2626;
-          
-          &:hover {
-            background: #dc2626;
-            color: white;
-          }
-        `;
-    }
-  }}
-`;
-
-const ActionLink = styled(Link)<{ $variant: "view" | "edit" | "delete" }>`
-  flex: 1;
-  padding: 0.5rem 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  text-decoration: none;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "view":
-        return `
-          background: white;
-          color: #3b82f6;
-          border-color: #3b82f6;
-          
-          &:hover {
-            background: #3b82f6;
-            color: white;
-          }
-        `;
-      case "edit":
-        return `
-          background: white;
-          color: #f59e0b;
-          border-color: #f59e0b;
-          
-          &:hover {
-            background: #f59e0b;
-            color: white;
-          }
-        `;
-      case "delete":
-        return `
-          background: white;
-          color: #dc2626;
-          border-color: #dc2626;
-          
-          &:hover {
-            background: #dc2626;
-            color: white;
-          }
-        `;
-    }
-  }}
-`;
-
-// ============== HELPER FUNCTIONS ==============
-
-const getNivelInfo = (nivel: NivelJogador) => {
-  const niveis = {
-    [NivelJogador.INICIANTE]: {
-      cor: "#4caf50",
-      label: "Iniciante",
-    },
-    [NivelJogador.INTERMEDIARIO]: {
-      cor: "#2196f3",
-      label: "Intermediário",
-    },
-    [NivelJogador.AVANCADO]: {
-      cor: "#ff9800",
-      label: "Avançado",
-    },
-  };
-  return niveis[nivel] || niveis[NivelJogador.INICIANTE];
+const STATUS: Record<StatusJogador, { label: string; tom: BadgeTom }> = {
+  [StatusJogador.ATIVO]: { label: "Ativo", tom: "sucesso" },
+  [StatusJogador.INATIVO]: { label: "Inativo", tom: "neutro" },
+  [StatusJogador.SUSPENSO]: { label: "Suspenso", tom: "erro" },
 };
-
-const getStatusBadge = (status: StatusJogador) => {
-  const badges = {
-    [StatusJogador.ATIVO]: {
-      label: "Ativo",
-    },
-    [StatusJogador.INATIVO]: {
-      label: "Inativo",
-    },
-    [StatusJogador.SUSPENSO]: {
-      label: "Suspenso",
-    },
-  };
-  return badges[status] || badges[StatusJogador.ATIVO];
-};
-
-const formatarTelefone = (telefone?: string) => {
-  if (!telefone) return "-";
-  return telefone;
-};
-
-// ============== COMPONENTE ==============
 
 const JogadorCard: React.FC<JogadorCardProps> = ({
   jogador,
@@ -317,79 +99,61 @@ const JogadorCard: React.FC<JogadorCardProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const nivelInfo = getNivelInfo(jogador.nivel);
-  const statusBadge = getStatusBadge(jogador.status);
+  const status = STATUS[jogador.status] ?? STATUS[StatusJogador.ATIVO];
 
   return (
     <Card>
-      <Header>
-        <AvatarContainer>
-          <AvatarPlaceholder>
-            {jogador.nome.charAt(0).toUpperCase()}
-          </AvatarPlaceholder>
-        </AvatarContainer>
+      <Cabecalho>
+        <Avatar aria-hidden="true">
+          {jogador.nome.charAt(0).toUpperCase()}
+        </Avatar>
+        <Nome>{jogador.nome}</Nome>
+      </Cabecalho>
 
-        <InfoContainer>
-          <Nome>{jogador.nome}</Nome>
-        </InfoContainer>
-      </Header>
+      {(jogador.email || jogador.telefone) && (
+        <div>
+          {jogador.email && <Contato>{jogador.email}</Contato>}
+          {jogador.telefone && <Contato>{jogador.telefone}</Contato>}
+        </div>
+      )}
 
-      <Body>
-        {(jogador.email || jogador.telefone) && (
-          <ContatoSection>
-            {jogador.email && (
-              <ContatoItem>
-                <ContatoTexto>{jogador.email}</ContatoTexto>
-              </ContatoItem>
-            )}
-            {jogador.telefone && (
-              <ContatoItem>
-                <ContatoTexto>
-                  {formatarTelefone(jogador.telefone)}
-                </ContatoTexto>
-              </ContatoItem>
-            )}
-          </ContatoSection>
-        )}
-        <StatItem>
-          <NivelBadge $cor={nivelInfo.cor}>{nivelInfo.label}</NivelBadge>
-          <StatusBadge $status={jogador.status}>
-            {statusBadge.label}
-          </StatusBadge>
-        </StatItem>
-      </Body>
+      <Selos>
+        <Badge>{getNivelLabel(jogador.nivel)}</Badge>
+        <SeloGenero genero={jogador.genero} />
+        <Badge tom={status.tom}>{status.label}</Badge>
+      </Selos>
 
-      <Footer>
-        {/*  Botão Ver vai para perfil público */}
+      <Acoes>
         {arenaSlug && (
-          <ActionLink
-            $variant="view"
+          <ButtonLink
+            variant="outline"
+            size="sm"
             to={`/arena/${arenaSlug}/jogador/${jogador.id}`}
             title="Ver perfil público"
           >
             Ver
-          </ActionLink>
+          </ButtonLink>
         )}
-
         {onEdit && (
-          <ActionButton
-            $variant="edit"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onEdit(jogador)}
             title="Editar jogador"
           >
             Editar
-          </ActionButton>
+          </Button>
         )}
         {onDelete && (
-          <ActionButton
-            $variant="delete"
-            onClick={() => onDelete(jogador)}
+          <IconButton
+            rotulo={`Deletar ${jogador.nome}`}
             title="Deletar jogador"
-          >
-            Deletar
-          </ActionButton>
+            tom="perigo"
+            icone={<Trash2 aria-hidden="true" />}
+            onClick={() => onDelete(jogador)}
+          />
         )}
-      </Footer>
+      </Acoes>
     </Card>
   );
 };

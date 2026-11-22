@@ -1,279 +1,99 @@
-import styled from "styled-components";
 import { Link } from "react-router-dom";
+import styled from "styled-components";
+import { theme } from "@/styles/theme";
 
-// ============== CONTAINER ==============
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
 
-export const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-
-  @media (min-width: 640px) {
-    padding: 1.5rem;
-  }
-
-  @media (min-width: 1024px) {
-    padding: 2rem;
-  }
+export const Secao = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing[4]};
 `;
 
-// ============== WELCOME BANNER ==============
+export const SecaoTitulo = styled.h2`
+  margin: 0;
+  font-size: ${fontSize.xl};
+  font-weight: ${fontWeight.bold};
+  color: ${texto.principal};
+`;
+
+// ============== BOAS-VINDAS (só no desktop) ==============
 
 export const WelcomeBanner = styled.div`
-  background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
-  border-radius: 12px;
-  padding: 2rem;
-  color: white;
-  margin-bottom: 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 2rem;
+  gap: ${theme.spacing[8]};
+  padding: ${theme.spacing[8]};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${acao.primaria};
+  color: ${texto.inverso};
 
-  @media (max-width: 768px) {
+  @media (max-width: ${theme.breakpoints.md}) {
     display: none;
   }
 `;
 
 export const WelcomeText = styled.div`
   h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.75rem;
+    margin: 0 0 ${theme.spacing[2]} 0;
+    font-size: ${fontSize["2xl"]};
   }
 
   p {
     margin: 0;
-    opacity: 0.9;
   }
 `;
 
 export const ArenaBadge = styled.div`
-  background: rgba(255, 255, 255, 0.15);
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-
-  span:first-child {
-    font-size: 2rem;
-  }
-
-  div {
-    p {
-      margin: 0;
-      font-weight: 600;
-    }
-
-    small {
-      opacity: 0.8;
-      font-size: 0.875rem;
-    }
-  }
-`;
-
-// ============== SECTION ==============
-
-export const Section = styled.section`
-  margin-bottom: 3rem;
-
-  h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0 0 1.5rem 0;
-
-    @media (max-width: 768px) {
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
-    }
-  }
-`;
-
-// ============== STATS CARDS ==============
-
-export const StatsGrid = styled.div`
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: 1fr;
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-export const StatCard = styled.div<{ $color: string }>`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  @media (max-width: 768px) {
-    padding: 1.25rem;
-  }
-`;
-
-export const StatContent = styled.div`
-  flex: 1;
+  padding: ${theme.spacing[4]} ${theme.spacing[6]};
+  border-radius: ${theme.borderRadius.md};
+  background: ${superficie.sobreposicaoEscura};
 
   p {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.875rem;
-    color: #6b7280;
-
-    @media (max-width: 768px) {
-      font-size: 0.8125rem;
-    }
-  }
-
-  h3 {
     margin: 0;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
+    font-weight: ${fontWeight.semibold};
+  }
 
-    @media (max-width: 768px) {
-      font-size: 1.75rem;
-    }
+  small {
+    font-size: ${fontSize.sm};
   }
 `;
 
-// ============== QUICK ACTIONS ==============
-
-export const ActionsGrid = styled.div`
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: 1fr;
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
+// ============== AÇÕES RÁPIDAS ==============
 
 export const ActionCard = styled(Link)`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  transition: all 0.3s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  justify-content: space-between;
+  gap: ${theme.spacing[4]};
+  padding: ${theme.spacing[4]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${superficie.fundo};
+  color: ${acao.primaria};
+  text-decoration: none;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: ${acao.primaria};
   }
 
-  @media (max-width: 768px) {
-    padding: 1.25rem;
+  &:focus-visible {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 2px;
   }
-`;
-
-export const ActionContent = styled.div`
-  flex: 1;
 
   h3 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #1f2937;
-
-    @media (max-width: 768px) {
-      font-size: 1rem;
-    }
+    margin: 0 0 ${theme.spacing[1]} 0;
+    font-size: ${fontSize.base};
+    font-weight: ${fontWeight.semibold};
+    color: ${texto.principal};
   }
 
   p {
     margin: 0;
-    font-size: 0.875rem;
-    color: #6b7280;
-
-    @media (max-width: 768px) {
-      font-size: 0.8125rem;
-    }
-  }
-`;
-
-export const ActionArrow = styled.div<{ $color: string }>`
-  color: ${(props) => props.$color};
-  font-size: 1.5rem;
-  transition: transform 0.3s;
-
-  ${ActionCard}:hover & {
-    transform: translateX(4px);
-  }
-`;
-
-// ============== LOADING & ERROR ==============
-
-export const LoadingContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-`;
-
-export const Spinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-export const ErrorContainer = styled.div`
-  background: #fef2f2;
-  border: 1px solid #fee2e2;
-  border-radius: 12px;
-  padding: 1.5rem;
-  color: #991b1b;
-  text-align: center;
-
-  p {
-    margin: 0 0 1rem 0;
-    font-weight: 600;
-  }
-
-  button {
-    background: #dc2626;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
-
-    &:hover {
-      background: #b91c1c;
-    }
+    font-size: ${fontSize.sm};
+    color: ${texto.secundario};
   }
 `;

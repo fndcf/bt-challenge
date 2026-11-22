@@ -1,53 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { FormatoEtapa } from "@/types/etapa";
 import { NivelJogador, GeneroJogador } from "@/types/jogador";
-
-// ============================================
-// FORMATAÇÃO DE ETAPAS
-// ============================================
-
-/**
- * Converte formato de etapa para label amigável
- */
-export const getFormatoLabel = (
-  formato: FormatoEtapa | string,
-  varianteSuperX?: number
-): string => {
-  switch (formato) {
-    case FormatoEtapa.DUPLA_FIXA:
-    case "dupla_fixa":
-      return "Dupla Fixa";
-    case FormatoEtapa.REI_DA_PRAIA:
-    case "rei_da_praia":
-      return "Rei da Praia";
-    case FormatoEtapa.SUPER_X:
-    case "super_x":
-      if (varianteSuperX === 8) return "Super 8";
-      if (varianteSuperX === 12) return "Super 12";
-      return "Super X";
-    default:
-      return formato;
-  }
-};
-
-/**
- * Converte status de etapa para label amigável
- */
-export const getStatusLabel = (status: string): string => {
-  switch (status) {
-    case "aberta":
-      return "Inscrições Abertas";
-    case "em_andamento":
-      return "Em Andamento";
-    case "finalizada":
-      return "Finalizada";
-    case "planejada":
-      return "Em Breve";
-    default:
-      return status;
-  }
-};
 
 // ============================================
 // FORMATAÇÃO DE JOGADORES

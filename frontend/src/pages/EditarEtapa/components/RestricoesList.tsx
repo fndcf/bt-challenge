@@ -3,15 +3,9 @@
  */
 
 import React from "react";
-import { FormatoEtapa } from "@/types/etapa";
-import * as S from "../EditarEtapa.styles";
-
-export interface RestricaoItem {
-  texto: string;
-}
+import { Alert } from "@/components/ui";
 
 export interface RestrictionsListProps {
-  formato: FormatoEtapa;
   chavesGeradas: boolean;
   temInscritos: boolean;
 }
@@ -20,33 +14,26 @@ export const RestricoesList: React.FC<RestrictionsListProps> = ({
   chavesGeradas,
   temInscritos,
 }) => {
-  // Se chaves já foram geradas, não pode editar nada
   if (chavesGeradas) {
     return (
-      <S.AlertCard $variant="error">
-        <S.AlertText>
-          Esta etapa não pode ser editada pois as chaves já foram geradas
-        </S.AlertText>
-      </S.AlertCard>
+      <Alert variant="error">
+        Esta etapa não pode ser editada pois as chaves já foram geradas
+      </Alert>
     );
   }
 
-  // Se tem inscritos mas chaves não foram geradas
   if (temInscritos) {
     return (
-      <S.AlertCard $variant="warning">
-        <S.AlertText>
-          Esta etapa já possui inscritos. Algumas alterações são restritas:
-        </S.AlertText>
-        <S.AlertList>
+      <Alert variant="warning">
+        <p>Esta etapa já possui inscritos. Algumas alterações são restritas:</p>
+        <ul>
           <li>Não é possível alterar o nível ou gênero</li>
           <li>Não é possível diminuir o número máximo de jogadores</li>
-        </S.AlertList>
-      </S.AlertCard>
+        </ul>
+      </Alert>
     );
   }
 
-  // Sem restrições
   return null;
 };
 

@@ -136,7 +136,8 @@ export const montarTabela = (
       rotulo: "Equipe",
       linhas: equipes.map((e, index) => ({
         id: e.id,
-        posicao: e.posicaoGrupo || index + 1,
+        // Já vêm em ordem; a posição gravada é a geral da etapa
+        posicao: index + 1,
         nome: e.nome,
         classificado: e.classificada,
         estatisticas: e,

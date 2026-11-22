@@ -3,11 +3,17 @@
  * Exporta todos os componentes para fácil importação
  */
 
-export { Button } from "./Button";
+export { Button, ButtonLink } from "./Button";
 export type { ButtonVariant, ButtonSize } from "./Button";
 
 export { Input } from "./Input";
 export type { InputSize } from "./Input";
+
+export { Textarea } from "./Textarea";
+
+export { Checkbox } from "./Checkbox";
+
+export { OpcoesCartao } from "./OpcoesCartao";
 
 export { Select } from "./Select";
 export type { SelectSize } from "./Select";

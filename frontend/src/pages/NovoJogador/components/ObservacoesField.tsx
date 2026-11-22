@@ -3,7 +3,8 @@
  */
 
 import React from "react";
-import * as S from "../NovoJogador.styles";
+import { Cartao, CartaoTitulo } from "@/components/layout/Pagina";
+import { Textarea } from "@/components/ui";
 
 export interface ObservacoesFieldProps {
   observacoes: string;
@@ -13,25 +14,21 @@ export interface ObservacoesFieldProps {
 export const ObservacoesField: React.FC<ObservacoesFieldProps> = ({
   observacoes,
   onChange,
-}) => {
-  return (
-    <S.Card>
-      <S.CardTitle>Observações</S.CardTitle>
-      <S.FormGroup $fullWidth>
-        <S.Label htmlFor="observacoes">Observações (Opcional)</S.Label>
-        <S.Textarea
-          id="observacoes"
-          name="observacoes"
-          value={observacoes}
-          onChange={onChange}
-          placeholder="Ex: Prefere jogar à noite, canhoto, etc."
-          rows={4}
-          maxLength={500}
-        />
-        <S.HelperText>{observacoes?.length || 0}/500 caracteres</S.HelperText>
-      </S.FormGroup>
-    </S.Card>
-  );
-};
+}) => (
+  <Cartao>
+    <CartaoTitulo>Observações</CartaoTitulo>
+    <Textarea
+      label="Observações (Opcional)"
+      id="observacoes"
+      name="observacoes"
+      value={observacoes}
+      onChange={onChange}
+      placeholder="Ex: Prefere jogar à noite, canhoto, etc."
+      rows={4}
+      maxLength={500}
+      helperText={`${observacoes?.length || 0}/500 caracteres`}
+    />
+  </Cartao>
+);
 
 export default ObservacoesField;

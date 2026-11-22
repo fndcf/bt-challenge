@@ -2,9 +2,13 @@
  * Responsabilidade única: Card com lista paginada de jogadores inscritos
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import styled from "styled-components";
+import { SecaoPublica } from "@/components/torneio";
+import { EmptyState, Pagination } from "@/components/ui";
 import { JogadorPublico } from "@/services/arenaPublicService";
-import * as S from "../EtapaDetalhe.styles";
+import { theme } from "@/styles/theme";
 
 export interface JogadoresListProps {
   slug: string;
@@ -12,125 +16,102 @@ export interface JogadoresListProps {
   itensPorPagina?: number;
 }
 
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
+
+const Lista = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: ${theme.spacing[2]};
+`;
+
+const Jogador = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing[3]};
+  min-height: 44px;
+  padding: ${theme.spacing[2]} ${theme.spacing[3]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.md};
+  color: ${texto.principal};
+  font-weight: ${fontWeight.semibold};
+  text-decoration: none;
+
+  &:hover {
+    border-color: ${acao.primaria};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 1px;
+  }
+
+  small {
+    display: block;
+    font-size: ${fontSize.sm};
+    font-weight: ${fontWeight.normal};
+    color: ${texto.secundario};
+  }
+`;
+
+const Numero = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: ${theme.borderRadius.full};
+  background: ${acao.fundoClaro};
+  color: ${acao.primaria};
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.bold};
+`;
+
 export const JogadoresList: React.FC<JogadoresListProps> = ({
   slug,
   jogadores,
-  itensPorPagina = 5,
+  itensPorPagina = 12,
 }) => {
-  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [pagina, setPagina] = useState(1);
 
-  // Calcular paginação
-  const totalPaginas = Math.ceil(jogadores.length / itensPorPagina);
-  const indiceInicio = (paginaAtual - 1) * itensPorPagina;
-  const indiceFim = indiceInicio + itensPorPagina;
-
-  // Jogadores da página atual
-  const jogadoresPaginados = useMemo(() => {
-    return jogadores.slice(indiceInicio, indiceFim);
-  }, [jogadores, indiceInicio, indiceFim]);
-
-  // Handlers
-  const irParaPagina = (pagina: number) => {
-    if (pagina >= 1 && pagina <= totalPaginas) {
-      setPaginaAtual(pagina);
-    }
-  };
-
-  const proximaPagina = () => irParaPagina(paginaAtual + 1);
-  const paginaAnterior = () => irParaPagina(paginaAtual - 1);
+  const inicio = (pagina - 1) * itensPorPagina;
 
   return (
-    <S.Card>
-      <S.CardHeader>
-        <S.CardTitle>Jogadores Inscritos ({jogadores.length})</S.CardTitle>
-      </S.CardHeader>
-
+    <SecaoPublica titulo={`Jogadores Inscritos (${jogadores.length})`}>
       {jogadores.length === 0 ? (
-        <S.EmptyBox>
-          <S.EmptyText>Nenhum jogador inscrito</S.EmptyText>
-        </S.EmptyBox>
+        <EmptyState titulo="Nenhum jogador inscrito" />
       ) : (
         <>
-          <S.PlayersList>
-            {jogadoresPaginados.map((player, idx) => {
-              const numeroGlobal = indiceInicio + idx + 1;
-              return (
-                <S.PlayerItem
-                  key={player.id}
-                  to={`/arena/${slug}/jogador/${player.id}`}
+          <Lista>
+            {jogadores
+              .slice(inicio, inicio + itensPorPagina)
+              .map((jogador, indice) => (
+                <Jogador
+                  key={jogador.id}
+                  to={`/arena/${slug}/jogador/${jogador.id}`}
                 >
-                  <S.PlayerNum>{player.seed || numeroGlobal}</S.PlayerNum>
-                  <S.PlayerInfo>
-                    <S.PlayerName>{player.nome}</S.PlayerName>
-                    {player.ranking && (
-                      <S.PlayerRank>Ranking: #{player.ranking}</S.PlayerRank>
+                  <Numero>{jogador.seed || inicio + indice + 1}</Numero>
+                  <span>
+                    {jogador.nome}
+                    {jogador.ranking && (
+                      <small>Ranking: #{jogador.ranking}</small>
                     )}
-                  </S.PlayerInfo>
-                </S.PlayerItem>
-              );
-            })}
-          </S.PlayersList>
+                  </span>
+                </Jogador>
+              ))}
+          </Lista>
 
-          {/* Paginação - só exibe se houver mais de uma página */}
-          {totalPaginas > 1 && (
-            <S.PaginationContainer>
-              <S.PaginationInfo>
-                Mostrando {indiceInicio + 1}-
-                {Math.min(indiceFim, jogadores.length)} de {jogadores.length}
-              </S.PaginationInfo>
-
-              <S.PaginationButtons>
-                <S.PaginationButton
-                  onClick={paginaAnterior}
-                  disabled={paginaAtual === 1}
-                  aria-label="Página anterior"
-                >
-                  ←
-                </S.PaginationButton>
-
-                {/* Páginas visíveis */}
-                {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-                  .filter((p) => {
-                    // Mostrar: primeira, última, atual, e adjacentes
-                    if (p === 1 || p === totalPaginas) return true;
-                    if (Math.abs(p - paginaAtual) <= 1) return true;
-                    return false;
-                  })
-                  .map((pagina, idx, array) => {
-                    // Adicionar "..." se houver gap
-                    const items = [];
-                    if (idx > 0 && pagina - array[idx - 1] > 1) {
-                      items.push(
-                        <S.PaginationInfo key={`gap-${pagina}`}>
-                          ...
-                        </S.PaginationInfo>
-                      );
-                    }
-                    items.push(
-                      <S.PaginationButton
-                        key={pagina}
-                        $active={pagina === paginaAtual}
-                        onClick={() => irParaPagina(pagina)}
-                      >
-                        {pagina}
-                      </S.PaginationButton>
-                    );
-                    return items;
-                  })}
-
-                <S.PaginationButton
-                  onClick={proximaPagina}
-                  disabled={paginaAtual === totalPaginas}
-                  aria-label="Próxima página"
-                >
-                  →
-                </S.PaginationButton>
-              </S.PaginationButtons>
-            </S.PaginationContainer>
-          )}
+          <Pagination
+            currentPage={pagina}
+            totalPages={Math.ceil(jogadores.length / itensPorPagina)}
+            totalItems={jogadores.length}
+            itemsPerPage={itensPorPagina}
+            onPageChange={setPagina}
+          />
         </>
       )}
-    </S.Card>
+    </SecaoPublica>
   );
 };
 

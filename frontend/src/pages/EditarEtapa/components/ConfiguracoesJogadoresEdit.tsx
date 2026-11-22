@@ -3,206 +3,121 @@
  */
 
 import React from "react";
-import { FormatoEtapa } from "@/types/etapa";
-import * as S from "../EditarEtapa.styles";
+import {
+  OpcoesPontuacao,
+  OpcoesPontuacaoProps,
+} from "../../CriarEtapa/components/OpcoesPontuacao";
+import { Campos, Cartao, CartaoTitulo } from "@/components/layout/Pagina";
+import { Input } from "@/components/ui";
+import { FormatoEtapa, VarianteTeams } from "@/types/etapa";
+import { MAX_EQUIPES_TEAMS } from "@/utils/etapa";
 
-export interface ConfiguracoesJogadoresEditProps {
+export interface ConfiguracoesJogadoresEditProps
+  extends Omit<OpcoesPontuacaoProps, "bloqueado"> {
   maxJogadores: number | undefined;
-  formato: FormatoEtapa;
+  varianteTeams?: VarianteTeams;
   chavesGeradas: boolean;
   temInscritos: boolean;
   totalInscritos: number;
   minimoJogadores: number;
-  contaPontosRanking: boolean;
-  darPontosParticipacao: boolean;
-  melhorDe3: boolean;
-  melhorDe3Eliminatoria: boolean;
   onMaxJogadoresChange: (value: number | undefined) => void;
   onBlur: (value: number) => void;
-  onContaPontosRankingChange: (value: boolean) => void;
-  onDarPontosParticipacaoChange: (value: boolean) => void;
-  onMelhorDe3Change: (value: boolean) => void;
-  onMelhorDe3EliminatoriaChange: (value: boolean) => void;
 }
+
+const getLimites = (formato: FormatoEtapa, varianteTeams: number) => {
+  switch (formato) {
+    case FormatoEtapa.TEAMS:
+      return {
+        max: varianteTeams * MAX_EQUIPES_TEAMS,
+        passo: varianteTeams,
+        exemplo: `Ex: ${varianteTeams * 2}, ${varianteTeams * 3}, ${varianteTeams * 4}...`,
+        regra: `múltiplo de ${varianteTeams}`,
+        ajuda: `Múltiplo de ${varianteTeams} (mín: ${varianteTeams * 2}, máx: ${
+          varianteTeams * MAX_EQUIPES_TEAMS
+        }, ${MAX_EQUIPES_TEAMS} equipes)`,
+      };
+    case FormatoEtapa.REI_DA_PRAIA:
+      return {
+        max: 64,
+        passo: 4,
+        exemplo: "Ex: 8, 12, 16, 20...",
+        regra: "múltiplo de 4",
+        ajuda: "Múltiplo de 4 (mín: 8, máx: 64)",
+      };
+    default:
+      return {
+        max: 52,
+        passo: 2,
+        exemplo: "Ex: 16, 20, 24...",
+        regra: "número par",
+        ajuda: "Número par (mín: 6, máx: 52)",
+      };
+  }
+};
 
 export const ConfiguracoesJogadoresEdit: React.FC<
   ConfiguracoesJogadoresEditProps
 > = ({
   maxJogadores,
   formato,
+  varianteTeams = VarianteTeams.TEAMS_4,
   chavesGeradas,
   temInscritos,
   totalInscritos,
   minimoJogadores,
-  contaPontosRanking,
-  darPontosParticipacao,
-  melhorDe3,
-  melhorDe3Eliminatoria,
   onMaxJogadoresChange,
   onBlur,
-  onContaPontosRankingChange,
-  onDarPontosParticipacaoChange,
-  onMelhorDe3Change,
-  onMelhorDe3EliminatoriaChange,
+  ...opcoesPontuacao
 }) => {
-  const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = formato === FormatoEtapa.SUPER_X;
-  const isTeams = formato === FormatoEtapa.TEAMS;
+  const limites = getLimites(formato, varianteTeams);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value === "") {
-      onMaxJogadoresChange(undefined);
-    } else {
-      const numValue = parseInt(value);
-      if (!isNaN(numValue)) {
-        onMaxJogadoresChange(numValue);
-      }
-    }
+    const valor = parseInt(e.target.value);
+    onMaxJogadoresChange(isNaN(valor) ? undefined : valor);
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (e.target.value !== "") {
-      const valor = parseInt(e.target.value);
-      onBlur(valor);
+    if (e.target.value !== "") onBlur(parseInt(e.target.value));
+  };
+
+  const getAjuda = () => {
+    if (isSuperX) {
+      return `Super X tem número fixo de jogadores (${maxJogadores}) - não pode ser alterado`;
     }
+    return temInscritos
+      ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - ${limites.regra}`
+      : limites.ajuda;
   };
 
   return (
-    <S.Card>
-      <S.CardTitle>Configurações</S.CardTitle>
+    <Cartao>
+      <CartaoTitulo>Configurações</CartaoTitulo>
 
-      <S.FieldsContainer>
-        <S.Field>
-          <S.Label>
-            Número Máximo de Jogadores <S.Required>*</S.Required>
-          </S.Label>
-          <S.Input
-            type="number"
-            required
-            min={minimoJogadores}
-            max={isTeams ? 144 : isReiDaPraia ? 64 : 52}
-            step={isTeams ? 4 : isReiDaPraia ? 4 : 2}
-            disabled={chavesGeradas || isSuperX}
-            value={maxJogadores || ""}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            placeholder={
-              isTeams ? "Ex: 8, 12, 16, 24..." : isReiDaPraia ? "Ex: 8, 12, 16, 20..." : "Ex: 16, 20, 24..."
-            }
-          />
+      <Input
+        label="Número Máximo de Jogadores"
+        type="number"
+        required
+        fullWidth
+        min={minimoJogadores}
+        max={limites.max}
+        step={limites.passo}
+        disabled={chavesGeradas || isSuperX}
+        value={maxJogadores || ""}
+        onChange={handleInputChange}
+        onBlur={handleBlur}
+        placeholder={limites.exemplo}
+        helperText={getAjuda()}
+      />
 
-          {/* Helper text específico por formato e estado */}
-          {isSuperX ? (
-            <S.HelperText>
-              Super X tem número fixo de jogadores ({maxJogadores}) - não pode ser alterado
-            </S.HelperText>
-          ) : isTeams ? (
-            <S.HelperText>
-              {temInscritos
-                ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - múltiplo de 4`
-                : "Múltiplo de 4 (TEAMS 4: máx 96, TEAMS 6: máx 144)"}
-            </S.HelperText>
-          ) : isReiDaPraia ? (
-            <S.HelperText>
-              {temInscritos
-                ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - múltiplo de 4`
-                : "Múltiplo de 4 (mín: 8, máx: 64)"}
-            </S.HelperText>
-          ) : (
-            <S.HelperText>
-              {temInscritos
-                ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - número par`
-                : "Número par (mín: 6, máx: 52)"}
-            </S.HelperText>
-          )}
-        </S.Field>
-
-        <S.Field>
-          <S.CheckboxContainer>
-            <S.Checkbox
-              type="checkbox"
-              id="contaPontosRanking"
-              checked={contaPontosRanking}
-              onChange={(e) => onContaPontosRankingChange(e.target.checked)}
-              disabled={chavesGeradas}
-            />
-            <S.CheckboxLabel htmlFor="contaPontosRanking">
-              Conta pontos no ranking
-            </S.CheckboxLabel>
-          </S.CheckboxContainer>
-          <S.HelperText>
-            {chavesGeradas
-              ? "Não é possível alterar após gerar as chaves"
-              : "Se desmarcado, as estatísticas dos jogos serão registradas, mas não somarão pontos no ranking geral"}
-          </S.HelperText>
-        </S.Field>
-
-        {contaPontosRanking && !isSuperX && (
-          <S.Field>
-            <S.CheckboxContainer>
-              <S.Checkbox
-                type="checkbox"
-                id="darPontosParticipacao"
-                checked={darPontosParticipacao}
-                onChange={(e) => onDarPontosParticipacaoChange(e.target.checked)}
-                disabled={chavesGeradas}
-              />
-              <S.CheckboxLabel htmlFor="darPontosParticipacao">
-                Dar pontos de participação
-              </S.CheckboxLabel>
-            </S.CheckboxContainer>
-            <S.HelperText>
-              {chavesGeradas
-                ? "Não é possível alterar após gerar as chaves"
-                : "Se desmarcado, quem não se classificar/colocar não recebe pontos de participação — apenas quem chegar em alguma colocação pontua"}
-            </S.HelperText>
-          </S.Field>
-        )}
-
-        <S.Field>
-          <S.CheckboxContainer>
-            <S.Checkbox
-              type="checkbox"
-              id="melhorDe3"
-              checked={melhorDe3}
-              onChange={(e) => onMelhorDe3Change(e.target.checked)}
-              disabled={chavesGeradas}
-            />
-            <S.CheckboxLabel htmlFor="melhorDe3">
-              Partidas melhor de 3 sets
-            </S.CheckboxLabel>
-          </S.CheckboxContainer>
-          <S.HelperText>
-            {chavesGeradas
-              ? "Não é possível alterar após gerar as chaves"
-              : "Ao lançar o resultado, serão pedidos 2 sets; se cada lado vencer um, abre um 3º set de desempate"}
-          </S.HelperText>
-        </S.Field>
-
-        {melhorDe3 && (
-          <S.Field>
-            <S.CheckboxContainer>
-              <S.Checkbox
-                type="checkbox"
-                id="melhorDe3Eliminatoria"
-                checked={melhorDe3Eliminatoria}
-                onChange={(e) => onMelhorDe3EliminatoriaChange(e.target.checked)}
-                disabled={chavesGeradas}
-              />
-              <S.CheckboxLabel htmlFor="melhorDe3Eliminatoria">
-                Aplicar também na fase eliminatória (mata-mata)
-              </S.CheckboxLabel>
-            </S.CheckboxContainer>
-            <S.HelperText>
-              {chavesGeradas
-                ? "Não é possível alterar após gerar as chaves"
-                : "Se desmarcado, o mata-mata continua sendo decidido em 1 set único"}
-            </S.HelperText>
-          </S.Field>
-        )}
-      </S.FieldsContainer>
-    </S.Card>
+      <Campos>
+        <OpcoesPontuacao
+          formato={formato}
+          bloqueado={chavesGeradas}
+          {...opcoesPontuacao}
+        />
+      </Campos>
+    </Cartao>
   );
 };
 

@@ -2,27 +2,31 @@
  * Responsabilidade única: Orquestrar componentes da página de edição de etapa
  */
 
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Footer } from "@/components/layout/Footer";
+import {
+  AcoesFormulario,
+  CabecalhoPagina,
+  CarregandoPagina,
+  Formulario,
+  Pagina,
+} from "@/components/layout/Pagina";
+import { Alert, Button, LoadingOverlay } from "@/components/ui";
 import { useEditarEtapa } from "./hooks/useEditarEtapa";
 import { FormatoDisplay } from "./components/FormatoDisplay";
 import { RestricoesList } from "./components/RestricoesList";
 import { ConfiguracoesJogadoresEdit } from "./components/ConfiguracoesJogadoresEdit";
-import { LoadingOverlay } from "@/components/ui";
 
 // Componentes reutilizados de CriarEtapa
 import { InformacoesBasicas } from "../CriarEtapa/components/InformacoesBasicas";
 import { ConfiguracoesDatas } from "../CriarEtapa/components/ConfiguracoesDatas";
-
-import * as S from "./EditarEtapa.styles";
 
 export const EditarEtapa: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const errorRef = useRef<HTMLDivElement>(null);
 
-  // Hook centralizado com toda a lógica de negócio
   const {
     etapa,
     loading,
@@ -46,183 +50,152 @@ export const EditarEtapa: React.FC = () => {
     }
   }, [error]);
 
-  // ============== ESTADOS DE LOADING E ERRO ==============
-
   if (loading) {
-    return (
-      <S.LoadingContainer>
-        <S.LoadingContent>
-          <S.Spinner />
-          <S.LoadingText>Carregando etapa...</S.LoadingText>
-        </S.LoadingContent>
-      </S.LoadingContainer>
-    );
+    return <CarregandoPagina mensagem="Carregando etapa..." />;
   }
 
   if (error && !etapa) {
     return (
-      <S.Container>
-        <S.ErrorContainer>
-          <S.ErrorText>{error}</S.ErrorText>
-          <S.Button
-            $variant="primary"
-            onClick={() => navigate("/admin/etapas")}
-          >
+      <Pagina $estreita>
+        <Alert variant="error">{error}</Alert>
+        <div>
+          <Button variant="outline" onClick={() => navigate("/admin/etapas")}>
             Voltar para etapas
-          </S.Button>
-        </S.ErrorContainer>
-      </S.Container>
+          </Button>
+        </div>
+      </Pagina>
     );
   }
 
   if (!etapa) return null;
 
-  // ============== RENDER PRINCIPAL ==============
+  const voltar = () => navigate(`/admin/etapas/${id}`);
+
+  const ajudaInscritos = (campo: string) =>
+    temInscritos
+      ? `Não é possível alterar o ${campo} pois já existem jogadores inscritos`
+      : undefined;
 
   return (
-    <S.Container>
-      <S.Header>
-        <S.BackButton onClick={() => navigate(`/admin/etapas/${id}`)}>
-          ← Voltar
-        </S.BackButton>
-        <S.Title>Editar Etapa</S.Title>
-        <S.Subtitle>Atualize as informações da etapa</S.Subtitle>
-      </S.Header>
+    <Pagina $estreita>
+      <CabecalhoPagina
+        titulo="Editar Etapa"
+        subtitulo="Atualize as informações da etapa"
+        voltar={{ onClick: voltar }}
+      />
 
-      {/* Alertas de Restrições */}
       <RestricoesList
-        formato={etapa.formato}
         chavesGeradas={chavesGeradas}
         temInscritos={temInscritos}
       />
 
-      <S.Form onSubmit={handleSubmit}>
-        {/* Erro de validação */}
+      <Formulario onSubmit={handleSubmit}>
         {error && (
-          <S.FormError ref={errorRef}>
-            <p>{error}</p>
-          </S.FormError>
+          <div ref={errorRef} role="alert">
+            <Alert variant="error">{error}</Alert>
+          </div>
         )}
 
-        <S.FieldsContainer>
-          {/* Formato (Read-only) + Chaveamento (Editável) */}
-          <FormatoDisplay
-            formato={etapa.formato}
-            tipoChaveamento={formData.tipoChaveamento}
-            chavesGeradas={chavesGeradas}
-            onTipoChaveamentoChange={(tipo) =>
-              handleChange("tipoChaveamento", tipo)
-            }
-            // TEAMS props
-            varianteTeams={etapa.varianteTeams}
-            tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
-            tipoFormacaoJogos={formData.tipoFormacaoJogos}
-            onTipoFormacaoJogosChange={(tipo) =>
-              handleChange("tipoFormacaoJogos", tipo)
-            }
-          />
+        {/* Formato (só leitura) + chaveamento e formação das partidas */}
+        <FormatoDisplay
+          formato={etapa.formato}
+          tipoChaveamento={formData.tipoChaveamento}
+          chavesGeradas={chavesGeradas}
+          onTipoChaveamentoChange={(tipo) =>
+            handleChange("tipoChaveamento", tipo)
+          }
+          varianteSuperX={etapa.varianteSuperX}
+          varianteTeams={etapa.varianteTeams}
+          tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
+          tipoFormacaoJogos={formData.tipoFormacaoJogos}
+          onTipoFormacaoJogosChange={(tipo) =>
+            handleChange("tipoFormacaoJogos", tipo)
+          }
+        />
 
-          {/* Informações Básicas - REUTILIZADO de CriarEtapa */}
-          <InformacoesBasicas
-            nome={formData.nome || ""}
-            descricao={formData.descricao || ""}
-            genero={formData.genero!}
-            nivel={formData.nivel}
-            local={formData.local || ""}
-            formato={etapa.formato}
-            tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
-            tipoFormacaoDupla={etapa.tipoFormacaoDupla}
-            disabled={chavesGeradas}
-            disabledGenero={chavesGeradas || temInscritos}
-            disabledNivel={chavesGeradas || temInscritos}
-            onNomeChange={(nome) => handleChange("nome", nome)}
-            onDescricaoChange={(descricao) =>
-              handleChange("descricao", descricao)
-            }
-            onGeneroChange={(genero) => handleChange("genero", genero)}
-            onNivelChange={(nivel) => handleChange("nivel", nivel)}
-            onLocalChange={(local) => handleChange("local", local)}
-            helperGenero={
-              temInscritos
-                ? "Não é possível alterar o gênero pois já existem jogadores inscritos"
-                : undefined
-            }
-            helperNivel={
-              temInscritos
-                ? "Não é possível alterar o nível pois já existem jogadores inscritos"
-                : undefined
-            }
-          />
+        <InformacoesBasicas
+          nome={formData.nome || ""}
+          descricao={formData.descricao || ""}
+          genero={formData.genero!}
+          nivel={formData.nivel}
+          local={formData.local || ""}
+          formato={etapa.formato}
+          tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
+          tipoFormacaoDupla={etapa.tipoFormacaoDupla}
+          disabled={chavesGeradas}
+          disabledGenero={chavesGeradas || temInscritos}
+          disabledNivel={chavesGeradas || temInscritos}
+          onNomeChange={(nome) => handleChange("nome", nome)}
+          onDescricaoChange={(descricao) =>
+            handleChange("descricao", descricao)
+          }
+          onGeneroChange={(genero) => handleChange("genero", genero)}
+          onNivelChange={(nivel) => handleChange("nivel", nivel)}
+          onLocalChange={(local) => handleChange("local", local)}
+          helperGenero={ajudaInscritos("gênero")}
+          helperNivel={ajudaInscritos("nível")}
+        />
 
-          {/* Configurações de Datas - REUTILIZADO de CriarEtapa */}
-          <ConfiguracoesDatas
-            dataInicio={formData.dataInicio || ""}
-            dataFim={formData.dataFim || ""}
-            dataRealizacao={formData.dataRealizacao || ""}
-            errosDatas={{}} // Não validamos datas no modo edição (pode usar validação se quiser)
-            disabled={chavesGeradas}
-            onDataInicioChange={(data) => handleChange("dataInicio", data)}
-            onDataFimChange={(data) => handleChange("dataFim", data)}
-            onDataRealizacaoChange={(data) =>
-              handleChange("dataRealizacao", data)
-            }
-          />
+        <ConfiguracoesDatas
+          dataInicio={formData.dataInicio || ""}
+          dataFim={formData.dataFim || ""}
+          dataRealizacao={formData.dataRealizacao || ""}
+          errosDatas={{}} // Não validamos datas no modo edição
+          disabled={chavesGeradas}
+          onDataInicioChange={(data) => handleChange("dataInicio", data)}
+          onDataFimChange={(data) => handleChange("dataFim", data)}
+          onDataRealizacaoChange={(data) =>
+            handleChange("dataRealizacao", data)
+          }
+        />
 
-          {/* Configurações de Jogadores - ESPECÍFICO para edição */}
-          <ConfiguracoesJogadoresEdit
-            maxJogadores={formData.maxJogadores}
-            formato={etapa.formato}
-            chavesGeradas={chavesGeradas}
-            temInscritos={temInscritos}
-            totalInscritos={etapa.totalInscritos || 0}
-            minimoJogadores={calcularMinimoJogadores()}
-            contaPontosRanking={formData.contaPontosRanking ?? true}
-            darPontosParticipacao={formData.darPontosParticipacao ?? true}
-            melhorDe3={formData.melhorDe3 ?? false}
-            melhorDe3Eliminatoria={formData.melhorDe3Eliminatoria ?? false}
-            onMaxJogadoresChange={(value) =>
-              handleChange("maxJogadores", value)
-            }
-            onBlur={(value) =>
-              handleChange("maxJogadores", ajustarValorJogadores(value))
-            }
-            onContaPontosRankingChange={(value) =>
-              handleChange("contaPontosRanking", value)
-            }
-            onDarPontosParticipacaoChange={(value) =>
-              handleChange("darPontosParticipacao", value)
-            }
-            onMelhorDe3Change={(value) => handleChange("melhorDe3", value)}
-            onMelhorDe3EliminatoriaChange={(value) =>
-              handleChange("melhorDe3Eliminatoria", value)
-            }
-          />
-        </S.FieldsContainer>
+        <ConfiguracoesJogadoresEdit
+          maxJogadores={formData.maxJogadores}
+          formato={etapa.formato}
+          varianteTeams={etapa.varianteTeams}
+          chavesGeradas={chavesGeradas}
+          temInscritos={temInscritos}
+          totalInscritos={etapa.totalInscritos || 0}
+          minimoJogadores={calcularMinimoJogadores()}
+          contaPontosRanking={formData.contaPontosRanking ?? true}
+          darPontosParticipacao={formData.darPontosParticipacao ?? true}
+          melhorDe3={formData.melhorDe3 ?? false}
+          melhorDe3Eliminatoria={formData.melhorDe3Eliminatoria ?? false}
+          onMaxJogadoresChange={(value) => handleChange("maxJogadores", value)}
+          onBlur={(value) =>
+            handleChange("maxJogadores", ajustarValorJogadores(value))
+          }
+          onContaPontosRankingChange={(value) =>
+            handleChange("contaPontosRanking", value)
+          }
+          onDarPontosParticipacaoChange={(value) =>
+            handleChange("darPontosParticipacao", value)
+          }
+          onMelhorDe3Change={(value) => handleChange("melhorDe3", value)}
+          onMelhorDe3EliminatoriaChange={(value) =>
+            handleChange("melhorDe3Eliminatoria", value)
+          }
+        />
 
-        {/* Botões de Ação */}
-        <S.ButtonsRow>
-          <S.Button
+        <AcoesFormulario>
+          <Button
             type="button"
-            $variant="secondary"
-            onClick={() => navigate(`/admin/etapas/${id}`)}
+            variant="secondary"
+            onClick={voltar}
             disabled={salvando}
           >
             Cancelar
-          </S.Button>
-          <S.Button
-            type="submit"
-            $variant="primary"
-            disabled={salvando || chavesGeradas}
-          >
+          </Button>
+          <Button type="submit" disabled={salvando || chavesGeradas}>
             {salvando ? "Salvando..." : "Salvar Alterações"}
-          </S.Button>
-        </S.ButtonsRow>
-      </S.Form>
+          </Button>
+        </AcoesFormulario>
+      </Formulario>
 
       <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
 
       <Footer />
-    </S.Container>
+    </Pagina>
   );
 };
 

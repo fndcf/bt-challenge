@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from "./apiClient";
+import { Etapa } from "../types/etapa";
 import logger from "../utils/logger";
 import { IArenaPublicService } from "./interfaces/IArenaPublicService";
 
@@ -10,20 +11,24 @@ import { IArenaPublicService } from "./interfaces/IArenaPublicService";
 // TIPOS
 // ============================================
 
-export interface EtapaPublica {
-  id: string;
-  numero: number;
-  nome: string;
-  descricao?: string;
-  dataRealizacao: string;
-  status: "planejada" | "aberta" | "em_andamento" | "finalizada";
-  formato: string;
-  varianteSuperX?: number;
-  arenaId: string;
-  totalJogadores?: number;
-  nivel?: string;
-  genero?: string;
-}
+/** A API pública devolve a própria etapa; aqui, o que as páginas usam */
+export type EtapaPublica = Pick<
+  Etapa,
+  | "id"
+  | "arenaId"
+  | "nome"
+  | "descricao"
+  | "dataRealizacao"
+  | "local"
+  | "status"
+  | "formato"
+  | "varianteSuperX"
+  | "varianteTeams"
+  | "nivel"
+  | "genero"
+  | "totalInscritos"
+  | "maxJogadores"
+>;
 
 export interface JogadorPublico {
   id: string;

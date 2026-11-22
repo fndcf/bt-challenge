@@ -4,10 +4,11 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Jogador } from "@/types/jogador";
 import { JogadorCard } from "@/components/jogadores/JogadorCard";
+import { CarregandoPagina, Grade, Texto } from "@/components/layout/Pagina";
 import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
-import * as S from "../Jogadores.styles";
+import { Button, EmptyState } from "@/components/ui";
+import { Jogador } from "@/types/jogador";
 
 export interface JogadoresListProps {
   jogadores: Jogador[];
@@ -15,6 +16,7 @@ export interface JogadoresListProps {
   total: number;
   arenaSlug?: string;
   temFiltrosAtivos: boolean;
+  onNovo: () => void;
   onDeletar: (jogador: Jogador) => Promise<boolean>;
 }
 
@@ -24,111 +26,74 @@ export const JogadoresList: React.FC<JogadoresListProps> = ({
   total,
   arenaSlug,
   temFiltrosAtivos,
+  onNovo,
   onDeletar,
 }) => {
   const navigate = useNavigate();
 
-  // Modal de exclusão
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    jogador: null as Jogador | null,
-    loading: false,
-  });
-
-  const handleEditarJogador = (jogador: Jogador) => {
-    navigate(`/admin/jogadores/${jogador.id}/editar`);
-  };
-
-  const handleDeletarJogador = (jogador: Jogador) => {
-    setDeleteModal({
-      isOpen: true,
-      jogador,
-      loading: false,
-    });
-  };
+  // Jogador com a exclusão em confirmação
+  const [aDeletar, setADeletar] = useState<Jogador | null>(null);
+  const [deletando, setDeletando] = useState(false);
 
   const confirmarDelecao = async () => {
-    if (!deleteModal.jogador) return;
+    if (!aDeletar) return;
 
-    setDeleteModal((prev) => ({ ...prev, loading: true }));
-    await onDeletar(deleteModal.jogador);
-    // Fecha o modal independente de sucesso ou erro
-    // O scroll para o topo é feito no hook
-    setDeleteModal({ isOpen: false, jogador: null, loading: false });
+    setDeletando(true);
+    // Fecha o modal com sucesso ou erro: a mensagem aparece no topo da página
+    await onDeletar(aDeletar);
+    setDeletando(false);
+    setADeletar(null);
   };
 
-  const cancelarDelecao = () => {
-    setDeleteModal({ isOpen: false, jogador: null, loading: false });
-  };
-
-  const handleNovoJogador = () => {
-    navigate("/admin/jogadores/novo");
-  };
-
-  // Loading
   if (loading) {
-    return (
-      <S.LoadingContainer>
-        <S.Spinner />
-        <S.LoadingMessage>Carregando jogadores...</S.LoadingMessage>
-      </S.LoadingContainer>
-    );
+    return <CarregandoPagina mensagem="Carregando jogadores..." />;
   }
 
-  // Empty State
   if (jogadores.length === 0) {
     return (
-      <>
-        <S.EmptyState>
-          <S.EmptyTitle>Nenhum jogador encontrado</S.EmptyTitle>
-          {temFiltrosAtivos ? (
-            <S.EmptyText>
-              Tente ajustar os filtros para ver mais resultados.
-            </S.EmptyText>
-          ) : (
-            <S.EmptyText>Cadastre o primeiro jogador da sua arena!</S.EmptyText>
-          )}
-          <S.EmptyButton onClick={handleNovoJogador}>
-            Cadastrar Primeiro Jogador
-          </S.EmptyButton>
-        </S.EmptyState>
-      </>
+      <EmptyState
+        titulo="Nenhum jogador encontrado"
+        descricao={
+          temFiltrosAtivos
+            ? "Tente ajustar os filtros para ver mais resultados."
+            : "Cadastre o primeiro jogador da sua arena!"
+        }
+        acao={
+          !temFiltrosAtivos && (
+            <Button onClick={onNovo}>Cadastrar Primeiro Jogador</Button>
+          )
+        }
+      />
     );
   }
 
-  // Lista com jogadores
   return (
     <>
-      {/* Resultado Info */}
-      <S.ResultInfo>
-        <p>
-          Mostrando {jogadores.length} de {total} jogador
-          {total !== 1 ? "es" : ""}
-        </p>
-      </S.ResultInfo>
+      <Texto>
+        Mostrando {jogadores.length} de {total} jogador
+        {total !== 1 ? "es" : ""}
+      </Texto>
 
-      {/* Grid de Jogadores */}
-      <S.JogadoresGrid>
+      <Grade $preencher>
         {jogadores.map((jogador) => (
           <JogadorCard
             key={jogador.id}
             jogador={jogador}
             arenaSlug={arenaSlug}
-            onEdit={handleEditarJogador}
-            onDelete={handleDeletarJogador}
+            onEdit={() => navigate(`/admin/jogadores/${jogador.id}/editar`)}
+            onDelete={setADeletar}
           />
         ))}
-      </S.JogadoresGrid>
+      </Grade>
 
-      {/* Modal de Confirmação de Exclusão */}
       <ConfirmDeleteModal
-        isOpen={deleteModal.isOpen}
+        isOpen={!!aDeletar}
         title="Deletar Jogador"
         message="Tem certeza que deseja deletar este jogador?"
-        itemName={deleteModal.jogador?.nome}
+        itemName={aDeletar?.nome}
         onConfirm={confirmarDelecao}
-        onCancel={cancelarDelecao}
-        loading={deleteModal.loading}
+        onCancel={() => setADeletar(null)}
+        loading={deletando}
       />
     </>
   );

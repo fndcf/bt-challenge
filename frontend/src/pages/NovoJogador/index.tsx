@@ -3,15 +3,20 @@
  */
 
 import React from "react";
+import { Footer } from "@/components/layout/Footer";
+import {
+  AcoesFormulario,
+  CabecalhoPagina,
+  Formulario,
+  Pagina,
+} from "@/components/layout/Pagina";
+import { Alert, Button, LoadingOverlay } from "@/components/ui";
 import { useDocumentTitle } from "@/hooks";
 import { StatusJogador } from "@/types/jogador";
-import { useNovoJogador } from "./hooks/useNovoJogador";
 import { InformacoesBasicas } from "./components/InformacoesBasicas";
 import { NivelStatus } from "./components/NivelStatus";
 import { ObservacoesField } from "./components/ObservacoesField";
-import { Footer } from "@/components/layout/Footer";
-import { LoadingOverlay } from "@/components/ui";
-import * as S from "./NovoJogador.styles";
+import { useNovoJogador } from "./hooks/useNovoJogador";
 
 export const NovoJogador: React.FC = () => {
   useDocumentTitle("Novo Jogador");
@@ -32,15 +37,14 @@ export const NovoJogador: React.FC = () => {
   } = useNovoJogador();
 
   return (
-    <S.PageContainer>
-      <S.Header>
-        <S.BackButton onClick={handleCancel}>← Voltar</S.BackButton>
-        <S.Title>Novo Jogador</S.Title>
-        <S.Subtitle>Cadastre um novo jogador na sua arena</S.Subtitle>
-      </S.Header>
+    <Pagina $estreita>
+      <CabecalhoPagina
+        titulo="Novo Jogador"
+        subtitulo="Cadastre um novo jogador na sua arena"
+        voltar={{ onClick: handleCancel }}
+      />
 
-      <S.Form onSubmit={handleSubmit}>
-        {/* Informações Básicas */}
+      <Formulario onSubmit={handleSubmit}>
         <InformacoesBasicas
           nome={formData.nome}
           email={formData.email || ""}
@@ -51,56 +55,43 @@ export const NovoJogador: React.FC = () => {
           onChange={handleChange}
         />
 
-        {/* Nível e Status */}
         <NivelStatus
           nivel={formData.nivel}
           status={formData.status || StatusJogador.ATIVO}
           onChange={handleChange}
         />
 
-        {/* Observações */}
         <ObservacoesField
           observacoes={formData.observacoes || ""}
           onChange={handleChange}
         />
 
-        {/* Mensagens */}
         {successMessage && (
-          <S.Alert $type="success">
-            <S.AlertContent>{successMessage}</S.AlertContent>
-            <S.AlertClose onClick={() => setSuccessMessage("")}>×</S.AlertClose>
-          </S.Alert>
+          <Alert variant="success" onClose={() => setSuccessMessage("")}>
+            {successMessage}
+          </Alert>
         )}
 
         {errorMessage && (
-          <S.Alert $type="error">
-            <S.AlertContent>{errorMessage}</S.AlertContent>
-            <S.AlertClose onClick={() => setErrorMessage("")}>×</S.AlertClose>
-          </S.Alert>
+          <Alert variant="error" onClose={() => setErrorMessage("")}>
+            {errorMessage}
+          </Alert>
         )}
 
-        {/* Botões de Ação */}
-        <S.FormActions>
-          <S.Button type="button" $variant="secondary" onClick={handleCancel}>
+        <AcoesFormulario>
+          <Button type="button" variant="secondary" onClick={handleCancel}>
             Cancelar
-          </S.Button>
-          <S.Button type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <S.Spinner />
-                Cadastrando...
-              </>
-            ) : (
-              <>Cadastrar Jogador</>
-            )}
-          </S.Button>
-        </S.FormActions>
-      </S.Form>
+          </Button>
+          <Button type="submit" loading={loading}>
+            {loading ? "Cadastrando..." : "Cadastrar Jogador"}
+          </Button>
+        </AcoesFormulario>
+      </Formulario>
 
       <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
 
       <Footer />
-    </S.PageContainer>
+    </Pagina>
   );
 };
 

@@ -4,11 +4,18 @@
 
 import React from "react";
 import { useParams } from "react-router-dom";
-import { useDocumentTitle } from "@/hooks";
-import { useArenaPublica } from "@/hooks/useArenaPublica";
 import { EtapaCardList } from "@/components/arena/EtapaCardList";
 import { RankingList } from "@/components/jogadores/RankingList";
 import { Footer } from "@/components/layout/Footer";
+import {
+  CarregandoPublico,
+  NaoEncontrado,
+  PaginaPublica,
+  SecaoTitulo,
+} from "@/components/layout/PaginaPublica";
+import { ButtonLink } from "@/components/ui";
+import { useDocumentTitle } from "@/hooks";
+import { useArenaPublica } from "@/hooks/useArenaPublica";
 import * as S from "./ArenaPublica.styles";
 
 const ArenaPublica: React.FC = () => {
@@ -18,77 +25,50 @@ const ArenaPublica: React.FC = () => {
   // Atualizar título da página
   useDocumentTitle(arena ? arena.nome : "Arena");
 
-  // Estados de loading e erro
   if (loading) {
-    return (
-      <S.PageContainer>
-        <S.LoadingContainer>
-          <S.Spinner />
-          <S.LoadingText>Carregando arena...</S.LoadingText>
-        </S.LoadingContainer>
-      </S.PageContainer>
-    );
+    return <CarregandoPublico mensagem="Carregando arena..." />;
   }
 
   if (error || !arena) {
     return (
-      <S.PageContainer>
-        <S.Container>
-          <S.ErrorContainer>
-            <S.ErrorIcon>❌</S.ErrorIcon>
-            <S.ErrorTitle>Arena Não Encontrada</S.ErrorTitle>
-            <S.ErrorText>
-              {error || "A arena que você está procurando não existe."}
-            </S.ErrorText>
-            <S.BackButton to="/">Voltar para o Início</S.BackButton>
-          </S.ErrorContainer>
-        </S.Container>
-      </S.PageContainer>
+      <NaoEncontrado
+        titulo="Arena Não Encontrada"
+        mensagem={error || "A arena que você está procurando não existe."}
+        acao={<ButtonLink to="/">Voltar para o Início</ButtonLink>}
+      />
     );
   }
 
-  // Renderização principal
   return (
-    <S.PageContainer>
-      {/* Header */}
-      <S.Header>
-        <S.HeaderContent>
-          <S.ArenaInfo>
-            <h1>{arena.nome}</h1>
-            <p>Torneios e Desafios </p>
-          </S.ArenaInfo>
-          <S.LoginButton to="/login">Área do Admin</S.LoginButton>
-        </S.HeaderContent>
-      </S.Header>
+    <PaginaPublica
+      titulo={arena.nome}
+      subtitulo="Torneios e Desafios"
+      acao={
+        <ButtonLink variant="outline" size="sm" to="/login">
+          Área do Admin
+        </ButtonLink>
+      }
+      rodape={<Footer />}
+    >
+      <S.BoasVindas>
+        <h2>Bem-vindo à {arena.nome}!</h2>
+        <p>
+          Confira as etapas disponíveis e participe dos nossos torneios.
+          Acompanhe os resultados e desafie outros jogadores!
+        </p>
+      </S.BoasVindas>
 
-      {/* Conteúdo */}
-      <S.Container>
-        {/* Card de Boas-vindas */}
-        <S.WelcomeCard>
-          <S.WelcomeTitle>Bem-vindo à {arena.nome}!</S.WelcomeTitle>
-          <S.WelcomeText>
-            Confira as etapas disponíveis e participe dos nossos torneios.
-            Acompanhe os resultados e desafie outros jogadores!
-          </S.WelcomeText>
-        </S.WelcomeCard>
+      <SecaoTitulo>Etapas e Torneios</SecaoTitulo>
+      <EtapaCardList etapas={etapas} arenaSlug={slug || ""} />
 
-        {/* Seção de Etapas */}
-        <S.SectionTitle>Etapas e Torneios</S.SectionTitle>
-        <EtapaCardList etapas={etapas} arenaSlug={slug || ""} />
-
-        {/* Seção de Ranking */}
-        <S.SectionTitle>Ranking Completo</S.SectionTitle>
-        <RankingList
-          arenaSlug={slug}
-          limitPorNivel={10}
-          showPagination={true}
-          itensPorPagina={5}
-        />
-      </S.Container>
-
-      {/* Footer */}
-      <Footer />
-    </S.PageContainer>
+      <SecaoTitulo>Ranking Completo</SecaoTitulo>
+      <RankingList
+        arenaSlug={slug}
+        limitPorNivel={10}
+        showPagination={true}
+        itensPorPagina={5}
+      />
+    </PaginaPublica>
   );
 };
 

@@ -8,7 +8,7 @@ import styled from "styled-components";
 import { Alert, Button } from "@/components/ui";
 import { theme } from "@/styles/theme";
 import { Etapa, StatusEtapa } from "@/types/etapa";
-import { Cartao, CartaoTitulo } from "../DetalhesEtapa.styles";
+import { Cartao, CartaoTitulo } from "@/components/layout/Pagina";
 
 interface ActionsSectionProps {
   etapa: Etapa;

@@ -168,6 +168,24 @@ export interface Etapa {
  * DTOs
  */
 
+/**
+ * Teto do Teams: a eliminatória vai até 8 grupos (oitavas), e os grupos têm 3
+ * ou 4 equipes com preferência por 3. 26 equipes são 6 grupos de 3 e 2 de 4;
+ * com 27 já seriam 9 grupos.
+ */
+export const MAX_EQUIPES_TEAMS = 26;
+
+const MAX_JOGADORES = 64;
+
+/** Máximo de jogadores da etapa conforme o formato */
+export const getLimiteJogadores = (
+  formato: FormatoEtapa | undefined,
+  varianteTeams?: number
+): number =>
+  formato === FormatoEtapa.TEAMS
+    ? MAX_EQUIPES_TEAMS * (varianteTeams ?? 4)
+    : MAX_JOGADORES;
+
 // Criar Etapa - Schema base
 const CriarEtapaSchemaBase = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -191,8 +209,7 @@ const CriarEtapaSchemaBase = z.object({
   local: z.string().max(200).optional(),
   maxJogadores: z
     .number()
-    .min(6, "Mínimo de 6 jogadores")
-    .max(64, "Máximo de 64 jogadores"),
+    .min(6, "Mínimo de 6 jogadores"), // Máximo depende do formato (abaixo)
   jogadoresPorGrupo: z.number().min(3).max(12).optional(), // max 12 para SUPER_X (grupo único)
   grupoUnico: z.boolean().optional(), // Todas as duplas em um único grupo
   contaPontosRanking: z.boolean().default(true),
@@ -236,6 +253,15 @@ export const CriarEtapaSchema = CriarEtapaSchemaBase.superRefine(
         code: z.ZodIssueCode.custom,
         message: "Variante é obrigatória para formato Super X",
         path: ["varianteSuperX"],
+      });
+    }
+
+    const limite = getLimiteJogadores(data.formato, data.varianteTeams);
+    if (data.maxJogadores > limite) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Máximo de ${limite} jogadores`,
+        path: ["maxJogadores"],
       });
     }
 
@@ -390,8 +416,7 @@ export const AtualizarEtapaSchema = z.object({
   local: z.string().max(200).optional(),
   maxJogadores: z
     .number()
-    .min(6, "Mínimo de 6 jogadores")
-    .max(64, "Máximo de 64 jogadores")
+    .min(6, "Mínimo de 6 jogadores") // Máximo depende do formato (service)
     .optional(),
   status: z.nativeEnum(StatusEtapa).optional(),
   contaPontosRanking: z.boolean().optional(),

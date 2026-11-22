@@ -54,14 +54,15 @@ describe("utils/etapa", () => {
   });
 
   it.each([
-    [5, 1],
-    [6, 2],
-    [8, 2],
-    [9, 3],
-    [28, 7],
-    [29, 8],
-  ])("%i equipes viram %i grupo(s) no Teams", (equipes, grupos) => {
-    expect(calcularGruposTeams(equipes)).toBe(grupos);
+    [5, [5]],
+    [6, [3, 3]],
+    [8, [4, 4]],
+    [11, [3, 4, 4]],
+    [12, [3, 3, 3, 3]],
+    [16, [3, 3, 3, 3, 4]],
+    [26, [3, 3, 3, 3, 3, 3, 4, 4]],
+  ])("%i equipes no Teams viram os grupos %j", (equipes, grupos) => {
+    expect(calcularGruposTeams(equipes)).toEqual(grupos);
   });
 });
 

@@ -3,11 +3,17 @@
  */
 
 import React from "react";
+import { Formulario } from "@/components/layout/Pagina";
+import {
+  LinkAcesso,
+  PaginaAcesso,
+  RodapeAcesso,
+} from "@/components/layout/PaginaAcesso";
+import { Alert, Button, Input } from "@/components/ui";
 import { useDocumentTitle } from "@/hooks";
-import { useRegisterArena } from "./hooks/useRegisterArena";
-import { SlugField } from "./components/SlugField";
 import { PasswordFields } from "./components/PasswordFields";
-import * as S from "./RegisterArena.styles";
+import { SlugField } from "./components/SlugField";
+import { useRegisterArena } from "./hooks/useRegisterArena";
 
 export const RegisterArena: React.FC = () => {
   useDocumentTitle("Registrar Arena");
@@ -25,95 +31,73 @@ export const RegisterArena: React.FC = () => {
   } = useRegisterArena();
 
   return (
-    <S.PageContainer>
-      <S.Container>
-        <S.Header>
-          <h1>Registrar Nova Arena</h1>
-          <p>Crie sua arena e comece a organizar torneios</p>
-        </S.Header>
+    <PaginaAcesso
+      titulo="Registrar Nova Arena"
+      subtitulo="Crie sua arena e comece a organizar torneios"
+      voltar={{ para: "/", rotulo: "← Voltar para o site" }}
+    >
+      <Formulario onSubmit={handleSubmit} noValidate>
+        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
+        {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
-        <S.Form onSubmit={handleSubmit}>
-          {errorMessage && <S.Alert $type="error">{errorMessage}</S.Alert>}
-          {successMessage && (
-            <S.Alert $type="success">{successMessage}</S.Alert>
-          )}
+        <Input
+          label="Nome da Arena"
+          id="nome"
+          required
+          fullWidth
+          value={values.nome}
+          onChange={(e) => handleChange("nome", e.target.value)}
+          error={errors.nome}
+          disabled={loading}
+          placeholder="Ex: Arena Azul"
+        />
 
-          {/* Nome da Arena */}
-          <S.FormGroup>
-            <S.Label htmlFor="nome">
-              Nome da Arena <S.Required>*</S.Required>
-            </S.Label>
-            <S.Input
-              type="text"
-              id="nome"
-              value={values.nome}
-              onChange={(e) => handleChange("nome", e.target.value)}
-              $hasError={!!errors.nome}
-              disabled={loading}
-              placeholder="Ex: Arena Azul"
-            />
-            {errors.nome && <S.ErrorText>{errors.nome}</S.ErrorText>}
-          </S.FormGroup>
+        <SlugField
+          value={values.slug}
+          error={errors.slug}
+          checkingSlug={checkingSlug}
+          slugAvailable={slugAvailable}
+          disabled={loading}
+          onChange={(value) => handleChange("slug", value)}
+        />
 
-          {/* Slug - Componente especializado */}
-          <SlugField
-            value={values.slug}
-            error={errors.slug}
-            checkingSlug={checkingSlug}
-            slugAvailable={slugAvailable}
-            disabled={loading}
-            onChange={(value) => handleChange("slug", value)}
-          />
+        <Input
+          label="Seu Email (Administrador)"
+          type="email"
+          id="adminEmail"
+          required
+          fullWidth
+          value={values.adminEmail}
+          onChange={(e) => handleChange("adminEmail", e.target.value)}
+          error={errors.adminEmail}
+          disabled={loading}
+          placeholder="seu@email.com"
+        />
 
-          {/* Email */}
-          <S.FormGroup>
-            <S.Label htmlFor="adminEmail">
-              Seu Email (Administrador) <S.Required>*</S.Required>
-            </S.Label>
-            <S.Input
-              type="email"
-              id="adminEmail"
-              value={values.adminEmail}
-              onChange={(e) => handleChange("adminEmail", e.target.value)}
-              $hasError={!!errors.adminEmail}
-              disabled={loading}
-              placeholder="seu@email.com"
-            />
-            {errors.adminEmail && (
-              <S.ErrorText>{errors.adminEmail}</S.ErrorText>
-            )}
-          </S.FormGroup>
+        <PasswordFields
+          password={values.adminPassword}
+          confirmPassword={values.confirmPassword}
+          passwordError={errors.adminPassword}
+          confirmPasswordError={errors.confirmPassword}
+          disabled={loading}
+          onPasswordChange={(value) => handleChange("adminPassword", value)}
+          onConfirmPasswordChange={(value) =>
+            handleChange("confirmPassword", value)
+          }
+        />
 
-          {/* Senha e Confirmação - Componente especializado */}
-          <PasswordFields
-            password={values.adminPassword}
-            confirmPassword={values.confirmPassword}
-            passwordError={errors.adminPassword}
-            confirmPasswordError={errors.confirmPassword}
-            disabled={loading}
-            onPasswordChange={(value) => handleChange("adminPassword", value)}
-            onConfirmPasswordChange={(value) =>
-              handleChange("confirmPassword", value)
-            }
-          />
+        <Button type="submit" fullWidth loading={loading}>
+          {loading ? "Criando..." : "Criar Arena"}
+        </Button>
 
-          <S.SubmitButton type="submit" disabled={loading}>
-            {loading ? <S.Spinner /> : "Criar Arena"}
-          </S.SubmitButton>
-
-          <S.FormFooter>
-            <p>
-              Já tem uma arena?{" "}
-              <S.StyledLink to="/login">Fazer login</S.StyledLink>
-            </p>
-          </S.FormFooter>
-        </S.Form>
-
-        <S.BackLinkContainer>
-          <S.BackLink to="/">← Voltar para o site</S.BackLink>
-        </S.BackLinkContainer>
-      </S.Container>
-    </S.PageContainer>
+        <RodapeAcesso>
+          <p>
+            Já tem uma arena?{" "}
+            <LinkAcesso to="/login">Fazer login</LinkAcesso>
+          </p>
+        </RodapeAcesso>
+      </Formulario>
+    </PaginaAcesso>
   );
 };
 

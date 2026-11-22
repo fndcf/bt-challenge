@@ -14,11 +14,12 @@ import { ChavesTeams } from "@/components/etapas/ChavesTeams";
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { ModalSubstituirJogador } from "@/components/modals/ModalSubstituirJogador";
 import { Footer } from "@/components/layout/Footer";
-import LoadingSpinner from "@/components/common/LoadingSpinner/LoadingSpinner";
+import { CarregandoPagina, Pagina } from "@/components/layout/Pagina";
 import { Alert, Badge, Button, LoadingOverlay, Tabs } from "@/components/ui";
 import { getEtapaService } from "@/services";
 import { AbaEtapa } from "@/hooks/useEtapaUI";
 import { StatusEtapa } from "@/types/etapa";
+import { calcularGruposTeams } from "@/utils/etapa";
 import logger from "@/utils/logger";
 
 // Componentes extraídos
@@ -102,22 +103,20 @@ const DetalhesEtapa: React.FC = () => {
   // Estados de loading e erro
   if (loading) {
     return (
-      <S.Centralizado>
-        <LoadingSpinner message="Carregando etapa..." />
-      </S.Centralizado>
+      <CarregandoPagina mensagem="Carregando etapa..." />
     );
   }
 
   if (error || !etapa) {
     return (
-      <S.Pagina>
+      <Pagina>
         <Alert variant="error">{error || "Etapa não encontrada"}</Alert>
         <div>
           <Button variant="outline" onClick={() => navigate("/admin/etapas")}>
             ← Voltar para etapas
           </Button>
         </div>
-      </S.Pagina>
+      </Pagina>
     );
   }
 
@@ -182,6 +181,13 @@ const DetalhesEtapa: React.FC = () => {
   const temDuplasManuais =
     isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas;
 
+  // No Teams o número de grupos vem das equipes, não do cadastro da etapa
+  const qtdGrupos = isTeams
+    ? calcularGruposTeams(
+        Math.floor(etapa.totalInscritos / (etapa.varianteTeams || 4))
+      ).length
+    : etapa.qtdGrupos || 0;
+
   const abas: { id: AbaEtapa; label: React.ReactNode }[] = [
     {
       id: "inscricoes",
@@ -201,7 +207,7 @@ const DetalhesEtapa: React.FC = () => {
       id: "chaves",
       label: (
         <S.RotuloAba>
-          Chaves/Grupos <Badge>{etapa.qtdGrupos || 0}</Badge>
+          Chaves/Grupos <Badge>{qtdGrupos}</Badge>
         </S.RotuloAba>
       ),
     });
@@ -210,7 +216,7 @@ const DetalhesEtapa: React.FC = () => {
   // Renderização principal
   return (
     <>
-      <S.Pagina>
+      <Pagina>
         {/* Cabeçalho */}
         <EtapaHeader
           etapa={etapa}
@@ -333,7 +339,7 @@ const DetalhesEtapa: React.FC = () => {
             </>
           )}
         </S.Abas>
-      </S.Pagina>
+      </Pagina>
 
       <Footer />
 

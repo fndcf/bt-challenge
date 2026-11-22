@@ -3,9 +3,12 @@
  */
 
 import React from "react";
-import { StatusEtapa, FormatoEtapa } from "@/types/etapa";
+import { Campos, Cartao } from "@/components/layout/Pagina";
+import { Button, Select } from "@/components/ui";
+import { FormatoEtapa, StatusEtapa } from "@/types/etapa";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
-import * as S from "../ListagemEtapas.styles";
+
+type Ordenacao = "dataRealizacao" | "criadoEm";
 
 interface FiltersBarProps {
   // Valores dos filtros
@@ -13,19 +16,56 @@ interface FiltersBarProps {
   filtroFormato: FormatoEtapa | "";
   filtroNivel: NivelJogador | "";
   filtroGenero: GeneroJogador | "";
-  ordenacao: "dataRealizacao" | "criadoEm";
+  ordenacao: Ordenacao;
 
   // Handlers
   onStatusChange: (status: StatusEtapa | "") => void;
   onFormatoChange: (formato: FormatoEtapa | "") => void;
   onNivelChange: (nivel: NivelJogador | "") => void;
   onGeneroChange: (genero: GeneroJogador | "") => void;
-  onOrdenacaoChange: (ordenacao: "dataRealizacao" | "criadoEm") => void;
+  onOrdenacaoChange: (ordenacao: Ordenacao) => void;
   onLimparFiltros: () => void;
 
   // Estado
   temFiltrosAtivos: boolean;
 }
+
+const STATUS = [
+  { value: "", label: "Todos os status" },
+  { value: StatusEtapa.INSCRICOES_ABERTAS, label: "Inscrições Abertas" },
+  { value: StatusEtapa.INSCRICOES_ENCERRADAS, label: "Inscrições Encerradas" },
+  { value: StatusEtapa.CHAVES_GERADAS, label: "Chaves Geradas" },
+  { value: StatusEtapa.FASE_ELIMINATORIA, label: "Fase Eliminatória" },
+  { value: StatusEtapa.EM_ANDAMENTO, label: "Em Andamento" },
+  { value: StatusEtapa.FINALIZADA, label: "Finalizadas" },
+];
+
+const FORMATOS = [
+  { value: "", label: "Todos os formatos" },
+  { value: FormatoEtapa.DUPLA_FIXA, label: "Dupla Fixa" },
+  { value: FormatoEtapa.REI_DA_PRAIA, label: "Rei da Praia" },
+  { value: FormatoEtapa.SUPER_X, label: "Super X" },
+  { value: FormatoEtapa.TEAMS, label: "Teams" },
+];
+
+const NIVEIS = [
+  { value: "", label: "Todos os níveis" },
+  { value: NivelJogador.INICIANTE, label: "Iniciante" },
+  { value: NivelJogador.INTERMEDIARIO, label: "Intermediário" },
+  { value: NivelJogador.AVANCADO, label: "Avançado" },
+];
+
+const GENEROS = [
+  { value: "", label: "Todos os gêneros" },
+  { value: GeneroJogador.MASCULINO, label: "Masculino" },
+  { value: GeneroJogador.FEMININO, label: "Feminino" },
+  { value: GeneroJogador.MISTO, label: "Misto" },
+];
+
+const ORDENACOES = [
+  { value: "dataRealizacao", label: "Data de Realização" },
+  { value: "criadoEm", label: "Data de Criação" },
+];
 
 export const FiltersBar: React.FC<FiltersBarProps> = ({
   filtroStatus,
@@ -40,102 +80,54 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
   onOrdenacaoChange,
   onLimparFiltros,
   temFiltrosAtivos,
-}) => {
-  return (
-    <S.FiltersCard>
-      <S.FiltersContent>
-        {/* Filtro de Status */}
-        <S.FilterGroup>
-          <S.FilterLabel>Status:</S.FilterLabel>
-          <S.Select
-            value={filtroStatus}
-            onChange={(e) => onStatusChange(e.target.value as StatusEtapa | "")}
-          >
-            <option value="">Todos os status</option>
-            <option value={StatusEtapa.INSCRICOES_ABERTAS}>
-              Inscrições Abertas
-            </option>
-            <option value={StatusEtapa.INSCRICOES_ENCERRADAS}>
-              Inscrições Encerradas
-            </option>
-            <option value={StatusEtapa.CHAVES_GERADAS}>Chaves Geradas</option>
-            <option value={StatusEtapa.FASE_ELIMINATORIA}>
-              Fase Eliminatória
-            </option>
-            <option value={StatusEtapa.EM_ANDAMENTO}>Em Andamento</option>
-            <option value={StatusEtapa.FINALIZADA}>Finalizadas</option>
-          </S.Select>
-        </S.FilterGroup>
+}) => (
+  <Cartao>
+    <Campos $colunas>
+      <Select
+        label="Status"
+        fullWidth
+        options={STATUS}
+        value={filtroStatus}
+        onChange={(e) => onStatusChange(e.target.value as StatusEtapa | "")}
+      />
+      <Select
+        label="Formato"
+        fullWidth
+        options={FORMATOS}
+        value={filtroFormato}
+        onChange={(e) => onFormatoChange(e.target.value as FormatoEtapa | "")}
+      />
+      <Select
+        label="Nível"
+        fullWidth
+        options={NIVEIS}
+        value={filtroNivel}
+        onChange={(e) => onNivelChange(e.target.value as NivelJogador | "")}
+      />
+      <Select
+        label="Gênero"
+        fullWidth
+        options={GENEROS}
+        value={filtroGenero}
+        onChange={(e) => onGeneroChange(e.target.value as GeneroJogador | "")}
+      />
+      <Select
+        label="Ordenar"
+        fullWidth
+        options={ORDENACOES}
+        value={ordenacao}
+        onChange={(e) => onOrdenacaoChange(e.target.value as Ordenacao)}
+      />
+    </Campos>
 
-        {/* Filtro de Formato */}
-        <S.FilterGroup>
-          <S.FilterLabel>Formato:</S.FilterLabel>
-          <S.Select
-            value={filtroFormato}
-            onChange={(e) =>
-              onFormatoChange(e.target.value as FormatoEtapa | "")
-            }
-          >
-            <option value="">Todos os formatos</option>
-            <option value={FormatoEtapa.DUPLA_FIXA}>Dupla Fixa</option>
-            <option value={FormatoEtapa.REI_DA_PRAIA}>Rei da Praia</option>
-            <option value={FormatoEtapa.SUPER_X}>Super X</option>
-            <option value={FormatoEtapa.TEAMS}>Teams</option>
-          </S.Select>
-        </S.FilterGroup>
-
-        {/* Filtro de Nível */}
-        <S.FilterGroup>
-          <S.FilterLabel>Nível:</S.FilterLabel>
-          <S.Select
-            value={filtroNivel}
-            onChange={(e) => onNivelChange(e.target.value as NivelJogador | "")}
-          >
-            <option value="">Todos os níveis</option>
-            <option value={NivelJogador.INICIANTE}>Iniciante</option>
-            <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
-            <option value={NivelJogador.AVANCADO}>Avançado</option>
-          </S.Select>
-        </S.FilterGroup>
-
-        {/* Filtro de Gênero */}
-        <S.FilterGroup>
-          <S.FilterLabel>Gênero:</S.FilterLabel>
-          <S.Select
-            value={filtroGenero}
-            onChange={(e) =>
-              onGeneroChange(e.target.value as GeneroJogador | "")
-            }
-          >
-            <option value="">Todos os gêneros</option>
-            <option value={GeneroJogador.MASCULINO}>Masculino</option>
-            <option value={GeneroJogador.FEMININO}>Feminino</option>
-          </S.Select>
-        </S.FilterGroup>
-
-        {/* Ordenação */}
-        <S.FilterGroup>
-          <S.FilterLabel>Ordenar:</S.FilterLabel>
-          <S.Select
-            value={ordenacao}
-            onChange={(e) =>
-              onOrdenacaoChange(e.target.value as "dataRealizacao" | "criadoEm")
-            }
-          >
-            <option value="dataRealizacao">Data de Realização</option>
-            <option value="criadoEm">Data de Criação</option>
-          </S.Select>
-        </S.FilterGroup>
-
-        {/* Botão Limpar Filtros */}
-        {temFiltrosAtivos && (
-          <S.ClearButton onClick={onLimparFiltros}>
-            Limpar filtros
-          </S.ClearButton>
-        )}
-      </S.FiltersContent>
-    </S.FiltersCard>
-  );
-};
+    {temFiltrosAtivos && (
+      <div>
+        <Button variant="ghost" size="sm" onClick={onLimparFiltros}>
+          Limpar filtros
+        </Button>
+      </div>
+    )}
+  </Cartao>
+);
 
 export default FiltersBar;

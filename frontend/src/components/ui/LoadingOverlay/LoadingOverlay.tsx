@@ -1,5 +1,8 @@
 import React from "react";
 import styled from "styled-components";
+import { theme } from "@/styles/theme";
+
+const { texto, superficie, acao } = theme.semantic;
 
 interface LoadingOverlayProps {
   isLoading: boolean;
@@ -22,7 +25,7 @@ const LoadingContent = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  background: white;
+  background: ${superficie.fundo};
   padding: 2rem 3rem;
   border-radius: 0.75rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
@@ -31,8 +34,8 @@ const LoadingContent = styled.div`
 const Spinner = styled.div`
   width: 3rem;
   height: 3rem;
-  border: 4px solid #e5e7eb;
-  border-top-color: #2563eb;
+  border: 4px solid ${superficie.borda};
+  border-top-color: ${acao.primaria};
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 
@@ -44,7 +47,7 @@ const Spinner = styled.div`
 `;
 
 const LoadingText = styled.p`
-  color: #374151;
+  color: ${texto.principal};
   font-weight: 600;
   font-size: 1rem;
   margin: 0;

@@ -4,6 +4,7 @@
 
 import {
   CriarEtapaSchema,
+  MAX_EQUIPES_TEAMS,
   FormatoEtapa,
   NivelJogador,
   VarianteSuperX,
@@ -11,6 +12,7 @@ import {
   TipoFormacaoEquipe,
   TipoChaveamentoReiDaPraia,
 } from "../../models/Etapa";
+import { calcularDistribuicaoGrupos } from "../../utils/torneioUtils";
 import { GeneroJogador } from "../../models/Jogador";
 
 describe("CriarEtapaSchema", () => {
@@ -280,6 +282,48 @@ describe("CriarEtapaSchema", () => {
           )
         ).toBe(true);
       }
+    });
+  });
+
+  describe("limite de jogadores", () => {
+    it.each([
+      [VarianteTeams.TEAMS_4, 104, true],
+      [VarianteTeams.TEAMS_4, 108, false],
+      [VarianteTeams.TEAMS_6, 156, true],
+      [VarianteTeams.TEAMS_6, 162, false],
+    ])("TEAMS %i com %i jogadores: %s", (varianteTeams, maxJogadores, valido) => {
+      const resultado = CriarEtapaSchema.safeParse({
+        ...etapaBaseValida,
+        formato: FormatoEtapa.TEAMS,
+        nivel: undefined,
+        varianteTeams,
+        tipoFormacaoEquipe: TipoFormacaoEquipe.BALANCEADO,
+        maxJogadores,
+      });
+      expect(resultado.success).toBe(valido);
+    });
+
+    it("os outros formatos seguem com 64", () => {
+      const criar = (maxJogadores: number) =>
+        CriarEtapaSchema.safeParse({
+          ...etapaBaseValida,
+          formato: FormatoEtapa.REI_DA_PRAIA,
+          maxJogadores,
+        });
+      const acima = criar(68);
+      expect(acima.success).toBe(false);
+      if (!acima.success) {
+        expect(acima.error.issues.map((i) => i.message)).toContain(
+          "Máximo de 64 jogadores"
+        );
+      }
+    });
+
+    it("o teto do Teams é o maior número de equipes que cabe em 8 grupos", () => {
+      expect(calcularDistribuicaoGrupos(MAX_EQUIPES_TEAMS)).toEqual([
+        3, 3, 3, 3, 3, 3, 4, 4,
+      ]);
+      expect(calcularDistribuicaoGrupos(MAX_EQUIPES_TEAMS + 1)).toHaveLength(9);
     });
   });
 

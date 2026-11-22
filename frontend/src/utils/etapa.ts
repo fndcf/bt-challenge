@@ -57,17 +57,28 @@ const FORMACAO_EQUIPE: Record<TipoFormacaoEquipe, string> = {
 export const getFormacaoEquipeLabel = (tipo: TipoFormacaoEquipe): string =>
   FORMACAO_EQUIPE[tipo] ?? "";
 
-// Mesmos limites da geração de grupos do Teams no backend
-const LIMITES_GRUPOS_TEAMS: [equipes: number, grupos: number][] = [
-  [5, 1],
-  [8, 2],
-  [12, 3],
-  [16, 4],
-  [20, 5],
-  [24, 6],
-  [28, 7],
-];
+/**
+ * Teto do Teams: 8 grupos (oitavas), 6 com 3 equipes e 2 com 4. Igual ao
+ * MAX_EQUIPES_TEAMS do backend.
+ */
+export const MAX_EQUIPES_TEAMS = 26;
 
-/** Quantos grupos o Teams terá com esse número de equipes (1 = sem grupos) */
-export const calcularGruposTeams = (equipes: number): number =>
-  LIMITES_GRUPOS_TEAMS.find(([limite]) => equipes <= limite)?.[1] ?? 8;
+/**
+ * Tamanho de cada grupo do Teams. Mesma regra do backend
+ * (calcularDistribuicaoGrupos): grupos de 3, com 1 ou 2 de 4 para fechar a
+ * conta; até 5 equipes, todos contra todos.
+ */
+export const calcularGruposTeams = (equipes: number): number[] => {
+  if (equipes < 6) return [equipes];
+
+  const gruposDe4 = equipes % 3;
+  const gruposDe3 = (equipes - gruposDe4 * 4) / 3;
+  return [
+    ...Array<number>(gruposDe3).fill(3),
+    ...Array<number>(gruposDe4).fill(4),
+  ];
+};
+
+/** Confrontos da fase de grupos: todos contra todos em cada grupo */
+export const contarConfrontosTeams = (equipes: number): number =>
+  calcularGruposTeams(equipes).reduce((soma, n) => soma + (n * (n - 1)) / 2, 0);

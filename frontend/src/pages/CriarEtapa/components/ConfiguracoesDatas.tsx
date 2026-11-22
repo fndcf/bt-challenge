@@ -1,10 +1,11 @@
 /**
- * ConfiguracoesDatas.tsx
+ * Responsabilidade única: Datas da etapa
  */
 
 import React from "react";
+import { Campos, Cartao, CartaoTitulo } from "@/components/layout/Pagina";
+import { Input } from "@/components/ui";
 import { ErrosDatas } from "../hooks/useCriarEtapa";
-import * as S from "../CriarEtapa.styles";
 
 export interface ConfiguracoesDataProps {
   dataInicio: string;
@@ -26,59 +27,42 @@ export const ConfiguracoesDatas: React.FC<ConfiguracoesDataProps> = ({
   onDataInicioChange,
   onDataFimChange,
   onDataRealizacaoChange,
-}) => {
-  return (
-    <S.Card>
-      <S.CardTitle>Datas</S.CardTitle>
-
-      <S.GridContainer>
-        <S.Field>
-          <S.Label>Início das Inscrições *</S.Label>
-          <S.Input
-            type="date"
-            required
-            disabled={disabled}
-            $hasError={!!errosDatas.dataInicio}
-            value={dataInicio}
-            onChange={(e) => onDataInicioChange(e.target.value)}
-          />
-          {errosDatas.dataInicio && (
-            <S.HelperText $error>{errosDatas.dataInicio}</S.HelperText>
-          )}
-        </S.Field>
-
-        <S.Field>
-          <S.Label>Fim das Inscrições *</S.Label>
-          <S.Input
-            type="date"
-            required
-            disabled={disabled}
-            $hasError={!!errosDatas.dataFim}
-            value={dataFim}
-            onChange={(e) => onDataFimChange(e.target.value)}
-          />
-          {errosDatas.dataFim && (
-            <S.HelperText $error>{errosDatas.dataFim}</S.HelperText>
-          )}
-        </S.Field>
-
-        <S.Field>
-          <S.Label>Data de Realização *</S.Label>
-          <S.Input
-            type="date"
-            required
-            disabled={disabled}
-            $hasError={!!errosDatas.dataRealizacao}
-            value={dataRealizacao}
-            onChange={(e) => onDataRealizacaoChange(e.target.value)}
-          />
-          {errosDatas.dataRealizacao && (
-            <S.HelperText $error>{errosDatas.dataRealizacao}</S.HelperText>
-          )}
-        </S.Field>
-      </S.GridContainer>
-    </S.Card>
-  );
-};
+}) => (
+  <Cartao>
+    <CartaoTitulo>Datas</CartaoTitulo>
+    <Campos $colunas>
+      <Input
+        label="Início das Inscrições"
+        type="date"
+        required
+        fullWidth
+        disabled={disabled}
+        error={errosDatas.dataInicio}
+        value={dataInicio}
+        onChange={(e) => onDataInicioChange(e.target.value)}
+      />
+      <Input
+        label="Fim das Inscrições"
+        type="date"
+        required
+        fullWidth
+        disabled={disabled}
+        error={errosDatas.dataFim}
+        value={dataFim}
+        onChange={(e) => onDataFimChange(e.target.value)}
+      />
+      <Input
+        label="Data de Realização"
+        type="date"
+        required
+        fullWidth
+        disabled={disabled}
+        error={errosDatas.dataRealizacao}
+        value={dataRealizacao}
+        onChange={(e) => onDataRealizacaoChange(e.target.value)}
+      />
+    </Campos>
+  </Cartao>
+);
 
 export default ConfiguracoesDatas;

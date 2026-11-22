@@ -33,17 +33,6 @@ jest.mock("@/pages/ListagemEtapas/hooks/useListagemEtapas", () => ({
 }));
 
 // Mock dos componentes filhos
-jest.mock("@/pages/ListagemEtapas/components/PageHeader", () => ({
-  PageHeader: ({ onCriarClick }: any) => (
-    <div data-testid="page-header">
-      <h1>Etapas</h1>
-      <button onClick={onCriarClick} data-testid="criar-btn">
-        Criar Etapa
-      </button>
-    </div>
-  ),
-}));
-
 jest.mock("@/pages/ListagemEtapas/components/StatsCards", () => ({
   StatsCards: ({ stats }: any) => (
     <div data-testid="stats-cards">
@@ -128,42 +117,6 @@ jest.mock("@/pages/ListagemEtapas/components/EtapasList", () => ({
   ),
 }));
 
-jest.mock("@/pages/ListagemEtapas/components/Pagination", () => ({
-  Pagination: ({
-    paginaAtual,
-    totalPaginas,
-    totalEtapas,
-    etapasPorPagina,
-    onProximaPagina,
-    onPaginaAnterior,
-    onIrParaPagina,
-  }: any) => (
-    <div data-testid="pagination">
-      <span>
-        Página {paginaAtual} de {totalPaginas}
-      </span>
-      <span>Total: {totalEtapas} etapas</span>
-      <button
-        onClick={onPaginaAnterior}
-        disabled={paginaAtual <= 1}
-        data-testid="prev-page-btn"
-      >
-        Anterior
-      </button>
-      <button
-        onClick={onProximaPagina}
-        disabled={paginaAtual >= totalPaginas}
-        data-testid="next-page-btn"
-      >
-        Próxima
-      </button>
-      <button onClick={() => onIrParaPagina(2)} data-testid="goto-page-btn">
-        Ir para página 2
-      </button>
-    </div>
-  ),
-}));
-
 jest.mock("@/components/layout/Footer", () => ({
   Footer: () => <footer data-testid="footer">Footer</footer>,
 }));
@@ -222,7 +175,7 @@ describe("ListagemEtapas - Renderização", () => {
     it("deve renderizar o header", () => {
       renderWithRouter(<ListagemEtapas />);
 
-      expect(screen.getByTestId("page-header")).toBeInTheDocument();
+      expect(screen.getByText("Gerencie as etapas do torneio")).toBeInTheDocument();
     });
 
     it("deve renderizar cards de estatísticas", () => {
@@ -244,9 +197,15 @@ describe("ListagemEtapas - Renderização", () => {
     });
 
     it("deve renderizar paginação", () => {
+      mockUseListagemEtapas.mockReturnValue({
+        ...defaultMockReturn,
+        totalPaginas: 5,
+        totalEtapas: 50,
+      });
+
       renderWithRouter(<ListagemEtapas />);
 
-      expect(screen.getByTestId("pagination")).toBeInTheDocument();
+      expect(screen.getByLabelText("Paginação")).toBeInTheDocument();
     });
 
     it("deve renderizar footer", () => {
@@ -475,56 +434,32 @@ describe("ListagemEtapas - Renderização", () => {
 
       renderWithRouter(<ListagemEtapas />);
 
-      expect(screen.getByText("Página 1 de 5")).toBeInTheDocument();
-      expect(screen.getByText("Total: 50 etapas")).toBeInTheDocument();
+      expect(screen.getByText("1", { selector: "button" })).toHaveAttribute(
+        "aria-current",
+        "page"
+      );
+      expect(screen.getByText("50")).toBeInTheDocument();
     });
 
-    it("deve chamar proximaPagina ao clicar no botão", () => {
-      const mockProximaPagina = jest.fn();
-      mockUseListagemEtapas.mockReturnValue({
-        ...defaultMockReturn,
-        paginaAtual: 1,
-        totalPaginas: 5,
-        proximaPagina: mockProximaPagina,
-      });
-
-      renderWithRouter(<ListagemEtapas />);
-
-      fireEvent.click(screen.getByTestId("next-page-btn"));
-
-      expect(mockProximaPagina).toHaveBeenCalled();
-    });
-
-    it("deve chamar paginaAnterior ao clicar no botão", () => {
-      const mockPaginaAnterior = jest.fn();
+    it.each([
+      ["Próxima →", 3],
+      ["← Anterior", 1],
+      ["4", 4],
+    ])("deve ir para a página certa ao clicar em %s", (botao, pagina) => {
+      const mockIrParaPagina = jest.fn();
       mockUseListagemEtapas.mockReturnValue({
         ...defaultMockReturn,
         paginaAtual: 2,
         totalPaginas: 5,
-        paginaAnterior: mockPaginaAnterior,
-      });
-
-      renderWithRouter(<ListagemEtapas />);
-
-      fireEvent.click(screen.getByTestId("prev-page-btn"));
-
-      expect(mockPaginaAnterior).toHaveBeenCalled();
-    });
-
-    it("deve chamar irParaPagina ao clicar no botão", () => {
-      const mockIrParaPagina = jest.fn();
-      mockUseListagemEtapas.mockReturnValue({
-        ...defaultMockReturn,
-        paginaAtual: 1,
-        totalPaginas: 5,
+        totalEtapas: 50,
         irParaPagina: mockIrParaPagina,
       });
 
       renderWithRouter(<ListagemEtapas />);
 
-      fireEvent.click(screen.getByTestId("goto-page-btn"));
+      fireEvent.click(screen.getByText(botao, { selector: "button" }));
 
-      expect(mockIrParaPagina).toHaveBeenCalledWith(2);
+      expect(mockIrParaPagina).toHaveBeenCalledWith(pagina);
     });
 
     it("deve desabilitar botão anterior na primeira página", () => {
@@ -532,11 +467,12 @@ describe("ListagemEtapas - Renderização", () => {
         ...defaultMockReturn,
         paginaAtual: 1,
         totalPaginas: 5,
+        totalEtapas: 50,
       });
 
       renderWithRouter(<ListagemEtapas />);
 
-      expect(screen.getByTestId("prev-page-btn")).toBeDisabled();
+      expect(screen.getByText("← Anterior")).toBeDisabled();
     });
 
     it("deve desabilitar botão próxima na última página", () => {
@@ -544,11 +480,12 @@ describe("ListagemEtapas - Renderização", () => {
         ...defaultMockReturn,
         paginaAtual: 5,
         totalPaginas: 5,
+        totalEtapas: 50,
       });
 
       renderWithRouter(<ListagemEtapas />);
 
-      expect(screen.getByTestId("next-page-btn")).toBeDisabled();
+      expect(screen.getByText("Próxima →")).toBeDisabled();
     });
   });
 
@@ -556,7 +493,7 @@ describe("ListagemEtapas - Renderização", () => {
     it("deve navegar para criar etapa ao clicar no botão do header", () => {
       renderWithRouter(<ListagemEtapas />);
 
-      fireEvent.click(screen.getByTestId("criar-btn"));
+      fireEvent.click(screen.getByText("Criar Etapa"));
 
       expect(mockNavigate).toHaveBeenCalledWith("/admin/etapas/criar");
     });

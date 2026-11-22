@@ -1,12 +1,16 @@
 /**
- * Responsabilidade única: Filtros de listagem de jogadores
+ * Responsabilidade única: Busca e filtros da listagem de jogadores
  */
 
 import React from "react";
-import { NivelJogador, StatusJogador, GeneroJogador } from "@/types/jogador";
-import * as S from "../Jogadores.styles";
+import { Search } from "lucide-react";
+import { Campos, Cartao } from "@/components/layout/Pagina";
+import { Button, Input, Select } from "@/components/ui";
+import { GeneroJogador, NivelJogador, StatusJogador } from "@/types/jogador";
 
 export interface FiltersBarProps {
+  busca: string;
+  setBusca: (value: string) => void;
   nivelFiltro: NivelJogador | "";
   setNivelFiltro: (value: NivelJogador | "") => void;
   statusFiltro: StatusJogador | "";
@@ -17,7 +21,29 @@ export interface FiltersBarProps {
   onLimparFiltros: () => void;
 }
 
+const NIVEIS = [
+  { value: "", label: "Todos" },
+  { value: NivelJogador.INICIANTE, label: "Iniciante" },
+  { value: NivelJogador.INTERMEDIARIO, label: "Intermediário" },
+  { value: NivelJogador.AVANCADO, label: "Avançado" },
+];
+
+const STATUS = [
+  { value: "", label: "Todos" },
+  { value: StatusJogador.ATIVO, label: "Ativo" },
+  { value: StatusJogador.INATIVO, label: "Inativo" },
+  { value: StatusJogador.SUSPENSO, label: "Suspenso" },
+];
+
+const GENEROS = [
+  { value: "", label: "Todos" },
+  { value: GeneroJogador.MASCULINO, label: "Masculino" },
+  { value: GeneroJogador.FEMININO, label: "Feminino" },
+];
+
 export const FiltersBar: React.FC<FiltersBarProps> = ({
+  busca,
+  setBusca,
   nivelFiltro,
   setNivelFiltro,
   statusFiltro,
@@ -26,61 +52,49 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
   setGeneroFiltro,
   temFiltrosAtivos,
   onLimparFiltros,
-}) => {
-  return (
-    <S.FiltersContainer>
-      <S.FiltersGrid>
-        {/* Nível */}
-        <S.FilterItem>
-          <S.FilterLabel htmlFor="nivel">Nível</S.FilterLabel>
-          <S.Select
-            id="nivel"
-            value={nivelFiltro}
-            onChange={(e) => setNivelFiltro(e.target.value as any)}
-          >
-            <option value="">Todos</option>
-            <option value={NivelJogador.INICIANTE}>Iniciante</option>
-            <option value={NivelJogador.INTERMEDIARIO}>Intermediário</option>
-            <option value={NivelJogador.AVANCADO}>Avançado</option>
-          </S.Select>
-        </S.FilterItem>
+}) => (
+  <Cartao>
+    <Input
+      aria-label="Buscar jogador"
+      fullWidth
+      icon={<Search />}
+      value={busca}
+      onChange={(e) => setBusca(e.target.value)}
+      placeholder="Nome, email ou telefone..."
+    />
 
-        {/* Status */}
-        <S.FilterItem>
-          <S.FilterLabel htmlFor="status">Status</S.FilterLabel>
-          <S.Select
-            id="status"
-            value={statusFiltro}
-            onChange={(e) => setStatusFiltro(e.target.value as any)}
-          >
-            <option value="">Todos</option>
-            <option value={StatusJogador.ATIVO}>Ativo</option>
-            <option value={StatusJogador.INATIVO}>Inativo</option>
-            <option value={StatusJogador.SUSPENSO}>Suspenso</option>
-          </S.Select>
-        </S.FilterItem>
+    <Campos $colunas>
+      <Select
+        label="Nível"
+        fullWidth
+        options={NIVEIS}
+        value={nivelFiltro}
+        onChange={(e) => setNivelFiltro(e.target.value as NivelJogador | "")}
+      />
+      <Select
+        label="Status"
+        fullWidth
+        options={STATUS}
+        value={statusFiltro}
+        onChange={(e) => setStatusFiltro(e.target.value as StatusJogador | "")}
+      />
+      <Select
+        label="Gênero"
+        fullWidth
+        options={GENEROS}
+        value={generoFiltro}
+        onChange={(e) => setGeneroFiltro(e.target.value as GeneroJogador | "")}
+      />
+    </Campos>
 
-        {/* Gênero */}
-        <S.FilterItem>
-          <S.FilterLabel htmlFor="genero">Gênero</S.FilterLabel>
-          <S.Select
-            id="genero"
-            value={generoFiltro}
-            onChange={(e) => setGeneroFiltro(e.target.value as any)}
-          >
-            <option value="">Todos</option>
-            <option value={GeneroJogador.MASCULINO}>Masculino</option>
-            <option value={GeneroJogador.FEMININO}>Feminino</option>
-          </S.Select>
-        </S.FilterItem>
-      </S.FiltersGrid>
-
-      {/* Limpar Filtros */}
-      {temFiltrosAtivos && (
-        <S.ClearButton onClick={onLimparFiltros}>Limpar Filtros</S.ClearButton>
-      )}
-    </S.FiltersContainer>
-  );
-};
+    {temFiltrosAtivos && (
+      <div>
+        <Button variant="ghost" size="sm" onClick={onLimparFiltros}>
+          Limpar Filtros
+        </Button>
+      </div>
+    )}
+  </Cartao>
+);
 
 export default FiltersBar;

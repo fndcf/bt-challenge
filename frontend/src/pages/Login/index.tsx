@@ -4,15 +4,33 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import styled from "styled-components";
 import { useDocumentTitle } from "@/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLogin } from "./hooks/useLogin";
 import { LoginForm } from "./components/LoginForm";
+import { theme } from "@/styles/theme";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
-import * as S from "./Login.styles";
+import { Formulario } from "@/components/layout/Pagina";
+import {
+  LinkAcesso,
+  PaginaAcesso,
+  RodapeAcesso,
+} from "@/components/layout/PaginaAcesso";
+import { Alert, Button, Checkbox } from "@/components/ui";
 
 // Timeout máximo para verificação de sessão (3 segundos)
 const AUTH_CHECK_TIMEOUT = 3000;
+
+const SUBTITULO = "Faça login para acessar o painel administrativo";
+
+const Opcoes = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${theme.spacing[2]};
+`;
 
 export const Login: React.FC = () => {
   useDocumentTitle("Login");
@@ -70,78 +88,60 @@ export const Login: React.FC = () => {
 
   if (shouldShowLoading) {
     return (
-      <S.PageContainer>
-        <S.LoginContainer>
-          <LoadingSpinner message="Verificando sessão..." />
-        </S.LoginContainer>
-      </S.PageContainer>
+      <PaginaAcesso titulo="Dupley" subtitulo={SUBTITULO}>
+        <LoadingSpinner message="Verificando sessão..." />
+      </PaginaAcesso>
     );
   }
 
   return (
-    <S.PageContainer>
-      <S.LoginContainer>
-        <S.Header>
-          <S.Logo>Dupley</S.Logo>
-          <S.HeaderText>
-            Faça login para acessar o painel administrativo
-          </S.HeaderText>
-        </S.Header>
+    <PaginaAcesso
+      titulo="Dupley"
+      subtitulo={SUBTITULO}
+      voltar={{ para: "/", rotulo: "← Voltar para o site" }}
+    >
+      <Formulario onSubmit={handleSubmit} noValidate>
+        {errorMessage && (
+          <div role="alert">
+            <Alert variant="error" onClose={() => setErrorMessage("")}>
+              {errorMessage}
+            </Alert>
+          </div>
+        )}
 
-        <S.Form onSubmit={handleSubmit}>
-          {errorMessage && (
-            <S.Alert>
-              <span>{errorMessage}</span>
-              <S.AlertClose onClick={() => setErrorMessage("")}>×</S.AlertClose>
-            </S.Alert>
-          )}
+        <LoginForm
+          email={values.email}
+          password={values.password}
+          showPassword={showPassword}
+          errors={errors}
+          loading={loading}
+          onEmailChange={(value) => handleChange("email", value)}
+          onPasswordChange={(value) => handleChange("password", value)}
+          onTogglePassword={toggleShowPassword}
+        />
 
-          {/* Campos de Login */}
-          <LoginForm
-            email={values.email}
-            password={values.password}
-            showPassword={showPassword}
-            errors={errors}
-            loading={loading}
-            onEmailChange={(value) => handleChange("email", value)}
-            onPasswordChange={(value) => handleChange("password", value)}
-            onTogglePassword={toggleShowPassword}
+        <Opcoes>
+          <Checkbox
+            label="Lembrar de mim"
+            checked={rememberMe}
+            onChange={setRememberMe}
+            disabled={loading}
           />
+          <LinkAcesso to="/recuperar-senha">Esqueceu a senha?</LinkAcesso>
+        </Opcoes>
 
-          {/* Opções */}
-          <S.FormOptions>
-            <S.CheckboxLabel>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={loading}
-              />
-              <span>Lembrar de mim</span>
-            </S.CheckboxLabel>
+        <Button type="submit" fullWidth loading={loading}>
+          {loading ? "Entrando..." : "Entrar"}
+        </Button>
 
-            <S.ForgotLink to="/recuperar-senha">Esqueceu a senha?</S.ForgotLink>
-          </S.FormOptions>
-
-          {/* Botão de Submit */}
-          <S.SubmitButton type="submit" disabled={loading}>
-            {loading ? <S.Spinner /> : "Entrar"}
-          </S.SubmitButton>
-
-          {/* Footer */}
-          <S.Footer>
-            <p>
-              Ainda não tem uma arena?{" "}
-              <S.RegisterLink to="/register">Criar nova arena</S.RegisterLink>
-            </p>
-          </S.Footer>
-        </S.Form>
-
-        <S.BackLinkContainer>
-          <S.BackLink to="/">← Voltar para o site</S.BackLink>
-        </S.BackLinkContainer>
-      </S.LoginContainer>
-    </S.PageContainer>
+        <RodapeAcesso>
+          <p>
+            Ainda não tem uma arena?{" "}
+            <LinkAcesso to="/register">Criar nova arena</LinkAcesso>
+          </p>
+        </RodapeAcesso>
+      </Formulario>
+    </PaginaAcesso>
   );
 };
 

@@ -172,7 +172,7 @@ describe("EditarJogador - Renderização", () => {
       expect(screen.getByText("Jogador não encontrado")).toBeInTheDocument();
     });
 
-    it("deve navegar ao clicar no botão fechar", () => {
+    it("deve voltar para a listagem", () => {
       mockUseEditarJogador.mockReturnValue({
         ...defaultMockReturn,
         jogador: null,
@@ -180,7 +180,7 @@ describe("EditarJogador - Renderização", () => {
 
       renderWithRouter(<EditarJogador />);
 
-      fireEvent.click(screen.getByText("×"));
+      fireEvent.click(screen.getByText("← Voltar para jogadores"));
 
       expect(mockNavigate).toHaveBeenCalledWith("/admin/jogadores");
     });
@@ -306,7 +306,7 @@ describe("EditarJogador - Renderização", () => {
 
       renderWithRouter(<EditarJogador />);
 
-      const closeButtons = screen.getAllByText("×");
+      const closeButtons = screen.getAllByLabelText("Fechar alerta");
       fireEvent.click(closeButtons[0]);
 
       expect(mockSetErrorMessage).toHaveBeenCalledWith("");
@@ -322,7 +322,7 @@ describe("EditarJogador - Renderização", () => {
 
       renderWithRouter(<EditarJogador />);
 
-      const closeButtons = screen.getAllByText("×");
+      const closeButtons = screen.getAllByLabelText("Fechar alerta");
       fireEvent.click(closeButtons[0]);
 
       expect(mockSetSuccessMessage).toHaveBeenCalledWith("");

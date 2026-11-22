@@ -3,69 +3,69 @@
  */
 
 import React from "react";
+import styled from "styled-components";
+import { Rotulo, Texto } from "@/components/layout/Pagina";
+import { SecaoPublica } from "@/components/torneio";
+import { Badge } from "@/components/ui";
 import { EtapaPublica } from "@/services/arenaPublicService";
-import {
-  formatarData,
-  getFormatoLabel,
-  getNivelLabel,
-  getGeneroLabel,
-} from "@/utils/formatters";
-import * as S from "../EtapaDetalhe.styles";
+import { theme } from "@/styles/theme";
+import { getFormatoEtapaLabel } from "@/utils/etapa";
+import { formatarData, getGeneroLabel, getNivelLabel } from "@/utils/formatters";
 
 export interface EtapaInfoProps {
   etapa: EtapaPublica;
   totalJogadores: number;
 }
 
+const Dados = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: ${theme.spacing[4]};
+`;
+
+const Valor = styled.p`
+  margin: 0;
+  font-weight: ${theme.typography.fontWeight.semibold};
+  color: ${theme.semantic.texto.principal};
+`;
+
+const Descricao = styled(Texto)`
+  margin-top: ${theme.spacing[4]};
+`;
+
 export const EtapaInfo: React.FC<EtapaInfoProps> = ({
   etapa,
   totalJogadores,
 }) => {
+  const dados: [string, string | undefined][] = [
+    ["Data", formatarData(etapa.dataRealizacao)],
+    ["Nível", etapa.nivel && getNivelLabel(etapa.nivel)],
+    ["Gênero", etapa.genero && getGeneroLabel(etapa.genero)],
+    ["Local", etapa.local],
+    ["Jogadores", `${totalJogadores} inscritos`],
+  ];
+
   return (
-    <S.Card>
-      <S.CardHeader>
-        <S.CardTitle>Informações da Etapa</S.CardTitle>
-      </S.CardHeader>
-
-      <S.InfoGrid>
-        {/* Data */}
-        <S.InfoBox>
-          <S.InfoLabel>Data</S.InfoLabel>
-          <S.InfoValue>{formatarData(etapa.dataRealizacao)}</S.InfoValue>
-        </S.InfoBox>
-
-        {/* Formato */}
-        <S.InfoBox>
-          <S.InfoLabel>Formato</S.InfoLabel>
-          <S.InfoValue>{getFormatoLabel(etapa.formato, etapa.varianteSuperX)}</S.InfoValue>
-        </S.InfoBox>
-
-        {/* Nível */}
-        {etapa.nivel && (
-          <S.InfoBox>
-            <S.InfoLabel>Nível</S.InfoLabel>
-            <S.InfoValue>{getNivelLabel(etapa.nivel)}</S.InfoValue>
-          </S.InfoBox>
+    <SecaoPublica
+      titulo="Informações da Etapa"
+      selo={
+        <Badge formato={etapa.formato}>{getFormatoEtapaLabel(etapa)}</Badge>
+      }
+    >
+      <Dados>
+        {dados.map(
+          ([rotulo, valor]) =>
+            valor && (
+              <div key={rotulo}>
+                <Rotulo>{rotulo}</Rotulo>
+                <Valor>{valor}</Valor>
+              </div>
+            )
         )}
+      </Dados>
 
-        {/* Gênero */}
-        {etapa.genero && (
-          <S.InfoBox>
-            <S.InfoLabel>Gênero</S.InfoLabel>
-            <S.InfoValue>{getGeneroLabel(etapa.genero)}</S.InfoValue>
-          </S.InfoBox>
-        )}
-
-        {/* Jogadores */}
-        <S.InfoBox>
-          <S.InfoLabel>Jogadores</S.InfoLabel>
-          <S.InfoValue>{totalJogadores} inscritos</S.InfoValue>
-        </S.InfoBox>
-      </S.InfoGrid>
-
-      {/* Descrição */}
-      {etapa.descricao && <S.Desc>{etapa.descricao}</S.Desc>}
-    </S.Card>
+      {etapa.descricao && <Descricao>{etapa.descricao}</Descricao>}
+    </SecaoPublica>
   );
 };
 

@@ -6,7 +6,14 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { Alert, Badge, Button, IconButton, Modal } from "@/components/ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  IconButton,
+  Modal,
+  OpcoesCartao,
+} from "@/components/ui";
 import { getEtapaService } from "@/services";
 import { theme } from "@/styles/theme";
 import {
@@ -25,7 +32,7 @@ interface ModalResolverEmpateProps {
 
 // ============== STYLES ==============
 
-const { texto, superficie, acao } = theme.semantic;
+const { texto, superficie } = theme.semantic;
 const { fontSize, fontWeight } = theme.typography;
 
 const Conteudo = styled.div`
@@ -40,44 +47,6 @@ const Descricao = styled.p`
   color: ${texto.secundario};
 
   strong {
-    color: ${texto.principal};
-  }
-`;
-
-const Opcoes = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-  gap: ${theme.spacing[3]};
-`;
-
-const Opcao = styled.label<{ $ativa: boolean }>`
-  display: flex;
-  gap: ${theme.spacing[3]};
-  padding: ${theme.spacing[4]};
-  border: 1px solid
-    ${({ $ativa }) => ($ativa ? acao.primaria : superficie.bordaForte)};
-  border-radius: ${theme.borderRadius.lg};
-  background: ${({ $ativa }) => ($ativa ? acao.fundoClaro : superficie.fundo)};
-  font-size: ${fontSize.sm};
-  color: ${texto.secundario};
-  cursor: pointer;
-
-  &:hover {
-    border-color: ${acao.primaria};
-  }
-
-  input {
-    flex-shrink: 0;
-    width: 1.125rem;
-    height: 1.125rem;
-    margin: ${theme.spacing[1]} 0 0 0;
-    accent-color: ${acao.primaria};
-  }
-
-  strong {
-    display: block;
-    font-size: ${fontSize.base};
-    font-weight: ${fontWeight.semibold};
     color: ${texto.principal};
   }
 `;
@@ -125,14 +94,14 @@ const Subtitulo = styled.h4`
 const juntar = (itens: string[]): string =>
   `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
 
-const OPCOES: { modo: ModoDesempate; titulo: string; descricao: string }[] = [
+const OPCOES: { valor: ModoDesempate; titulo: string; descricao: string }[] = [
   {
-    modo: "sorteio",
+    valor: "sorteio",
     titulo: "Sortear",
     descricao: "O sistema define a ordem aleatoriamente.",
   },
   {
-    modo: "manual",
+    valor: "manual",
     titulo: "Escolher a ordem",
     descricao: "Você define quem fica em cada posição.",
   },
@@ -277,23 +246,13 @@ export const ModalResolverEmpate: React.FC<ModalResolverEmpateProps> = ({
 
         {empate.contexto && <Alert>{empate.contexto}</Alert>}
 
-        <Opcoes role="radiogroup" aria-label="Forma de desempate">
-          {OPCOES.map((opcao) => (
-            <Opcao key={opcao.modo} $ativa={modo === opcao.modo}>
-              <input
-                type="radio"
-                name="modo-desempate"
-                checked={modo === opcao.modo}
-                onChange={() => setModo(opcao.modo)}
-                disabled={salvando}
-              />
-              <span>
-                <strong>{opcao.titulo}</strong>
-                {opcao.descricao}
-              </span>
-            </Opcao>
-          ))}
-        </Opcoes>
+        <OpcoesCartao
+          rotulo="Forma de desempate"
+          opcoes={OPCOES}
+          valor={modo}
+          onChange={setModo}
+          disabled={salvando}
+        />
 
         {modo === "manual" && (
           <>

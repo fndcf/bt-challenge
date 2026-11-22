@@ -23,6 +23,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   inputSize?: InputSize;
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
+  /** Botão dentro do campo, à direita (ex.: mostrar a senha) */
+  acao?: React.ReactNode;
 }
 
 const { texto } = theme.semantic;
@@ -73,6 +75,13 @@ const IconWrapper = styled.div<{ $position: "left" | "right" }>`
   }
 `;
 
+const AcaoWrapper = styled.div`
+  position: absolute;
+  right: ${theme.spacing[1]};
+  display: flex;
+  color: ${texto.secundario};
+`;
+
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
@@ -83,6 +92,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       inputSize = "md",
       icon,
       iconPosition = "left",
+      acao: acaoDoCampo,
       required,
       id,
       ...props
@@ -109,12 +119,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={campoId}
             $hasError={!!error}
             $size={inputSize}
-            $icone={icon ? iconPosition : undefined}
+            $icone={icon ? iconPosition : acaoDoCampo ? "right" : undefined}
             required={required}
             aria-invalid={error ? true : undefined}
             aria-describedby={ajuda ? ajudaId : undefined}
             {...props}
           />
+          {acaoDoCampo && <AcaoWrapper>{acaoDoCampo}</AcaoWrapper>}
         </InputContainer>
 
         {ajuda && (

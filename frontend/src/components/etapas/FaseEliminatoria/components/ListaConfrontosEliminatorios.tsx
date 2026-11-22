@@ -6,7 +6,7 @@ import { Button, BadgeTom } from "@/components/ui";
 import {
   CardConfronto,
   LadoConfronto,
-  ListaConfrontos,
+  ConfrontosEliminatoria,
 } from "@/components/torneio";
 import {
   ConfrontoEliminatorio,
@@ -117,7 +117,7 @@ export const ListaConfrontosEliminatorios = <T extends ConfrontoDaLista>({
             <FaseStatus>{contarStatus(confrontos)} completos</FaseStatus>
           </FaseHeader>
 
-          <ListaConfrontos>
+          <ConfrontosEliminatoria>
             {confrontos.map((confronto) =>
               confronto.status === StatusConfrontoEliminatorio.BYE ? (
                 <ByeBox key={confronto.id}>
@@ -136,7 +136,7 @@ export const ListaConfrontosEliminatorios = <T extends ConfrontoDaLista>({
                 />
               )
             )}
-          </ListaConfrontos>
+          </ConfrontosEliminatoria>
         </FaseCard>
       ))}
     </Conteudo>

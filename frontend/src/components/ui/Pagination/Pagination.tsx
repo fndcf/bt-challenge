@@ -48,6 +48,13 @@ const Controls = styled.div`
 const Numbers = styled.div`
   display: flex;
   gap: ${theme.spacing[1]};
+
+  /* No celular os números ficam na linha de cima, e os botões na de baixo */
+  @media (max-width: ${theme.breakpoints.sm}) {
+    order: -1;
+    justify-content: center;
+    width: 100%;
+  }
 `;
 
 const PageNumber = styled.button<{ $active: boolean }>`

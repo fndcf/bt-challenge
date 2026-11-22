@@ -2,10 +2,11 @@
  * Modal para importação de jogadores via planilha Excel
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
-import { Modal, Button } from "@/components/ui";
+import { CheckCircle, FileSpreadsheet, Upload } from "lucide-react";
+import { Alert, Button, Modal } from "@/components/ui";
+import { theme } from "@/styles/theme";
 
 interface ImportResult {
   criados: number;
@@ -31,7 +32,6 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [downloadingModelo, setDownloadingModelo] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -105,7 +105,6 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
       onClose={handleClose}
       title="Importar Jogadores"
       loading={loading}
-      bodyPadding={false}
       footer={
         <>
           <Button variant="secondary" onClick={handleClose} disabled={loading}>
@@ -130,40 +129,38 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
             </InstructionDetails>
           </Instructions>
 
+          <div>
           <Button
             variant="outline"
             size="sm"
             icon={<FileSpreadsheet size={16} />}
             onClick={handleBaixarModelo}
             loading={downloadingModelo}
-            style={{ marginBottom: "1rem" }}
           >
             {downloadingModelo ? "Baixando..." : "Baixar modelo com jogadores atuais"}
           </Button>
+          </div>
 
           <DropZone
-            onClick={() => fileInputRef.current?.click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             $hasFile={!!file}
           >
             <input
-              ref={fileInputRef}
               type="file"
               accept=".xlsx"
               onChange={handleFileChange}
-              style={{ display: "none" }}
             />
 
             {file ? (
               <FileInfo>
-                <CheckCircle size={24} color="#16a34a" />
+                <CheckCircle aria-hidden="true" size={24} />
                 <FileName>{file.name}</FileName>
                 <FileSize>({(file.size / 1024).toFixed(1)} KB)</FileSize>
               </FileInfo>
             ) : (
               <DropZoneContent>
-                <Upload size={32} color="#9ca3af" />
+                <Upload aria-hidden="true" size={32} />
                 <DropText>Arraste o arquivo aqui ou clique para selecionar</DropText>
                 <DropSubtext>Apenas arquivos .xlsx (máx. 5MB)</DropSubtext>
               </DropZoneContent>
@@ -171,10 +168,11 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
           </DropZone>
 
           {error && (
-            <ErrorBox>
-              <AlertCircle size={16} />
-              <ErrorText>{error}</ErrorText>
-            </ErrorBox>
+            <div role="alert">
+              <Alert variant="error">
+                <ErrorText>{error}</ErrorText>
+              </Alert>
+            </div>
           )}
         </Content>
     </Modal>
@@ -183,44 +181,56 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
 
 // ============== STYLED COMPONENTS ==============
 
+const { texto, superficie, acao, status } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
+
 const Content = styled.div`
-  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing[4]};
 `;
 
 const Instructions = styled.div`
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: #374151;
+  font-size: ${fontSize.sm};
   line-height: 1.5;
+  color: ${texto.principal};
 
   p {
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 ${theme.spacing[1]} 0;
   }
 `;
 
 const InstructionDetails = styled.ul`
-  margin: 0.5rem 0 0 0;
-  padding-left: 1.25rem;
-  font-size: 0.8125rem;
-  color: #6b7280;
-
-  li {
-    margin-bottom: 0.125rem;
-  }
+  margin: ${theme.spacing[2]} 0 0 0;
+  padding-left: ${theme.spacing[5]};
+  color: ${texto.secundario};
 `;
 
-const DropZone = styled.div<{ $hasFile: boolean }>`
-  border: 2px dashed ${(p) => (p.$hasFile ? "#16a34a" : "#d1d5db")};
-  border-radius: 0.5rem;
-  padding: 2rem;
+const DropZone = styled.label<{ $hasFile: boolean }>`
+  display: block;
+  padding: ${theme.spacing[8]} ${theme.spacing[4]};
+  border: 2px dashed
+    ${({ $hasFile }) =>
+      $hasFile ? status.sucesso.texto : superficie.bordaForte};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${({ $hasFile }) =>
+    $hasFile ? status.sucesso.fundo : superficie.fundoAlternativo};
+  color: ${({ $hasFile }) =>
+    $hasFile ? status.sucesso.texto : texto.secundario};
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
-  background: ${(p) => (p.$hasFile ? "#f0fdf4" : "#fafafa")};
 
-  &:hover {
-    border-color: ${(p) => (p.$hasFile ? "#16a34a" : "#2563eb")};
-    background: ${(p) => (p.$hasFile ? "#f0fdf4" : "#eff6ff")};
+  &:hover,
+  &:focus-within {
+    border-color: ${acao.primaria};
+  }
+
+  /* Escondido só visualmente: continua acessível pelo teclado */
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
   }
 `;
 
@@ -228,61 +238,41 @@ const DropZoneContent = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: ${theme.spacing[2]};
 `;
 
 const DropText = styled.p`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
   margin: 0;
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.medium};
+  color: ${texto.principal};
 `;
 
 const DropSubtext = styled.p`
-  font-size: 0.75rem;
-  color: #9ca3af;
   margin: 0;
+  font-size: ${fontSize.xs};
 `;
 
 const FileInfo = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: ${theme.spacing[2]};
 `;
 
 const FileName = styled.span`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.semibold};
 `;
 
 const FileSize = styled.span`
-  color: #6b7280;
-  font-size: 0.8125rem;
-`;
-
-const ErrorBox = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
-  color: #991b1b;
-
-  svg {
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-  }
+  font-size: ${fontSize.sm};
 `;
 
 const ErrorText = styled.div`
-  font-size: 0.8125rem;
   white-space: pre-line;
-  line-height: 1.5;
 `;
 
 export default ModalImportarJogadores;

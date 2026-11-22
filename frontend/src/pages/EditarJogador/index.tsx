@@ -4,14 +4,21 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Footer } from "@/components/layout/Footer";
+import {
+  AcoesFormulario,
+  CabecalhoPagina,
+  CarregandoPagina,
+  Formulario,
+  Pagina,
+} from "@/components/layout/Pagina";
+import { Alert, Button } from "@/components/ui";
 import { useDocumentTitle } from "@/hooks";
-import { StatusJogador, NivelJogador } from "@/types/jogador";
-import { useEditarJogador } from "./hooks/useEditarJogador";
+import { NivelJogador, StatusJogador } from "@/types/jogador";
 import { InformacoesBasicas } from "../NovoJogador/components/InformacoesBasicas";
 import { NivelStatus } from "../NovoJogador/components/NivelStatus";
 import { ObservacoesField } from "../NovoJogador/components/ObservacoesField";
-import { Footer } from "@/components/layout/Footer";
-import * as S from "./EditarJogador.styles";
+import { useEditarJogador } from "./hooks/useEditarJogador";
 
 export const EditarJogador: React.FC = () => {
   useDocumentTitle("Editar Jogador");
@@ -32,57 +39,35 @@ export const EditarJogador: React.FC = () => {
     setSuccessMessage,
   } = useEditarJogador();
 
-  // Loading inicial
   if (loading) {
-    return (
-      <S.Container>
-        <S.LoadingContainer>
-          <S.Spinner $size="large" />
-          <S.LoadingMessage>Carregando jogador...</S.LoadingMessage>
-        </S.LoadingContainer>
-      </S.Container>
-    );
+    return <CarregandoPagina mensagem="Carregando jogador..." />;
   }
 
-  // Jogador não encontrado
   if (!jogador) {
     return (
-      <S.Container>
-        <S.Alert $type="error">
-          <S.AlertContent>Jogador não encontrado</S.AlertContent>
-          <S.AlertClose onClick={() => navigate("/admin/jogadores")}>
-            ×
-          </S.AlertClose>
-        </S.Alert>
-      </S.Container>
+      <Pagina $estreita>
+        <Alert variant="error">Jogador não encontrado</Alert>
+        <div>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/admin/jogadores")}
+          >
+            ← Voltar para jogadores
+          </Button>
+        </div>
+      </Pagina>
     );
   }
 
   return (
-    <S.Container>
-      <S.Header>
-        <S.BackButton onClick={handleCancel}>← Voltar</S.BackButton>
-        <S.Title>Editar Jogador</S.Title>
-        <S.Subtitle>Atualize as informações do jogador</S.Subtitle>
-      </S.Header>
+    <Pagina $estreita>
+      <CabecalhoPagina
+        titulo="Editar Jogador"
+        subtitulo="Atualize as informações do jogador"
+        voltar={{ onClick: handleCancel }}
+      />
 
-      {/* Mensagens */}
-      {successMessage && (
-        <S.Alert $type="success">
-          <S.AlertContent>{successMessage}</S.AlertContent>
-          <S.AlertClose onClick={() => setSuccessMessage("")}>×</S.AlertClose>
-        </S.Alert>
-      )}
-
-      {errorMessage && (
-        <S.Alert $type="error">
-          <S.AlertContent>{errorMessage}</S.AlertContent>
-          <S.AlertClose onClick={() => setErrorMessage("")}>×</S.AlertClose>
-        </S.Alert>
-      )}
-
-      <S.Form onSubmit={handleSubmit}>
-        {/* Informações Básicas - REUTILIZADO de NovoJogador */}
+      <Formulario onSubmit={handleSubmit}>
         <InformacoesBasicas
           nome={formData.nome || ""}
           email={formData.email || ""}
@@ -93,38 +78,41 @@ export const EditarJogador: React.FC = () => {
           onChange={handleChange}
         />
 
-        {/* Nível e Status - REUTILIZADO de NovoJogador */}
         <NivelStatus
           nivel={formData.nivel || NivelJogador.INICIANTE}
           status={formData.status || StatusJogador.ATIVO}
           onChange={handleChange}
         />
 
-        {/* Observações - REUTILIZADO de NovoJogador */}
         <ObservacoesField
           observacoes={formData.observacoes || ""}
           onChange={handleChange}
         />
 
-        {/* Botões de Ação */}
-        <S.FormActions>
-          <S.Button type="button" $variant="cancel" onClick={handleCancel}>
+        {successMessage && (
+          <Alert variant="success" onClose={() => setSuccessMessage("")}>
+            {successMessage}
+          </Alert>
+        )}
+
+        {errorMessage && (
+          <Alert variant="error" onClose={() => setErrorMessage("")}>
+            {errorMessage}
+          </Alert>
+        )}
+
+        <AcoesFormulario>
+          <Button type="button" variant="secondary" onClick={handleCancel}>
             Cancelar
-          </S.Button>
-          <S.Button type="submit" disabled={saving}>
-            {saving ? (
-              <>
-                <S.Spinner $size="small" />
-                Salvando...
-              </>
-            ) : (
-              <>Salvar Alterações</>
-            )}
-          </S.Button>
-        </S.FormActions>
-      </S.Form>
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving ? "Salvando..." : "Salvar Alterações"}
+          </Button>
+        </AcoesFormulario>
+      </Formulario>
+
       <Footer />
-    </S.Container>
+    </Pagina>
   );
 };
 
