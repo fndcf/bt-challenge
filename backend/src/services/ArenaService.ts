@@ -3,8 +3,9 @@ import {
   IArenaRepository,
 } from "../repositories/ArenaRepository";
 import { Arena, ArenaType } from "../domain/Arena";
-import { auth, db } from "../config/firebase";
-import { COLLECTIONS } from "../config/firestore";
+import { adminRepository } from "../repositories/firebase/AdminRepository";
+import { IAdminRepository } from "../repositories/interfaces/IAdminRepository";
+import { auth } from "../config/firebase";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
 import { generateUniqueSlug } from "../utils/slugify";
 import logger from "../utils/logger";
@@ -23,7 +24,10 @@ export interface CreateArenaDTO {
  * Contém a lógica de negócio para gerenciar arenas
  */
 export class ArenaService {
-  constructor(private arenaRepository: IArenaRepository) {}
+  constructor(
+    private arenaRepository: IArenaRepository,
+    private admins: IAdminRepository = adminRepository
+  ) {}
 
   /**
    * Criar nova arena com admin
@@ -79,12 +83,10 @@ export class ArenaService {
         const arena = await this.arenaRepository.create(arenaData);
 
         // Criar documento de admin no Firestore
-        await db.collection(COLLECTIONS.ADMINS).doc(userRecord.uid).set({
+        await this.admins.criar({
           uid: userRecord.uid,
           email: data.adminEmail,
           arenaId: arena.id,
-          role: "admin",
-          createdAt: new Date(),
         });
 
         // Enviar email de verificação (opcional)
@@ -125,8 +127,8 @@ export class ArenaService {
         await auth.deleteUser(userRecord.uid);
         throw error;
       }
-    } catch (error: any) {
-      if (error.code === "auth/email-already-exists") {
+    } catch (error) {
+      if ((error as { code?: string }).code === "auth/email-already-exists") {
         throw new ConflictError("Este email já está cadastrado");
       }
       throw error;
@@ -209,18 +211,13 @@ export class ArenaService {
     const arena = await this.arenaRepository.create(arenaData);
 
     // Atualizar documento admin — adicionar ao array arenaIds
-    const adminRef = db.collection(COLLECTIONS.ADMINS).doc(adminUid);
-    const adminDoc = await adminRef.get();
+    const admin = await this.admins.buscarPorUid(adminUid);
 
-    if (adminDoc.exists) {
-      const adminData = adminDoc.data();
-      const arenaIds: string[] = adminData?.arenaIds || (adminData?.arenaId ? [adminData.arenaId] : []);
-      arenaIds.push(arena.id);
-
-      await adminRef.update({
-        arenaIds,
-        defaultArenaId: arena.id,
-      });
+    if (admin) {
+      await this.admins.definirArenaPadrao(adminUid, arena.id, [
+        ...admin.arenaIds,
+        arena.id,
+      ]);
     }
 
     logger.info("Arena adicional criada", {
@@ -252,43 +249,28 @@ export class ArenaService {
    */
   async getAdminArenas(adminUid: string): Promise<Arena[]> {
     // Buscar arenaIds do documento admin
-    const adminDoc = await db.collection(COLLECTIONS.ADMINS).doc(adminUid).get();
+    const admin = await this.admins.buscarPorUid(adminUid);
 
-    if (!adminDoc.exists) {
-      return [];
-    }
+    if (!admin || admin.arenaIds.length === 0) return [];
 
-    const adminData = adminDoc.data();
-    const arenaIds: string[] = adminData?.arenaIds
-      || (adminData?.arenaId ? [adminData.arenaId] : []);
-
-    if (arenaIds.length === 0) return [];
-
-    return this.arenaRepository.findByIds(arenaIds);
+    return this.arenaRepository.findByIds(admin.arenaIds);
   }
 
   /**
    * Trocar arena ativa do admin
    */
   async switchArena(adminUid: string, arenaId: string): Promise<void> {
-    const adminRef = db.collection(COLLECTIONS.ADMINS).doc(adminUid);
-    const adminDoc = await adminRef.get();
+    const admin = await this.admins.buscarPorUid(adminUid);
 
-    if (!adminDoc.exists) {
+    if (!admin) {
       throw new NotFoundError("Admin não encontrado");
     }
 
-    const adminData = adminDoc.data();
-    const arenaIds: string[] = adminData?.arenaIds
-      || (adminData?.arenaId ? [adminData.arenaId] : []);
-
-    if (!arenaIds.includes(arenaId)) {
+    if (!admin.arenaIds.includes(arenaId)) {
       throw new BadRequestError("Você não tem acesso a esta arena");
     }
 
-    await adminRef.update({
-      defaultArenaId: arenaId,
-    });
+    await this.admins.definirArenaPadrao(adminUid, arenaId);
 
     logger.info("Arena ativa alterada", { adminUid, arenaId });
   }
@@ -329,7 +311,7 @@ export class ArenaService {
       adminEmail: ___,
       createdAt: ____,
       ...updateData
-    } = data as any;
+    } = data;
 
     const updatedArena = await this.arenaRepository.update(id, updateData);
 

@@ -18,3 +18,6 @@ export * from "./IConfrontoEliminatorioRepository";
 export * from "./IEstatisticasJogadorRepository";
 export * from "./IPartidaReiDaPraiaRepository";
 export * from "./IConfigRepository";
+export * from "./IAdminRepository";
+export * from "./ICabecaDeChaveRepository";
+export * from "./IHistoricoDuplaRepository";

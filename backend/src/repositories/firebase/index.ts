@@ -15,6 +15,9 @@ export * from "./ConfrontoEliminatorioRepository";
 export * from "./EstatisticasJogadorRepository";
 export * from "./PartidaReiDaPraiaRepository";
 export * from "./ConfigRepository";
+export * from "./AdminRepository";
+export * from "./CabecaDeChaveRepository";
+export * from "./HistoricoDuplaRepository";
 
 // Instâncias prontas para uso
 export { etapaRepository } from "./EtapaRepository";
@@ -27,3 +30,6 @@ export { confrontoEliminatorioRepository } from "./ConfrontoEliminatorioReposito
 export { estatisticasJogadorRepository } from "./EstatisticasJogadorRepository";
 export { partidaReiDaPraiaRepository } from "./PartidaReiDaPraiaRepository";
 export { configRepository } from "./ConfigRepository";
+export { adminRepository } from "./AdminRepository";
+export { cabecaDeChaveRepository } from "./CabecaDeChaveRepository";
+export { historicoDuplaRepository } from "./HistoricoDuplaRepository";

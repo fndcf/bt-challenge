@@ -71,7 +71,7 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
 
   // ============== VALIDAÇÃO ==============
 
-  const validateField = useCallback((name: string, value: any): string => {
+  const validateField = useCallback((name: string, value?: string): string => {
     switch (name) {
       case "nome":
         if (!value || value.trim().length < 3) {
@@ -172,12 +172,12 @@ export const useNovoJogador = (): UseNovoJogadorReturn => {
         setGlobalLoading(true);
         setGlobalLoadingMessage("Cadastrando jogador...");
 
-        const dataToSend: any = { ...formData };
-        Object.keys(dataToSend).forEach((key) => {
-          if (dataToSend[key] === "" || dataToSend[key] === undefined) {
-            delete dataToSend[key];
-          }
-        });
+        // Só os campos preenchidos
+        const dataToSend = Object.fromEntries(
+          Object.entries(formData).filter(
+            ([, valor]) => valor !== "" && valor !== undefined
+          )
+        ) as unknown as CriarJogadorDTO;
 
         const jogadorService = getJogadorService();
         await jogadorService.criar(dataToSend);

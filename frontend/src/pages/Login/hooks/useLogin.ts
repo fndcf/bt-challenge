@@ -42,7 +42,8 @@ export const useLogin = (): UseLoginReturn => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || "/admin";
+  const origem = location.state as { from?: { pathname?: string } } | null;
+  const from = origem?.from?.pathname || "/admin";
 
   const { values, errors, handleChange, setFieldError, setFieldValue } =
     useForm<LoginForm>({

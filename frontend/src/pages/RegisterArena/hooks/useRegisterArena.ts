@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getArenaAdminService } from "@/services";
+import { getArenaAdminService, type CreateArenaDTO } from "@/services";
 import { useForm, useDebounce } from "@/hooks";
 import { getMensagemErro } from "@/utils/erro";
 
@@ -145,7 +145,7 @@ export const useRegisterArena = (): UseRegisterArenaReturn => {
       try {
         setLoading(true);
 
-        const payload: any = {
+        const payload: CreateArenaDTO = {
           nome: values.nome,
           adminEmail: values.adminEmail,
           adminPassword: values.adminPassword,

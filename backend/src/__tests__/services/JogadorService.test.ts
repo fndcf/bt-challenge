@@ -210,6 +210,40 @@ describe("JogadorService", () => {
       expect(result.nivel).toBe(NivelJogador.AVANCADO);
     });
 
+    it("não deve preencher os campos que não foram enviados", async () => {
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(
+        createJogadorFixture({ id: TEST_JOGADOR_ID })
+      );
+
+      await jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, {
+        telefone: "(11) 99999-9999",
+      });
+
+      expect(mockJogadorRepository.atualizar).toHaveBeenCalledWith(
+        TEST_JOGADOR_ID,
+        { telefone: "(11) 99999-9999" }
+      );
+    });
+
+    it("deve aceitar campo opcional vazio, para apagar", async () => {
+      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(
+        createJogadorFixture({ id: TEST_JOGADOR_ID })
+      );
+      const dados = {
+        email: "",
+        telefone: "",
+        dataNascimento: "",
+        observacoes: "",
+      };
+
+      await jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, dados);
+
+      expect(mockJogadorRepository.atualizar).toHaveBeenCalledWith(
+        TEST_JOGADOR_ID,
+        dados
+      );
+    });
+
     it("deve lançar erro ao atualizar jogador inexistente", async () => {
       mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(null);
 
@@ -235,7 +269,10 @@ describe("JogadorService", () => {
         jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, {
           nome: "Nome Já Existente",
         })
-      ).rejects.toThrow("Falha ao atualizar jogador");
+      ).rejects.toThrow(
+        "Já existe outro jogador com este nome nesta arena"
+      );
+      expect(mockJogadorRepository.atualizar).not.toHaveBeenCalled();
     });
   });
 
@@ -483,22 +520,6 @@ describe("JogadorService", () => {
   });
 
   describe("atualizar - erros", () => {
-    it("deve lançar erro quando nome já existe para outro jogador", async () => {
-      const jogadorOriginal = createJogadorFixture({
-        id: TEST_JOGADOR_ID,
-        nome: "Nome Original",
-      });
-
-      mockJogadorRepository.buscarPorIdEArena.mockResolvedValue(jogadorOriginal);
-      mockJogadorRepository.nomeExiste.mockResolvedValue(true);
-
-      await expect(
-        jogadorService.atualizar(TEST_JOGADOR_ID, TEST_ARENA_ID, {
-          nome: "Nome Já Existente",
-        })
-      ).rejects.toThrow();
-    });
-
     it("deve lançar erro genérico em caso de falha inesperada", async () => {
       const jogadorOriginal = createJogadorFixture({
         id: TEST_JOGADOR_ID,

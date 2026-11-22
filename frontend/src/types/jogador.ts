@@ -51,7 +51,7 @@ export interface AtualizarJogadorDTO {
   email?: string;
   telefone?: string;
   dataNascimento?: string;
-  genero: GeneroJogador;
+  genero?: GeneroJogador;
   nivel?: NivelJogador;
   status?: StatusJogador;
   observacoes?: string;

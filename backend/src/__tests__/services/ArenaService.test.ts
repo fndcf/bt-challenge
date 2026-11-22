@@ -14,20 +14,12 @@ jest.mock("../../utils/logger", () => ({
 }));
 
 // Mock do Firebase
-const mockDocSet = jest.fn();
-const mockDocUpdate = jest.fn();
-const mockDocGet = jest.fn().mockResolvedValue({ exists: false, data: () => null });
-const mockDoc = jest.fn(() => ({ set: mockDocSet, update: mockDocUpdate, get: mockDocGet }));
-const mockCollection = jest.fn(() => ({ doc: mockDoc }));
-
 const mockCreateUser = jest.fn();
 const mockDeleteUser = jest.fn();
 const mockGenerateEmailVerificationLink = jest.fn();
 
 jest.mock("../../config/firebase", () => ({
-  db: {
-    collection: mockCollection,
-  },
+  db: { collection: jest.fn() },
   auth: {
     createUser: mockCreateUser,
     deleteUser: mockDeleteUser,
@@ -42,12 +34,14 @@ jest.mock("../../utils/slugify", () => ({
 }));
 
 import { ArenaService } from "../../services/ArenaService";
+import { createMockAdminRepository } from "../mocks/repositories";
 import { Arena } from "../../domain/Arena";
 import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors";
 
 describe("ArenaService", () => {
   let arenaService: ArenaService;
   let mockArenaRepository: any;
+  let mockAdmins: ReturnType<typeof createMockAdminRepository>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -65,7 +59,8 @@ describe("ArenaService", () => {
       delete: jest.fn(),
     };
 
-    arenaService = new ArenaService(mockArenaRepository);
+    mockAdmins = createMockAdminRepository();
+    arenaService = new ArenaService(mockArenaRepository, mockAdmins);
   });
 
   describe("createArena", () => {
@@ -90,7 +85,6 @@ describe("ArenaService", () => {
         updatedAt: new Date(),
       });
       mockArenaRepository.create.mockResolvedValue(mockArena);
-      mockDocSet.mockResolvedValue(undefined);
       mockGenerateEmailVerificationLink.mockResolvedValue("http://verify.link");
 
       const result = await arenaService.createArena(validData);
@@ -103,6 +97,24 @@ describe("ArenaService", () => {
         password: validData.adminPassword,
         emailVerified: false,
       });
+      expect(mockAdmins.criar).toHaveBeenCalledWith({
+        uid: "admin-uid-123",
+        email: validData.adminEmail,
+        arenaId: "arena-123",
+      });
+    });
+
+    it("deve fazer rollback se o cadastro do admin falhar", async () => {
+      mockArenaRepository.exists.mockResolvedValue(false);
+      mockCreateUser.mockResolvedValue({ uid: "admin-uid-123" });
+      mockArenaRepository.create.mockResolvedValue({ id: "arena-123" });
+      mockAdmins.criar.mockRejectedValue(new Error("Erro no Firestore"));
+
+      await expect(arenaService.createArena(validData)).rejects.toThrow(
+        "Erro no Firestore"
+      );
+
+      expect(mockDeleteUser).toHaveBeenCalledWith("admin-uid-123");
     });
 
     it("deve lançar erro se slug já existe", async () => {
@@ -445,10 +457,7 @@ describe("ArenaService", () => {
       mockArenaRepository.exists.mockResolvedValue(false);
       mockArenaRepository.findAllByAdminUid.mockResolvedValue([]);
       mockArenaRepository.create.mockResolvedValue(mockArena);
-      mockDocGet.mockResolvedValue({
-        exists: true,
-        data: () => ({ arenaId: "arena-1", arenaIds: ["arena-1"] }),
-      });
+      mockAdmins.buscarPorUid.mockResolvedValue({ arenaIds: ["arena-1"] });
 
       const result = await arenaService.createAdditionalArena(
         "admin-123",
@@ -458,12 +467,24 @@ describe("ArenaService", () => {
 
       expect(result.id).toBe("arena-2");
       expect(mockArenaRepository.create).toHaveBeenCalled();
-      expect(mockDocUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          arenaIds: ["arena-1", "arena-2"],
-          defaultArenaId: "arena-2",
-        })
+      expect(mockAdmins.definirArenaPadrao).toHaveBeenCalledWith(
+        "admin-123",
+        "arena-2",
+        ["arena-1", "arena-2"]
       );
+    });
+
+    it("não grava no cadastro se o admin não existe", async () => {
+      mockArenaRepository.exists.mockResolvedValue(false);
+      mockArenaRepository.findAllByAdminUid.mockResolvedValue([]);
+      mockArenaRepository.create.mockResolvedValue(mockArena);
+      mockAdmins.buscarPorUid.mockResolvedValue(null);
+
+      await arenaService.createAdditionalArena("admin-123", "admin@test.com", {
+        nome: "Arena Nova",
+      });
+
+      expect(mockAdmins.definirArenaPadrao).not.toHaveBeenCalled();
     });
 
     it("deve rejeitar nome duplicado", async () => {
@@ -503,10 +524,7 @@ describe("ArenaService", () => {
         new Arena({ id: "a2", nome: "Arena 2", slug: "a2", adminUid: "admin-123", adminEmail: "a@t.com", ativa: true, createdAt: new Date(), updatedAt: new Date() }),
       ];
 
-      mockDocGet.mockResolvedValue({
-        exists: true,
-        data: () => ({ arenaIds: ["a1", "a2"] }),
-      });
+      mockAdmins.buscarPorUid.mockResolvedValue({ arenaIds: ["a1", "a2"] });
       mockArenaRepository.findByIds.mockResolvedValue(mockArenas);
 
       const result = await arenaService.getAdminArenas("admin-123");
@@ -516,45 +534,38 @@ describe("ArenaService", () => {
     });
 
     it("deve retornar vazio se admin não existe", async () => {
-      mockDocGet.mockResolvedValue({ exists: false, data: () => null });
+      mockAdmins.buscarPorUid.mockResolvedValue(null);
 
       const result = await arenaService.getAdminArenas("admin-inexistente");
 
       expect(result).toEqual([]);
     });
 
-    it("deve usar fallback arenaId se arenaIds não existe", async () => {
-      mockDocGet.mockResolvedValue({
-        exists: true,
-        data: () => ({ arenaId: "a1" }),
-      });
-      mockArenaRepository.findByIds.mockResolvedValue([]);
+    it("deve retornar vazio se o admin não tem arenas", async () => {
+      mockAdmins.buscarPorUid.mockResolvedValue({ arenaIds: [] });
 
-      await arenaService.getAdminArenas("admin-123");
-
-      expect(mockArenaRepository.findByIds).toHaveBeenCalledWith(["a1"]);
+      expect(await arenaService.getAdminArenas("admin-123")).toEqual([]);
+      expect(mockArenaRepository.findByIds).not.toHaveBeenCalled();
     });
   });
 
   describe("switchArena", () => {
     it("deve trocar arena ativa", async () => {
-      mockDocGet.mockResolvedValue({
-        exists: true,
-        data: () => ({ arenaIds: ["a1", "a2"], defaultArenaId: "a1" }),
+      mockAdmins.buscarPorUid.mockResolvedValue({
+        arenaIds: ["a1", "a2"],
+        defaultArenaId: "a1",
       });
 
       await arenaService.switchArena("admin-123", "a2");
 
-      expect(mockDocUpdate).toHaveBeenCalledWith({
-        defaultArenaId: "a2",
-      });
+      expect(mockAdmins.definirArenaPadrao).toHaveBeenCalledWith(
+        "admin-123",
+        "a2"
+      );
     });
 
     it("deve rejeitar arena não pertencente ao admin", async () => {
-      mockDocGet.mockResolvedValue({
-        exists: true,
-        data: () => ({ arenaIds: ["a1"] }),
-      });
+      mockAdmins.buscarPorUid.mockResolvedValue({ arenaIds: ["a1"] });
 
       await expect(
         arenaService.switchArena("admin-123", "a999")
@@ -562,7 +573,7 @@ describe("ArenaService", () => {
     });
 
     it("deve rejeitar admin inexistente", async () => {
-      mockDocGet.mockResolvedValue({ exists: false, data: () => null });
+      mockAdmins.buscarPorUid.mockResolvedValue(null);
 
       await expect(
         arenaService.switchArena("admin-inexistente", "a1")

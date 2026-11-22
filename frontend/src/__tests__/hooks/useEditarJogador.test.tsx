@@ -318,6 +318,72 @@ describe("useEditarJogador", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/admin/jogadores");
     });
 
+    const editarESalvar = async (
+      jogador: object,
+      mudancas: Record<string, string>
+    ) => {
+      mockBuscarPorId.mockResolvedValue(jogador);
+      mockAtualizar.mockResolvedValue({ id: "1" });
+
+      const { result } = renderHook(() => useEditarJogador());
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      Object.entries(mudancas).forEach(([name, value]) => {
+        act(() => {
+          result.current.handleChange({
+            target: { name, value },
+          } as React.ChangeEvent<HTMLInputElement>);
+        });
+      });
+
+      await act(async () => {
+        await result.current.handleSubmit({
+          preventDefault: jest.fn(),
+        } as unknown as React.FormEvent);
+      });
+
+      return result;
+    };
+
+    it("deve enviar vazio o campo que foi apagado", async () => {
+      await editarESalvar(mockJogador, {
+        email: "",
+        telefone: "",
+        observacoes: "",
+      });
+
+      expect(mockAtualizar).toHaveBeenCalledWith("1", {
+        email: "",
+        telefone: "",
+        observacoes: "",
+      });
+    });
+
+    it("não deve enviar os opcionais que já estavam vazios", async () => {
+      const { id, nome, genero, nivel, status } = mockJogador;
+
+      await editarESalvar(
+        { id, nome, genero, nivel, status },
+        { nome: "João Santos" }
+      );
+
+      expect(mockAtualizar).toHaveBeenCalledWith("1", { nome: "João Santos" });
+    });
+
+    it("não deve contar como alteração o que já estava vazio", async () => {
+      const { id, nome, genero, nivel, status } = mockJogador;
+
+      const result = await editarESalvar(
+        { id, nome, genero, nivel, status },
+        {}
+      );
+
+      expect(mockAtualizar).not.toHaveBeenCalled();
+      expect(result.current.errorMessage).toBe("Nenhuma alteração foi feita");
+    });
+
     it("deve tratar erro ao atualizar", async () => {
       mockBuscarPorId.mockResolvedValue(mockJogador);
       mockAtualizar.mockRejectedValue(new Error("Email já existe"));

@@ -33,8 +33,6 @@ jest.mock("../../services/CabecaDeChaveService", () => ({
 jest.mock("../../services/HistoricoDuplaService", () => ({
   __esModule: true,
   default: {
-    calcularEstatisticas: jest.fn(),
-    registrar: jest.fn(),
     registrarEmLote: jest.fn(),
   },
 }));
@@ -241,12 +239,6 @@ describe("DuplaService", () => {
         "jogador-1",
       ]);
 
-      (historicoDuplaService.calcularEstatisticas as jest.Mock).mockResolvedValue({
-        todasCombinacoesFeitas: false,
-        totalCombinacoesPossiveis: 6,
-        combinacoesRealizadas: 0,
-      });
-
       (historicoDuplaService.registrarEmLote as jest.Mock).mockResolvedValue(undefined);
 
       // Mock criarEmLote - retorna array de duplas
@@ -282,10 +274,6 @@ describe("DuplaService", () => {
       ];
 
       (cabecaDeChaveService.obterIdsCabecas as jest.Mock).mockResolvedValue([]);
-      (historicoDuplaService.calcularEstatisticas as jest.Mock).mockResolvedValue({
-        todasCombinacoesFeitas: false,
-      });
-
       await expect(
         duplaService.formarDuplasComCabecasDeChave(
           TEST_ETAPA_ID,
@@ -311,10 +299,6 @@ describe("DuplaService", () => {
         "jogador-3",
       ]);
 
-      (historicoDuplaService.calcularEstatisticas as jest.Mock).mockResolvedValue({
-        todasCombinacoesFeitas: false,
-      });
-
       await expect(
         duplaService.formarDuplasComCabecasDeChave(
           TEST_ETAPA_ID,
@@ -337,12 +321,6 @@ describe("DuplaService", () => {
         "jogador-1",
         "jogador-2",
       ]);
-
-      (historicoDuplaService.calcularEstatisticas as jest.Mock).mockResolvedValue({
-        todasCombinacoesFeitas: true,
-        totalCombinacoesPossiveis: 1,
-        combinacoesRealizadas: 1,
-      });
 
       (historicoDuplaService.registrarEmLote as jest.Mock).mockResolvedValue(undefined);
 

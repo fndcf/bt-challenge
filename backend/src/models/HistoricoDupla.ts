@@ -36,15 +36,3 @@ export interface CriarHistoricoDuplaDTO {
   jogador2Nome: string;
   ambosForamCabecas: boolean;
 }
-
-/**
- * Estatísticas de combinações
- */
-export interface EstatisticasCombinacoes {
-  totalCabecas: number;
-  combinacoesPossiveis: number;
-  combinacoesRealizadas: number;
-  combinacoesRestantes: number;
-  todasCombinacoesFeitas: boolean;
-  combinacoesDisponiveis: string[][]; // [jogador1Id, jogador2Id][]
-}

@@ -14,7 +14,7 @@ import {
 } from "@/components/layout/Pagina";
 import { Alert, Button } from "@/components/ui";
 import { useDocumentTitle } from "@/hooks";
-import { NivelJogador, StatusJogador } from "@/types/jogador";
+import { GeneroJogador, NivelJogador, StatusJogador } from "@/types/jogador";
 import { InformacoesBasicas } from "../NovoJogador/components/InformacoesBasicas";
 import { NivelStatus } from "../NovoJogador/components/NivelStatus";
 import { ObservacoesField } from "../NovoJogador/components/ObservacoesField";
@@ -73,7 +73,7 @@ export const EditarJogador: React.FC = () => {
           email={formData.email || ""}
           telefone={formData.telefone || ""}
           dataNascimento={formData.dataNascimento || ""}
-          genero={formData.genero}
+          genero={formData.genero || GeneroJogador.MASCULINO}
           errors={errors}
           onChange={handleChange}
         />

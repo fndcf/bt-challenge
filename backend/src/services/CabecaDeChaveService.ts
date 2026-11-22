@@ -2,17 +2,19 @@
  * Service para gerenciar cabeças de chave (seeding)
  */
 
-import { db } from "../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
 import {
   CabecaDeChave,
   CriarCabecaDeChaveDTO,
   AtualizarCabecaDeChaveDTO,
 } from "../models/CabecaDeChave";
+import { cabecaDeChaveRepository } from "../repositories/firebase/CabecaDeChaveRepository";
+import { ICabecaDeChaveRepository } from "../repositories/interfaces/ICabecaDeChaveRepository";
 import logger from "../utils/logger";
 
 export class CabecaDeChaveService {
-  private collection = "cabecas_de_chave";
+  constructor(
+    private cabecas: ICabecaDeChaveRepository = cabecaDeChaveRepository
+  ) {}
 
   /**
    * Criar cabeça de chave
@@ -30,25 +32,7 @@ export class CabecaDeChaveService {
         throw new Error("Jogador já é cabeça de chave");
       }
 
-      const cabeca: Omit<CabecaDeChave, "id"> = {
-        arenaId: dto.arenaId,
-        etapaId: dto.etapaId,
-        jogadorId: dto.jogadorId,
-        jogadorNome: dto.jogadorNome,
-        jogadorNivel: dto.jogadorNivel,
-        jogadorGenero: dto.jogadorGenero,
-        ordem: dto.ordem,
-        ativo: true,
-        criadoEm: Timestamp.now(),
-        atualizadoEm: Timestamp.now(),
-      };
-
-      const docRef = await db.collection(this.collection).add(cabeca);
-
-      const novaCabeca = {
-        id: docRef.id,
-        ...cabeca,
-      };
+      const novaCabeca = await this.cabecas.criar(dto);
 
       logger.info("Cabeça de chave criada", {
         cabecaId: novaCabeca.id,
@@ -80,22 +64,7 @@ export class CabecaDeChaveService {
     etapaId: string,
     jogadorId: string
   ): Promise<CabecaDeChave | null> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("arenaId", "==", arenaId)
-      .where("etapaId", "==", etapaId)
-      .where("jogadorId", "==", jogadorId)
-      .where("ativo", "==", true)
-      .limit(1)
-      .get();
-
-    if (snapshot.empty) return null;
-
-    const doc = snapshot.docs[0];
-    return {
-      id: doc.id,
-      ...doc.data(),
-    } as CabecaDeChave;
+    return this.cabecas.buscarPorJogador(arenaId, etapaId, jogadorId);
   }
 
   /**
@@ -105,18 +74,7 @@ export class CabecaDeChaveService {
     arenaId: string,
     etapaId: string
   ): Promise<CabecaDeChave[]> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("arenaId", "==", arenaId)
-      .where("etapaId", "==", etapaId)
-      .where("ativo", "==", true)
-      .orderBy("ordem", "asc")
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as CabecaDeChave[];
+    return this.cabecas.listarAtivas(arenaId, etapaId);
   }
 
   /**
@@ -143,106 +101,17 @@ export class CabecaDeChaveService {
     dto: AtualizarCabecaDeChaveDTO
   ): Promise<void> {
     try {
-      const updates: any = {
-        atualizadoEm: Timestamp.now(),
-      };
-
-      if (dto.ordem !== undefined) updates.ordem = dto.ordem;
-      if (dto.ativo !== undefined) updates.ativo = dto.ativo;
-      if (dto.motivoDesativacao !== undefined)
-        updates.motivoDesativacao = dto.motivoDesativacao;
-
-      await db.collection(this.collection).doc(cabecaId).update(updates);
+      await this.cabecas.atualizar(cabecaId, dto);
 
       logger.info("Cabeça de chave atualizada", {
         cabecaId,
-        camposAtualizados: Object.keys(updates).filter(
-          (k) => k !== "atualizadoEm"
-        ),
+        camposAtualizados: Object.keys(dto),
       });
     } catch (error) {
       logger.error(
         "Erro ao atualizar cabeça de chave",
         {
           cabecaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Desativar cabeça de chave
-   */
-  async desativar(
-    arenaId: string,
-    etapaId: string,
-    jogadorId: string,
-    motivo?: string
-  ): Promise<void> {
-    try {
-      const cabeca = await this.buscarPorJogador(arenaId, etapaId, jogadorId);
-
-      if (!cabeca) {
-        throw new Error("Cabeça de chave não encontrada");
-      }
-
-      await this.atualizar(cabeca.id, {
-        ativo: false,
-        motivoDesativacao: motivo,
-      });
-
-      logger.info("Cabeça de chave desativada", {
-        cabecaId: cabeca.id,
-        etapaId,
-        jogadorId,
-        motivo,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao desativar cabeça de chave",
-        {
-          etapaId,
-          jogadorId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Reativar cabeça de chave
-   */
-  async reativar(
-    arenaId: string,
-    etapaId: string,
-    jogadorId: string
-  ): Promise<void> {
-    try {
-      const cabeca = await this.buscarPorJogador(arenaId, etapaId, jogadorId);
-
-      if (!cabeca) {
-        throw new Error("Cabeça de chave não encontrada");
-      }
-
-      await this.atualizar(cabeca.id, {
-        ativo: true,
-        motivoDesativacao: undefined,
-      });
-
-      logger.info("Cabeça de chave reativada", {
-        cabecaId: cabeca.id,
-        etapaId,
-        jogadorId,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao reativar cabeça de chave",
-        {
-          etapaId,
-          jogadorId,
         },
         error as Error
       );
@@ -265,7 +134,7 @@ export class CabecaDeChaveService {
         throw new Error("Cabeça de chave não encontrada");
       }
 
-      await db.collection(this.collection).doc(cabeca.id).delete();
+      await this.cabecas.deletar(cabeca.id);
 
       logger.info("Cabeça de chave removida permanentemente", {
         cabecaId: cabeca.id,
@@ -287,24 +156,6 @@ export class CabecaDeChaveService {
   }
 
   /**
-   * Filtrar jogadores que são cabeças de chave
-   */
-  async filtrarCabecas(
-    arenaId: string,
-    etapaId: string,
-    jogadorIds: string[]
-  ): Promise<string[]> {
-    try {
-      const cabecas = await this.listarAtivas(arenaId, etapaId);
-      const cabecasIds = new Set(cabecas.map((c) => c.jogadorId));
-
-      return jogadorIds.filter((id) => cabecasIds.has(id));
-    } catch (error) {
-      return [];
-    }
-  }
-
-  /**
    * Obter IDs das cabeças de chave ativas
    * NÃO engolir erros - se falhar, a geração de chaves deve parar
    */
@@ -317,29 +168,16 @@ export class CabecaDeChaveService {
    * Deletar todas as cabeças de chave de uma etapa
    */
   async deletarPorEtapa(etapaId: string, arenaId: string): Promise<number> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("etapaId", "==", etapaId)
-      .where("arenaId", "==", arenaId)
-      .get();
+    const quantidade = await this.cabecas.deletarPorEtapa(etapaId, arenaId);
 
-    if (snapshot.empty) {
-      return 0;
+    if (quantidade > 0) {
+      logger.info("Cabeças de chave deletadas por etapa", {
+        etapaId,
+        quantidade,
+      });
     }
 
-    const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-
-    logger.info("Cabeças de chave deletadas por etapa", {
-      etapaId,
-      quantidade: snapshot.size,
-    });
-
-    return snapshot.size;
+    return quantidade;
   }
 }
 

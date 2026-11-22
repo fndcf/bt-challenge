@@ -3,7 +3,7 @@
  */
 
 import { db } from "../../config/firebase";
-import { Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import {
   Jogador,
   CriarJogadorDTO,
@@ -20,6 +20,17 @@ import logger from "../../utils/logger";
 
 const COLLECTION = "jogadores";
 
+// Podem ser apagados na edição (chegam vazios)
+const CAMPOS_OPCIONAIS = [
+  "email",
+  "telefone",
+  "dataNascimento",
+  "observacoes",
+] as const;
+
+// Limite de gravações por lote no Firestore
+const TAMANHO_LOTE = 500;
+
 /**
  * Repository de Jogador - Implementação Firebase
  */
@@ -27,14 +38,14 @@ export class JogadorRepository implements IJogadorRepository {
   private collection = db.collection(COLLECTION);
 
   /**
-   * Criar novo jogador
+   * Dados gravados de um jogador novo
    */
-  async criar(
+  private montarNovo(
     data: CriarJogadorDTO & { arenaId: string; criadoPor: string }
-  ): Promise<Jogador> {
+  ) {
     const agora = Timestamp.now();
 
-    const jogadorData = {
+    return {
       arenaId: data.arenaId,
       nome: data.nome.trim(),
       email: data.email?.trim().toLowerCase() || undefined,
@@ -51,6 +62,15 @@ export class JogadorRepository implements IJogadorRepository {
       atualizadoEm: agora,
       criadoPor: data.criadoPor,
     };
+  }
+
+  /**
+   * Criar novo jogador
+   */
+  async criar(
+    data: CriarJogadorDTO & { arenaId: string; criadoPor: string }
+  ): Promise<Jogador> {
+    const jogadorData = this.montarNovo(data);
 
     const docRef = await this.collection.add(jogadorData);
 
@@ -64,6 +84,30 @@ export class JogadorRepository implements IJogadorRepository {
       id: docRef.id,
       ...jogadorData,
     } as Jogador;
+  }
+
+  /**
+   * Criar vários jogadores (gravados em lotes)
+   */
+  async criarEmLote(
+    itens: (CriarJogadorDTO & { arenaId: string; criadoPor: string })[]
+  ): Promise<Jogador[]> {
+    const jogadores: Jogador[] = [];
+
+    for (let i = 0; i < itens.length; i += TAMANHO_LOTE) {
+      const batch = db.batch();
+
+      for (const item of itens.slice(i, i + TAMANHO_LOTE)) {
+        const docRef = this.collection.doc();
+        const jogadorData = this.montarNovo(item);
+        batch.set(docRef, jogadorData);
+        jogadores.push({ id: docRef.id, ...jogadorData } as Jogador);
+      }
+
+      await batch.commit();
+    }
+
+    return jogadores;
   }
 
   /**
@@ -152,6 +196,16 @@ export class JogadorRepository implements IJogadorRepository {
     if (updateData.telefone) {
       updateData.telefone = updateData.telefone.trim();
     }
+    if (updateData.observacoes) {
+      updateData.observacoes = updateData.observacoes.trim();
+    }
+
+    // Vazio apaga o campo, como no cadastro
+    CAMPOS_OPCIONAIS.forEach((campo) => {
+      if (updateData[campo] === "") {
+        updateData[campo] = FieldValue.delete();
+      }
+    });
 
     await docRef.update(updateData);
 

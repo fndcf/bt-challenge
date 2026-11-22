@@ -15,6 +15,9 @@ import { IConfrontoEliminatorioRepository } from "../../repositories/interfaces/
 import { IEstatisticasJogadorRepository } from "../../repositories/interfaces/IEstatisticasJogadorRepository";
 import { IPartidaReiDaPraiaRepository } from "../../repositories/interfaces/IPartidaReiDaPraiaRepository";
 import { IConfigRepository } from "../../repositories/interfaces/IConfigRepository";
+import { IAdminRepository } from "../../repositories/interfaces/IAdminRepository";
+import { ICabecaDeChaveRepository } from "../../repositories/interfaces/ICabecaDeChaveRepository";
+import { IHistoricoDuplaRepository } from "../../repositories/interfaces/IHistoricoDuplaRepository";
 import { IEquipeRepository } from "../../repositories/interfaces/IEquipeRepository";
 import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfrontoEquipeRepository";
 
@@ -33,6 +36,7 @@ export function createMockJogadorRepository(): MockedJogadorRepository {
     deletar: jest.fn(),
     existe: jest.fn(),
     // IJogadorRepository específicos
+    criarEmLote: jest.fn(),
     buscarPorIdEArena: jest.fn(),
     buscarPorNome: jest.fn(),
     listar: jest.fn(),
@@ -48,6 +52,50 @@ export function createMockJogadorRepository(): MockedJogadorRepository {
     contarPorNivel: jest.fn(),
     contarPorGenero: jest.fn(),
     nomeExiste: jest.fn(),
+  };
+}
+
+// ========== MOCK ADMIN REPOSITORY ==========
+
+type MockedAdminRepository = {
+  [K in keyof IAdminRepository]: jest.Mock;
+};
+
+export function createMockAdminRepository(): MockedAdminRepository {
+  return {
+    criar: jest.fn(),
+    buscarPorUid: jest.fn(),
+    definirArenaPadrao: jest.fn(),
+  };
+}
+
+// ========== MOCK CABECA DE CHAVE REPOSITORY ==========
+
+type MockedCabecaDeChaveRepository = {
+  [K in keyof ICabecaDeChaveRepository]: jest.Mock;
+};
+
+export function createMockCabecaDeChaveRepository(): MockedCabecaDeChaveRepository {
+  return {
+    criar: jest.fn(),
+    buscarPorJogador: jest.fn(),
+    listarAtivas: jest.fn(),
+    atualizar: jest.fn(),
+    deletar: jest.fn(),
+    deletarPorEtapa: jest.fn(),
+  };
+}
+
+// ========== MOCK HISTORICO DUPLA REPOSITORY ==========
+
+type MockedHistoricoDuplaRepository = {
+  [K in keyof IHistoricoDuplaRepository]: jest.Mock;
+};
+
+export function createMockHistoricoDuplaRepository(): MockedHistoricoDuplaRepository {
+  return {
+    criarEmLote: jest.fn(),
+    deletarPorEtapa: jest.fn(),
   };
 }
 

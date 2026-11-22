@@ -13,20 +13,8 @@ jest.mock("../../utils/logger", () => ({
   },
 }));
 
-const mockBatchSet = jest.fn();
-const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
-const mockDocRef = { id: "batch-doc-id" };
-
 jest.mock("../../config/firebase", () => ({
-  db: {
-    collection: jest.fn(() => ({
-      doc: jest.fn(() => mockDocRef),
-    })),
-    batch: jest.fn(() => ({
-      set: mockBatchSet,
-      commit: mockBatchCommit,
-    })),
-  },
+  db: { collection: jest.fn() },
   auth: { verifyIdToken: jest.fn() },
 }));
 
@@ -61,7 +49,8 @@ jest.mock("../../services/JogadorService", () => {
 });
 
 import jogadorService from "../../services/JogadorService";
-import excelJogadorService from "../../services/ExcelJogadorService";
+import { ExcelJogadorService } from "../../services/ExcelJogadorService";
+import { createMockJogadorRepository } from "../mocks/repositories";
 
 const mockedJogadorService = jogadorService as jest.Mocked<typeof jogadorService>;
 
@@ -69,8 +58,16 @@ describe("ExcelJogadorService", () => {
   const TEST_ARENA_ID = "arena-test-001";
   const TEST_ADMIN_ID = "admin-test-001";
 
+  let excelJogadorService: ExcelJogadorService;
+  let mockJogadores: ReturnType<typeof createMockJogadorRepository>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockJogadores = createMockJogadorRepository();
+    mockJogadores.criarEmLote.mockImplementation(async (itens: object[]) =>
+      itens.map((item, i) => ({ id: `novo-${i}`, ...item }))
+    );
+    excelJogadorService = new ExcelJogadorService(mockJogadores);
   });
 
   describe("exportarParaExcel", () => {
@@ -155,7 +152,7 @@ describe("ExcelJogadorService", () => {
 
   describe("importarDeExcel", () => {
     const criarPlanilha = async (
-      rows: Record<string, string>[]
+      rows: Record<string, unknown>[]
     ): Promise<Buffer> => {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Jogadores");
@@ -199,20 +196,18 @@ describe("ExcelJogadorService", () => {
       );
 
       expect(resultado.criados).toBe(2);
-      expect(mockBatchSet).toHaveBeenCalledTimes(2);
-      expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+      expect(mockJogadores.criarEmLote).toHaveBeenCalledTimes(1);
 
-      // Verificar primeiro jogador no batch
-      expect(mockBatchSet).toHaveBeenCalledWith(
-        mockDocRef,
-        expect.objectContaining({
-          nome: "Carlos Souza",
-          genero: GeneroJogador.MASCULINO,
-          nivel: NivelJogador.INICIANTE,
-          arenaId: TEST_ARENA_ID,
-          criadoPor: TEST_ADMIN_ID,
-        })
-      );
+      const [primeiro, segundo] = mockJogadores.criarEmLote.mock.calls[0][0];
+      expect(primeiro).toMatchObject({
+        nome: "Carlos Souza",
+        genero: GeneroJogador.MASCULINO,
+        nivel: NivelJogador.INICIANTE,
+        status: StatusJogador.ATIVO,
+        arenaId: TEST_ARENA_ID,
+        criadoPor: TEST_ADMIN_ID,
+      });
+      expect(segundo).toMatchObject({ nome: "Ana Paula", email: "ana@test.com" });
     });
 
     it("deve aceitar variações de gênero (M, F, masculino, feminino)", async () => {
@@ -263,6 +258,56 @@ describe("ExcelJogadorService", () => {
       );
 
       expect(resultado.criados).toBe(4);
+    });
+
+    it("deve ler células de link, data, fórmula e texto formatado", async () => {
+      const buffer = await criarPlanilha([
+        {
+          nome: { richText: [{ text: "Ana " }, { text: "Paula" }] },
+          email: { text: "ana@test.com", hyperlink: "mailto:ana@test.com" },
+          telefone: 11999998888,
+          dataNascimento: new Date(Date.UTC(1990, 4, 20)),
+          genero: { formula: 'UPPER("f")', result: "F" },
+          nivel: "Avançado",
+        },
+        {
+          nome: "Carlos Souza",
+          email: {
+            text: { richText: [{ text: "carlos@" }, { text: "test.com" }] },
+            hyperlink: "mailto:carlos@test.com",
+          },
+          dataNascimento: "1985-12-31",
+          genero: "M",
+          nivel: "Iniciante",
+        },
+      ]);
+
+      mockedJogadorService.listar.mockResolvedValue({
+        jogadores: [],
+        total: 0,
+        limite: 10000,
+        offset: 0,
+        temMais: false,
+      });
+
+      await excelJogadorService.importarDeExcel(
+        TEST_ARENA_ID,
+        TEST_ADMIN_ID,
+        buffer
+      );
+
+      const [ana, carlos] = mockJogadores.criarEmLote.mock.calls[0][0];
+      expect(ana).toMatchObject({
+        nome: "Ana Paula",
+        email: "ana@test.com",
+        telefone: "11999998888",
+        dataNascimento: "1990-05-20",
+        genero: GeneroJogador.FEMININO,
+      });
+      expect(carlos).toMatchObject({
+        email: "carlos@test.com",
+        dataNascimento: "1985-12-31",
+      });
     });
 
     it("deve rejeitar quando colunas obrigatórias estão ausentes", async () => {
@@ -421,7 +466,11 @@ describe("ExcelJogadorService", () => {
 
       expect(resultado.criados).toBe(2);
       expect(resultado.ignorados).toEqual(["João Silva"]);
-      expect(mockBatchSet).toHaveBeenCalledTimes(2);
+      expect(
+        mockJogadores.criarEmLote.mock.calls[0][0].map(
+          (j: { nome: string }) => j.nome
+        )
+      ).toEqual(["Carlos Souza", "Ana Paula"]);
     });
   });
 });

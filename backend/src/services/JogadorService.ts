@@ -164,7 +164,7 @@ export class JogadorService {
     } catch (error: any) {
       if (
         error.message.includes("não encontrado") ||
-        error.message.includes("já existe")
+        error.message.toLowerCase().includes("já existe")
       ) {
         throw error;
       }

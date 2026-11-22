@@ -52,9 +52,9 @@ export interface Jogador {
 }
 
 /**
- * Schema de validação para criar jogador (Zod)
+ * Campos do jogador, sem valores padrão
  */
-export const CriarJogadorSchema = z.object({
+const CamposJogadorSchema = z.object({
   nome: z
     .string()
     .min(3, "Nome deve ter no mínimo 3 caracteres")
@@ -70,21 +70,17 @@ export const CriarJogadorSchema = z.object({
     .optional()
     .or(z.literal("")),
 
-  genero: z
-    .enum(GeneroJogador, {
-      message: "Gênero é obrigatório (masculino ou feminino)",
-    })
-    .default(GeneroJogador.MASCULINO),
+  genero: z.enum(GeneroJogador, {
+    message: "Gênero é obrigatório (masculino ou feminino)",
+  }),
 
   nivel: z.nativeEnum(NivelJogador, {
     message: "Nível inválido",
   }),
 
-  status: z
-    .nativeEnum(StatusJogador, {
-      message: "Status inválido",
-    })
-    .default(StatusJogador.ATIVO),
+  status: z.nativeEnum(StatusJogador, {
+    message: "Status inválido",
+  }),
 
   observacoes: z
     .string()
@@ -94,9 +90,18 @@ export const CriarJogadorSchema = z.object({
 });
 
 /**
- * Schema de validação para atualizar jogador
+ * Schema de validação para criar jogador (Zod)
  */
-export const AtualizarJogadorSchema = CriarJogadorSchema.partial();
+export const CriarJogadorSchema = CamposJogadorSchema.extend({
+  genero: CamposJogadorSchema.shape.genero.default(GeneroJogador.MASCULINO),
+  status: CamposJogadorSchema.shape.status.default(StatusJogador.ATIVO),
+});
+
+/**
+ * Schema de validação para atualizar jogador.
+ * Sem valores padrão: o Zod preencheria os campos que não foram enviados.
+ */
+export const AtualizarJogadorSchema = CamposJogadorSchema.partial();
 
 /**
  * Type inference do Zod

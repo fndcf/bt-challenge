@@ -3,8 +3,6 @@
  */
 
 import ExcelJS from "exceljs";
-import { Timestamp } from "firebase-admin/firestore";
-import { db } from "../config/firebase";
 import {
   Jogador,
   NivelJogador,
@@ -12,6 +10,8 @@ import {
   GeneroJogador,
   CriarJogadorDTO,
 } from "../models/Jogador";
+import { jogadorRepository } from "../repositories/firebase/JogadorRepository";
+import { IJogadorRepository } from "../repositories/interfaces/IJogadorRepository";
 import jogadorService from "./JogadorService";
 import logger from "../utils/logger";
 
@@ -65,7 +65,43 @@ const HEADER_MAP: Record<string, string> = {
   "observações": "observacoes",
 };
 
-class ExcelJogadorService {
+/**
+ * Texto de uma célula. O Excel guarda link, data, fórmula e texto formatado
+ * como objeto.
+ */
+function textoDaCelula(valor: unknown): string {
+  if (valor === null || valor === undefined) return "";
+
+  if (valor instanceof Date) {
+    // As datas do Excel vêm em UTC
+    return isNaN(valor.getTime()) ? "" : valor.toISOString().slice(0, 10);
+  }
+
+  if (typeof valor === "object") {
+    const celula = valor as {
+      richText?: { text: string }[];
+      text?: unknown;
+      result?: unknown;
+    };
+
+    if (celula.richText) {
+      return celula.richText
+        .map((parte) => parte.text)
+        .join("")
+        .trim();
+    }
+
+    return textoDaCelula(celula.text ?? celula.result);
+  }
+
+  return String(valor).trim();
+}
+
+export class ExcelJogadorService {
+  constructor(
+    private jogadores: IJogadorRepository = jogadorRepository
+  ) {}
+
   /**
    * Exportar jogadores para Excel
    */
@@ -153,7 +189,7 @@ class ExcelJogadorService {
     const foundHeaders: string[] = [];
 
     headerRow.eachCell((cell, colNumber) => {
-      const headerText = String(cell.value || "").trim().toLowerCase();
+      const headerText = textoDaCelula(cell.value).toLowerCase();
       const fieldName = HEADER_MAP[headerText];
       if (fieldName) {
         columnMap[colNumber] = fieldName;
@@ -190,7 +226,7 @@ class ExcelJogadorService {
       row.eachCell((cell, colNumber) => {
         const fieldName = columnMap[colNumber];
         if (fieldName) {
-          const value = String(cell.value || "").trim();
+          const value = textoDaCelula(cell.value);
           if (value) {
             data[fieldName] = value;
             hasData = true;
@@ -327,45 +363,13 @@ class ExcelJogadorService {
       );
     }
 
-    // Criar jogadores em batch (até 500 por batch)
-    const jogadoresCriados: Jogador[] = [];
-    const collection = db.collection("jogadores");
-    const agora = Timestamp.now();
-    const BATCH_SIZE = 500;
-
-    for (let i = 0; i < jogadoresNovos.length; i += BATCH_SIZE) {
-      const chunk = jogadoresNovos.slice(i, i + BATCH_SIZE);
-      const batch = db.batch();
-
-      for (const dados of chunk) {
-        const docRef = collection.doc();
-        const jogadorData = {
-          arenaId,
-          nome: dados.nome.trim(),
-          email: dados.email?.trim().toLowerCase() || undefined,
-          telefone: dados.telefone?.trim() || undefined,
-          dataNascimento: dados.dataNascimento || undefined,
-          genero: dados.genero,
-          nivel: dados.nivel,
-          status: StatusJogador.ATIVO,
-          observacoes: dados.observacoes?.trim() || undefined,
-          vitorias: 0,
-          derrotas: 0,
-          pontos: 0,
-          criadoEm: agora,
-          atualizadoEm: agora,
-          criadoPor: adminUid,
-        };
-
-        batch.set(docRef, jogadorData);
-        jogadoresCriados.push({
-          id: docRef.id,
-          ...jogadorData,
-        } as Jogador);
-      }
-
-      await batch.commit();
-    }
+    const jogadoresCriados = await this.jogadores.criarEmLote(
+      jogadoresNovos.map((dados) => ({
+        ...dados,
+        arenaId,
+        criadoPor: adminUid,
+      }))
+    );
 
     logger.info("Jogadores importados via Excel (batch)", {
       arenaId,

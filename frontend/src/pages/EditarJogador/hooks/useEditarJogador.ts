@@ -112,7 +112,7 @@ export const useEditarJogador = (): UseEditarJogadorReturn => {
 
   // ============== VALIDAÇÃO ==============
 
-  const validateField = useCallback((name: string, value: any): string => {
+  const validateField = useCallback((name: string, value?: string): string => {
     switch (name) {
       case "nome":
         if (!value || value.trim().length < 3) {
@@ -219,19 +219,15 @@ export const useEditarJogador = (): UseEditarJogadorReturn => {
         setSaving(true);
         setErrorMessage("");
 
-        // Preparar dados (apenas campos que mudaram)
-        const dataToSend: any = {};
+        // Apenas campos que mudaram (vazio apaga o que estava gravado)
+        const dataToSend: AtualizarJogadorDTO = {};
         Object.keys(formData).forEach((key) => {
           const typedKey = key as keyof AtualizarJogadorDTO;
           const newValue = formData[typedKey];
-          const oldValue = jogador?.[typedKey as keyof Jogador];
+          const oldValue = jogador?.[typedKey as keyof Jogador] ?? "";
 
-          if (
-            newValue !== oldValue &&
-            newValue !== "" &&
-            newValue !== undefined
-          ) {
-            dataToSend[key] = newValue;
+          if (newValue !== oldValue && newValue !== undefined) {
+            Object.assign(dataToSend, { [key]: newValue });
           }
         });
 

@@ -24,6 +24,13 @@ export interface IJogadorRepository
     AtualizarJogadorDTO
   > {
   /**
+   * Criar vários jogadores (gravados em lotes)
+   */
+  criarEmLote(
+    itens: (CriarJogadorDTO & { arenaId: string; criadoPor: string })[]
+  ): Promise<Jogador[]>;
+
+  /**
    * Buscar jogador por ID com validação de arena
    */
   buscarPorIdEArena(id: string, arenaId: string): Promise<Jogador | null>;

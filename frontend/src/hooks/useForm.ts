@@ -4,12 +4,12 @@
 
 import { useState } from "react";
 
-export const useForm = <T extends Record<string, any>>(initialValues: T) => {
+export const useForm = <T extends object>(initialValues: T) => {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({});
 
-  const handleChange = (name: keyof T, value: any) => {
+  const handleChange = <K extends keyof T>(name: K, value: T[K]) => {
     setValues((prev) => ({ ...prev, [name]: value }));
     // Limpar erro quando usuário começa a digitar
     if (errors[name]) {
@@ -25,7 +25,7 @@ export const useForm = <T extends Record<string, any>>(initialValues: T) => {
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  const setFieldValue = (name: keyof T, value: any) => {
+  const setFieldValue = <K extends keyof T>(name: K, value: T[K]) => {
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 

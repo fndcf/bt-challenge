@@ -38,11 +38,7 @@ export default tseslint.config(
     ignores: [
       "src/controllers/EtapaController.ts",
       "src/routes/publicRoutes.ts",
-      "src/services/ArenaService.ts",
-      "src/services/CabecaDeChaveService.ts",
       "src/services/EstatisticasJogadorService.ts",
-      "src/services/ExcelJogadorService.ts",
-      "src/services/HistoricoDuplaService.ts",
     ],
     rules: {
       "no-restricted-imports": [

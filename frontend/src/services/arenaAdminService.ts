@@ -14,7 +14,7 @@ import { IArenaAdminService } from "./interfaces/IArenaAdminService";
 
 export interface CreateArenaDTO {
   nome: string;
-  slug: string;
+  slug?: string;
   adminEmail: string;
   adminPassword: string;
 }
