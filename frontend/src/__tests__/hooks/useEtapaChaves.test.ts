@@ -287,6 +287,25 @@ describe("useEtapaChaves", () => {
       );
     });
 
+    // Até 5 equipes: grupo único. A partir de 6, só jogam dentro do grupo.
+    it.each([
+      [20, ["5 equipes", "10 confrontos (todos contra todos)"]],
+      [24, ["6 equipes", "2 grupos", "6 confrontos na fase de grupos"]],
+      [32, ["8 equipes", "2 grupos", "12 confrontos na fase de grupos"]],
+      [104, ["26 equipes", "8 grupos", "30 confrontos na fase de grupos"]],
+    ])("confirmação com %i jogadores conta os confrontos certos", async (totalInscritos, textos) => {
+      const { result } = renderHook(() =>
+        useEtapaChaves({ etapa: { ...etapaTeams4, totalInscritos } })
+      );
+
+      await act(async () => {
+        await result.current.handleGerarChaves();
+      });
+
+      const { mensagem } = confirmarMock.mock.calls[0][0];
+      textos.forEach((texto) => expect(mensagem).toContain(`• ${texto}`));
+    });
+
     it("deve gerar equipes para TEAMS 6 com detalhes corretos", async () => {
       mockTeamsService.gerarEquipes.mockResolvedValue({});
 

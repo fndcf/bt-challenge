@@ -7,7 +7,11 @@ import { Etapa, FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/ty
 import { getChaveService, getReiDaPraiaService, getSuperXService, getTeamsService } from "@/services";
 import { FormacaoManualEquipeDTO } from "@/types/teams";
 import logger from "@/utils/logger";
-import { getQtdGrupos } from "@/utils/etapa";
+import {
+  contarConfrontosTeams,
+  distribuirEmGrupos,
+  getQtdGrupos,
+} from "@/utils/etapa";
 import { avisarErro, avisarSucesso, confirmar } from "@/utils/dialogos";
 import { getMensagemErro, paraError } from "@/utils/erro";
 import { ComLoading, semLoading } from "./useEtapaInscricoes";
@@ -61,13 +65,17 @@ export const useEtapaChaves = ({
     if (isTeams) {
       const variante = etapa.varianteTeams || 4;
       const numEquipes = Math.floor(etapa.totalInscritos / variante);
-      const numConfrontos = (numEquipes * (numEquipes - 1)) / 2;
+      const numGrupos = distribuirEmGrupos(numEquipes).length;
+      const numConfrontos = contarConfrontosTeams(numEquipes);
       formatoNome = `TEAMS ${variante}`;
       detalhes =
         `• ${numEquipes} equipes de ${variante} jogadores\n` +
-        `• ${numConfrontos} confrontos (todos contra todos)\n` +
+        (numGrupos > 1
+          ? `• ${numGrupos} grupos\n` +
+            `• ${numConfrontos} confrontos na fase de grupos\n`
+          : `• ${numConfrontos} confrontos (todos contra todos)\n`) +
         `• ${variante === 4 ? "2 jogos por confronto (+decider se 1-1)" : "3 jogos por confronto"}\n` +
-        `• Vitoria no confronto = 3 pontos`;
+        `• Vitória no confronto = 3 pontos`;
     } else if (isSuperX) {
       const variante = etapa.varianteSuperX || 8;
       const rodadas = variante === 8 ? 7 : 11; // Super 8: 7 rodadas, Super 12: 11 rodadas
