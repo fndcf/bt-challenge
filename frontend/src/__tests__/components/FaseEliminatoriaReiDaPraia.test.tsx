@@ -218,7 +218,7 @@ describe("FaseEliminatoriaReiDaPraia", () => {
         />
       );
 
-      const button = screen.getByText("🔄 Tentar Novamente");
+      const button = screen.getByText("Tentar Novamente");
       fireEvent.click(button);
 
       expect(mockCarregar).toHaveBeenCalled();

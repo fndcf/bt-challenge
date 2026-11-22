@@ -349,6 +349,16 @@ export class TeamsService {
       })
     );
 
+    const equipes = await this.equipeRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
+    await this.equipeRepository.atualizarEmLote(
+      equipes
+        .filter((equipe) => equipe.classificada)
+        .map((equipe) => ({ id: equipe.id, dados: { classificada: false } }))
+    );
+
     logger.info("Fase eliminatória TEAMS cancelada", { etapaId, arenaId });
   }
 
@@ -569,6 +579,7 @@ export class TeamsService {
           gamesVencidos: 0,
           gamesPerdidos: 0,
           saldoGames: 0,
+          classificada: false,
         },
       }))
     );

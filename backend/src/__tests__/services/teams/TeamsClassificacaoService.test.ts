@@ -330,10 +330,16 @@ describe("TeamsClassificacaoService", () => {
         criarEquipe({ id: "a2", nome: "A2", grupoId: "A", posicao: 2 }),
         criarEquipe({ id: "b1", nome: "B1", grupoId: "B", posicao: 1 }),
         criarEquipe({ id: "b2", nome: "B2", grupoId: "B", posicao: 2 }),
+        criarEquipe({ id: "b3", nome: "B3", grupoId: "B", posicao: 3 }),
       ]);
       mockConfrontoRepository.atualizar.mockResolvedValue(undefined);
 
       await service.gerarFaseEliminatoria(etapaId, arenaId);
+
+      const classificadas = mockEquipeRepository.atualizarEmLote.mock.calls[0][0]
+        .filter((e: any) => e.dados.classificada)
+        .map((e: any) => e.id);
+      expect(classificadas).toEqual(["a1", "a2", "b1", "b2"]);
 
       expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith("s1", {
         equipe1Id: "a1",

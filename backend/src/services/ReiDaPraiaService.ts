@@ -1033,7 +1033,9 @@ export class ReiDaPraiaService {
           tipoChaveamento
         );
 
-      // Marcar jogadores como classificados
+      // Marcar só os classificados de agora (pode haver sobra de uma
+      // eliminatória anterior)
+      await this.desmarcarClassificados(etapaId, arenaId);
       const jogadoresParaMarcar = todosClassificados.map((j) => ({
         jogadorId: j.jogadorId,
         etapaId,
@@ -1807,6 +1809,28 @@ export class ReiDaPraiaService {
   }
 
   /**
+   * Tirar a marca de classificado de todos os jogadores da etapa
+   */
+  private async desmarcarClassificados(
+    etapaId: string,
+    arenaId: string
+  ): Promise<void> {
+    const estatisticas = await this.estatisticasJogadorRepository.buscarPorEtapa(
+      etapaId,
+      arenaId
+    );
+    await Promise.all(
+      estatisticas
+        .filter((est) => est.classificado)
+        .map((est) =>
+          this.estatisticasJogadorRepository.atualizar(est.id, {
+            classificado: false,
+          })
+        )
+    );
+  }
+
+  /**
    * Cancelar fase eliminatória
    */
   async cancelarFaseEliminatoria(
@@ -1970,18 +1994,7 @@ export class ReiDaPraiaService {
         ),
       ]);
 
-      // Buscar e desmarcar jogadores classificados
-      const estatisticas =
-        await this.estatisticasJogadorRepository.buscarPorEtapa(
-          etapaId,
-          arenaId
-        );
-      const desmarcarPromises = estatisticas.map((est) =>
-        this.estatisticasJogadorRepository.atualizar(est.id, {
-          posicaoGrupo: undefined,
-        })
-      );
-      await Promise.all(desmarcarPromises);
+      await this.desmarcarClassificados(etapaId, arenaId);
 
       // Voltar status da etapa
       await this.etapaRepository.atualizarStatus(

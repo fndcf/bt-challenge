@@ -4,8 +4,11 @@
 
 import React from "react";
 import { Download } from "lucide-react";
+import styled from "styled-components";
+import { Alert, Button } from "@/components/ui";
+import { theme } from "@/styles/theme";
 import { Etapa, StatusEtapa } from "@/types/etapa";
-import * as S from "../DetalhesEtapa.styles";
+import { Cartao, CartaoTitulo } from "../DetalhesEtapa.styles";
 
 interface ActionsSectionProps {
   etapa: Etapa;
@@ -22,6 +25,26 @@ interface ActionsSectionProps {
   exportandoSumula?: boolean;
 }
 
+const Acoes = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${theme.spacing[3]};
+
+  @media (max-width: ${theme.breakpoints.sm}) {
+    > button {
+      flex: 1 1 100%;
+    }
+  }
+`;
+
+/** "Próximos valores válidos: 8 ou 12" quando o total não fecha múltiplos */
+const proximosValidos = (total: number, multiplo: number): string | null =>
+  total > 0 && total % multiplo !== 0
+    ? `Próximos valores válidos: ${
+        Math.floor(total / multiplo) * multiplo
+      } ou ${Math.ceil(total / multiplo) * multiplo}`
+    : null;
+
 export const ActionsSection: React.FC<ActionsSectionProps> = ({
   etapa,
   isReiDaPraia,
@@ -36,178 +59,145 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
   onExportarSumula,
   exportandoSumula = false,
 }) => {
+  const { totalInscritos, maxJogadores, chavesGeradas } = etapa;
   const inscricoesAbertas = etapa.status === StatusEtapa.INSCRICOES_ABERTAS;
-  const inscricoesEncerradas =
-    etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS;
+  const podeGerar =
+    etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS && !chavesGeradas;
 
-  // Validação simples: inscritos completos quando totalInscritos === maxJogadores
-  const inscritosCompletos = etapa.totalInscritos === etapa.maxJogadores;
-  const faltam = (etapa.maxJogadores || 0) - etapa.totalInscritos;
-  const mensagemIncompleto = `Faltam ${faltam} jogador${faltam !== 1 ? "es" : ""} (${etapa.totalInscritos}/${etapa.maxJogadores})`;
+  const inscritosCompletos = totalInscritos === maxJogadores;
+  const faltam = (maxJogadores || 0) - totalInscritos;
+  const mensagemIncompleto = `Faltam ${faltam} jogador${
+    faltam !== 1 ? "es" : ""
+  } (${totalInscritos}/${maxJogadores})`;
 
-  const mostrarBotaoGerarChaves = inscricoesEncerradas && !etapa.chavesGeradas;
-  const podeGerarChaves = mostrarBotaoGerarChaves && inscritosCompletos;
-  const podeEncerrar = inscricoesAbertas && etapa.totalInscritos >= 4;
+  const alvo = isTeams ? "Equipes" : "Chaves";
+
+  const renderRegraInscricao = () => {
+    if (!inscricoesAbertas) return null;
+
+    if (isTeams) {
+      const multiplo = etapa.varianteTeams || 4;
+      const proximos = proximosValidos(totalInscritos, multiplo);
+      return (
+        <Alert title={`TEAMS ${etapa.varianteTeams}`}>
+          <p>
+            {`O número de jogadores deve ser múltiplo de ${multiplo} para formar equipes completas. Atualmente: ${totalInscritos} jogadores.`}
+          </p>
+          {proximos && <p>{proximos}</p>}
+        </Alert>
+      );
+    }
+
+    if (isSuperX) {
+      if (totalInscritos >= maxJogadores) return null;
+      return (
+        <Alert title={`Super ${etapa.varianteSuperX}`}>
+          {`Você precisa de exatamente ${maxJogadores} jogadores inscritos para encerrar as inscrições. Atualmente: ${totalInscritos}/${maxJogadores}.`}
+        </Alert>
+      );
+    }
+
+    if (isReiDaPraia) {
+      if (totalInscritos < 8) {
+        return (
+          <Alert title="Rei da Praia">
+            Você precisa de pelo menos 8 jogadores inscritos (múltiplo de 4)
+            para encerrar as inscrições.
+          </Alert>
+        );
+      }
+      const proximos = proximosValidos(totalInscritos, 4);
+      return (
+        proximos && (
+          <Alert title="Rei da Praia">
+            <p>
+              {`Você tem ${totalInscritos} jogadores. O número deve ser múltiplo de 4 para formar grupos completos.`}
+            </p>
+            <p>{proximos}</p>
+          </Alert>
+        )
+      );
+    }
+
+    return (
+      totalInscritos < 4 && (
+        <Alert>
+          Você precisa de pelo menos 4 jogadores inscritos (número par) para
+          encerrar as inscrições.
+        </Alert>
+      )
+    );
+  };
 
   return (
-    <S.ActionsSection>
-      <S.CardTitle>Ações Administrativas</S.CardTitle>
+    <Cartao>
+      <CartaoTitulo>Ações Administrativas</CartaoTitulo>
 
-      <S.ActionsGrid>
-        {/* Abrir inscrições */}
-        {etapa.status === StatusEtapa.INSCRICOES_ENCERRADAS &&
-          !etapa.chavesGeradas && (
-            <S.Button
-              $variant="green"
-              onClick={onAbrirInscricoes}
+      <Acoes>
+        {inscricoesAbertas && totalInscritos >= 4 && (
+          <Button onClick={onEncerrarInscricoes}>Encerrar Inscrições</Button>
+        )}
+
+        {podeGerar && (
+          <>
+            <Button
+              onClick={onGerarChaves}
+              disabled={!inscritosCompletos}
+              title={inscritosCompletos ? undefined : mensagemIncompleto}
             >
-              <span>Reabrir Inscrições</span>
-            </S.Button>
-          )}
-
-        {/* Encerrar inscrições */}
-        {podeEncerrar && (
-          <S.Button
-            $variant="orange"
-            onClick={onEncerrarInscricoes}
-          >
-            <span>Encerrar Inscrições</span>
-          </S.Button>
+              {`Gerar ${alvo}`}
+            </Button>
+            <Button variant="outline" onClick={onAbrirInscricoes}>
+              Reabrir Inscrições
+            </Button>
+          </>
         )}
 
-        {/* Gerar chaves/equipes */}
-        {mostrarBotaoGerarChaves && (
-          <S.Button
-            $variant="blue"
-            onClick={onGerarChaves}
-            disabled={!podeGerarChaves}
-            title={!podeGerarChaves ? mensagemIncompleto : ""}
-          >
-            <span>{isTeams ? "Gerar Equipes" : "Gerar Chaves"}</span>
-          </S.Button>
+        {chavesGeradas && (
+          <>
+            <Button onClick={onVerChaves}>{`Ver ${alvo}`}</Button>
+            {onSubstituirJogador && (
+              <Button variant="outline" onClick={onSubstituirJogador}>
+                Substituir Jogador
+              </Button>
+            )}
+            {onExportarSumula && (
+              <Button
+                variant="outline"
+                icon={<Download size={16} />}
+                onClick={onExportarSumula}
+                disabled={exportandoSumula}
+              >
+                {exportandoSumula ? "Exportando..." : "Exportar Súmula"}
+              </Button>
+            )}
+            <Button variant="danger" onClick={onApagarChaves}>
+              {`Apagar ${alvo}`}
+            </Button>
+          </>
         )}
+      </Acoes>
 
-        {/* Ver chaves/equipes */}
-        {etapa.chavesGeradas && (
-          <S.Button $variant="blue" onClick={onVerChaves}>
-            <span>{isTeams ? "Ver Equipes" : "Ver Chaves"}</span>
-          </S.Button>
-        )}
+      {renderRegraInscricao()}
 
-        {/* Apagar chaves/equipes */}
-        {etapa.chavesGeradas && (
-          <S.Button $variant="red" onClick={onApagarChaves}>
-            <span>{isTeams ? "Apagar Equipes" : "Apagar Chaves"}</span>
-          </S.Button>
-        )}
-
-        {/* Substituir jogador */}
-        {etapa.chavesGeradas && onSubstituirJogador && (
-          <S.Button $variant="orange" onClick={onSubstituirJogador}>
-            <span>Substituir Jogador</span>
-          </S.Button>
-        )}
-
-        {/* Exportar súmula */}
-        {etapa.chavesGeradas && onExportarSumula && (
-          <S.Button $variant="green" onClick={onExportarSumula} disabled={exportandoSumula}>
-            <Download size={16} />
-            <span>{exportandoSumula ? "Exportando..." : "Exportar Súmula"}</span>
-          </S.Button>
-        )}
-      </S.ActionsGrid>
-
-      {/* Alertas */}
-      {inscricoesAbertas && isReiDaPraia && etapa.totalInscritos < 8 && (
-        <S.Alert $variant="purple">
-          <p>
-            <strong>Rei da Praia:</strong> Você precisa de pelo menos 8
-            jogadores inscritos (múltiplo de 4) para encerrar as inscrições.
-          </p>
-        </S.Alert>
+      {podeGerar && !inscritosCompletos && (
+        <Alert variant="warning" title="Inscrições incompletas">
+          {mensagemIncompleto}
+        </Alert>
       )}
 
-      {inscricoesAbertas &&
-        isReiDaPraia &&
-        etapa.totalInscritos >= 8 &&
-        etapa.totalInscritos % 4 !== 0 && (
-          <S.Alert $variant="purple">
-            <p>
-              <strong>Rei da Praia:</strong> Você tem {etapa.totalInscritos}{" "}
-              jogadores. O número deve ser múltiplo de 4 para formar grupos
-              completos.
-            </p>
-            <p>
-              Próximos valores válidos:{" "}
-              {Math.floor(etapa.totalInscritos / 4) * 4} ou{" "}
-              {Math.ceil(etapa.totalInscritos / 4) * 4}
-            </p>
-          </S.Alert>
-        )}
-
-      {inscricoesAbertas && isSuperX && etapa.totalInscritos < etapa.maxJogadores && (
-        <S.Alert $variant="purple">
-          <p>
-            <strong>Super {etapa.varianteSuperX}:</strong> Você precisa de exatamente{" "}
-            {etapa.maxJogadores} jogadores inscritos para encerrar as inscrições.
-            Atualmente: {etapa.totalInscritos}/{etapa.maxJogadores}
-          </p>
-        </S.Alert>
+      {totalInscritos > 0 && !chavesGeradas && (
+        <Alert variant="warning" title="Atenção">
+          {`Para excluir esta etapa, você precisa cancelar todas as ${totalInscritos} inscrição(ões) primeiro.`}
+        </Alert>
       )}
 
-      {inscricoesAbertas && isTeams && (
-        <S.Alert $variant="purple">
-          <p>
-            <strong>TEAMS {etapa.varianteTeams}:</strong> O numero de jogadores deve ser multiplo de{" "}
-            {etapa.varianteTeams || 4} para formar equipes completas.
-            Atualmente: {etapa.totalInscritos} jogadores
-          </p>
-          {etapa.totalInscritos > 0 && etapa.totalInscritos % (etapa.varianteTeams || 4) !== 0 && (
-            <p>
-              Proximos valores validos:{" "}
-              {Math.floor(etapa.totalInscritos / (etapa.varianteTeams || 4)) * (etapa.varianteTeams || 4)} ou{" "}
-              {Math.ceil(etapa.totalInscritos / (etapa.varianteTeams || 4)) * (etapa.varianteTeams || 4)}
-            </p>
-          )}
-        </S.Alert>
+      {chavesGeradas && (
+        <Alert title="Bloqueado">
+          Não é possível excluir etapa após geração de chaves.
+        </Alert>
       )}
-
-      {inscricoesAbertas && !isReiDaPraia && !isSuperX && !isTeams && etapa.totalInscritos < 4 && (
-        <S.Alert $variant="blue">
-          <p>
-            Você precisa de pelo menos 4 jogadores inscritos (número par) para
-            encerrar as inscrições.
-          </p>
-        </S.Alert>
-      )}
-
-      {etapa.totalInscritos > 0 && !etapa.chavesGeradas && (
-        <S.Alert $variant="orange">
-          <p>
-            <strong>Atenção:</strong> Para excluir esta etapa, você precisa
-            cancelar todas as {etapa.totalInscritos} inscrição(ões) primeiro.
-          </p>
-        </S.Alert>
-      )}
-
-      {etapa.chavesGeradas && (
-        <S.Alert $variant="red">
-          <p>
-            <strong>Bloqueado:</strong> Não é possível excluir etapa após
-            geração de chaves.
-          </p>
-        </S.Alert>
-      )}
-
-      {/* Alerta: inscrições incompletas para gerar chaves */}
-      {mostrarBotaoGerarChaves && !inscritosCompletos && (
-        <S.Alert $variant="yellow">
-          <p>
-            <strong>Inscrições incompletas:</strong> {mensagemIncompleto}
-          </p>
-        </S.Alert>
-      )}
-    </S.ActionsSection>
+    </Cartao>
   );
 };
 

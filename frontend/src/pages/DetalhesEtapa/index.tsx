@@ -14,8 +14,10 @@ import { ChavesTeams } from "@/components/etapas/ChavesTeams";
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { ModalSubstituirJogador } from "@/components/modals/ModalSubstituirJogador";
 import { Footer } from "@/components/layout/Footer";
-import { LoadingOverlay } from "@/components/ui";
+import LoadingSpinner from "@/components/common/LoadingSpinner/LoadingSpinner";
+import { Alert, Badge, Button, LoadingOverlay, Tabs } from "@/components/ui";
 import { getEtapaService } from "@/services";
+import { AbaEtapa } from "@/hooks/useEtapaUI";
 import { StatusEtapa } from "@/types/etapa";
 import logger from "@/utils/logger";
 
@@ -82,28 +84,40 @@ const DetalhesEtapa: React.FC = () => {
   const [globalLoading, setGlobalLoading] = React.useState(false);
   const [globalLoadingMessage, setGlobalLoadingMessage] = React.useState("");
 
+  /** Executa com a tela bloqueada e a mensagem de carregamento */
+  const comLoading = async (
+    mensagem: string,
+    executar: () => Promise<unknown>
+  ) => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage(mensagem);
+      await executar();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  };
+
   // Estados de loading e erro
   if (loading) {
     return (
-      <S.LoadingContainer>
-        <S.LoadingContent>
-          <S.Spinner />
-          <S.LoadingText>Carregando etapa...</S.LoadingText>
-        </S.LoadingContent>
-      </S.LoadingContainer>
+      <S.Centralizado>
+        <LoadingSpinner message="Carregando etapa..." />
+      </S.Centralizado>
     );
   }
 
   if (error || !etapa) {
     return (
-      <S.Container>
-        <S.ErrorContainer>
-          <S.ErrorText>{error || "Etapa não encontrada"}</S.ErrorText>
-          <S.Button $variant="blue" onClick={() => navigate("/admin/etapas")}>
+      <S.Pagina>
+        <Alert variant="error">{error || "Etapa não encontrada"}</Alert>
+        <div>
+          <Button variant="outline" onClick={() => navigate("/admin/etapas")}>
             ← Voltar para etapas
-          </S.Button>
-        </S.ErrorContainer>
-      </S.Container>
+          </Button>
+        </div>
+      </S.Pagina>
     );
   }
 
@@ -135,9 +149,9 @@ const DetalhesEtapa: React.FC = () => {
 
     try {
       setLoadingExcluir(true);
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Excluindo etapa...");
-      await etapaService.deletar(etapa.id);
+      await comLoading("Excluindo etapa...", () =>
+        etapaService.deletar(etapa.id)
+      );
       logger.info("Etapa excluída com sucesso", {
         etapaId: etapa.id,
         nome: etapa.nome,
@@ -149,83 +163,54 @@ const DetalhesEtapa: React.FC = () => {
       alert(err.message || "Erro ao excluir etapa");
     } finally {
       setLoadingExcluir(false);
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
     }
   };
 
-  // Wrapper para handleCancelarMultiplosInscricoes com loading global
-  const handleCancelarMultiplosInscricoesWithLoading = async (inscricaoIds: string[]) => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage(`Excluindo ${inscricaoIds.length} inscrição(ões)...`);
-      await handleCancelarMultiplosInscricoes(inscricaoIds);
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
+  const gerarChaves = async () => {
+    // Formação manual: o admin monta as duplas (aba) ou as equipes (modal)
+    if (isFormacaoManualDupla) {
+      setAbaAtiva("duplas-manuais");
+    } else if (isFormacaoManual) {
+      setModalFormacaoManualAberto(true);
+    } else {
+      await comLoading("Gerando chaves...", handleGerarChaves);
     }
   };
 
-  // Wrapper para handleAbrirInscricoes com loading global
-  const handleAbrirInscricoesWithLoading = async () => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Reabrindo inscrições...");
-      await handleAbrirInscricoes();
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
+  // Super X, TEAMS e Dupla Fixa Manual não têm cabeças de chave
+  const temCabecas = !isSuperX && !isTeams && !isFormacaoManualDupla;
+  const temDuplasManuais =
+    isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas;
 
-  // Wrapper para handleEncerrarInscricoes com loading global
-  const handleEncerrarInscricoesWithLoading = async () => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Encerrando inscrições...");
-      await handleEncerrarInscricoes();
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
-
-  // Wrapper para handleGerarChaves com loading global
-  const handleGerarChavesWithLoading = async () => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Gerando chaves...");
-      // Se é DUPLA FIXA com formação manual, navega para a tab
-      if (isFormacaoManualDupla) {
-        setAbaAtiva("duplas-manuais");
-      // Se é TEAMS com formação manual, abre o modal
-      } else if (isFormacaoManual) {
-        setModalFormacaoManualAberto(true);
-      } else {
-        await handleGerarChaves();
-      }
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
-
-  // Wrapper para handleApagarChaves com loading global
-  const handleApagarChavesWithLoading = async () => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage("Excluindo chaves...");
-      await handleApagarChaves();
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
+  const abas: { id: AbaEtapa; label: React.ReactNode }[] = [
+    {
+      id: "inscricoes",
+      label: (
+        <S.RotuloAba>
+          Inscrições <Badge>{etapa.totalInscritos}</Badge>
+        </S.RotuloAba>
+      ),
+    },
+  ];
+  if (temCabecas) abas.push({ id: "cabeças", label: "Cabeças de Chave" });
+  if (temDuplasManuais) {
+    abas.push({ id: "duplas-manuais", label: "Duplas Manuais" });
+  }
+  if (etapa.chavesGeradas) {
+    abas.push({
+      id: "chaves",
+      label: (
+        <S.RotuloAba>
+          Chaves/Grupos <Badge>{etapa.qtdGrupos || 0}</Badge>
+        </S.RotuloAba>
+      ),
+    });
+  }
 
   // Renderização principal
   return (
     <>
-      <S.Container>
+      <S.Pagina>
         {/* Cabeçalho */}
         <EtapaHeader
           etapa={etapa}
@@ -249,9 +234,13 @@ const DetalhesEtapa: React.FC = () => {
           isReiDaPraia={isReiDaPraia}
           isSuperX={isSuperX}
           isTeams={isTeams}
-          onAbrirInscricoes={handleAbrirInscricoesWithLoading}
-          onEncerrarInscricoes={handleEncerrarInscricoesWithLoading}
-          onGerarChaves={handleGerarChavesWithLoading}
+          onAbrirInscricoes={() =>
+            comLoading("Reabrindo inscrições...", handleAbrirInscricoes)
+          }
+          onEncerrarInscricoes={() =>
+            comLoading("Encerrando inscrições...", handleEncerrarInscricoes)
+          }
+          onGerarChaves={gerarChaves}
           onApagarChaves={() => setModalConfirmacaoAberto(true)}
           onVerChaves={() => {
             setAbaAtiva("chaves");
@@ -265,47 +254,14 @@ const DetalhesEtapa: React.FC = () => {
         />
 
         {/* Tabs */}
-        <S.TabsContainer ref={tabsRef}>
-          <S.TabsNav>
-            <S.TabsList>
-              <S.Tab
-                $active={abaAtiva === "inscricoes"}
-                onClick={() => setAbaAtiva("inscricoes")}
-              >
-                Inscrições
-                <S.TabBadge>{etapa.totalInscritos}</S.TabBadge>
-              </S.Tab>
-
-              {/* Super X, TEAMS e Dupla Fixa Manual não tem cabeças de chave */}
-              {!isSuperX && !isTeams && !isFormacaoManualDupla && (
-                <S.Tab
-                  $active={abaAtiva === "cabeças"}
-                  onClick={() => setAbaAtiva("cabeças")}
-                >
-                  Cabeças de Chave
-                </S.Tab>
-              )}
-
-              {isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas && (
-                <S.Tab
-                  $active={abaAtiva === "duplas-manuais"}
-                  onClick={() => setAbaAtiva("duplas-manuais")}
-                >
-                  Duplas Manuais
-                </S.Tab>
-              )}
-
-              {etapa.chavesGeradas && (
-                <S.Tab
-                  $active={abaAtiva === "chaves"}
-                  onClick={() => setAbaAtiva("chaves")}
-                >
-                  Chaves/Grupos
-                  <S.TabBadge>{etapa.qtdGrupos || 0}</S.TabBadge>
-                </S.Tab>
-              )}
-            </S.TabsList>
-          </S.TabsNav>
+        <S.Abas ref={tabsRef}>
+          <Tabs
+            rotulo="Seções da etapa"
+            abas={abas}
+            ativa={abaAtiva}
+            onChange={setAbaAtiva}
+            formato={etapa.formato}
+          />
 
           {/* Conteúdo das Tabs */}
           {abaAtiva === "inscricoes" && (
@@ -314,7 +270,11 @@ const DetalhesEtapa: React.FC = () => {
               inscricoes={etapa.inscricoes || []}
               onInscricao={() => setModalInscricaoAberto(true)}
               onCancelar={handleCancelarInscricao}
-              onCancelarMultiplos={handleCancelarMultiplosInscricoesWithLoading}
+              onCancelarMultiplos={(ids) =>
+                comLoading(`Excluindo ${ids.length} inscrição(ões)...`, () =>
+                  handleCancelarMultiplosInscricoes(ids)
+                )
+              }
             />
           )}
 
@@ -322,23 +282,17 @@ const DetalhesEtapa: React.FC = () => {
             <CabecasTab etapa={etapa} onUpdate={carregarEtapa} />
           )}
 
-          {abaAtiva === "duplas-manuais" && isDuplaFixa && isFormacaoManualDupla && !etapa.chavesGeradas && (
+          {abaAtiva === "duplas-manuais" && temDuplasManuais && (
             <DuplasManuaisTab
               inscricoes={etapa.inscricoes || []}
               isMisto={etapa.genero === "misto"}
-              onConfirm={async (formacoes) => {
-                setGlobalLoading(true);
-                setGlobalLoadingMessage("Gerando duplas e chaves...");
-                try {
-                  await handleGerarDuplasManual(formacoes);
-                } finally {
-                  setGlobalLoading(false);
-                  setGlobalLoadingMessage("");
-                }
-              }}
+              onConfirm={(formacoes) =>
+                comLoading("Gerando duplas e chaves...", () =>
+                  handleGerarDuplasManual(formacoes)
+                )
+              }
             />
           )}
-
 
           {abaAtiva === "chaves" && etapa.chavesGeradas && (
             <>
@@ -378,8 +332,8 @@ const DetalhesEtapa: React.FC = () => {
               )}
             </>
           )}
-        </S.TabsContainer>
-      </S.Container>
+        </S.Abas>
+      </S.Pagina>
 
       <Footer />
 
@@ -407,7 +361,7 @@ const DetalhesEtapa: React.FC = () => {
           isOpen={modalConfirmacaoAberto}
           onConfirm={async () => {
             setModalConfirmacaoAberto(false);
-            await handleApagarChavesWithLoading();
+            await comLoading("Excluindo chaves...", handleApagarChaves);
           }}
           onClose={() => setModalConfirmacaoAberto(false)}
         />

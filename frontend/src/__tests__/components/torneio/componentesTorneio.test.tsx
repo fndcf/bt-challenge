@@ -95,6 +95,16 @@ describe("TabelaClassificacao", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("deve explicar a faixa só quando há classificados", () => {
+    const legenda = "Classificado para a eliminatória";
+    const { unmount } = renderTabela();
+    expect(screen.getByText(legenda)).toBeInTheDocument();
+    unmount();
+
+    renderTabela({ linhas: [linhas[1]] });
+    expect(screen.queryByText(legenda)).not.toBeInTheDocument();
+  });
+
   it("deve mostrar só posição e nome sem estatísticas", () => {
     renderTabela({ mostrarEstatisticas: false });
 

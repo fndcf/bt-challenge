@@ -3,9 +3,10 @@
  */
 
 import React from "react";
-import { Etapa, Inscricao, StatusEtapa } from "@/types/etapa";
 import { GerenciarCabecasDeChave } from "@/components/etapas/GerenciarCabecasDeChave";
-import * as S from "../DetalhesEtapa.styles";
+import { Alert } from "@/components/ui";
+import { Etapa, Inscricao, StatusEtapa } from "@/types/etapa";
+import { Cartao, CartaoTitulo, Texto } from "../DetalhesEtapa.styles";
 
 interface CabecasTabProps {
   etapa: Etapa & { inscricoes?: Inscricao[] };
@@ -13,44 +14,21 @@ interface CabecasTabProps {
 }
 
 export const CabecasTab: React.FC<CabecasTabProps> = ({ etapa, onUpdate }) => {
-  // Antes de encerrar inscrições
   if (etapa.status === StatusEtapa.INSCRICOES_ABERTAS) {
     return (
-      <S.Card>
-        <S.CardTitle>Cabeças de Chave</S.CardTitle>
-        <S.CardContent>
-          <p style={{ color: "#6b7280", marginBottom: "1rem" }}>
-            As cabeças de chave podem ser gerenciadas após encerrar as
-            inscrições.
-          </p>
-          <p style={{ color: "#9ca3af", fontSize: "0.875rem" }}>
-            <strong>O que são cabeças de chave?</strong>
-            <br />
-            São os jogadores mais fortes que serão distribuídos em grupos
-            diferentes para equilibrar a competição.
-          </p>
-        </S.CardContent>
-      </S.Card>
+      <Cartao>
+        <CartaoTitulo>Cabeças de Chave</CartaoTitulo>
+        <Texto>
+          As cabeças de chave podem ser gerenciadas após encerrar as inscrições.
+        </Texto>
+        <Alert title="O que são cabeças de chave?">
+          São os jogadores mais fortes que serão distribuídos em grupos
+          diferentes para equilibrar a competição.
+        </Alert>
+      </Cartao>
     );
   }
 
-  // Após gerar chaves - modo readonly
-  if (etapa.chavesGeradas) {
-    return (
-      <GerenciarCabecasDeChave
-        arenaId={etapa.arenaId}
-        etapaId={etapa.id}
-        inscricoes={etapa.inscricoes || []}
-        formato={etapa.formato}
-        totalInscritos={etapa.totalInscritos}
-        qtdGrupos={etapa.qtdGrupos}
-        onUpdate={onUpdate}
-        readOnly={true}
-      />
-    );
-  }
-
-  // Inscrições encerradas mas chaves ainda não geradas - modo edição
   return (
     <GerenciarCabecasDeChave
       arenaId={etapa.arenaId}
@@ -60,7 +38,8 @@ export const CabecasTab: React.FC<CabecasTabProps> = ({ etapa, onUpdate }) => {
       totalInscritos={etapa.totalInscritos}
       qtdGrupos={etapa.qtdGrupos}
       onUpdate={onUpdate}
-      readOnly={false}
+      // Depois de gerar as chaves, só visualização
+      readOnly={!!etapa.chavesGeradas}
     />
   );
 };

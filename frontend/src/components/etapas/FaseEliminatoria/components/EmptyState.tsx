@@ -1,15 +1,10 @@
+/**
+ * Eliminatória ainda não gerada (Dupla Fixa e Rei da Praia)
+ */
+
 import React from "react";
-import {
-  EmptyStateCard,
-  EmptyStateContent,
-  EmptyTitle,
-  AlertBox,
-  InfoBox,
-  InfoText,
-  ButtonGroup,
-  HintText,
-} from "../styles";
-import { Button } from "@/components/ui";
+import { Alert, Button } from "@/components/ui";
+import { Dica, EstadoInicial, EstadoTitulo } from "../styles";
 
 interface EmptyStateProps {
   isGrupoUnico: boolean;
@@ -24,10 +19,6 @@ interface EmptyStateProps {
   bloqueadoPorEmpate?: boolean;
 }
 
-const AvisoEmpate = () => (
-  <HintText>Resolva o empate indicado acima para liberar esta ação.</HintText>
-);
-
 export const EmptyState: React.FC<EmptyStateProps> = ({
   isGrupoUnico,
   grupoUnicoCompleto,
@@ -39,113 +30,99 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onEncerrarEtapa,
   bloqueadoPorEmpate = false,
 }) => {
+  const avisoEmpate = bloqueadoPorEmpate && (
+    <Dica>Resolva o empate indicado acima para liberar esta ação.</Dica>
+  );
+
+  const renderGrupoUnico = () => {
+    if (!grupoUnicoCompleto) {
+      return (
+        <Alert
+          variant="warning"
+          title="Finalize todas as partidas do grupo primeiro"
+        >
+          Ainda há {partidasPendentes} partida(s) pendente(s). Complete todos os
+          jogos para definir o campeão.
+        </Alert>
+      );
+    }
+
+    if (etapaFinalizada) {
+      return (
+        <Alert variant="success" title="Etapa Finalizada!">
+          Esta etapa já foi encerrada. O campeão foi definido e os pontos foram
+          atribuídos.
+        </Alert>
+      );
+    }
+
+    return (
+      <>
+        <Alert variant="warning" title="Grupo Completo!">
+          <p>Todas as partidas foram finalizadas. O campeão está definido!</p>
+          <p>
+            <strong>Próximo passo:</strong> Encerre a etapa para atribuir pontos
+            ao ranking.
+          </p>
+        </Alert>
+        <Button
+          onClick={onEncerrarEtapa}
+          disabled={loading || bloqueadoPorEmpate}
+        >
+          Encerrar Etapa e Atribuir Pontos
+        </Button>
+        {avisoEmpate}
+      </>
+    );
+  };
+
   return (
-    <EmptyStateCard>
-      <EmptyStateContent>
-        <EmptyTitle>Fase Eliminatória</EmptyTitle>
+    <EstadoInicial>
+      <EstadoTitulo>Fase Eliminatória</EstadoTitulo>
 
-        {isGrupoUnico ? (
-          <>
-            <AlertBox $variant="success">
-              <h4>Grupo Único - Sistema Round-Robin</h4>
-              <p>
-                Com apenas 1 grupo, todos os jogadores já se enfrentaram no
-                sistema <strong>Todos contra Todos</strong>.
-              </p>
-              <InfoBox>
-                <InfoText>
-                  <strong>Sistema:</strong> Round-Robin (Todos contra Todos)
-                </InfoText>
-                <InfoText>
-                  O <strong>1º colocado</strong> do grupo é automaticamente o{" "}
-                  <strong>CAMPEÃO</strong>!
-                </InfoText>
-              </InfoBox>
-            </AlertBox>
-
-            {grupoUnicoCompleto ? (
-              <>
-                {etapaFinalizada ? (
-                  <AlertBox $variant="success">
-                    <h4>Etapa Finalizada!</h4>
-                    <p>
-                      Esta etapa já foi encerrada. O campeão foi definido e os
-                      pontos foram atribuídos.
-                    </p>
-                  </AlertBox>
-                ) : (
-                  <>
-                    <AlertBox $variant="warning">
-                      <h4>Grupo Completo!</h4>
-                      <p>
-                        Todas as partidas foram finalizadas. O campeão está
-                        definido!
-                      </p>
-                      <InfoBox>
-                        <InfoText>
-                          <strong>Próximo passo:</strong> Encerre a etapa para
-                          atribuir pontos ao ranking.
-                        </InfoText>
-                      </InfoBox>
-                    </AlertBox>
-
-                    <ButtonGroup>
-                      <Button
-                        onClick={onEncerrarEtapa}
-                        disabled={loading || bloqueadoPorEmpate}
-                      >
-                        <span>Encerrar Etapa e Atribuir Pontos</span>
-                      </Button>
-                    </ButtonGroup>
-                    {bloqueadoPorEmpate && <AvisoEmpate />}
-                  </>
-                )}
-              </>
-            ) : (
-              <AlertBox $variant="warning">
-                <h4>Finalize todas as partidas do grupo primeiro</h4>
-                <p>
-                  Ainda há {partidasPendentes} partida(s) pendente(s). Complete
-                  todos os jogos para definir o campeão.
-                </p>
-              </AlertBox>
-            )}
-
-            <HintText>
-              Para ter fase eliminatória, configure a etapa com 2 ou mais grupos
-            </HintText>
-          </>
-        ) : !todosGruposCompletos ? (
-          <>
-            <AlertBox $variant="warning">
-              <h4>Finalize todas as partidas da fase de grupos primeiro</h4>
-              <p>
-                Ainda há {partidasPendentes} partida(s) pendente(s) nos grupos.
-                Complete todos os jogos para gerar a fase eliminatória.
-              </p>
-            </AlertBox>
-            <ButtonGroup>
-              <Button disabled>Gerar Fase Eliminatória</Button>
-            </ButtonGroup>
-          </>
-        ) : (
-          <>
-            <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>
-              A fase de grupos foi concluída! Gere a fase eliminatória para
-              continuar o torneio.
+      {isGrupoUnico ? (
+        <>
+          <Alert title="Grupo Único - Sistema Round-Robin">
+            <p>
+              Com apenas 1 grupo, todos os jogadores já se enfrentaram no
+              sistema <strong>Todos contra Todos</strong>.
             </p>
-            <ButtonGroup>
-              <Button
-                onClick={onGerarEliminatoria}
-                disabled={loading || bloqueadoPorEmpate}
-              >
-                Gerar Fase Eliminatória
-              </Button>
-            </ButtonGroup>
-            {bloqueadoPorEmpate && <AvisoEmpate />}
-          </>
-        )}
-      </EmptyStateContent>
-    </EmptyStateCard>
+            <p>
+              O <strong>1º colocado</strong> do grupo é automaticamente o{" "}
+              <strong>CAMPEÃO</strong>!
+            </p>
+          </Alert>
+          {renderGrupoUnico()}
+          <Dica>
+            Para ter fase eliminatória, configure a etapa com 2 ou mais grupos
+          </Dica>
+        </>
+      ) : !todosGruposCompletos ? (
+        <>
+          <Alert
+            variant="warning"
+            title="Finalize todas as partidas da fase de grupos primeiro"
+          >
+            Ainda há {partidasPendentes} partida(s) pendente(s) nos grupos.
+            Complete todos os jogos para gerar a fase eliminatória.
+          </Alert>
+          <Button disabled>Gerar Fase Eliminatória</Button>
+        </>
+      ) : (
+        <>
+          <p>
+            A fase de grupos foi concluída! Gere a fase eliminatória para
+            continuar o torneio.
+          </p>
+          <Button
+            onClick={onGerarEliminatoria}
+            disabled={loading || bloqueadoPorEmpate}
+          >
+            Gerar Fase Eliminatória
+          </Button>
+          {avisoEmpate}
+        </>
+      )}
+    </EstadoInicial>
   );
 };

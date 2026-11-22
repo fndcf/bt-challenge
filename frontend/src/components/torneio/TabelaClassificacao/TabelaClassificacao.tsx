@@ -159,6 +159,24 @@ const Destaque = styled.span<{ $cores: CoresFormato }>`
   color: ${({ $cores }) => $cores.texto};
 `;
 
+const LegendaClassificado = styled.p`
+  margin: 0;
+  padding: ${theme.spacing[2]} 0.75rem;
+  border-top: 1px solid ${superficie.borda};
+  font-size: ${theme.typography.fontSize.xs};
+  color: ${texto.secundario};
+
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 0.875rem;
+    margin-right: ${theme.spacing[2]};
+    vertical-align: middle;
+    background: ${status.sucesso.texto};
+  }
+`;
+
 const corDoSaldo = (valor: number): string => {
   if (valor > 0) return status.sucesso.texto;
   if (valor < 0) return status.erro.texto;
@@ -236,6 +254,11 @@ export const TabelaClassificacao: React.FC<TabelaClassificacaoProps> = ({
           ))}
         </tbody>
       </Tabela>
+      {linhas.some((linha) => linha.classificado) && (
+        <LegendaClassificado>
+          Classificado para a eliminatória
+        </LegendaClassificado>
+      )}
     </Wrapper>
   );
 };

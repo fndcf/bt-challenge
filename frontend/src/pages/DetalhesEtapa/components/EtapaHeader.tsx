@@ -4,10 +4,16 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Etapa, FormatoEtapa } from "@/types/etapa";
+import styled from "styled-components";
 import { StatusBadge } from "@/components/etapas/StatusBadge";
+import { Badge, Button } from "@/components/ui";
+import { theme } from "@/styles/theme";
+import { Etapa } from "@/types/etapa";
+import { getFormatoEtapaLabel } from "@/utils/etapa";
 import { formatarData } from "@/utils/formatters";
-import * as S from "../DetalhesEtapa.styles";
+
+const { texto } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
 
 interface EtapaHeaderProps {
   etapa: Etapa;
@@ -15,6 +21,47 @@ interface EtapaHeaderProps {
   onExcluir: () => void;
   loadingExcluir?: boolean;
 }
+
+const Cabecalho = styled.header`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${theme.spacing[4]};
+`;
+
+const Linha = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: ${theme.spacing[4]};
+  width: 100%;
+`;
+
+const LinhaTitulo = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${theme.spacing[2]} ${theme.spacing[3]};
+`;
+
+const Titulo = styled.h1`
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: ${fontSize["2xl"]};
+  font-weight: ${fontWeight.bold};
+  color: ${texto.principal};
+`;
+
+const Subtitulo = styled.p`
+  margin: ${theme.spacing[2]} 0 0 0;
+  color: ${texto.secundario};
+`;
+
+const Acoes = styled.div`
+  display: flex;
+  gap: ${theme.spacing[3]};
+`;
 
 export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
   etapa,
@@ -24,56 +71,39 @@ export const EtapaHeader: React.FC<EtapaHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const getFormatoLabel = () => {
-    if (etapa.formato === FormatoEtapa.REI_DA_PRAIA) {
-      return "Rei da Praia";
-    }
-    if (etapa.formato === FormatoEtapa.SUPER_X) {
-      return `Super ${etapa.varianteSuperX || 8}`;
-    }
-    if (etapa.formato === FormatoEtapa.TEAMS) {
-      return `Teams ${etapa.varianteTeams || 4}`;
-    }
-    return "Dupla Fixa";
-  };
-
-  const formatoLabel = getFormatoLabel();
-
   return (
-    <S.Header>
-      <S.BackButton onClick={() => navigate("/admin/etapas")}>
+    <Cabecalho>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate("/admin/etapas")}
+      >
         ← Voltar para etapas
-      </S.BackButton>
+      </Button>
 
-      <S.HeaderRow>
-        <S.HeaderContent>
-          <S.TitleWrapper>
-            <S.Title>{etapa.nome}</S.Title>
-            <S.BadgesRow>
-              <StatusBadge status={etapa.status} />
-              <S.FormatoBadge $formato={etapa.formato}>
-                {formatoLabel}
-              </S.FormatoBadge>
-            </S.BadgesRow>
-          </S.TitleWrapper>
-          <S.Subtitle>
+      <Linha>
+        <div>
+          <LinhaTitulo>
+            <Titulo>{etapa.nome}</Titulo>
+            <StatusBadge status={etapa.status} />
+            <Badge formato={etapa.formato}>{getFormatoEtapaLabel(etapa)}</Badge>
+          </LinhaTitulo>
+          <Subtitulo>
             {formatarData(etapa.dataRealizacao)}
             {etapa.local && ` • ${etapa.local}`}
-          </S.Subtitle>
-        </S.HeaderContent>
+          </Subtitulo>
+        </div>
 
-        <S.HeaderActions>
-          <S.ActionButton onClick={onEditar}>Editar</S.ActionButton>
-          <S.ActionButton
-            $variant="danger"
-            onClick={onExcluir}
-            disabled={loadingExcluir}
-          >
+        <Acoes>
+          <Button variant="outline" onClick={onEditar}>
+            Editar
+          </Button>
+          <Button variant="danger" onClick={onExcluir} disabled={loadingExcluir}>
             {loadingExcluir ? "Excluindo..." : "Excluir"}
-          </S.ActionButton>
-        </S.HeaderActions>
-      </S.HeaderRow>
-    </S.Header>
+          </Button>
+        </Acoes>
+      </Linha>
+    </Cabecalho>
   );
 };
 

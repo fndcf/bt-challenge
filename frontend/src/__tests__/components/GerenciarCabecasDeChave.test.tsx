@@ -22,6 +22,7 @@ jest.mock("@/services", () => ({
 
 // Mock do Pagination e LoadingOverlay
 jest.mock("@/components/ui", () => ({
+  ...jest.requireActual("@/components/ui"),
   Pagination: ({
     currentPage,
     totalPages,
@@ -334,8 +335,8 @@ describe("GerenciarCabecasDeChave", () => {
       render(<GerenciarCabecasDeChave {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText("▲").length).toBe(2);
-        expect(screen.getAllByText("▼").length).toBe(2);
+        expect(screen.getAllByTitle("Mover para cima").length).toBe(2);
+        expect(screen.getAllByTitle("Mover para baixo").length).toBe(2);
       });
     });
 
@@ -345,7 +346,7 @@ describe("GerenciarCabecasDeChave", () => {
       render(<GerenciarCabecasDeChave {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText("✕").length).toBe(2);
+        expect(screen.getAllByTitle("Remover").length).toBe(2);
       });
     });
   });
@@ -358,11 +359,11 @@ describe("GerenciarCabecasDeChave", () => {
       render(<GerenciarCabecasDeChave {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText("▲").length).toBe(2);
+        expect(screen.getAllByTitle("Mover para cima").length).toBe(2);
       });
 
       // Clica no botão de subir do segundo item
-      const upButtons = screen.getAllByText("▲");
+      const upButtons = screen.getAllByTitle("Mover para cima");
       fireEvent.click(upButtons[1]);
 
       await waitFor(() => {
@@ -404,7 +405,7 @@ describe("GerenciarCabecasDeChave", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("✕")).toBeInTheDocument();
+        expect(screen.getByTitle("Remover")).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByTitle("Remover"));
@@ -445,9 +446,9 @@ describe("GerenciarCabecasDeChave", () => {
       render(<GerenciarCabecasDeChave {...defaultProps} readOnly={true} />);
 
       await waitFor(() => {
-        expect(screen.queryByText("▲")).not.toBeInTheDocument();
-        expect(screen.queryByText("▼")).not.toBeInTheDocument();
-        expect(screen.queryByText("✕")).not.toBeInTheDocument();
+        expect(screen.queryByTitle("Mover para cima")).not.toBeInTheDocument();
+        expect(screen.queryByTitle("Mover para baixo")).not.toBeInTheDocument();
+        expect(screen.queryByTitle("Remover")).not.toBeInTheDocument();
       });
     });
 
@@ -602,10 +603,10 @@ describe("GerenciarCabecasDeChave", () => {
       render(<GerenciarCabecasDeChave {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText("▲").length).toBe(2);
+        expect(screen.getAllByTitle("Mover para cima").length).toBe(2);
       });
 
-      const upButtons = screen.getAllByText("▲");
+      const upButtons = screen.getAllByTitle("Mover para cima");
       fireEvent.click(upButtons[1]);
 
       await waitFor(() => {

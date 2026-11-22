@@ -11,7 +11,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { getEtapaService } from "@/services";
-import { Button } from "@/components/ui";
+import { Alert, Button } from "@/components/ui";
+import { theme } from "@/styles/theme";
 import { EmpatePendente } from "@/types/etapa";
 import { ModalResolverEmpate } from "./ModalResolverEmpate";
 
@@ -28,56 +29,36 @@ interface PainelEmpatesPendentesProps {
 
 // ============== STYLES ==============
 
-const Aviso = styled.div`
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  border-left: 4px solid #f59e0b;
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-`;
-
-const AvisoTitulo = styled.h4`
-  margin: 0 0 0.25rem 0;
-  color: #92400e;
-  font-size: 0.9375rem;
-  font-weight: 700;
-`;
-
-const AvisoTexto = styled.p`
-  margin: 0 0 0.75rem 0;
-  color: #92400e;
-  font-size: 0.875rem;
-  line-height: 1.5;
-`;
+const { texto, superficie } = theme.semantic;
 
 const ListaEmpates = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  && {
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.spacing[2]};
+    margin-top: ${theme.spacing[3]};
+    padding: 0;
+    list-style: none;
+  }
 `;
 
 const ItemEmpate = styled.li`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  background: #ffffff;
-  border: 1px solid #fde68a;
-  border-radius: 0.5rem;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  color: #374151;
+  gap: ${theme.spacing[3]};
+  padding: ${theme.spacing[2]} ${theme.spacing[3]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.md};
+  background: ${superficie.fundo};
+  color: ${texto.principal};
 
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: stretch;
+  > span {
+    flex: 1 1 14rem;
+    min-width: 0;
   }
 `;
-
 
 // ============== HELPERS ==============
 
@@ -159,35 +140,35 @@ export const PainelEmpatesPendentes: React.FC<PainelEmpatesPendentesProps> = ({
   return (
     <>
       {empates.length > 0 && (
-        <Aviso role="status">
-          <AvisoTitulo>
-            {empates.length === 1
-              ? "Empate na classificação"
-              : `${empates.length} empates na classificação`}
-          </AvisoTitulo>
-          <AvisoTexto>
-            Os participantes abaixo empataram em todos os critérios. Defina a
-            ordem por sorteio ou manualmente para liberar a próxima fase.
-          </AvisoTexto>
-          <ListaEmpates>
-            {empates.map((empate) => (
-              <ItemEmpate key={chaveEmpate(empate)}>
-                <span>
-                  <strong>{empate.grupoNome}</strong> —{" "}
-                  {empate.participantes.map((p) => p.nome).join(" × ")} (a
-                  partir do {empate.posicaoInicial}º lugar)
-                </span>
-                <Button
-                  type="button"
-                  onClick={() => setEmpateAberto(empate)}
-                  style={{ flexShrink: 0 }}
-                >
-                  Resolver
-                </Button>
-              </ItemEmpate>
-            ))}
-          </ListaEmpates>
-        </Aviso>
+        <div role="status">
+          <Alert
+            variant="warning"
+            title={
+              empates.length === 1
+                ? "Empate na classificação"
+                : `${empates.length} empates na classificação`
+            }
+          >
+            <p>
+              Os participantes abaixo empataram em todos os critérios. Defina a
+              ordem por sorteio ou manualmente para liberar a próxima fase.
+            </p>
+            <ListaEmpates>
+              {empates.map((empate) => (
+                <ItemEmpate key={chaveEmpate(empate)}>
+                  <span>
+                    <strong>{empate.grupoNome}</strong> —{" "}
+                    {empate.participantes.map((p) => p.nome).join(" × ")} (a
+                    partir do {empate.posicaoInicial}º lugar)
+                  </span>
+                  <Button size="sm" onClick={() => setEmpateAberto(empate)}>
+                    Resolver
+                  </Button>
+                </ItemEmpate>
+              ))}
+            </ListaEmpates>
+          </Alert>
+        </div>
       )}
 
       {empateAberto && (

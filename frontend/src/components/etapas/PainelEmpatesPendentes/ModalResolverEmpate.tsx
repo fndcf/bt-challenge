@@ -5,8 +5,10 @@
 
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Modal, Button } from "@/components/ui";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { Alert, Badge, Button, IconButton, Modal } from "@/components/ui";
 import { getEtapaService } from "@/services";
+import { theme } from "@/styles/theme";
 import {
   EmpatePendente,
   ModoDesempate,
@@ -23,164 +25,118 @@ interface ModalResolverEmpateProps {
 
 // ============== STYLES ==============
 
-const Descricao = styled.p`
-  margin: 0 0 1.25rem 0;
-  color: #374151;
-  font-size: 0.9375rem;
-  line-height: 1.5;
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
 
-  strong {
-    color: #111827;
-  }
+const Conteudo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing[4]};
 `;
 
-const Contexto = styled.p`
-  margin: -0.5rem 0 1.25rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e40af;
-  font-size: 0.8125rem;
+const Descricao = styled.p`
+  margin: 0;
   line-height: 1.5;
+  color: ${texto.secundario};
+
+  strong {
+    color: ${texto.principal};
+  }
 `;
 
 const Opcoes = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: ${theme.spacing[3]};
 `;
 
-const Opcao = styled.button<{ $ativa: boolean }>`
-  text-align: left;
-  padding: 0.875rem 1rem;
-  border-radius: 0.75rem;
-  border: 2px solid ${({ $ativa }) => ($ativa ? "#7c3aed" : "#e5e7eb")};
-  background: ${({ $ativa }) => ($ativa ? "#f5f3ff" : "#ffffff")};
+const Opcao = styled.label<{ $ativa: boolean }>`
+  display: flex;
+  gap: ${theme.spacing[3]};
+  padding: ${theme.spacing[4]};
+  border: 1px solid
+    ${({ $ativa }) => ($ativa ? acao.primaria : superficie.bordaForte)};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${({ $ativa }) => ($ativa ? acao.fundoClaro : superficie.fundo)};
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
 
   &:hover {
-    border-color: #a78bfa;
+    border-color: ${acao.primaria};
+  }
+
+  input {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: ${theme.spacing[1]} 0 0 0;
+    accent-color: ${acao.primaria};
   }
 
   strong {
     display: block;
-    color: #111827;
-    font-size: 0.9375rem;
-    margin-bottom: 0.25rem;
-  }
-
-  span {
-    color: #6b7280;
-    font-size: 0.8125rem;
-    line-height: 1.4;
+    font-size: ${fontSize.base};
+    font-weight: ${fontWeight.semibold};
+    color: ${texto.principal};
   }
 `;
 
 const Lista = styled.ol`
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: ${theme.spacing[2]};
+  margin: 0;
+  padding: 0;
+  list-style: none;
 `;
 
 const ItemLista = styled.li`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.625rem;
-  background: #f9fafb;
-`;
-
-const Posicao = styled.span`
-  min-width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-weight: 700;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: ${theme.spacing[2]};
+  min-height: 48px;
+  padding: ${theme.spacing[1]} ${theme.spacing[2]} ${theme.spacing[1]}
+    ${theme.spacing[3]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.md};
+  background: ${superficie.fundoAlternativo};
+  color: ${texto.secundario};
 `;
 
 const Nome = styled.span`
   flex: 1;
-  font-weight: 500;
-  color: #111827;
-  font-size: 0.9375rem;
-`;
-
-const Setas = styled.div`
-  display: flex;
-  gap: 0.25rem;
-`;
-
-const Seta = styled.button`
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #374151;
-  font-size: 1rem;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: #f3f4f6;
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: ${fontWeight.medium};
+  color: ${texto.principal};
 `;
 
 const Subtitulo = styled.h4`
-  margin: 0 0 0.75rem 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Erro = styled.div`
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-  font-size: 0.875rem;
+  margin: 0;
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
 // ============== HELPERS ==============
 
-const posicoesDisputadas = (empate: EmpatePendente): string => {
-  const posicoes = empate.participantes.map(
-    (_, i) => `${empate.posicaoInicial + i}º`
-  );
-  return posicoes.length === 2
-    ? `${posicoes[0]} e ${posicoes[1]}`
-    : `${posicoes.slice(0, -1).join(", ")} e ${posicoes[posicoes.length - 1]}`;
-};
+/** "A, B e C" */
+const juntar = (itens: string[]): string =>
+  `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
 
-const listarNomes = (participantes: ParticipanteEmpate[]): string => {
-  const nomes = participantes.map((p) => p.nome);
-  return nomes.length === 2
-    ? `${nomes[0]} e ${nomes[1]}`
-    : `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
-};
+const OPCOES: { modo: ModoDesempate; titulo: string; descricao: string }[] = [
+  {
+    modo: "sorteio",
+    titulo: "Sortear",
+    descricao: "O sistema define a ordem aleatoriamente.",
+  },
+  {
+    modo: "manual",
+    titulo: "Escolher a ordem",
+    descricao: "Você define quem fica em cada posição.",
+  },
+];
 
 // ============== COMPONENTE ==============
 
@@ -245,27 +201,23 @@ export const ModalResolverEmpate: React.FC<ModalResolverEmpateProps> = ({
     <Lista>
       {participantes.map((participante, i) => (
         <ItemLista key={participante.id}>
-          <Posicao>{empate.posicaoInicial + i}º</Posicao>
+          <Badge tom="info">{`${empate.posicaoInicial + i}º`}</Badge>
           <Nome>{participante.nome}</Nome>
           {editavel && (
-            <Setas>
-              <Seta
-                type="button"
+            <>
+              <IconButton
+                rotulo={`Subir ${participante.nome}`}
+                icone={<ArrowUp aria-hidden="true" />}
                 onClick={() => mover(i, -1)}
                 disabled={i === 0 || salvando}
-                aria-label={`Subir ${participante.nome}`}
-              >
-                ↑
-              </Seta>
-              <Seta
-                type="button"
+              />
+              <IconButton
+                rotulo={`Descer ${participante.nome}`}
+                icone={<ArrowDown aria-hidden="true" />}
                 onClick={() => mover(i, 1)}
                 disabled={i === participantes.length - 1 || salvando}
-                aria-label={`Descer ${participante.nome}`}
-              >
-                ↓
-              </Seta>
-            </Setas>
+              />
+            </>
           )}
         </ItemLista>
       ))}
@@ -285,11 +237,17 @@ export const ModalResolverEmpate: React.FC<ModalResolverEmpateProps> = ({
           </Button>
         }
       >
-        <Descricao>A classificação do grupo foi atualizada:</Descricao>
-        {renderPosicoes(resultadoSorteio.participantes, false)}
+        <Conteudo>
+          <Descricao>A classificação do grupo foi atualizada:</Descricao>
+          {renderPosicoes(resultadoSorteio.participantes, false)}
+        </Conteudo>
       </Modal>
     );
   }
+
+  const posicoes = empate.participantes.map(
+    (_, i) => `${empate.posicaoInicial + i}º`
+  );
 
   return (
     <Modal
@@ -309,48 +267,47 @@ export const ModalResolverEmpate: React.FC<ModalResolverEmpateProps> = ({
         </>
       }
     >
-      <Descricao>
-        <strong>{listarNomes(empate.participantes)}</strong> empataram em todos
-        os critérios de desempate e disputam o{" "}
-        <strong>{posicoesDisputadas(empate)} lugar</strong>. Como deseja definir
-        a ordem?
-      </Descricao>
+      <Conteudo>
+        <Descricao>
+          <strong>{juntar(empate.participantes.map((p) => p.nome))}</strong>{" "}
+          empataram em todos os critérios de desempate e disputam o{" "}
+          <strong>{juntar(posicoes)} lugar</strong>. Como deseja definir a
+          ordem?
+        </Descricao>
 
-      {empate.contexto && <Contexto>{empate.contexto}</Contexto>}
+        {empate.contexto && <Alert>{empate.contexto}</Alert>}
 
-      <Opcoes role="radiogroup" aria-label="Forma de desempate">
-        <Opcao
-          type="button"
-          role="radio"
-          aria-checked={modo === "sorteio"}
-          $ativa={modo === "sorteio"}
-          onClick={() => setModo("sorteio")}
-          disabled={salvando}
-        >
-          <strong>Sortear</strong>
-          <span>O sistema define a ordem aleatoriamente.</span>
-        </Opcao>
-        <Opcao
-          type="button"
-          role="radio"
-          aria-checked={modo === "manual"}
-          $ativa={modo === "manual"}
-          onClick={() => setModo("manual")}
-          disabled={salvando}
-        >
-          <strong>Escolher a ordem</strong>
-          <span>Você define quem fica em cada posição.</span>
-        </Opcao>
-      </Opcoes>
+        <Opcoes role="radiogroup" aria-label="Forma de desempate">
+          {OPCOES.map((opcao) => (
+            <Opcao key={opcao.modo} $ativa={modo === opcao.modo}>
+              <input
+                type="radio"
+                name="modo-desempate"
+                checked={modo === opcao.modo}
+                onChange={() => setModo(opcao.modo)}
+                disabled={salvando}
+              />
+              <span>
+                <strong>{opcao.titulo}</strong>
+                {opcao.descricao}
+              </span>
+            </Opcao>
+          ))}
+        </Opcoes>
 
-      {modo === "manual" && (
-        <>
-          <Subtitulo>Ordem final</Subtitulo>
-          {renderPosicoes(ordem, true)}
-        </>
-      )}
+        {modo === "manual" && (
+          <>
+            <Subtitulo>Ordem final</Subtitulo>
+            {renderPosicoes(ordem, true)}
+          </>
+        )}
 
-      {erro && <Erro role="alert">{erro}</Erro>}
+        {erro && (
+          <div role="alert">
+            <Alert variant="error">{erro}</Alert>
+          </div>
+        )}
+      </Conteudo>
     </Modal>
   );
 };

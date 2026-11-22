@@ -94,6 +94,8 @@ export const getGeneroLabel = (genero: GeneroJogador | string): string => {
       return "Feminino";
     case GeneroJogador.MASCULINO:
       return "Masculino";
+    case GeneroJogador.MISTO:
+      return "Misto";
     default:
       return genero;
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
+import { getChaveamentoLabel } from "@/utils/etapa";
 import { getReiDaPraiaService, getEtapaService } from "@/services";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
 
@@ -82,19 +83,9 @@ export const useFaseEliminatoriaReiDaPraia = ({
   const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
 
   // Tipo de chaveamento formatado
-  const tipoChaveamento = useMemo(() => {
-    if (!etapaTipoChaveamento) return "Melhores com Melhores";
-
-    const nomes: Record<TipoChaveamentoReiDaPraia, string> = {
-      [TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES]:
-        "Melhores com Melhores",
-      [TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING]:
-        "Pareamento por Ranking",
-      [TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO]: "Sorteio Aleatório",
-    };
-
-    return nomes[etapaTipoChaveamento] || "Melhores com Melhores";
-  }, [etapaTipoChaveamento]);
+  const tipoChaveamento = getChaveamentoLabel(
+    etapaTipoChaveamento ?? TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+  );
 
   // Dados computados
   const todosGruposCompletos = useMemo(() => {

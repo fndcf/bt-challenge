@@ -289,6 +289,16 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
       await this.preencherConfrontoEliminatorio(confronto, classificados);
     }
 
+    const idsClassificadas = new Set(
+      Array.from(classificados.values()).map((equipe) => equipe.id)
+    );
+    await this.equipeRepository.atualizarEmLote(
+      equipes.map((equipe) => ({
+        id: equipe.id,
+        dados: { classificada: idsClassificadas.has(equipe.id) },
+      }))
+    );
+
     logger.info("Fase eliminatória preenchida", {
       etapaId,
       numGrupos,

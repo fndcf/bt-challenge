@@ -345,6 +345,9 @@ describe("ReiDaPraiaService", () => {
     });
 
     it("deve gerar fase eliminatória com sucesso", async () => {
+      mockEstatisticasJogadorRepository.buscarPorEtapa.mockResolvedValue([
+        { id: "sobra", jogadorId: "jx", classificado: true },
+      ]);
       mockGrupoRepository.buscarCompletos.mockResolvedValue([
         { id: "grupo-1", nome: "Grupo A" },
         { id: "grupo-2", nome: "Grupo B" },
@@ -392,6 +395,12 @@ describe("ReiDaPraiaService", () => {
       expect(mockEtapaRepository.atualizarStatus).toHaveBeenCalledWith(
         TEST_ETAPA_ID,
         StatusEtapa.FASE_ELIMINATORIA
+      );
+
+      // Marca antiga, de uma eliminatória cancelada
+      expect(mockEstatisticasJogadorRepository.atualizar).toHaveBeenCalledWith(
+        "sobra",
+        { classificado: false }
       );
     });
 
@@ -544,13 +553,17 @@ describe("ReiDaPraiaService", () => {
       const estatisticas = [
         { id: "e1", jogadorId: "j1", classificado: true },
         { id: "e2", jogadorId: "j2", classificado: true },
+        { id: "e3", jogadorId: "j3", classificado: false },
       ];
       mockEstatisticasJogadorRepository.buscarPorEtapa.mockResolvedValue(estatisticas);
 
       await service.cancelarFaseEliminatoria(TEST_ETAPA_ID, TEST_ARENA_ID);
 
       // Deve desmarcar jogadores como classificados
-      expect(mockEstatisticasJogadorRepository.atualizar).toHaveBeenCalledTimes(2);
+      expect(mockEstatisticasJogadorRepository.atualizar.mock.calls).toEqual([
+        ["e1", { classificado: false }],
+        ["e2", { classificado: false }],
+      ]);
     });
   });
 

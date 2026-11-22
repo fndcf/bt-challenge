@@ -20,6 +20,7 @@ import {
   ByeLabel,
   ByeOrigin,
   ByeTeam,
+  Conteudo,
   FaseCard,
   FaseHeader,
   FaseStatus,
@@ -27,7 +28,7 @@ import {
 } from "../styles";
 
 /** Campos usados na lista; atende os confrontos dos dois formatos */
-type ConfrontoDaLista = Pick<
+export type ConfrontoDaLista = Pick<
   ConfrontoEliminatorio,
   | "id"
   | "ordem"
@@ -108,7 +109,7 @@ export const ListaConfrontosEliminatorios = <T extends ConfrontoDaLista>({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <Conteudo>
       {fases.map(([fase, confrontos]) => (
         <FaseCard key={fase}>
           <FaseHeader>
@@ -138,6 +139,6 @@ export const ListaConfrontosEliminatorios = <T extends ConfrontoDaLista>({
           </ListaConfrontos>
         </FaseCard>
       ))}
-    </div>
+    </Conteudo>
   );
 };

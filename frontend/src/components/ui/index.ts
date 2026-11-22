@@ -31,6 +31,8 @@ export type { BadgeTom, BadgeTamanho } from "./Badge";
 
 export { EmptyState } from "./EmptyState";
 
+export { BarraProgresso } from "./BarraProgresso";
+
 export { IconButton } from "./IconButton";
 
 export { Tabs } from "./Tabs";

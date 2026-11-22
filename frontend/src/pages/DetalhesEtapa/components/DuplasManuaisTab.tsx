@@ -1,21 +1,17 @@
 /**
  * Tab para formação manual de duplas no formato DUPLA FIXA
- * Baseado no ModalFormacaoManualEquipes (TEAMS)
  */
 
-import React, { useState, useMemo } from "react";
-import styled from "styled-components";
+import React, { useMemo, useState } from "react";
 import {
-  FiltroGenero,
-  passaNoFiltroGenero,
-  SeloGenero,
-  ValorFiltroGenero,
-} from "@/components/jogadores/Genero";
-import { X } from "lucide-react";
-import { IconButton } from "@/components/ui";
-import { theme } from "@/styles/theme";
-import { getNivelAbrev } from "@/utils/formatters";
-import { Inscricao } from "@/types/etapa";
+  CartaoFormacao,
+  GradeFormacao,
+  JogadoresDisponiveis,
+} from "@/components/etapas/FormacaoManual";
+import { AcoesChaves } from "@/components/torneio";
+import { Alert, Button } from "@/components/ui";
+import { FormatoEtapa, Inscricao } from "@/types/etapa";
+import { Cartao } from "../DetalhesEtapa.styles";
 
 interface DuplasManuaisTabProps {
   inscricoes: Inscricao[];
@@ -25,325 +21,66 @@ interface DuplasManuaisTabProps {
   ) => Promise<void>;
 }
 
-// ============== STYLED COMPONENTS ==============
-
-const { texto, superficie, acao } = theme.semantic;
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
-`;
-
-const InfoBox = styled.div`
-  background: #dbeafe;
-  border: 1px solid #93c5fd;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  color: #1e40af;
-  font-size: 0.875rem;
-
-  strong {
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-`;
-
-const DuplasContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-`;
-
-const DuplaCard = styled.div<{ $isComplete: boolean }>`
-  flex: 1;
-  min-width: 250px;
-  max-width: 320px;
-  background: ${(props) => (props.$isComplete ? "#dcfce7" : "#f9fafb")};
-  border: 2px solid ${(props) => (props.$isComplete ? "#16a34a" : "#e5e7eb")};
-  border-radius: 0.5rem;
-  overflow: hidden;
-`;
-
-const DuplaHeader = styled.div<{ $isComplete: boolean }>`
-  background: ${(props) => (props.$isComplete ? "#16a34a" : "#6b7280")};
-  color: white;
-  padding: 0.5rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  font-size: 0.875rem;
-`;
-
-const DuplaCount = styled.span`
-  font-size: 0.8125rem;
-  opacity: 0.9;
-`;
-
-const DuplaBody = styled.div`
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const JogadorSlot = styled.div<{ $isEmpty: boolean }>`
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 2.5rem;
-  border: 1px ${({ $isEmpty }) => ($isEmpty ? "dashed" : "solid")}
-    ${superficie.bordaForte};
-  background: ${({ $isEmpty }) =>
-    $isEmpty ? superficie.fundo : superficie.fundoAlternativo};
-  color: ${({ $isEmpty }) => ($isEmpty ? texto.secundario : texto.principal)};
-`;
-
-const JogadorInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const JogadoresDisponiveis = styled.div`
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1rem;
-`;
-
-const SectionTitle = styled.h4`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.75rem 0;
-`;
-
-const JogadoresList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  max-height: 200px;
-  overflow-y: auto;
-`;
-
-const JogadorChip = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 40px;
-  padding: 0.25rem 0.75rem;
-  border: 1px solid ${superficie.bordaForte};
-  border-radius: 9999px;
-  background: ${superficie.fundo};
-  color: ${texto.principal};
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    border-color: ${acao.primaria};
-    background: ${acao.fundoClaro};
-  }
-
-  &:disabled {
-    color: ${texto.desabilitado};
-    cursor: not-allowed;
-  }
-`;
-
-const Filtro = styled.div`
-  margin-bottom: 0.75rem;
-`;
-
-const NivelBadge = styled.span<{ $nivel: string }>`
-  font-size: 0.6875rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 9999px;
-  margin-left: 0.25rem;
-
-  ${(props) => {
-    switch (props.$nivel) {
-      case "iniciante":
-        return `background: #dcfce7; color: #166534;`;
-      case "intermediario":
-        return `background: #fef3c7; color: #92400e;`;
-      case "avancado":
-        return `background: #fee2e2; color: #991b1b;`;
-      default:
-        return `background: #f3f4f6; color: #374151;`;
-    }
-  }}
-`;
-
-const FooterActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const Button = styled.button<{ $variant: "primary" | "secondary" }>`
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #059669;
-    color: white;
-    border: none;
-    &:hover:not(:disabled) { background: #047857; }
-    &:disabled { background: #9ca3af; cursor: not-allowed; }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    &:hover { background: #f9fafb; }
-  `}
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-`;
-
-const Spinner = styled.span`
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 0.5rem;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-// ============== COMPONENTE ==============
-
-interface DuplaState {
-  jogadorIds: string[];
-}
+const JOGADORES_POR_DUPLA = 2;
 
 export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
   inscricoes,
   isMisto = false,
   onConfirm,
 }) => {
-  const inscricoesConfirmadas = useMemo(
+  const confirmadas = useMemo(
     () => inscricoes.filter((i) => i.status === "confirmada"),
     [inscricoes]
   );
-
-  const numDuplas = Math.floor(inscricoesConfirmadas.length / 2);
-
-  const [duplas, setDuplas] = useState<DuplaState[]>(() =>
-    Array.from({ length: numDuplas }, () => ({
-      jogadorIds: [],
-    }))
+  const porJogador = useMemo(
+    () => new Map(confirmadas.map((i) => [i.jogadorId, i])),
+    [confirmadas]
   );
+  const numDuplas = Math.floor(confirmadas.length / JOGADORES_POR_DUPLA);
+
+  // Cada dupla é a lista de ids dos seus jogadores
+  const duplasVazias = (): string[][] =>
+    Array.from({ length: numDuplas }, () => []);
+  const [duplas, setDuplas] = useState<string[][]>(duplasVazias);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const jogadoresAlocados = useMemo(() => {
-    const ids = new Set<string>();
-    duplas.forEach((d) => d.jogadorIds.forEach((id) => ids.add(id)));
-    return ids;
-  }, [duplas]);
-
-  const jogadoresDisponiveis = useMemo(() => {
-    return inscricoesConfirmadas.filter(
-      (i) => !jogadoresAlocados.has(i.jogadorId)
-    );
-  }, [inscricoesConfirmadas, jogadoresAlocados]);
-
-  const [filtroGenero, setFiltroGenero] = useState<ValorFiltroGenero>("todos");
-  const jogadoresListados = jogadoresDisponiveis.filter((i) =>
-    passaNoFiltroGenero(i.jogadorGenero, filtroGenero)
+  const alocados = new Set(duplas.flat());
+  const disponiveis = confirmadas.filter((i) => !alocados.has(i.jogadorId));
+  const primeiraIncompleta = duplas.findIndex(
+    (dupla) => dupla.length < JOGADORES_POR_DUPLA
   );
+  const todasCompletas = primeiraIncompleta === -1;
 
-  const inscricoesMap = useMemo(() => {
-    const map = new Map<string, Inscricao>();
-    inscricoesConfirmadas.forEach((i) => map.set(i.jogadorId, i));
-    return map;
-  }, [inscricoesConfirmadas]);
+  const alterarDupla = (
+    indice: number,
+    alterar: (dupla: string[]) => string[]
+  ) => setDuplas((prev) => prev.map((d, i) => (i === indice ? alterar(d) : d)));
 
-  const todasCompletas = duplas.every((d) => d.jogadorIds.length === 2);
-
-  const adicionarJogador = (duplaIndex: number, jogadorId: string) => {
-    setDuplas((prev) => {
-      const newDuplas = [...prev];
-      if (newDuplas[duplaIndex].jogadorIds.length < 2) {
-        newDuplas[duplaIndex] = {
-          ...newDuplas[duplaIndex],
-          jogadorIds: [...newDuplas[duplaIndex].jogadorIds, jogadorId],
-        };
-      }
-      return newDuplas;
-    });
+  const adicionarJogador = (jogadorId: string) => {
+    alterarDupla(primeiraIncompleta, (dupla) => [...dupla, jogadorId]);
     setError(null);
   };
 
-  const removerJogador = (duplaIndex: number, jogadorId: string) => {
-    setDuplas((prev) => {
-      const newDuplas = [...prev];
-      newDuplas[duplaIndex] = {
-        ...newDuplas[duplaIndex],
-        jogadorIds: newDuplas[duplaIndex].jogadorIds.filter(
-          (id) => id !== jogadorId
-        ),
-      };
-      return newDuplas;
-    });
-  };
-
   const limparTudo = () => {
-    setDuplas(
-      Array.from({ length: numDuplas }, () => ({
-        jogadorIds: [],
-      }))
-    );
+    setDuplas(duplasVazias());
     setError(null);
   };
 
   const handleConfirm = async () => {
-    if (!todasCompletas) {
-      setError("Todas as duplas devem ter 2 jogadores");
-      return;
-    }
-
     if (isMisto) {
-      for (let i = 0; i < duplas.length; i++) {
-        const dupla = duplas[i];
-        const j1 = inscricoesMap.get(dupla.jogadorIds[0]);
-        const j2 = inscricoesMap.get(dupla.jogadorIds[1]);
-        if (j1 && j2 && j1.jogadorGenero === j2.jogadorGenero) {
-          setError(
-            `Dupla ${i + 1}: etapa mista requer 1 masculino + 1 feminino por dupla`
-          );
-          return;
-        }
+      const invalida = duplas.findIndex(
+        ([id1, id2]) =>
+          porJogador.get(id1)?.jogadorGenero ===
+          porJogador.get(id2)?.jogadorGenero
+      );
+      if (invalida !== -1) {
+        setError(
+          `Dupla ${
+            invalida + 1
+          }: etapa mista requer 1 masculino + 1 feminino por dupla`
+        );
+        return;
       }
     }
 
@@ -351,12 +88,9 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
     setLoading(true);
 
     try {
-      const formacoes = duplas.map((d) => ({
-        jogador1Id: d.jogadorIds[0],
-        jogador2Id: d.jogadorIds[1],
-      }));
-
-      await onConfirm(formacoes);
+      await onConfirm(
+        duplas.map(([jogador1Id, jogador2Id]) => ({ jogador1Id, jogador2Id }))
+      );
     } catch (err: any) {
       setError(err.message || "Erro ao formar duplas");
     } finally {
@@ -365,143 +99,56 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
   };
 
   return (
-    <Container>
-      <InfoBox>
-        <strong>
-          Formacao Manual - {numDuplas} duplas de 2 jogadores
-        </strong>
-        Clique nos jogadores disponiveis para adiciona-los a uma dupla.
-        {isMisto &&
-          " Cada dupla deve ter 1 jogador masculino e 1 feminino."}
-      </InfoBox>
+    <Cartao>
+      <Alert title={`Formação Manual - ${numDuplas} duplas de 2 jogadores`}>
+        Clique nos jogadores disponíveis para adicioná-los a uma dupla.
+        {isMisto && " Cada dupla deve ter 1 jogador masculino e 1 feminino."}
+      </Alert>
 
-      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {error && (
+        <div role="alert">
+          <Alert variant="error">{error}</Alert>
+        </div>
+      )}
 
-      <DuplasContainer>
-        {duplas.map((dupla, duplaIndex) => {
-          const isComplete = dupla.jogadorIds.length === 2;
+      <GradeFormacao>
+        {duplas.map((dupla, indice) => (
+          <CartaoFormacao
+            key={indice}
+            formato={FormatoEtapa.DUPLA_FIXA}
+            titulo={<span>{`Dupla ${indice + 1}`}</span>}
+            jogadores={dupla.map((id) => porJogador.get(id))}
+            tamanho={JOGADORES_POR_DUPLA}
+            isMisto={isMisto}
+            onRemover={(jogadorId) =>
+              alterarDupla(indice, (atual) =>
+                atual.filter((id) => id !== jogadorId)
+              )
+            }
+          />
+        ))}
+      </GradeFormacao>
 
-          return (
-            <DuplaCard key={duplaIndex} $isComplete={isComplete}>
-              <DuplaHeader $isComplete={isComplete}>
-                <span>Dupla {duplaIndex + 1}</span>
-                <DuplaCount>{dupla.jogadorIds.length}/2</DuplaCount>
-              </DuplaHeader>
+      <JogadoresDisponiveis
+        jogadores={disponiveis}
+        isMisto={isMisto}
+        onEscolher={adicionarJogador}
+        desabilitado={todasCompletas}
+      />
 
-              <DuplaBody>
-                {dupla.jogadorIds.map((jogadorId) => {
-                  const inscricao = inscricoesMap.get(jogadorId);
-                  return (
-                    <JogadorSlot
-                      key={jogadorId}
-                      $isEmpty={false}
-                    >
-                      <JogadorInfo>
-                        <span>{inscricao?.jogadorNome}</span>
-                        {isMisto && (
-                          <SeloGenero genero={inscricao?.jogadorGenero} />
-                        )}
-                        {inscricao?.jogadorNivel && (
-                          <NivelBadge $nivel={inscricao.jogadorNivel}>
-                            {getNivelAbrev(inscricao.jogadorNivel)}
-                          </NivelBadge>
-                        )}
-                      </JogadorInfo>
-                      <IconButton
-                        rotulo={`Remover ${inscricao?.jogadorNome}`}
-                        title="Remover jogador"
-                        tom="perigo"
-                        icone={<X aria-hidden="true" />}
-                        onClick={() => removerJogador(duplaIndex, jogadorId)}
-                      />
-                    </JogadorSlot>
-                  );
-                })}
-
-                {Array.from({
-                  length: 2 - dupla.jogadorIds.length,
-                }).map((_, i) => (
-                  <JogadorSlot key={`empty-${i}`} $isEmpty={true}>
-                    Clique em um jogador para adicionar
-                  </JogadorSlot>
-                ))}
-              </DuplaBody>
-            </DuplaCard>
-          );
-        })}
-      </DuplasContainer>
-
-      <JogadoresDisponiveis>
-        <SectionTitle>
-          Jogadores Disponiveis ({jogadoresDisponiveis.length})
-        </SectionTitle>
-        {isMisto && (
-          <Filtro>
-            <FiltroGenero
-              valor={filtroGenero}
-              onChange={setFiltroGenero}
-              generos={jogadoresDisponiveis.map((i) => i.jogadorGenero)}
-            />
-          </Filtro>
-        )}
-        <JogadoresList>
-          {jogadoresListados.length === 0 ? (
-            <span style={{ color: texto.secundario }}>
-                {jogadoresDisponiveis.length === 0
-                  ? "Todos os jogadores foram alocados"
-                  : "Nenhum jogador disponível com esse filtro"}
-              </span>
-          ) : (
-            jogadoresListados.map((inscricao) => {
-              const duplaIncompleta = duplas.findIndex(
-                (d) => d.jogadorIds.length < 2
-              );
-
-              return (
-                <JogadorChip
-                  key={inscricao.jogadorId}
-                  type="button"
-                  onClick={() => {
-                    if (duplaIncompleta !== -1) {
-                      adicionarJogador(duplaIncompleta, inscricao.jogadorId);
-                    }
-                  }}
-                  disabled={duplaIncompleta === -1}
-                >
-                  {inscricao.jogadorNome}
-                  {isMisto && <SeloGenero genero={inscricao.jogadorGenero} />}
-                  {inscricao.jogadorNivel && (
-                    <NivelBadge $nivel={inscricao.jogadorNivel}>
-                      {getNivelAbrev(inscricao.jogadorNivel)}
-                    </NivelBadge>
-                  )}
-                </JogadorChip>
-              );
-            })
-          )}
-        </JogadoresList>
-      </JogadoresDisponiveis>
-
-      <FooterActions>
-        <Button $variant="secondary" onClick={limparTudo} disabled={loading}>
+      <AcoesChaves>
+        <Button variant="secondary" onClick={limparTudo} disabled={loading}>
           Limpar Tudo
         </Button>
         <Button
-          $variant="primary"
           onClick={handleConfirm}
           disabled={!todasCompletas || loading}
+          loading={loading}
         >
-          {loading ? (
-            <>
-              <Spinner />
-              Gerando...
-            </>
-          ) : (
-            "Confirmar Duplas e Gerar Chaves"
-          )}
+          {loading ? "Gerando..." : "Confirmar Duplas e Gerar Chaves"}
         </Button>
-      </FooterActions>
-    </Container>
+      </AcoesChaves>
+    </Cartao>
   );
 };
 

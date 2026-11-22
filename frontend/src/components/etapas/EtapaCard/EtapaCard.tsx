@@ -1,12 +1,23 @@
+/**
+ * Cartão da etapa na listagem
+ */
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { Etapa, StatusEtapa, FormatoEtapa, TipoFormacaoEquipe } from "@/types/etapa";
-import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
-import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { StatusBadge } from "../StatusBadge";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { Badge, BarraProgresso, Button } from "@/components/ui";
+import { theme } from "@/styles/theme";
+import { Etapa, FormatoEtapa, StatusEtapa } from "@/types/etapa";
+import {
+  getChaveamentoLabel,
+  getFormacaoEquipeLabel,
+  getFormatoEtapaLabel,
+} from "@/utils/etapa";
+import { formatarData, getGeneroLabel, getNivelLabel } from "@/utils/formatters";
+
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
 
 interface EtapaCardProps {
   etapa: Etapa;
@@ -14,239 +25,134 @@ interface EtapaCardProps {
 
 // ============== STYLED COMPONENTS ==============
 
-const Card = styled.div`
-  background: white;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-`;
-
-const Header = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const TitleRow = styled.div`
+const Card = styled.article`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: ${theme.spacing[4]};
+  padding: ${theme.spacing[6]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${superficie.fundo};
+  cursor: pointer;
 
-  @media (min-width: 480px) {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+  &:hover {
+    border-color: ${acao.primaria};
   }
 `;
 
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
+const Titulo = styled.h3`
+  margin: 0 0 ${theme.spacing[2]} 0;
+  overflow-wrap: anywhere;
+  font-size: ${fontSize.lg};
+  font-weight: ${fontWeight.bold};
+  color: ${texto.principal};
 `;
 
-const HeaderBadges = styled.div`
+const Selos = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
   flex-wrap: wrap;
+  gap: ${theme.spacing[2]};
 `;
 
-const FormatoBadge = styled.span<{ $formato: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1875rem 0.375rem;
-  border-radius: 9999px;
-  font-size: 0.625rem;
-  font-weight: 600;
-  white-space: nowrap;
-  background: #f3f4f6;
-  color: #4b5563;
-
-  @media (min-width: 480px) {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.6875rem;
-  }
-`;
-
-const Description = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
+const Descricao = styled.p`
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
 `;
 
-const InfoSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+const Dados = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: ${theme.spacing[3]} ${theme.spacing[4]};
 `;
 
-const InfoItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const InfoContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const InfoLabel = styled.p`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin: 0 0 0.125rem 0;
-`;
-
-const InfoValue = styled.p<{ $color?: string }>`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: ${(props) => props.$color || "#111827"};
+const Rotulo = styled.p`
   margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 0.9375rem;
-  }
+  font-size: ${fontSize.xs};
+  color: ${texto.secundario};
 `;
 
-// Inscrições com barra de progresso
-const InscricoesContainer = styled.div`
-  flex: 1;
+const Valor = styled.p`
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
-const InscricoesHeader = styled.div`
+const Inscritos = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: ${theme.spacing[2]};
 `;
 
-const ProgressBar = styled.div`
-  width: 100%;
-  height: 0.5rem;
-  background: #e5e7eb;
-  border-radius: 9999px;
-  overflow: hidden;
-`;
-
-const ProgressFill = styled.div<{ $progress: number }>`
-  height: 100%;
-  border-radius: 9999px;
-  transition: width 0.3s ease;
-  width: ${(props) => props.$progress}%;
-  background: ${(props) =>
-    props.$progress === 100
-      ? "#10b981"
-      : props.$progress >= 75
-      ? "#f59e0b"
-      : "#3b82f6"};
-`;
-
-const Footer = styled.div`
+const Rodape = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  gap: 1rem;
+  gap: ${theme.spacing[2]} ${theme.spacing[4]};
+  margin-top: auto;
+  padding-top: ${theme.spacing[4]};
+  border-top: 1px solid ${superficie.borda};
+  font-size: ${fontSize.xs};
+  color: ${texto.secundario};
+`;
+
+const Grupo = styled.div`
+  display: flex;
   flex-wrap: wrap;
-`;
-
-const FooterInfo = styled.div`
-  display: flex;
   align-items: center;
-  gap: 1rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-  flex-wrap: wrap;
-`;
-
-const FooterItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-`;
-
-const ActionButton = styled.button<{ $variant?: "blue" | "purple" | "gray" }>`
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: color 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0;
-
-  color: ${(props) => {
-    switch (props.$variant) {
-      case "purple":
-        return "#9333ea";
-      case "gray":
-        return "#6b7280";
-      default:
-        return "#2563eb";
-    }
-  }};
-
-  &:hover {
-    color: ${(props) => {
-      switch (props.$variant) {
-        case "purple":
-          return "#7e22ce";
-        case "gray":
-          return "#4b5563";
-        default:
-          return "#1d4ed8";
-      }
-    }};
-  }
+  gap: ${theme.spacing[2]} ${theme.spacing[3]};
 `;
 
 // ============== HELPERS ==============
 
-const getChaveamentoLabel = (tipo: TipoChaveamentoReiDaPraia): string => {
-  switch (tipo) {
-    case TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES:
-      return "Melhores c/ Melhores";
-    case TipoChaveamentoReiDaPraia.PAREAMENTO_POR_RANKING:
-      return "Por Ranking";
-    case TipoChaveamentoReiDaPraia.SORTEIO_ALEATORIO:
-      return "Sorteio Aleatório";
+/** Textos do rodapé (grupos, equipes, rodadas) conforme o formato */
+const getEstrutura = (etapa: Etapa): string[] => {
+  switch (etapa.formato) {
+    case FormatoEtapa.SUPER_X:
+      return [
+        "1 grupo único",
+        etapa.varianteSuperX === 8 ? "7 rodadas" : "11 rodadas",
+      ];
+    case FormatoEtapa.TEAMS: {
+      const porEquipe = etapa.varianteTeams || 4;
+      return [
+        `${Math.floor(etapa.totalInscritos / porEquipe)} equipes`,
+        `${porEquipe} jogadores/equipe`,
+      ];
+    }
+    case FormatoEtapa.REI_DA_PRAIA:
+      return [`${etapa.qtdGrupos || 0} grupos`, "4 jogadores/grupo"];
     default:
-      return "";
+      return [
+        ...(etapa.qtdGrupos ? [`${etapa.qtdGrupos} grupos`] : []),
+        `${etapa.jogadoresPorGrupo} duplas/grupo`,
+      ];
   }
 };
 
-const getFormacaoEquipeLabel = (tipo: TipoFormacaoEquipe): string => {
-  switch (tipo) {
-    case TipoFormacaoEquipe.MESMO_NIVEL:
-      return "Mesmo Nível";
-    case TipoFormacaoEquipe.BALANCEADO:
-      return "Balanceado";
-    case TipoFormacaoEquipe.MANUAL:
-      return "Manual";
+const getAcaoLabel = (etapa: Etapa): string | null => {
+  switch (etapa.status) {
+    case StatusEtapa.INSCRICOES_ABERTAS:
+    case StatusEtapa.INSCRICOES_ENCERRADAS:
+    case StatusEtapa.FINALIZADA:
+      return "Ver detalhes →";
+    case StatusEtapa.CHAVES_GERADAS:
+      return etapa.formato === FormatoEtapa.REI_DA_PRAIA ||
+        etapa.formato === FormatoEtapa.TEAMS
+        ? "Ver grupos →"
+        : "Ver chaves →";
+    case StatusEtapa.FASE_ELIMINATORIA:
+      return "Ver eliminatória →";
     default:
-      return "";
+      return null;
   }
 };
 
@@ -255,270 +161,92 @@ const getFormacaoEquipeLabel = (tipo: TipoFormacaoEquipe): string => {
 export const EtapaCard: React.FC<EtapaCardProps> = ({ etapa }) => {
   const navigate = useNavigate();
 
-  const isReiDaPraia = etapa.formato === FormatoEtapa.REI_DA_PRAIA;
-  const isSuperX = etapa.formato === FormatoEtapa.SUPER_X;
-  const isTeams = etapa.formato === FormatoEtapa.TEAMS;
+  const abrir = () => navigate(`/admin/etapas/${etapa.id}`);
 
-  const getFormatoLabel = () => {
-    if (isReiDaPraia) return "Rei da Praia";
-    if (isSuperX) return `Super ${etapa.varianteSuperX || 8}`;
-    if (isTeams) return `Teams ${etapa.varianteTeams || 4}`;
-    return "Dupla Fixa";
-  };
+  const progresso =
+    etapa.maxJogadores === 0
+      ? 0
+      : Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100);
 
-  const handleClick = () => {
-    navigate(`/admin/etapas/${etapa.id}`);
-  };
+  const acaoLabel = getAcaoLabel(etapa);
 
-  const formatarData = (data: any) => {
-    try {
-      if (data && typeof data === "object" && "_seconds" in data) {
-        const date = new Date(data._seconds * 1000);
-        return format(date, "dd/MM/yyyy", { locale: ptBR });
-      }
-
-      if (typeof data === "string") {
-        return format(new Date(data), "dd/MM/yyyy", { locale: ptBR });
-      }
-
-      if (data instanceof Date) {
-        return format(data, "dd/MM/yyyy", { locale: ptBR });
-      }
-
-      return "Data inválida";
-    } catch {
-      return "Data inválida";
-    }
-  };
-
-  const calcularProgresso = () => {
-    if (etapa.maxJogadores === 0) return 0;
-    return Math.round((etapa.totalInscritos / etapa.maxJogadores) * 100);
-  };
-
-  const getNivelLabel = (nivel: NivelJogador) => {
-    switch (nivel) {
-      case NivelJogador.INICIANTE:
-        return "Iniciante";
-      case NivelJogador.INTERMEDIARIO:
-        return "Intermediário";
-      case NivelJogador.AVANCADO:
-        return "Avançado";
-      default:
-        return nivel;
-    }
-  };
-
-  const getGeneroLabel = (genero: GeneroJogador) => {
-    switch (genero) {
-      case GeneroJogador.FEMININO:
-        return "Feminino";
-      case GeneroJogador.MASCULINO:
-        return "Masculino";
-      default:
-        return genero;
-    }
-  };
-
-  const progresso = calcularProgresso();
+  const dados: [string, string | false | undefined][] = [
+    ["Realização", formatarData(etapa.dataRealizacao)],
+    [
+      "Chaveamento",
+      etapa.formato === FormatoEtapa.REI_DA_PRAIA &&
+        !!etapa.tipoChaveamento &&
+        getChaveamentoLabel(etapa.tipoChaveamento, "curto"),
+    ],
+    [
+      "Formação Equipes",
+      etapa.formato === FormatoEtapa.TEAMS &&
+        !!etapa.tipoFormacaoEquipe &&
+        getFormacaoEquipeLabel(etapa.tipoFormacaoEquipe),
+    ],
+    ["Nível", !!etapa.nivel && getNivelLabel(etapa.nivel)],
+    ["Gênero", getGeneroLabel(etapa.genero)],
+    ["Local", etapa.local],
+  ];
 
   return (
-    <Card onClick={handleClick}>
-      {/* Header */}
-      <Header>
-        <TitleRow>
-          <Title>{etapa.nome}</Title>
-          <HeaderBadges>
-            <StatusBadge status={etapa.status} />
-            <FormatoBadge $formato={etapa.formato || "dupla_fixa"}>
-              {getFormatoLabel()}
-            </FormatoBadge>
-          </HeaderBadges>
-        </TitleRow>
+    <Card onClick={abrir}>
+      <div>
+        <Titulo>{etapa.nome}</Titulo>
+        <Selos>
+          <StatusBadge status={etapa.status} />
+          <Badge formato={etapa.formato}>{getFormatoEtapaLabel(etapa)}</Badge>
+        </Selos>
+      </div>
 
-        {etapa.descricao && <Description>{etapa.descricao}</Description>}
-      </Header>
+      {etapa.descricao && <Descricao>{etapa.descricao}</Descricao>}
 
-      {/* Info Principal */}
-      <InfoSection>
-        {/* Data */}
-        <InfoItem>
-          <InfoContent>
-            <InfoLabel>Realização</InfoLabel>
-            <InfoValue>{formatarData(etapa.dataRealizacao)}</InfoValue>
-          </InfoContent>
-        </InfoItem>
-
-        {/*  Tipo de Chaveamento (apenas Rei da Praia) */}
-        {isReiDaPraia && etapa.tipoChaveamento && (
-          <InfoItem>
-            <InfoContent>
-              <InfoLabel>Chaveamento</InfoLabel>
-              <InfoValue>
-                {getChaveamentoLabel(etapa.tipoChaveamento)}
-              </InfoValue>
-            </InfoContent>
-          </InfoItem>
+      <Dados>
+        {dados.map(
+          ([rotulo, valor]) =>
+            valor && (
+              <div key={rotulo}>
+                <Rotulo>{rotulo}</Rotulo>
+                <Valor>{valor}</Valor>
+              </div>
+            )
         )}
+      </Dados>
 
-        {/* Tipo de Formação de Equipe (apenas Teams) */}
-        {isTeams && etapa.tipoFormacaoEquipe && (
-          <InfoItem>
-            <InfoContent>
-              <InfoLabel>Formação Equipes</InfoLabel>
-              <InfoValue>
-                {getFormacaoEquipeLabel(etapa.tipoFormacaoEquipe)}
-              </InfoValue>
-            </InfoContent>
-          </InfoItem>
-        )}
+      <div>
+        <Inscritos>
+          <Rotulo>Inscritos</Rotulo>
+          <Valor>
+            {etapa.totalInscritos} / {etapa.maxJogadores}
+          </Valor>
+        </Inscritos>
+        <BarraProgresso valor={progresso} rotulo="Vagas preenchidas" />
+      </div>
 
-        {/* Nível */}
-        {etapa.nivel && (
-          <InfoItem>
-            <InfoContent>
-              <InfoLabel>Nível</InfoLabel>
-              <InfoValue>{getNivelLabel(etapa.nivel)}</InfoValue>
-            </InfoContent>
-          </InfoItem>
-        )}
-
-        {/* Gênero */}
-        <InfoItem>
-          <InfoContent>
-            <InfoLabel>Gênero</InfoLabel>
-            <InfoValue>{getGeneroLabel(etapa.genero)}</InfoValue>
-          </InfoContent>
-        </InfoItem>
-
-        {/* Local */}
-        {etapa.local && (
-          <InfoItem>
-            <InfoContent>
-              <InfoLabel>Local</InfoLabel>
-              <InfoValue>{etapa.local}</InfoValue>
-            </InfoContent>
-          </InfoItem>
-        )}
-
-        {/* Inscrições */}
-        <InfoItem>
-          <InscricoesContainer>
-            <InscricoesHeader>
-              <InfoLabel>Inscritos</InfoLabel>
-              <InfoValue>
-                {etapa.totalInscritos} / {etapa.maxJogadores}
-              </InfoValue>
-            </InscricoesHeader>
-            <ProgressBar>
-              <ProgressFill $progress={progresso} />
-            </ProgressBar>
-          </InscricoesContainer>
-        </InfoItem>
-      </InfoSection>
-
-      {/* Footer */}
-      <Footer>
-        <FooterInfo>
-          {/*  Info adaptada por formato */}
-          {isSuperX ? (
-            <>
-              <FooterItem>
-                <span>1 grupo único</span>
-              </FooterItem>
-              <FooterItem>
-                <span>
-                  {etapa.varianteSuperX === 8 ? "7 rodadas" : "11 rodadas"}
-                </span>
-              </FooterItem>
-            </>
-          ) : isTeams ? (
-            <>
-              <FooterItem>
-                <span>
-                  {Math.floor(etapa.totalInscritos / (etapa.varianteTeams || 4))} equipes
-                </span>
-              </FooterItem>
-              <FooterItem>
-                <span>{etapa.varianteTeams || 4} jogadores/equipe</span>
-              </FooterItem>
-            </>
-          ) : isReiDaPraia ? (
-            <>
-              <FooterItem>
-                <span>{etapa.qtdGrupos || 0} grupos</span>
-              </FooterItem>
-              <FooterItem>
-                <span>4 jogadores/grupo</span>
-              </FooterItem>
-            </>
-          ) : (
-            <>
-              {etapa.qtdGrupos && (
-                <FooterItem>
-                  <span>{etapa.qtdGrupos} grupos</span>
-                </FooterItem>
-              )}
-              <FooterItem>
-                <span>{etapa.jogadoresPorGrupo} duplas/grupo</span>
-              </FooterItem>
-            </>
+      <Rodape>
+        <Grupo>
+          {getEstrutura(etapa).map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </Grupo>
+        <Grupo>
+          {etapa.status === StatusEtapa.FINALIZADA && (
+            <Badge tom="sucesso">Concluída</Badge>
           )}
-        </FooterInfo>
-
-        {/* Actions baseado no status */}
-        {[
-          StatusEtapa.INSCRICOES_ABERTAS,
-          StatusEtapa.FINALIZADA,
-          StatusEtapa.INSCRICOES_ENCERRADAS,
-        ].includes(etapa.status) && (
-          <ActionButton
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/etapas/${etapa.id}`);
-            }}
-          >
-            Ver detalhes →
-          </ActionButton>
-        )}
-
-        {etapa.status === StatusEtapa.CHAVES_GERADAS && (
-          <ActionButton
-            $variant="purple"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/etapas/${etapa.id}`);
-            }}
-          >
-            {isReiDaPraia || isTeams ? "Ver grupos →" : "Ver chaves →"}
-          </ActionButton>
-        )}
-
-        {etapa.status === StatusEtapa.FASE_ELIMINATORIA && (
-          <ActionButton
-            $variant="purple"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/etapas/${etapa.id}`);
-            }}
-          >
-            Ver eliminatória →
-          </ActionButton>
-        )}
-
-        {etapa.status === StatusEtapa.FINALIZADA && (
-          <ActionButton
-            $variant="gray"
-            as="div"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/etapas/${etapa.id}`);
-            }}
-          >
-            <span>Concluída</span>
-          </ActionButton>
-        )}
-      </Footer>
+          {acaoLabel && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                abrir();
+              }}
+            >
+              {acaoLabel}
+            </Button>
+          )}
+        </Grupo>
+      </Rodape>
     </Card>
   );
 };

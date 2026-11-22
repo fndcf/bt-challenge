@@ -4,49 +4,6 @@
 
 import { render, screen, fireEvent } from "@testing-library/react";
 
-// Mock dos styled components
-jest.mock("@/components/etapas/FaseEliminatoria/styles", () => ({
-  EmptyStateCard: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="empty-state-card">{children}</div>
-  ),
-  EmptyStateContent: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  EmptyTitle: ({ children }: { children: React.ReactNode }) => (
-    <h2>{children}</h2>
-  ),
-  AlertBox: ({
-    children,
-    $variant,
-  }: {
-    children: React.ReactNode;
-    $variant: string;
-  }) => <div data-variant={$variant}>{children}</div>,
-  InfoBox: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  InfoText: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  ButtonGroup: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  Button: ({
-    children,
-    onClick,
-    disabled,
-    $variant,
-  }: {
-    children: React.ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-    $variant?: string;
-  }) => (
-    <button onClick={onClick} disabled={disabled} data-variant={$variant}>
-      {children}
-    </button>
-  ),
-  HintText: ({ children }: { children: React.ReactNode }) => (
-    <span>{children}</span>
-  ),
-}));
-
 import { EmptyState } from "@/components/etapas/FaseEliminatoria/components/EmptyState";
 
 describe("EmptyState (FaseEliminatoria)", () => {

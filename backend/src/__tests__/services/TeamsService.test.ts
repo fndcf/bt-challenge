@@ -648,6 +648,13 @@ describe("TeamsService", () => {
   describe("cancelarFaseEliminatoria", () => {
     const grupo = { id: "g1", fase: FaseEtapa.GRUPOS, equipe1Id: "e1", status: "finalizado" };
 
+    beforeEach(() => {
+      mockEquipeRepository.buscarPorEtapa.mockResolvedValue([
+        { id: "e1", classificada: true },
+        { id: "e2", classificada: false },
+      ]);
+    });
+
     it("deve esvaziar as vagas do mata-mata (BYE mantém o marcador)", async () => {
       mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
         grupo,
@@ -673,6 +680,9 @@ describe("TeamsService", () => {
         equipe1Id: "",
         equipe1Nome: "",
       });
+      expect(mockEquipeRepository.atualizarEmLote).toHaveBeenCalledWith([
+        { id: "e1", dados: { classificada: false } },
+      ]);
     });
 
     it("com resultados no mata-mata: desfaz as estatísticas e apaga as partidas", async () => {

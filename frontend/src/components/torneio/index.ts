@@ -14,4 +14,5 @@ export {
   EstadoChaves,
   TelaChaves,
 } from "./TelaChaves/TelaChaves";
+export { SecaoPublica } from "./SecaoPublica/SecaoPublica";
 export type { LadoConfronto } from "./CardConfronto/CardConfronto";

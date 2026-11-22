@@ -4,100 +4,82 @@
 
 import React from "react";
 import styled from "styled-components";
+import { Button } from "../Button";
+import { theme } from "@/styles/theme";
+
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
 
 // ============== STYLES ==============
 
-const Container = styled.div`
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+const Container = styled.nav`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   align-items: center;
+  gap: ${theme.spacing[4]};
+  margin-top: ${theme.spacing[6]};
+  padding-top: ${theme.spacing[6]};
+  border-top: 1px solid ${superficie.borda};
 
-  @media (min-width: 768px) {
+  @media (min-width: ${theme.breakpoints.md}) {
     flex-direction: row;
     justify-content: space-between;
   }
 `;
 
 const Info = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-  text-align: center;
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
 
   strong {
-    color: #111827;
-    font-weight: 600;
-  }
-
-  @media (min-width: 768px) {
-    text-align: left;
+    font-weight: ${fontWeight.semibold};
+    color: ${texto.principal};
   }
 `;
 
 const Controls = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-
-  @media (min-width: 768px) {
-    justify-content: flex-end;
-  }
-`;
-
-const Button = styled.button<{ disabled?: boolean }>`
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: ${(props) => (props.disabled ? "#9ca3af" : "#2563eb")};
-  background: ${(props) => (props.disabled ? "#f3f4f6" : "white")};
-  border: 1px solid ${(props) => (props.disabled ? "#e5e7eb" : "#d1d5db")};
-  border-radius: 0.375rem;
-  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
-  transition: all 0.2s;
-
-  &:hover {
-    background: ${(props) => (props.disabled ? "#f3f4f6" : "#f9fafb")};
-    border-color: ${(props) => (props.disabled ? "#e5e7eb" : "#2563eb")};
-  }
-
-  &:active {
-    transform: ${(props) => (props.disabled ? "none" : "scale(0.98)")};
-  }
+  gap: ${theme.spacing[2]};
 `;
 
 const Numbers = styled.div`
   display: flex;
-  gap: 0.25rem;
+  gap: ${theme.spacing[1]};
 `;
 
-const PageNumber = styled.button<{ $active?: boolean }>`
+const PageNumber = styled.button<{ $active: boolean }>`
   width: 2.5rem;
   height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: ${(props) => (props.$active ? "600" : "500")};
-  color: ${(props) => (props.$active ? "white" : "#374151")};
-  background: ${(props) => (props.$active ? "#2563eb" : "white")};
-  border: 1px solid ${(props) => (props.$active ? "#2563eb" : "#d1d5db")};
-  border-radius: 0.375rem;
+  border: 1px solid
+    ${({ $active }) => ($active ? acao.primaria : superficie.bordaForte)};
+  border-radius: ${theme.borderRadius.md};
+  background: ${({ $active }) => ($active ? acao.primaria : superficie.fundo)};
+  color: ${({ $active }) => ($active ? texto.inverso : texto.principal)};
+  font-family: inherit;
+  font-size: ${fontSize.sm};
+  font-weight: ${({ $active }) =>
+    $active ? fontWeight.semibold : fontWeight.medium};
   cursor: pointer;
-  transition: all 0.2s;
 
   &:hover {
-    background: ${(props) => (props.$active ? "#1d4ed8" : "#f9fafb")};
-    border-color: #2563eb;
+    border-color: ${acao.primaria};
+    ${({ $active }) => !$active && `background: ${acao.fundoClaro};`}
   }
 
-  &:active {
-    transform: scale(0.95);
+  &:focus-visible {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 2px;
   }
+`;
+
+const Reticencias = styled.span`
+  align-self: center;
+  min-width: 1.5rem;
+  text-align: center;
+  color: ${texto.secundario};
 `;
 
 // ============== COMPONENT ==============
@@ -110,6 +92,20 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
+const MAX_VISIVEIS = 5;
+
+/** Páginas mostradas; "..." marca o intervalo escondido */
+const getPaginas = (atual: number, total: number): (number | "...")[] => {
+  if (total <= MAX_VISIVEIS) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (atual <= 3) return [1, 2, 3, 4, "...", total];
+  if (atual >= total - 2) {
+    return [1, "...", total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", atual - 1, atual, atual + 1, "...", total];
+};
+
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
@@ -117,68 +113,15 @@ export const Pagination: React.FC<PaginationProps> = ({
   itemsPerPage,
   onPageChange,
 }) => {
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
-  const renderPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pages.push(i);
-        }
-        pages.push("...");
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        pages.push("...");
-        pages.push(currentPage - 1);
-        pages.push(currentPage);
-        pages.push(currentPage + 1);
-        pages.push("...");
-        pages.push(totalPages);
-      }
-    }
-
-    return pages.map((page, index) => {
-      if (page === "...") {
-        return (
-          <PageNumber key={`ellipsis-${index}`} disabled>
-            ...
-          </PageNumber>
-        );
-      }
-
-      return (
-        <PageNumber
-          key={page}
-          $active={page === currentPage}
-          onClick={() => onPageChange(page as number)}
-        >
-          {page}
-        </PageNumber>
-      );
-    });
-  };
-
   if (totalPages <= 1) {
     return null;
   }
 
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
   return (
-    <Container>
+    <Container aria-label="Paginação">
       <Info>
         Mostrando <strong>{startItem}</strong> a <strong>{endItem}</strong> de{" "}
         <strong>{totalItems}</strong> {totalItems === 1 ? "item" : "itens"}
@@ -186,15 +129,35 @@ export const Pagination: React.FC<PaginationProps> = ({
 
       <Controls>
         <Button
+          variant="outline"
+          size="sm"
           disabled={currentPage === 1}
           onClick={() => onPageChange(currentPage - 1)}
         >
           ← Anterior
         </Button>
 
-        <Numbers>{renderPageNumbers()}</Numbers>
+        <Numbers>
+          {getPaginas(currentPage, totalPages).map((page, index) =>
+            page === "..." ? (
+              <Reticencias key={`reticencias-${index}`}>...</Reticencias>
+            ) : (
+              <PageNumber
+                key={page}
+                type="button"
+                $active={page === currentPage}
+                aria-current={page === currentPage ? "page" : undefined}
+                onClick={() => onPageChange(page)}
+              >
+                {page}
+              </PageNumber>
+            )
+          )}
+        </Numbers>
 
         <Button
+          variant="outline"
+          size="sm"
           disabled={currentPage === totalPages}
           onClick={() => onPageChange(currentPage + 1)}
         >

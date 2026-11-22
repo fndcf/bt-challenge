@@ -217,7 +217,7 @@ describe("FaseEliminatoria", () => {
         />
       );
 
-      const button = screen.getByText("🔄 Tentar Novamente");
+      const button = screen.getByText("Tentar Novamente");
       fireEvent.click(button);
 
       expect(mockCarregar).toHaveBeenCalled();
@@ -253,7 +253,7 @@ describe("FaseEliminatoria", () => {
         />
       );
 
-      expect(screen.getByText("⚔️ Fase Eliminatória")).toBeInTheDocument();
+      expect(screen.getByText("Fase Eliminatória")).toBeInTheDocument();
       expect(
         screen.getByText("Confrontos mata-mata até o campeão!")
       ).toBeInTheDocument();

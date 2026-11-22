@@ -20,10 +20,10 @@ export const getNomeFase = (fase: TipoFase): string => {
 /**
  * Agrupa confrontos por fase
  */
-export const agruparPorFase = (
-  confrontos: ConfrontoEliminatorio[]
-): Record<TipoFase, ConfrontoEliminatorio[]> => {
-  const grupos: Record<TipoFase, ConfrontoEliminatorio[]> = {
+export const agruparPorFase = <T extends { fase: TipoFase }>(
+  confrontos: T[]
+): Record<TipoFase, T[]> => {
+  const grupos: Record<TipoFase, T[]> = {
     [TipoFase.OITAVAS]: [],
     [TipoFase.QUARTAS]: [],
     [TipoFase.SEMIFINAL]: [],

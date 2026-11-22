@@ -1,271 +1,153 @@
-import React, { useState, useEffect, useMemo } from "react";
+/**
+ * Cabeças de chave da etapa (Dupla Fixa e Rei da Praia)
+ */
+
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
+import { ArrowDown, ArrowUp, X } from "lucide-react";
+import {
+  Alert,
+  Badge,
+  Button,
+  EmptyState,
+  IconButton,
+  LoadingOverlay,
+  Pagination,
+} from "@/components/ui";
 import { getCabecaDeChaveService } from "@/services";
+import { theme } from "@/styles/theme";
 import { CabecaDeChave } from "@/types/cabecaDeChave";
-import { Inscricao } from "@/types/etapa";
-import { FormatoEtapa } from "@/types/etapa";
-import { Pagination, LoadingOverlay } from "@/components/ui";
+import { FormatoEtapa, Inscricao } from "@/types/etapa";
+import { getNivelLabel } from "@/utils/formatters";
+
+const { texto, superficie, acao } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
+
+const ITENS_POR_PAGINA = 12;
 
 // ===== STYLES =====
 
-const Container = styled.div`
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  margin-top: 1rem;
-`;
-
-const Header = styled.div`
+const Container = styled.section`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: ${theme.spacing[4]};
+  padding: ${theme.spacing[6]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${superficie.fundo};
+
+  @media (max-width: ${theme.breakpoints.sm}) {
+    padding: ${theme.spacing[4]};
+  }
 `;
 
-const HeaderContent = styled.div``;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #92400e;
+const Titulo = styled.h3`
   margin: 0;
+  font-size: ${fontSize.lg};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
-const Subtitle = styled.p`
-  font-size: 0.875rem;
-  color: #92400e;
-  margin: 0.25rem 0 0 0;
-  opacity: 0.8;
+const Subtitulo = styled.p`
+  margin: ${theme.spacing[1]} 0 0 0;
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
 `;
 
-const InfoBox = styled.div`
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-
-  p {
-    margin: 0;
-    font-size: 0.875rem;
-    color: #92400e;
-    line-height: 1.5;
-  }
+const ListaTitulo = styled.h4`
+  margin: 0 0 ${theme.spacing[2]} 0;
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
-const CabecasLista = styled.div`
-  margin-bottom: 1rem;
+const Lista = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing[2]};
 `;
 
-const ListaTitle = styled.p`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #92400e;
-  margin: 0 0 0.5rem 0;
-`;
-
-const CabecaItem = styled.div`
+const Linha = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: white;
-  border: 1px solid #fbbf24;
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
+  gap: ${theme.spacing[2]};
+  min-height: 48px;
+  padding: ${theme.spacing[1]} ${theme.spacing[2]} ${theme.spacing[1]}
+    ${theme.spacing[3]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.md};
+  color: ${texto.secundario};
 `;
 
-const CabecaOrdem = styled.span`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  background: #fbbf24;
-  color: white;
-  border-radius: 50%;
-  font-weight: 700;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-`;
-
-const CabecaNome = styled.span`
+const Nome = styled.span`
   flex: 1;
-  font-weight: 500;
-  color: #92400e;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: ${fontWeight.medium};
+  color: ${texto.principal};
 `;
 
-const CabecaActions = styled.div`
-  display: flex;
-  gap: 0.25rem;
+const Grade = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: ${theme.spacing[2]};
 `;
 
-const ActionButton = styled.button`
-  padding: 0.25rem 0.5rem;
-  background: #fbbf24;
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #f59e0b;
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const RemoveButton = styled.button`
-  padding: 0.25rem 0.5rem;
-  background: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #b91c1c;
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const Divider = styled.div`
-  height: 1px;
-  background: #fbbf24;
-  margin: 1rem 0;
-`;
-
-const JogadoresLista = styled.div``;
-
-const JogadorItem = styled.div<{ $ehCabeca: boolean; $estaSelecionado: boolean }>`
+const Jogador = styled.label<{ $selecionado: boolean; $cabeca: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: ${(props) => {
-    if (props.$ehCabeca) return "#fde68a"; // Amarelo forte/vibrante para quem JÁ é cabeça
-    if (props.$estaSelecionado) return "#fef9e7"; // Amarelo bem claro para selecionado
-    return "white";
-  }};
-  border: 2px solid ${(props) => {
-    if (props.$ehCabeca) return "#f59e0b"; // Laranja para quem JÁ é cabeça (mais forte)
-    if (props.$estaSelecionado) return "#fbbf24"; // Amarelo para selecionado
-    return "#e5e7eb";
-  }};
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: ${theme.spacing[3]};
+  min-height: 56px;
+  padding: ${theme.spacing[2]} ${theme.spacing[3]};
+  border: 1px solid
+    ${({ $selecionado }) => ($selecionado ? acao.primaria : superficie.borda)};
+  border-radius: ${theme.borderRadius.md};
+  background: ${({ $selecionado, $cabeca }) =>
+    $selecionado
+      ? acao.fundoClaro
+      : $cabeca
+      ? superficie.fundoAlternativo
+      : superficie.fundo};
+  cursor: ${({ $cabeca }) => ($cabeca ? "default" : "pointer")};
 
-  &:hover {
-    border-color: ${(props) => props.$ehCabeca ? "#f59e0b" : "#fbbf24"};
-    transform: translateX(4px);
-  }
-`;
-
-// Checkbox removido - seleção por clique no card inteiro
-
-const JogadorInfo = styled.div`
-  flex: 1;
-`;
-
-const JogadorNome = styled.p`
-  font-weight: 500;
-  color: #111827;
-  margin: 0 0 0.25rem 0;
-`;
-
-const JogadorNivel = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-`;
-
-const Badge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2rem;
-  height: 2rem;
-  padding: 0 0.5rem;
-  background: #fbbf24;
-  color: white;
-  border-radius: 9999px;
-  font-weight: 700;
-  font-size: 0.875rem;
-`;
-
-// Empty state para quando readOnly e sem cabeças
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 2rem 1rem;
-  color: #92400e;
-  opacity: 0.7;
-
-  p {
+  input {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
     margin: 0;
-    font-size: 0.875rem;
+    accent-color: ${acao.primaria};
+    cursor: inherit;
   }
 `;
 
-const ActionsBar = styled.div`
+const Dados = styled.span`
+  flex: 1;
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+const Nivel = styled.span`
+  font-size: ${fontSize.sm};
+  color: ${texto.secundario};
+`;
+
+const BarraSelecao = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  background: white;
-  border: 1px solid #fbbf24;
-  border-radius: 0.375rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
+  gap: ${theme.spacing[3]};
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.md};
+  background: ${superficie.fundoAlternativo};
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.semibold};
+  color: ${texto.principal};
 `;
 
-const SelectionInfo = styled.span`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #92400e;
-`;
-
-const ActionsButtons = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const ActionBarButton = styled.button<{ $variant: "primary" | "danger" }>`
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  ${props => props.$variant === "primary" ? `
-    background: #fbbf24;
-    color: white;
-    &:hover:not(:disabled) { background: #f59e0b; }
-  ` : `
-    background: #dc2626;
-    color: white;
-    &:hover:not(:disabled) { background: #b91c1c; }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
+// ===== COMPONENTE =====
 
 interface Props {
   arenaId: string;
@@ -291,33 +173,15 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
   const cabecaDeChaveService = getCabecaDeChaveService();
   const [cabecas, setCabecas] = useState<CabecaDeChave[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [pagina, setPagina] = useState(1);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  const [globalLoading, setGlobalLoading] = useState(false);
-  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
+  // Mensagem da operação em andamento; null = nada em andamento
+  const [operacao, setOperacao] = useState<string | null>(null);
 
   const isReiDaPraia = formato === FormatoEtapa.REI_DA_PRAIA;
-
-  // Paginação
-  const { paginatedInscricoes, totalPages } = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return {
-      paginatedInscricoes: inscricoes.slice(startIndex, endIndex),
-      totalPages: Math.ceil(inscricoes.length / itemsPerPage),
-    };
-  }, [inscricoes, currentPage, itemsPerPage]);
-
-  const calcularLimite = (): number => {
-    if (isReiDaPraia) {
-      return Math.floor(totalInscritos / 4);
-    } else {
-      return (qtdGrupos || 0) * 2;
-    }
-  };
-
-  const limiteCabecas = calcularLimite();
+  const limite = isReiDaPraia
+    ? Math.floor(totalInscritos / 4)
+    : (qtdGrupos || 0) * 2;
 
   const carregarCabecas = async () => {
     if (!arenaId || !etapaId) return;
@@ -325,8 +189,8 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     try {
       setLoading(true);
       const data = await cabecaDeChaveService.listarAtivas(arenaId, etapaId);
-      setCabecas(data || []);
-    } catch (error) {
+      setCabecas([...(data || [])].sort((a, b) => a.ordem - b.ordem));
+    } catch {
       setCabecas([]);
     } finally {
       setLoading(false);
@@ -337,283 +201,233 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
     carregarCabecas();
   }, [arenaId, etapaId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Validações
-  if (!inscricoes || !Array.isArray(inscricoes) || inscricoes.length === 0) {
+  if (!Array.isArray(inscricoes) || inscricoes.length === 0) {
     return null;
   }
 
-  // handleToggleCabeca removida - agora usa handleAdicionarSelecionados e handleRemoverCabeca
+  const inicio = (pagina - 1) * ITENS_POR_PAGINA;
+  const daPagina = inscricoes.slice(inicio, inicio + ITENS_POR_PAGINA);
 
-  const handleMoverOrdem = async (
-    cabeca: CabecaDeChave,
-    direcao: "up" | "down"
+  /** Executa a operação, recarrega as cabeças e avisa a página */
+  const executar = async (
+    mensagem: string,
+    mensagemErro: (error: any) => string,
+    operar: () => Promise<unknown>
   ) => {
-    if (readOnly) return;
-    const index = cabecas.findIndex((c) => c.id === cabeca.id);
+    try {
+      setOperacao(mensagem);
+      await operar();
+      await carregarCabecas();
+      onUpdate();
+    } catch (error: any) {
+      alert(mensagemErro(error));
+    } finally {
+      setOperacao(null);
+    }
+  };
 
-    if (direcao === "up" && index === 0) return;
-    if (direcao === "down" && index === cabecas.length - 1) return;
-
+  const mover = (indice: number, direcao: -1 | 1) => {
     const novaOrdem = [...cabecas];
-    const targetIndex = direcao === "up" ? index - 1 : index + 1;
-
-    [novaOrdem[index], novaOrdem[targetIndex]] = [
-      novaOrdem[targetIndex],
-      novaOrdem[index],
+    const destino = indice + direcao;
+    [novaOrdem[indice], novaOrdem[destino]] = [
+      novaOrdem[destino],
+      novaOrdem[indice],
     ];
 
-    const ordens = novaOrdem.map((c, i) => ({
-      jogadorId: c.jogadorId,
-      ordem: i + 1,
-    }));
-
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage(`Reordenando cabeça de chave...`);
-      await cabecaDeChaveService.reordenar(arenaId, etapaId, ordens);
-      await carregarCabecas();
-      onUpdate();
-    } catch (error: any) {
-      alert("Erro ao reordenar cabeças");
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
+    return executar(
+      "Reordenando cabeça de chave...",
+      () => "Erro ao reordenar cabeças",
+      () =>
+        cabecaDeChaveService.reordenar(
+          arenaId,
+          etapaId,
+          novaOrdem.map(({ jogadorId }, i) => ({ jogadorId, ordem: i + 1 }))
+        )
+    );
   };
 
-  const handleRemoverCabeca = async (jogadorId: string, jogadorNome: string) => {
-    if (readOnly) return;
+  const remover = ({ jogadorId, jogadorNome }: CabecaDeChave) =>
+    executar(
+      `Removendo ${jogadorNome} das cabeças de chave...`,
+      (error) => error.message || "Erro ao remover cabeça",
+      () => cabecaDeChaveService.remover(arenaId, etapaId, jogadorId)
+    );
 
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage(`Removendo ${jogadorNome} das cabeças de chave...`);
-      await cabecaDeChaveService.remover(arenaId, etapaId, jogadorId);
-      await carregarCabecas();
-      onUpdate();
-    } catch (error: any) {
-      alert(error.message || "Erro ao remover cabeça");
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
-
-  const getCabecaOrdem = (jogadorId: string): number | null => {
-    if (!jogadorId) return null;
-    const cabeca = cabecas.find((c) => c.jogadorId === jogadorId);
-    return cabeca ? cabeca.ordem : null;
-  };
-
-  const toggleSelecao = (jogadorId: string) => {
-    setSelecionados(prev => {
+  const alternarSelecao = (jogadorId: string) =>
+    setSelecionados((prev) => {
       const novo = new Set(prev);
-      if (novo.has(jogadorId)) {
-        novo.delete(jogadorId);
-      } else {
-        // Não permitir selecionar jogadores que JÁ são cabeças
-        const jaEhCabeca = cabecas.some(c => c.jogadorId === jogadorId);
-        if (!jaEhCabeca) {
-          novo.add(jogadorId);
-        }
-      }
+      if (!novo.delete(jogadorId)) novo.add(jogadorId);
       return novo;
     });
-  };
 
-  const handleAdicionarSelecionados = async () => {
-    if (selecionados.size === 0) {
-      alert("Selecione pelo menos um jogador");
-      return;
-    }
-
-    // Validar limite
-    if (cabecas.length + selecionados.size > limiteCabecas) {
+  const adicionarSelecionados = () => {
+    if (cabecas.length + selecionados.size > limite) {
       alert(
-        `Limite atingido! Máximo de ${limiteCabecas} cabeça(s) de chave. ` +
-        `Você já tem ${cabecas.length} e está tentando adicionar ${selecionados.size}.`
+        `Limite atingido! Máximo de ${limite} cabeça(s) de chave. ` +
+          `Você já tem ${cabecas.length} e está tentando adicionar ${selecionados.size}.`
       );
       return;
     }
 
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage(`Adicionando ${selecionados.size} cabeça(s) de chave...`);
+    const maiorOrdem = Math.max(0, ...cabecas.map((c) => c.ordem));
 
-      const maiorOrdem =
-        cabecas.length > 0 ? Math.max(...cabecas.map((c) => c.ordem)) : 0;
-
-      const promises = Array.from(selecionados).map(async (jogadorId, index) => {
-        const inscricao = inscricoes.find(i => i.jogadorId === jogadorId);
-        if (!inscricao) return null;
-
-        return cabecaDeChaveService.criar({
-          arenaId,
-          etapaId,
-          jogadorId: inscricao.jogadorId,
-          jogadorNome: inscricao.jogadorNome,
-          ordem: maiorOrdem + index + 1,
-        });
-      });
-
-      await Promise.all(promises);
-      await carregarCabecas();
-      setSelecionados(new Set());
-      onUpdate();
-    } catch (error: any) {
-      alert(error.message || "Erro ao adicionar cabeças");
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
+    return executar(
+      `Adicionando ${selecionados.size} cabeça(s) de chave...`,
+      (error) => error.message || "Erro ao adicionar cabeças",
+      async () => {
+        await Promise.all(
+          Array.from(selecionados).map((id, indice) => {
+            const inscricao = inscricoes.find((i) => i.jogadorId === id);
+            return (
+              inscricao &&
+              cabecaDeChaveService.criar({
+                arenaId,
+                etapaId,
+                jogadorId: inscricao.jogadorId,
+                jogadorNome: inscricao.jogadorNome,
+                ordem: maiorOrdem + indice + 1,
+              })
+            );
+          })
+        );
+        setSelecionados(new Set());
+      }
+    );
   };
-
-  // Função de remover selecionados foi removida - remoção feita apenas pelos botões individuais X
 
   return (
     <Container>
-      <Header>
-        <HeaderContent>
-          <Title>Cabeças de Chave</Title>
-          <Subtitle>
-            {cabecas.length} / {limiteCabecas} selecionado(s)
-            {readOnly && " (Somente visualização)"}
-          </Subtitle>
-        </HeaderContent>
-      </Header>
+      <div>
+        <Titulo>Cabeças de Chave</Titulo>
+        <Subtitulo>
+          {cabecas.length} / {limite} selecionado(s)
+          {readOnly && " (Somente visualização)"}
+        </Subtitulo>
+      </div>
 
-      <InfoBox>
-        <p>
-          {isReiDaPraia ? (
-            <>
-              <strong>Rei da Praia:</strong> Cabeças de chave ficam em grupos
-              separados (1 por grupo). Máximo: {limiteCabecas} cabeça(s).
-            </>
-          ) : (
-            <>
-              <strong>Dupla Fixa:</strong> Cabeças de chave não podem formar
-              dupla juntas. Máximo: {limiteCabecas} cabeça(s) (2 por grupo).
-            </>
-          )}
-        </p>
-      </InfoBox>
-
-      {!readOnly && selecionados.size > 0 && (
-        <ActionsBar>
-          <SelectionInfo>
-            {selecionados.size} jogador(es) selecionado(s)
-          </SelectionInfo>
-          <ActionsButtons>
-            <ActionBarButton
-              $variant="primary"
-              onClick={handleAdicionarSelecionados}
-              disabled={loading || globalLoading}
-            >
-              Adicionar Selecionados
-            </ActionBarButton>
-          </ActionsButtons>
-        </ActionsBar>
-      )}
+      <Alert>
+        {isReiDaPraia ? (
+          <p>
+            <strong>Rei da Praia:</strong> Cabeças de chave ficam em grupos
+            separados (1 por grupo). Máximo: {limite} cabeça(s).
+          </p>
+        ) : (
+          <p>
+            <strong>Dupla Fixa:</strong> Cabeças de chave não podem formar dupla
+            juntas. Máximo: {limite} cabeça(s) (2 por grupo).
+          </p>
+        )}
+      </Alert>
 
       {cabecas.length > 0 && (
-        <CabecasLista>
-          <ListaTitle>
+        <div>
+          <ListaTitulo>
             {readOnly
               ? "Cabeças de Chave Definidas:"
               : "Ordem das Cabeças de Chave:"}
-          </ListaTitle>
-          {cabecas
-            .sort((a, b) => a.ordem - b.ordem)
-            .map((cabeca, index) => (
-              <CabecaItem key={cabeca.id}>
-                <CabecaOrdem>#{cabeca.ordem}</CabecaOrdem>
-                <CabecaNome>{cabeca.jogadorNome}</CabecaNome>
-
-                {/* OCULTAR botões completamente quando readOnly */}
+          </ListaTitulo>
+          <Lista>
+            {cabecas.map((cabeca, indice) => (
+              <Linha key={cabeca.id}>
+                <Badge formato={formato}>{`#${cabeca.ordem}`}</Badge>
+                <Nome>{cabeca.jogadorNome}</Nome>
                 {!readOnly && (
-                  <CabecaActions>
-                    <ActionButton
-                      onClick={() => handleMoverOrdem(cabeca, "up")}
-                      disabled={index === 0 || globalLoading}
+                  <>
+                    <IconButton
+                      rotulo={`Mover ${cabeca.jogadorNome} para cima`}
                       title="Mover para cima"
-                    >
-                      ▲
-                    </ActionButton>
-                    <ActionButton
-                      onClick={() => handleMoverOrdem(cabeca, "down")}
-                      disabled={index === cabecas.length - 1 || globalLoading}
+                      icone={<ArrowUp aria-hidden="true" />}
+                      onClick={() => mover(indice, -1)}
+                      disabled={indice === 0 || !!operacao}
+                    />
+                    <IconButton
+                      rotulo={`Mover ${cabeca.jogadorNome} para baixo`}
                       title="Mover para baixo"
-                    >
-                      ▼
-                    </ActionButton>
-                    <RemoveButton
-                      onClick={() => handleRemoverCabeca(cabeca.jogadorId, cabeca.jogadorNome)}
-                      disabled={globalLoading}
+                      icone={<ArrowDown aria-hidden="true" />}
+                      onClick={() => mover(indice, 1)}
+                      disabled={indice === cabecas.length - 1 || !!operacao}
+                    />
+                    <IconButton
+                      rotulo={`Remover ${cabeca.jogadorNome}`}
                       title="Remover"
-                    >
-                      ✕
-                    </RemoveButton>
-                  </CabecaActions>
+                      tom="perigo"
+                      icone={<X aria-hidden="true" />}
+                      onClick={() => remover(cabeca)}
+                      disabled={!!operacao}
+                    />
+                  </>
                 )}
-              </CabecaItem>
+              </Linha>
             ))}
-        </CabecasLista>
+          </Lista>
+        </div>
       )}
 
-      {/* OCULTAR completamente lista de jogadores quando readOnly */}
-      {!readOnly && (
-        <>
-          <Divider />
+      {readOnly && cabecas.length === 0 && (
+        <EmptyState titulo="Nenhuma cabeça de chave foi definida para esta etapa." />
+      )}
 
-          <JogadoresLista>
-            <ListaTitle>Selecione Jogadores como Cabeças:</ListaTitle>
-            {paginatedInscricoes.map((inscricao) => {
-              const ordem = getCabecaOrdem(inscricao.jogadorId);
-              const ehCabeca = ordem !== null;
-              const estaSelecionado = selecionados.has(inscricao.jogadorId);
+      {!readOnly && selecionados.size > 0 && (
+        <BarraSelecao>
+          <span>{`${selecionados.size} jogador(es) selecionado(s)`}</span>
+          <Button
+            onClick={adicionarSelecionados}
+            disabled={loading || !!operacao}
+          >
+            Adicionar Selecionados
+          </Button>
+        </BarraSelecao>
+      )}
+
+      {!readOnly && (
+        <div>
+          <ListaTitulo>Selecione Jogadores como Cabeças:</ListaTitulo>
+          <Grade>
+            {daPagina.map((inscricao) => {
+              const cabeca = cabecas.find(
+                (c) => c.jogadorId === inscricao.jogadorId
+              );
+              const selecionado = selecionados.has(inscricao.jogadorId);
 
               return (
-                <JogadorItem
+                <Jogador
                   key={inscricao.id}
-                  $ehCabeca={ehCabeca}
-                  $estaSelecionado={estaSelecionado}
-                  onClick={() => toggleSelecao(inscricao.jogadorId)}
+                  $selecionado={selecionado}
+                  $cabeca={!!cabeca}
                 >
-                  <JogadorInfo>
-                    <JogadorNome>{inscricao.jogadorNome}</JogadorNome>
-                    <JogadorNivel>
-                      {inscricao.jogadorNivel === "iniciante" && "Iniciante"}
-                      {inscricao.jogadorNivel === "intermediario" &&
-                        "Intermediário"}
-                      {inscricao.jogadorNivel === "avancado" && "Avançado"}
-                    </JogadorNivel>
-                  </JogadorInfo>
-                  {ehCabeca && <Badge>#{ordem}</Badge>}
-                </JogadorItem>
+                  {cabeca ? (
+                    <Badge formato={formato}>{`#${cabeca.ordem}`}</Badge>
+                  ) : (
+                    <input
+                      type="checkbox"
+                      checked={selecionado}
+                      onChange={() => alternarSelecao(inscricao.jogadorId)}
+                    />
+                  )}
+                  <Dados>
+                    <Nome>{inscricao.jogadorNome}</Nome>
+                    {inscricao.jogadorNivel && (
+                      <Nivel>{getNivelLabel(inscricao.jogadorNivel)}</Nivel>
+                    )}
+                  </Dados>
+                </Jogador>
               );
             })}
-          </JogadoresLista>
+          </Grade>
 
-          {/* Paginação */}
-          {inscricoes.length > itemsPerPage && (
+          {inscricoes.length > ITENS_POR_PAGINA && (
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
+              currentPage={pagina}
+              totalPages={Math.ceil(inscricoes.length / ITENS_POR_PAGINA)}
               totalItems={inscricoes.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
+              itemsPerPage={ITENS_POR_PAGINA}
+              onPageChange={setPagina}
             />
           )}
-        </>
+        </div>
       )}
 
-      {/*  Mensagem quando readOnly e sem cabeças */}
-      {readOnly && cabecas.length === 0 && (
-        <EmptyState>
-          <p>Nenhuma cabeça de chave foi definida para esta etapa.</p>
-        </EmptyState>
-      )}
-
-      <LoadingOverlay isLoading={globalLoading} message={globalLoadingMessage} />
+      <LoadingOverlay isLoading={!!operacao} message={operacao ?? ""} />
     </Container>
   );
 };
