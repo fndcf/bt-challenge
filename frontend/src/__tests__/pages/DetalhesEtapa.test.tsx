@@ -9,6 +9,9 @@ import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import DetalhesEtapa from "@/pages/DetalhesEtapa";
 import { FormatoEtapa, StatusEtapa } from "@/types/etapa";
 import { NivelJogador, GeneroJogador } from "@/types/jogador";
+import { confirmarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do logger
 jest.mock("@/utils/logger", () => ({
@@ -488,20 +491,16 @@ describe("DetalhesEtapa - Renderização", () => {
   });
 
   describe("Exclusão de etapa", () => {
-    const mockConfirm = jest.fn();
-    const mockAlert = jest.fn();
     const mockDeletar = jest.fn();
 
     beforeEach(() => {
-      window.confirm = mockConfirm;
-      window.alert = mockAlert;
       jest.requireMock("@/services").getEtapaService = () => ({
         deletar: mockDeletar,
       });
     });
 
     it("deve cancelar exclusão quando usuário não confirma", () => {
-      mockConfirm.mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       renderWithRouter(<DetalhesEtapa />);
 
@@ -511,7 +510,7 @@ describe("DetalhesEtapa - Renderização", () => {
     });
 
     it("deve excluir etapa quando usuário confirma", async () => {
-      mockConfirm.mockReturnValue(true);
+      confirmarMock.mockResolvedValue(true);
       mockDeletar.mockResolvedValue({});
 
       renderWithRouter(<DetalhesEtapa />);
@@ -521,7 +520,7 @@ describe("DetalhesEtapa - Renderização", () => {
       // Aguardar a exclusão
       await screen.findByTestId("etapa-header");
 
-      expect(mockConfirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
     });
   });
 

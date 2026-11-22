@@ -11,6 +11,7 @@ import { theme } from "@/styles/theme";
 import { Etapa, Inscricao } from "@/types/etapa";
 import { GeneroJogador } from "@/types/jogador";
 import { getNivelLabel } from "@/utils/formatters";
+import { avisarErro, confirmar } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 const { texto, superficie, acao } = theme.semantic;
@@ -140,9 +141,12 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
     );
 
   const excluirSelecionados = async () => {
-    const confirmou = window.confirm(
-      `Deseja cancelar ${selecionados.size} inscrição(ões)?`
-    );
+    const confirmou = await confirmar({
+      titulo: "Excluir Inscrições",
+      mensagem: `Deseja excluir ${selecionados.size} inscrição(ões)?`,
+      textoConfirmar: "Excluir Inscrições",
+      perigo: true,
+    });
     if (!confirmou) return;
 
     try {
@@ -150,7 +154,7 @@ export const InscricoesTab: React.FC<InscricoesTabProps> = ({
       await onCancelarMultiplos(Array.from(selecionados));
       setSelecionados(new Set());
     } catch (error) {
-      alert(getMensagemErro(error, "Erro ao cancelar inscrições"));
+      avisarErro(getMensagemErro(error, "Erro ao cancelar inscrições"));
     } finally {
       setExcluindo(false);
     }

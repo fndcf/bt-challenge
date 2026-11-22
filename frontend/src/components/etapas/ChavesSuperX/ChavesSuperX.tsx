@@ -21,6 +21,7 @@ import {
 import { ConfirmacaoAcao } from "@/components/modals/ConfirmacaoAcao";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import { avisarErro } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 interface ChavesSuperXProps {
@@ -104,7 +105,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
       setPartidas(partidasData);
       setMostrarModalResultados(true);
     } catch (err) {
-      alert(getMensagemErro(err, "Erro ao carregar partidas"));
+      avisarErro(getMensagemErro(err, "Erro ao carregar partidas"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -134,7 +135,7 @@ export const ChavesSuperX: React.FC<ChavesSuperXProps> = ({
         await onAtualizar();
       }
     } catch (err) {
-      alert(getMensagemErro(err, "Erro ao encerrar etapa"));
+      avisarErro(getMensagemErro(err, "Erro ao encerrar etapa"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

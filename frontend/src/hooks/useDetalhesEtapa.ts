@@ -4,7 +4,7 @@
 
 import { useCallback } from "react";
 import { useEtapaData, type EtapaComInscricoes } from "./useEtapaData";
-import { useEtapaInscricoes } from "./useEtapaInscricoes";
+import { useEtapaInscricoes, type ComLoading } from "./useEtapaInscricoes";
 import { useEtapaChaves } from "./useEtapaChaves";
 import { useEtapaUI, type AbaEtapa } from "./useEtapaUI";
 import { FormacaoManualEquipeDTO } from "@/types/teams";
@@ -64,9 +64,13 @@ interface UseDetalhesEtapaReturn {
  * Hook compositor para gerenciar detalhes de uma etapa
  *
  * @param etapaId - ID da etapa a ser gerenciada
+ * @param comLoading - Como bloquear a tela durante as ações
  * @returns Interface completa para gerenciar detalhes da etapa
  */
-export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
+export const useDetalhesEtapa = (
+  etapaId?: string,
+  comLoading?: ComLoading
+): UseDetalhesEtapaReturn => {
   // ============================================
   // DADOS DA ETAPA
   // ============================================
@@ -106,6 +110,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   } = useEtapaInscricoes({
     etapa,
     onSuccess: recarregar,
+    comLoading,
   });
 
   // ============================================
@@ -129,6 +134,7 @@ export const useDetalhesEtapa = (etapaId?: string): UseDetalhesEtapaReturn => {
   } = useEtapaChaves({
     etapa,
     onSuccess: onSuccessChaves,
+    comLoading,
   });
 
   // ============================================

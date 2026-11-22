@@ -5,6 +5,9 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import { FormatoEtapa } from "@/types/etapa";
+import { usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do logger
 jest.mock("@/utils/logger", () => ({
@@ -48,9 +51,6 @@ jest.mock("@/services", () => ({
   }),
 }));
 
-// Mock do window.confirm e window.alert
-const originalConfirm = window.confirm;
-const originalAlert = window.alert;
 
 describe("useDetalhesEtapa", () => {
   const mockEtapa = {
@@ -75,8 +75,6 @@ describe("useDetalhesEtapa", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    window.confirm = jest.fn(() => true);
-    window.alert = jest.fn();
     mockBuscarPorId.mockResolvedValue(mockEtapa);
     mockListarInscricoes.mockResolvedValue(mockInscricoes);
     mockReabrirInscricoes.mockResolvedValue(undefined);
@@ -88,8 +86,6 @@ describe("useDetalhesEtapa", () => {
   });
 
   afterAll(() => {
-    window.confirm = originalConfirm;
-    window.alert = originalAlert;
   });
 
   describe("composição de hooks", () => {

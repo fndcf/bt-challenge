@@ -6,6 +6,9 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ModalLancamentoResultadosLoteSuperX } from "@/components/etapas/ModalLancamentoResultadosLoteSuperX/ModalLancamentoResultadosLoteSuperX";
 import { PartidaReiDaPraia } from "@/types/reiDaPraia";
+import { avisarMock, usarDialogosDeTeste } from "../../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do service
 const mockSuperXService = {
@@ -17,8 +20,6 @@ jest.mock("@/services", () => ({
 }));
 
 // Mock do alert
-const mockAlert = jest.fn();
-global.alert = mockAlert;
 
 // ============================================
 // DADOS DE TESTE
@@ -436,7 +437,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.click(screen.getByText(/Salvar Resultados \(1\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!");
+        expect(avisarMock).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!", "success");
         expect(defaultProps.onSuccess).toHaveBeenCalled();
       });
     });
@@ -455,7 +456,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
       fireEvent.click(screen.getByText(/Salvar Resultados \(2\)/));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("2 resultado(s) salvo(s) com sucesso!");
+        expect(avisarMock).toHaveBeenCalledWith("2 resultado(s) salvo(s) com sucesso!", "success");
       });
     });
 

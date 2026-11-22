@@ -7,11 +7,28 @@ import { Etapa } from "@/types/etapa";
 import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import {
+  avisarAtencao,
+  avisarErro,
+  avisarSucesso,
+  confirmar,
+} from "@/utils/dialogos";
 import { getMensagemErro, paraError } from "@/utils/erro";
+
+export type ComLoading = (
+  mensagem: string,
+  executar: () => Promise<unknown>
+) => Promise<void>;
+
+export const semLoading: ComLoading = async (_mensagem, executar) => {
+  await executar();
+};
 
 export interface UseEtapaInscricoesParams {
   etapa: Etapa | null;
   onSuccess?: () => void | Promise<void>;
+  /** Bloqueia a tela enquanto executa, depois da confirmação */
+  comLoading?: ComLoading;
 }
 
 export interface UseEtapaInscricoesReturn {
@@ -34,6 +51,7 @@ export interface UseEtapaInscricoesReturn {
 export const useEtapaInscricoes = ({
   etapa,
   onSuccess,
+  comLoading = semLoading,
 }: UseEtapaInscricoesParams): UseEtapaInscricoesReturn => {
   /**
    * Abrir/Reabrir inscrições
@@ -41,26 +59,31 @@ export const useEtapaInscricoes = ({
   const handleAbrirInscricoes = useCallback(async () => {
     if (!etapa) return;
 
-    const confirmar = window.confirm(
-      `Deseja reabrir as inscrições para "${etapa.nome}"?\n\n` +
-        `Os jogadores poderão se inscrever novamente.`
-    );
+    const confirmou = await confirmar({
+      titulo: "Reabrir Inscrições",
+      mensagem:
+        `Deseja reabrir as inscrições para "${etapa.nome}"?\n\n` +
+        `Os jogadores poderão se inscrever novamente.`,
+      textoConfirmar: "Reabrir Inscrições",
+    });
 
-    if (!confirmar) return;
+    if (!confirmou) return;
 
     try {
       const etapaService = getEtapaService();
-      await etapaService.reabrirInscricoes(etapa.id);
+      await comLoading("Reabrindo inscrições...", async () => {
+        await etapaService.reabrirInscricoes(etapa.id);
 
-      if (onSuccess) await onSuccess();
+        if (onSuccess) await onSuccess();
+      });
 
-      alert("Inscrições reabertas com sucesso!");
+      avisarSucesso("Inscrições reabertas com sucesso!");
     } catch (err) {
       logger.error("Erro ao reabrir inscrições", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao reabrir inscrições"));
+      avisarErro(getMensagemErro(err, "Erro ao reabrir inscrições"));
       throw err;
     }
-  }, [etapa, onSuccess]);
+  }, [etapa, onSuccess, comLoading]);
 
   /**
    * Encerrar inscrições
@@ -68,26 +91,31 @@ export const useEtapaInscricoes = ({
   const handleEncerrarInscricoes = useCallback(async () => {
     if (!etapa) return;
 
-    const confirmar = window.confirm(
-      `Deseja encerrar as inscrições para "${etapa.nome}"?\n\n` +
-        `Após encerrar, novos jogadores não poderão se inscrever.`
-    );
+    const confirmou = await confirmar({
+      titulo: "Encerrar Inscrições",
+      mensagem:
+        `Deseja encerrar as inscrições para "${etapa.nome}"?\n\n` +
+        `Após encerrar, novos jogadores não poderão se inscrever.`,
+      textoConfirmar: "Encerrar Inscrições",
+    });
 
-    if (!confirmar) return;
+    if (!confirmou) return;
 
     try {
       const etapaService = getEtapaService();
-      await etapaService.encerrarInscricoes(etapa.id);
+      await comLoading("Encerrando inscrições...", async () => {
+        await etapaService.encerrarInscricoes(etapa.id);
 
-      if (onSuccess) await onSuccess();
+        if (onSuccess) await onSuccess();
+      });
 
-      alert("Inscrições encerradas com sucesso!");
+      avisarSucesso("Inscrições encerradas com sucesso!");
     } catch (err) {
       logger.error("Erro ao encerrar inscrições", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao encerrar inscrições"));
+      avisarErro(getMensagemErro(err, "Erro ao encerrar inscrições"));
       throw err;
     }
-  }, [etapa, onSuccess]);
+  }, [etapa, onSuccess, comLoading]);
 
   /**
    * Finalizar etapa
@@ -95,29 +123,34 @@ export const useEtapaInscricoes = ({
   const handleFinalizarEtapa = useCallback(async () => {
     if (!etapa) return;
 
-    const confirmar = window.confirm(
-      `Deseja finalizar a etapa "${etapa.nome}"?\n\n` +
-        `Isso marcará a etapa como concluída.`
-    );
+    const confirmou = await confirmar({
+      titulo: "Finalizar Etapa",
+      mensagem:
+        `Deseja finalizar a etapa "${etapa.nome}"?\n\n` +
+        `Isso marcará a etapa como concluída.`,
+      textoConfirmar: "Finalizar Etapa",
+    });
 
-    if (!confirmar) return;
+    if (!confirmou) return;
 
     try {
       const etapaService = getEtapaService();
-      await etapaService.encerrarEtapa(etapa.id);
+      await comLoading("Finalizando etapa...", async () => {
+        await etapaService.encerrarEtapa(etapa.id);
 
-      // Invalidar cache do ranking pois os pontos foram atualizados
-      invalidateRankingCache();
+        // Invalidar cache do ranking pois os pontos foram atualizados
+        invalidateRankingCache();
 
-      if (onSuccess) await onSuccess();
+        if (onSuccess) await onSuccess();
+      });
 
-      alert("Etapa finalizada com sucesso!");
+      avisarSucesso("Etapa finalizada com sucesso!");
     } catch (err) {
       logger.error("Erro ao finalizar etapa", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao finalizar etapa"));
+      avisarErro(getMensagemErro(err, "Erro ao finalizar etapa"));
       throw err;
     }
-  }, [etapa, onSuccess]);
+  }, [etapa, onSuccess, comLoading]);
 
   /**
    * Cancelar inscrição individual (usa método em lote internamente)
@@ -126,30 +159,35 @@ export const useEtapaInscricoes = ({
     async (inscricaoId: string, jogadorNome: string) => {
       if (!etapa) return;
 
-      const confirmar = window.confirm(
-        `Deseja cancelar a inscrição de ${jogadorNome}?`
-      );
+      const confirmou = await confirmar({
+        titulo: "Excluir Inscrição",
+        mensagem: `Deseja excluir a inscrição de ${jogadorNome}?`,
+        textoConfirmar: "Excluir Inscrição",
+        perigo: true,
+      });
 
-      if (!confirmar) return;
+      if (!confirmou) return;
 
       try {
         const etapaService = getEtapaService();
-        await etapaService.cancelarInscricoesEmLote(etapa.id, [inscricaoId]);
+        await comLoading("Cancelando inscrição...", async () => {
+          await etapaService.cancelarInscricoesEmLote(etapa.id, [inscricaoId]);
 
-        if (onSuccess) await onSuccess();
+          if (onSuccess) await onSuccess();
+        });
 
-        alert("Inscrição cancelada com sucesso!");
+        avisarSucesso("Inscrição cancelada com sucesso!");
       } catch (err) {
         logger.error(
           "Erro ao cancelar inscrição",
           { etapaId: etapa.id, inscricaoId },
           paraError(err)
         );
-        alert(getMensagemErro(err, "Erro ao cancelar inscrição"));
+        avisarErro(getMensagemErro(err, "Erro ao cancelar inscrição"));
         throw err;
       }
     },
-    [etapa, onSuccess]
+    [etapa, onSuccess, comLoading]
   );
 
   /**
@@ -176,12 +214,12 @@ export const useEtapaInscricoes = ({
             canceladas: resultado.canceladas,
             erros: resultado.erros,
           });
-          alert(
+          avisarAtencao(
             `${resultado.canceladas} inscrição(ões) cancelada(s).\n` +
               `${resultado.erros.length} erro(s): ${resultado.erros.join(", ")}`
           );
         } else {
-          alert(
+          avisarSucesso(
             `${resultado.canceladas} inscrição(ões) cancelada(s) com sucesso!`
           );
         }

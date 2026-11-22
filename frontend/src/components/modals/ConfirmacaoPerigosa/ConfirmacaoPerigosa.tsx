@@ -1,6 +1,6 @@
 import React, { useId, useState } from "react";
 import styled from "styled-components";
-import { Modal, Button } from "@/components/ui";
+import { Button, Input, Modal } from "@/components/ui";
 import { theme } from "@/styles/theme";
 
 interface ConfirmacaoPerigosaProps {
@@ -16,7 +16,7 @@ interface ConfirmacaoPerigosaProps {
   variante?: "danger" | "warning"; // warning não exige digitação
 }
 
-const { texto, superficie, status, acao } = theme.semantic;
+const { texto, status } = theme.semantic;
 
 // ============== STYLED COMPONENTS ==============
 
@@ -42,27 +42,6 @@ const Label = styled.label`
 const RequiredWord = styled.span`
   font-weight: 700;
   color: ${status.erro.texto};
-`;
-
-const Input = styled.input`
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 44px;
-  padding: 0.5rem 1rem;
-  border: 1px solid ${superficie.bordaForte};
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  color: ${texto.principal};
-
-  &:focus-visible {
-    outline: 2px solid ${acao.primaria};
-    outline-offset: 1px;
-  }
-
-  &:disabled {
-    background: ${superficie.pagina};
-    cursor: not-allowed;
-  }
 `;
 
 const ValidationMessage = styled.p<{ $isValid: boolean }>`
@@ -152,6 +131,9 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
           <Input
             id={inputId}
             type="text"
+            fullWidth
+            autoComplete="off"
+            autoCapitalize="characters"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={`Digite "${palavraConfirmacao}"`}

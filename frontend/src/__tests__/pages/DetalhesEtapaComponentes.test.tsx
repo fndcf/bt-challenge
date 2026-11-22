@@ -14,6 +14,9 @@ import {
   getFormatoEtapaLabel,
   getQtdGrupos,
 } from "@/utils/etapa";
+import { usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 const etapa = (extra: object = {}): any => ({
   id: "etapa-1",

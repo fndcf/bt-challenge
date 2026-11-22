@@ -15,6 +15,7 @@ import {
 } from "@/types/teams";
 import { contarFinalizados, ordenarConfrontos } from "@/utils/teams";
 import { ordenarEquipes } from "@/utils/classificacao";
+import { avisarErro } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 export interface GrupoTeams {
@@ -146,7 +147,7 @@ export const useChavesTeams = ({
       setOperacao(mensagem);
       await acao();
     } catch (err) {
-      alert(getMensagemErro(err, erroPadrao));
+      avisarErro(getMensagemErro(err, erroPadrao));
     } finally {
       setOperacao(null);
     }
@@ -311,7 +312,7 @@ export const useChavesTeams = ({
       );
       return true;
     } catch (err) {
-      alert(getMensagemErro(err, "Erro ao renomear equipe"));
+      avisarErro(getMensagemErro(err, "Erro ao renomear equipe"));
       return false;
     }
   };

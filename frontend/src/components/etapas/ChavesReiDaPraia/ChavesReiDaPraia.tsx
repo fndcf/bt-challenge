@@ -24,6 +24,7 @@ import {
 } from "@/utils/classificacao";
 import { ModalLancamentoResultadosLoteReiDaPraia } from "../ModalLancamentoResultadosLoteReiDaPraia";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
+import { avisarErro } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 interface ChavesReiDaPraiaProps {
@@ -123,7 +124,7 @@ export const ChavesReiDaPraia: React.FC<ChavesReiDaPraiaProps> = ({
       setPartidasModal(partidasDoGrupo);
       setGrupoModalAberto({ id: grupoId, nome: grupoNome });
     } catch (err) {
-      alert(getMensagemErro(err, "Erro ao carregar partidas"));
+      avisarErro(getMensagemErro(err, "Erro ao carregar partidas"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

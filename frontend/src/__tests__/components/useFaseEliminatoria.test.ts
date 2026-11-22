@@ -1,6 +1,10 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useFaseEliminatoria } from "@/components/etapas/FaseEliminatoria/hooks/useFaseEliminatoria";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+import { lerAvisoAposRecarregar } from "@/utils/dialogos";
+
+usarDialogosDeTeste();
 
 // Mocks
 const mockBuscarConfrontosEliminatorios = jest.fn();
@@ -22,11 +26,7 @@ jest.mock("@/services", () => ({
 }));
 
 // Mock do confirm e alert
-const mockConfirm = jest.fn();
-const mockAlert = jest.fn();
 
-window.confirm = mockConfirm;
-window.alert = mockAlert;
 
 // Mock de location.reload usando delete + redefine
 delete (window as any).location;
@@ -397,8 +397,8 @@ describe("useFaseEliminatoria", () => {
       });
 
       expect(mockGerarFaseEliminatoria).toHaveBeenCalledWith("etapa-1", 2);
-      expect(mockAlert).toHaveBeenCalledWith(
-        "Fase eliminatória gerada com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Fase eliminatória gerada com sucesso!", "success"
       );
     });
 
@@ -417,7 +417,7 @@ describe("useFaseEliminatoria", () => {
         await result.current.gerarEliminatoria();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao gerar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar", "error");
     });
   });
 
@@ -440,7 +440,7 @@ describe("useFaseEliminatoria", () => {
       });
 
       expect(mockCancelarFaseEliminatoria).toHaveBeenCalledWith("etapa-1");
-      expect(mockAlert).toHaveBeenCalledWith("Fase eliminatória cancelada!");
+      expect(avisarMock).toHaveBeenCalledWith("Fase eliminatória cancelada!", "success");
     });
 
     it("deve tratar erro ao cancelar eliminatória", async () => {
@@ -460,7 +460,7 @@ describe("useFaseEliminatoria", () => {
         await result.current.cancelarEliminatoria();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao cancelar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao cancelar", "error");
     });
   });
 
@@ -483,9 +483,10 @@ describe("useFaseEliminatoria", () => {
       });
 
       expect(mockEncerrarEtapa).toHaveBeenCalledWith("etapa-1");
-      expect(mockAlert).toHaveBeenCalledWith("Etapa encerrada com sucesso!");
-      // O reload é chamado, mas jsdom gera um erro "not implemented"
-      // O importante é que encerrarEtapa foi chamado com sucesso
+      // Guardado para depois do reload (que o jsdom não faz)
+      expect(lerAvisoAposRecarregar()).toBe(
+        "Etapa encerrada com sucesso!"
+      );
     });
 
     it("deve tratar erro ao encerrar etapa", async () => {
@@ -503,7 +504,7 @@ describe("useFaseEliminatoria", () => {
         await result.current.encerrarEtapa();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao encerrar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao encerrar", "error");
     });
   });
 

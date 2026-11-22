@@ -15,6 +15,9 @@ import {
   JogadorEquipe,
 } from "@/types/teams";
 import { NivelJogador, GeneroJogador } from "@/types/jogador";
+import { avisarMock, usarDialogosDeTeste } from "../../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do service
 const mockTeamsService = {
@@ -41,8 +44,6 @@ jest.mock("@/components/etapas/ModalDefinirJogadoresPartida", () => ({
 }));
 
 // Mock do alert
-const mockAlert = jest.fn();
-global.alert = mockAlert;
 
 // Mock do console.error para não poluir output
 const mockConsoleError = jest.fn();
@@ -459,7 +460,7 @@ describe("ModalLancamentoResultadosLoteTeams", () => {
       fireEvent.click(screen.getByText("Salvar Resultados (1)"));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!");
+        expect(avisarMock).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!", "success");
         expect(defaultProps.onSuccess).toHaveBeenCalled();
       });
     });

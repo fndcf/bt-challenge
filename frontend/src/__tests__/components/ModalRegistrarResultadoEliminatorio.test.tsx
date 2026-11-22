@@ -15,6 +15,9 @@ jest.mock("@/services", () => ({
 }));
 
 import { ModalRegistrarResultadoEliminatorio } from "@/components/etapas/ModalRegistrarResultadoEliminatorio/ModalRegistrarResultadoEliminatorio";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 const mockConfrontoNovo = {
   id: "confronto-1",
@@ -53,16 +56,12 @@ const mockConfrontoFinalizado = {
 describe("ModalRegistrarResultadoEliminatorio", () => {
   const mockOnClose = jest.fn();
   const mockOnSuccess = jest.fn();
-  const originalAlert = window.alert;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock window.alert globalmente para evitar erros no jsdom
-    window.alert = jest.fn();
   });
 
   afterAll(() => {
-    window.alert = originalAlert;
   });
 
   describe("renderização", () => {
@@ -313,7 +312,6 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
     placaresValidos.forEach(({ dupla1, dupla2 }) => {
       it(`deve aceitar placar ${dupla1}x${dupla2}`, async () => {
         mockRegistrarResultadoEliminatorio.mockResolvedValue(undefined);
-        const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
         render(
           <ModalRegistrarResultadoEliminatorio
@@ -333,7 +331,6 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
           expect(mockRegistrarResultadoEliminatorio).toHaveBeenCalled();
         });
 
-        alertMock.mockRestore();
       });
     });
   });
@@ -341,7 +338,6 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
   describe("submissão do formulário", () => {
     it("deve chamar registrarResultadoEliminatorio com dados corretos", async () => {
       mockRegistrarResultadoEliminatorio.mockResolvedValue(undefined);
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
       render(
         <ModalRegistrarResultadoEliminatorio
@@ -370,12 +366,10 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
         );
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve chamar onSuccess após registro bem sucedido", async () => {
       mockRegistrarResultadoEliminatorio.mockResolvedValue(undefined);
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
       render(
         <ModalRegistrarResultadoEliminatorio
@@ -395,12 +389,10 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
         expect(mockOnSuccess).toHaveBeenCalled();
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alert de sucesso para novo registro", async () => {
       mockRegistrarResultadoEliminatorio.mockResolvedValue(undefined);
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
       render(
         <ModalRegistrarResultadoEliminatorio
@@ -417,17 +409,15 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       fireEvent.click(screen.getByText("Salvar Resultado"));
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith(
-          expect.stringContaining("Resultado registrado com sucesso")
-        );
+        expect(avisarMock).toHaveBeenCalledWith(
+          expect.stringContaining("Resultado registrado com sucesso"), "success"
+      );
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alert de sucesso para edição", async () => {
       mockRegistrarResultadoEliminatorio.mockResolvedValue(undefined);
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
       render(
         <ModalRegistrarResultadoEliminatorio
@@ -440,12 +430,11 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
       fireEvent.click(screen.getByText("Atualizar Resultado"));
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith(
-          expect.stringContaining("Resultado atualizado com sucesso")
-        );
+        expect(avisarMock).toHaveBeenCalledWith(
+          expect.stringContaining("Resultado atualizado com sucesso"), "success"
+      );
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar erro ao falhar registro", async () => {

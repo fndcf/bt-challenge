@@ -7,6 +7,11 @@ import {
 } from "@/types/chave";
 import { getChaveService, getEtapaService } from "@/services";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import {
+  avisarErro,
+  avisarSucesso,
+  recarregarComAviso,
+} from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 export interface UseFaseEliminatoriaProps {
@@ -140,10 +145,12 @@ export const useFaseEliminatoria = ({
       setGlobalLoadingMessage("Gerando fase eliminatória...");
       await chaveService.gerarFaseEliminatoria(etapaId, 2);
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Fase eliminatória gerada com sucesso!");
+      avisarSucesso("Fase eliminatória gerada com sucesso!");
       await carregarConfrontos();
     } catch (err) {
-      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
+      avisarErro(
+        getMensagemErro(err, "Não foi possível concluir. Tente novamente.")
+      );
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -158,10 +165,12 @@ export const useFaseEliminatoria = ({
       setGlobalLoading(true);
       setGlobalLoadingMessage("Cancelando eliminatória...");
       await chaveService.cancelarFaseEliminatoria(etapaId);
-      alert("Fase eliminatória cancelada!");
+      avisarSucesso("Fase eliminatória cancelada!");
       await carregarConfrontos();
     } catch (err) {
-      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
+      avisarErro(
+        getMensagemErro(err, "Não foi possível concluir. Tente novamente.")
+      );
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -178,10 +187,11 @@ export const useFaseEliminatoria = ({
       await etapaService.encerrarEtapa(etapaId);
       // Invalidar cache do ranking pois os pontos foram atualizados
       invalidateRankingCache();
-      alert("Etapa encerrada com sucesso!");
-      window.location.reload();
+      recarregarComAviso("Etapa encerrada com sucesso!");
     } catch (err) {
-      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
+      avisarErro(
+        getMensagemErro(err, "Não foi possível concluir. Tente novamente.")
+      );
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

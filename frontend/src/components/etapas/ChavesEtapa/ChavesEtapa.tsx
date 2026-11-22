@@ -15,6 +15,7 @@ import {
 } from "@/components/torneio";
 import { FormatoEtapa } from "@/types/etapa";
 import { COLUNAS_ADMIN, linhasDeDuplas, temJogos } from "@/utils/classificacao";
+import { avisarErro } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 interface ChavesEtapaProps {
@@ -120,7 +121,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
       setPartidasModal(partidasDoGrupo);
       setGrupoModalAberto({ id: grupoId, nome: grupoNome });
     } catch (err) {
-      alert(getMensagemErro(err, "Erro ao carregar partidas"));
+      avisarErro(getMensagemErro(err, "Erro ao carregar partidas"));
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

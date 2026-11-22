@@ -1,0 +1,1 @@
+export { Dialogos } from "./Dialogos";

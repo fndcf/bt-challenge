@@ -3,14 +3,15 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
-import styled from "styled-components";
-import { SeloGenero } from "@/components/jogadores/Genero";
-import { Alert, Badge, Button, Input, Modal } from "@/components/ui";
+import styled, { css } from "styled-components";
+import {
+  LinhaJogador,
+  ListaDeJogadores,
+} from "@/components/jogadores/LinhaJogador";
+import { Alert, Button, Input, Modal } from "@/components/ui";
 import { getEtapaService } from "@/services";
 import { theme } from "@/styles/theme";
 import { Inscricao } from "@/types/etapa";
-import { getNivelLabel } from "@/utils/formatters";
 import { getMensagemErro } from "@/utils/erro";
 
 interface JogadorDisponivel {
@@ -30,7 +31,7 @@ interface ModalSubstituirJogadorProps {
 
 // ============== STYLED COMPONENTS ==============
 
-const { texto, superficie, acao } = theme.semantic;
+const { texto, acao } = theme.semantic;
 const { fontSize, fontWeight } = theme.typography;
 
 const Conteudo = styled.div`
@@ -51,7 +52,16 @@ const Colunas = styled.div`
   gap: ${theme.spacing[4]};
 `;
 
-const Coluna = styled.section`
+// No celular, uma escolha por vez: a segunda lista aparece depois da primeira
+const Coluna = styled.section<{ $depois: boolean }>`
+  ${({ $depois }) =>
+    $depois &&
+    css`
+      @media (max-width: ${theme.breakpoints.sm}) {
+        display: none !important;
+      }
+    `}
+
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing[2]};
@@ -65,45 +75,29 @@ const ColunaTitulo = styled.h4`
   color: ${texto.principal};
 `;
 
+// No celular a lista rola com o modal (sem rolagem dentro de rolagem)
 const Lista = styled.div`
-  max-height: 18rem;
-  overflow-y: auto;
-  border: 1px solid ${superficie.borda};
-  border-radius: ${theme.borderRadius.lg};
+  @media (min-width: ${theme.breakpoints.sm}) {
+    max-height: 18rem;
+    overflow-y: auto;
+  }
 `;
 
-const Jogador = styled.label<{ $selecionado: boolean }>`
+const Escolhido = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: ${theme.spacing[3]};
   min-height: 48px;
   padding: ${theme.spacing[2]} ${theme.spacing[3]};
-  background: ${({ $selecionado }) =>
-    $selecionado ? acao.fundoClaro : superficie.fundo};
+  border: 1px solid ${acao.primaria};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${acao.fundoClaro};
   color: ${texto.principal};
-  cursor: pointer;
 
-  & + & {
-    border-top: 1px solid ${superficie.borda};
-  }
-
-  &:hover {
-    background: ${acao.fundoClaro};
-  }
-
-  input {
-    flex-shrink: 0;
-    width: 1.125rem;
-    height: 1.125rem;
-    margin: 0;
-    accent-color: ${acao.primaria};
-  }
-
-  > span:first-of-type {
-    flex: 1;
+  strong {
     min-width: 0;
     overflow-wrap: anywhere;
-    font-weight: ${fontWeight.medium};
   }
 `;
 
@@ -115,32 +109,17 @@ const Vazio = styled.p`
   color: ${texto.secundario};
 `;
 
-const Resumo = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: ${theme.spacing[6]};
-  padding: ${theme.spacing[4]};
-  border-radius: ${theme.borderRadius.lg};
-  background: ${superficie.pagina};
-  color: ${texto.secundario};
-  font-size: ${fontSize.sm};
-
-  strong {
-    display: block;
-    color: ${texto.principal};
-  }
-`;
-
 // ============== LISTA DE ESCOLHA ==============
 
 interface ColunaJogadoresProps {
   titulo: string;
   jogadores: JogadorDisponivel[];
   selecionadoId: string | null;
-  onSelecionar: (id: string) => void;
+  onSelecionar: (id: string | null) => void;
   vazio: string;
   carregando?: boolean;
+  /** Escondida no celular até a escolha anterior */
+  depois?: boolean;
 }
 
 const ColunaJogadores: React.FC<ColunaJogadoresProps> = ({
@@ -150,6 +129,7 @@ const ColunaJogadores: React.FC<ColunaJogadoresProps> = ({
   onSelecionar,
   vazio,
   carregando = false,
+  depois = false,
 }) => {
   const [busca, setBusca] = useState("");
 
@@ -157,39 +137,54 @@ const ColunaJogadores: React.FC<ColunaJogadoresProps> = ({
     .filter((j) => j.nome.toLowerCase().includes(busca.toLowerCase()))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
+  const escolhido = jogadores.find((j) => j.id === selecionadoId);
+
   return (
-    <Coluna>
+    <Coluna $depois={depois} aria-label={titulo}>
       <ColunaTitulo>{titulo}</ColunaTitulo>
-      <Input
-        aria-label={`Buscar em ${titulo}`}
-        inputSize="sm"
-        fullWidth
-        placeholder="Buscar jogador..."
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-      />
-      <Lista role="radiogroup" aria-label={titulo}>
-        {carregando || listados.length === 0 ? (
-          <Vazio>{carregando ? "Carregando jogadores..." : vazio}</Vazio>
-        ) : (
-          listados.map((jogador) => (
-            <Jogador
-              key={jogador.id}
-              $selecionado={selecionadoId === jogador.id}
-            >
-              <input
-                type="radio"
-                name={titulo}
-                checked={selecionadoId === jogador.id}
-                onChange={() => onSelecionar(jogador.id)}
-              />
-              <span>{jogador.nome}</span>
-              <Badge>{getNivelLabel(jogador.nivel)}</Badge>
-              <SeloGenero genero={jogador.genero} />
-            </Jogador>
-          ))
-        )}
-      </Lista>
+      {escolhido ? (
+        <Escolhido>
+          <strong>{escolhido.nome}</strong>
+          <Button
+            variant="outline"
+            size="sm"
+            // Ao escolher, a linha clicada some: o foco vem para cá
+            autoFocus
+            aria-label={`Trocar ${escolhido.nome}`}
+            onClick={() => onSelecionar(null)}
+          >
+            Trocar
+          </Button>
+        </Escolhido>
+      ) : (
+        <>
+          <Input
+            type="search"
+            aria-label={`Buscar em ${titulo}`}
+            fullWidth
+            placeholder="Buscar jogador..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+          <Lista>
+            {carregando || listados.length === 0 ? (
+              <Vazio>{carregando ? "Carregando jogadores..." : vazio}</Vazio>
+            ) : (
+              <ListaDeJogadores>
+                {listados.map((jogador) => (
+                  <LinhaJogador
+                    key={jogador.id}
+                    nome={jogador.nome}
+                    nivel={jogador.nivel}
+                    genero={jogador.genero}
+                    onEscolher={() => onSelecionar(jogador.id)}
+                  />
+                ))}
+              </ListaDeJogadores>
+            )}
+          </Lista>
+        </>
+      )}
     </Coluna>
   );
 };
@@ -243,9 +238,6 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
     genero: inscricao.jogadorGenero,
   }));
 
-  const sai = inscritos.find((j) => j.id === antigoId);
-  const entra = disponiveis.find((j) => j.id === novoId);
-
   const handleConfirm = async () => {
     if (!antigoId || !novoId) return;
 
@@ -285,8 +277,7 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
     >
       <Conteudo>
         <Descricao>
-          Selecione o jogador a ser substituído e o novo jogador. Só é possível
-          substituir antes de qualquer partida ser jogada.
+          Escolha quem sai e quem entra. Só é possível substituir antes de qualquer partida ser jogada.
         </Descricao>
 
         {error && (
@@ -310,22 +301,9 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
             onSelecionar={setNovoId}
             vazio="Nenhum jogador disponível"
             carregando={carregando}
+            depois={!antigoId}
           />
         </Colunas>
-
-        {(sai || entra) && (
-          <Resumo>
-            <span>
-              Sai
-              <strong>{sai?.nome || "Não selecionado"}</strong>
-            </span>
-            <ArrowRight aria-hidden="true" size={20} />
-            <span>
-              Entra
-              <strong>{entra?.nome || "Não selecionado"}</strong>
-            </span>
-          </Resumo>
-        )}
       </Conteudo>
     </Modal>
   );

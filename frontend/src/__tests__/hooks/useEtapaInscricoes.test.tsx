@@ -5,6 +5,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useEtapaInscricoes } from "@/hooks/useEtapaInscricoes";
 import { Etapa, FormatoEtapa } from "@/types/etapa";
+import { avisarMock, confirmarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do logger
 jest.mock("@/utils/logger", () => ({
@@ -32,9 +35,6 @@ jest.mock("@/services", () => ({
   }),
 }));
 
-// Mock do window.confirm e window.alert
-const originalConfirm = window.confirm;
-const originalAlert = window.alert;
 
 describe("useEtapaInscricoes", () => {
   const mockEtapa: Etapa = {
@@ -56,8 +56,6 @@ describe("useEtapaInscricoes", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    window.confirm = jest.fn(() => true);
-    window.alert = jest.fn();
     mockReabrirInscricoes.mockResolvedValue(undefined);
     mockEncerrarInscricoes.mockResolvedValue(undefined);
     mockEncerrarEtapa.mockResolvedValue(undefined);
@@ -65,8 +63,6 @@ describe("useEtapaInscricoes", () => {
   });
 
   afterAll(() => {
-    window.confirm = originalConfirm;
-    window.alert = originalAlert;
   });
 
   describe("handleAbrirInscricoes", () => {
@@ -79,16 +75,16 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleAbrirInscricoes();
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
       expect(mockReabrirInscricoes).toHaveBeenCalledWith("etapa-123");
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith(
-        "Inscrições reabertas com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Inscrições reabertas com sucesso!", "success"
       );
     });
 
     it("não deve reabrir quando cancelado", async () => {
-      (window.confirm as jest.Mock).mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
@@ -110,7 +106,7 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleAbrirInscricoes();
       });
 
-      expect(window.confirm).not.toHaveBeenCalled();
+      expect(confirmarMock).not.toHaveBeenCalled();
       expect(mockReabrirInscricoes).not.toHaveBeenCalled();
     });
 
@@ -122,12 +118,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleAbrirInscricoes();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleAbrirInscricoes();
+          })
+        )
       ).rejects.toThrow("Erro ao reabrir");
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao reabrir");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao reabrir", "error");
     });
 
     it("deve mostrar mensagem padrão quando erro não tem message ao reabrir", async () => {
@@ -138,12 +136,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleAbrirInscricoes();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleAbrirInscricoes();
+          })
+        )
       ).rejects.toBeDefined();
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao reabrir inscrições");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao reabrir inscrições", "error");
     });
   });
 
@@ -157,16 +157,16 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleEncerrarInscricoes();
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
       expect(mockEncerrarInscricoes).toHaveBeenCalledWith("etapa-123");
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith(
-        "Inscrições encerradas com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Inscrições encerradas com sucesso!", "success"
       );
     });
 
     it("não deve encerrar quando cancelado", async () => {
-      (window.confirm as jest.Mock).mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
@@ -199,12 +199,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleEncerrarInscricoes();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleEncerrarInscricoes();
+          })
+        )
       ).rejects.toThrow("Erro ao encerrar");
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao encerrar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao encerrar", "error");
     });
 
     it("deve mostrar mensagem padrão quando erro não tem message", async () => {
@@ -215,12 +217,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleEncerrarInscricoes();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleEncerrarInscricoes();
+          })
+        )
       ).rejects.toBeDefined();
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao encerrar inscrições");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao encerrar inscrições", "error");
     });
   });
 
@@ -234,16 +238,16 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleFinalizarEtapa();
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
       expect(mockEncerrarEtapa).toHaveBeenCalledWith("etapa-123");
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith(
-        "Etapa finalizada com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Etapa finalizada com sucesso!", "success"
       );
     });
 
     it("não deve finalizar quando cancelado", async () => {
-      (window.confirm as jest.Mock).mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
@@ -276,12 +280,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleFinalizarEtapa();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleFinalizarEtapa();
+          })
+        )
       ).rejects.toThrow("Erro ao finalizar");
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao finalizar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao finalizar", "error");
     });
 
     it("deve mostrar mensagem padrão quando erro não tem message ao finalizar", async () => {
@@ -292,12 +298,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleFinalizarEtapa();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleFinalizarEtapa();
+          })
+        )
       ).rejects.toBeDefined();
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao finalizar etapa");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao finalizar etapa", "error");
     });
   });
 
@@ -311,18 +319,21 @@ describe("useEtapaInscricoes", () => {
         await result.current.handleCancelarInscricao("insc-123", "João Silva");
       });
 
-      expect(window.confirm).toHaveBeenCalledWith(
-        "Deseja cancelar a inscrição de João Silva?"
+      expect(confirmarMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mensagem: "Deseja excluir a inscrição de João Silva?",
+          perigo: true,
+        })
       );
       expect(mockCancelarInscricoesEmLote).toHaveBeenCalledWith("etapa-123", ["insc-123"]);
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith(
-        "Inscrição cancelada com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Inscrição cancelada com sucesso!", "success"
       );
     });
 
     it("não deve cancelar quando usuário nega", async () => {
-      (window.confirm as jest.Mock).mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
         useEtapaInscricoes({ etapa: mockEtapa, onSuccess: mockOnSuccess })
@@ -355,12 +366,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleCancelarInscricao("insc-123", "João Silva");
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleCancelarInscricao("insc-123", "João Silva");
+          })
+        )
       ).rejects.toThrow("Erro ao cancelar");
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao cancelar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao cancelar", "error");
     });
 
     it("deve mostrar mensagem padrão quando erro não tem message ao cancelar", async () => {
@@ -371,12 +384,14 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleCancelarInscricao("insc-123", "João Silva");
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleCancelarInscricao("insc-123", "João Silva");
+          })
+        )
       ).rejects.toBeDefined();
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao cancelar inscrição");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao cancelar inscrição", "error");
     });
   });
 
@@ -402,8 +417,8 @@ describe("useEtapaInscricoes", () => {
         "insc-3",
       ]);
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith(
-        "3 inscrição(ões) cancelada(s) com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "3 inscrição(ões) cancelada(s) com sucesso!", "success"
       );
     });
 
@@ -425,8 +440,8 @@ describe("useEtapaInscricoes", () => {
         ]);
       });
 
-      expect(window.alert).toHaveBeenCalledWith(
-        "2 inscrição(ões) cancelada(s).\n1 erro(s): Erro no insc-3"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "2 inscrição(ões) cancelada(s).\n1 erro(s): Erro no insc-3", "warning"
       );
     });
 
@@ -450,9 +465,11 @@ describe("useEtapaInscricoes", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleCancelarMultiplosInscricoes(["insc-1"]);
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleCancelarMultiplosInscricoes(["insc-1"]);
+          })
+        )
       ).rejects.toThrow("Erro ao cancelar");
     });
   });
@@ -468,8 +485,8 @@ describe("useEtapaInscricoes", () => {
       });
 
       expect(mockReabrirInscricoes).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith(
-        "Inscrições reabertas com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Inscrições reabertas com sucesso!", "success"
       );
     });
   });

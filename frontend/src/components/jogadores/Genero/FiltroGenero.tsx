@@ -7,7 +7,7 @@ import styled from "styled-components";
 import { Button } from "@/components/ui";
 import { theme } from "@/styles/theme";
 import { GeneroJogador } from "@/types/jogador";
-import { GeneroDoJogador, SIMBOLO_GENERO } from "./SeloGenero";
+import { GeneroDoJogador, IconeGenero } from "./SeloGenero";
 
 export type ValorFiltroGenero = "todos" | GeneroDoJogador;
 
@@ -28,8 +28,8 @@ const { MASCULINO, FEMININO } = GeneroJogador;
 
 const OPCOES: { valor: ValorFiltroGenero; label: string }[] = [
   { valor: "todos", label: "Todos" },
-  { valor: MASCULINO, label: `${SIMBOLO_GENERO[MASCULINO]} Masc` },
-  { valor: FEMININO, label: `${SIMBOLO_GENERO[FEMININO]} Fem` },
+  { valor: MASCULINO, label: "Masc" },
+  { valor: FEMININO, label: "Fem" },
 ];
 
 /** true quando o jogador deve aparecer com o filtro escolhido */
@@ -54,6 +54,9 @@ export const FiltroGenero: React.FC<FiltroGeneroProps> = ({
           key={opcao.valor}
           type="button"
           size="sm"
+          icon={
+            opcao.valor !== "todos" && <IconeGenero genero={opcao.valor} />
+          }
           variant={valor === opcao.valor ? "primary" : "outline"}
           aria-pressed={valor === opcao.valor}
           onClick={() => onChange(opcao.valor)}

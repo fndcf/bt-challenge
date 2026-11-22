@@ -4,6 +4,11 @@ import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { getChaveamentoLabel } from "@/utils/etapa";
 import { getReiDaPraiaService, getEtapaService } from "@/services";
 import { invalidateRankingCache } from "@/components/jogadores/RankingList";
+import {
+  avisarErro,
+  avisarSucesso,
+  recarregarComAviso,
+} from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 export interface ConfrontoEliminatorioReiDaPraia {
@@ -179,7 +184,7 @@ export const useFaseEliminatoriaReiDaPraia = ({
       });
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Fase eliminatória Rei da Praia gerada com sucesso!");
+      avisarSucesso("Fase eliminatória Rei da Praia gerada com sucesso!");
       await carregarConfrontos();
     } catch (err) {
       // Empate (no grupo ou entre 1ºs/2ºs colocados): o painel de empates
@@ -187,7 +192,9 @@ export const useFaseEliminatoriaReiDaPraia = ({
       if (onEmpatePendente && getMensagemErro(err, "").includes("empate pendente")) {
         onEmpatePendente();
       } else {
-        alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
+        avisarErro(
+        getMensagemErro(err, "Não foi possível concluir. Tente novamente.")
+      );
       }
     } finally {
       setGlobalLoading(false);
@@ -203,10 +210,12 @@ export const useFaseEliminatoriaReiDaPraia = ({
       setGlobalLoading(true);
       setGlobalLoadingMessage("Cancelando eliminatória...");
       await reiDaPraiaService.cancelarEliminatoria(etapaId);
-      alert("Fase eliminatória cancelada!");
+      avisarSucesso("Fase eliminatória cancelada!");
       await carregarConfrontos();
     } catch (err) {
-      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
+      avisarErro(
+        getMensagemErro(err, "Não foi possível concluir. Tente novamente.")
+      );
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");
@@ -223,10 +232,11 @@ export const useFaseEliminatoriaReiDaPraia = ({
       await etapaService.encerrarEtapa(etapaId);
       // Invalidar cache do ranking pois os pontos foram atualizados
       invalidateRankingCache();
-      alert("Etapa Rei da Praia encerrada com sucesso!");
-      window.location.reload();
+      recarregarComAviso("Etapa Rei da Praia encerrada com sucesso!");
     } catch (err) {
-      alert(`Erro: ${getMensagemErro(err, "tente novamente")}`);
+      avisarErro(
+        getMensagemErro(err, "Não foi possível concluir. Tente novamente.")
+      );
     } finally {
       setGlobalLoading(false);
       setGlobalLoadingMessage("");

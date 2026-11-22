@@ -6,6 +6,9 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "@/components/etapas/ModalLancamentoResultadosLoteDuplaFixa/ModalLancamentoResultadosLoteDuplaFixa";
 import { Partida } from "@/types/chave";
+import { avisarMock, usarDialogosDeTeste } from "../../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do service
 const mockPartidaService = {
@@ -17,8 +20,6 @@ jest.mock("@/services", () => ({
 }));
 
 // Mock do alert
-const mockAlert = jest.fn();
-global.alert = mockAlert;
 
 // ============================================
 // DADOS DE TESTE
@@ -311,7 +312,7 @@ describe("ModalLancamentoResultadosLoteDuplaFixa", () => {
       fireEvent.click(screen.getByText("Salvar Resultados (1)"));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!");
+        expect(avisarMock).toHaveBeenCalledWith("1 resultado(s) salvo(s) com sucesso!", "success");
         expect(defaultProps.onSuccess).toHaveBeenCalled();
       });
     });

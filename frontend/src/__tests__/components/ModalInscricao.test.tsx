@@ -24,6 +24,9 @@ jest.mock("@/services", () => ({
 }));
 
 import { ModalInscricao } from "@/components/etapas/ModalInscricao/ModalInscricao";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 const mockJogadores = [
   {
@@ -88,7 +91,6 @@ describe("ModalInscricao", () => {
     jest.clearAllMocks();
     mockListar.mockResolvedValue({ jogadores: mockJogadores });
     mockListarInscricoes.mockResolvedValue([]);
-    jest.spyOn(window, "alert").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -156,7 +158,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
-      expect(screen.getByText("Cadastrar Novo Jogador")).toBeInTheDocument();
+      expect(screen.getByText("Cadastrar Jogador")).toBeInTheDocument();
     });
 
     it("deve voltar para aba de seleção", async () => {
@@ -273,7 +275,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("João Silva"));
 
-      expect(screen.getByText("1 jogador(es) selecionado(s)")).toBeInTheDocument();
+      expect(screen.getByText(/^1 de \d+ vaga\(s\) selecionada\(s\)$/)).toBeInTheDocument();
     });
 
     it("deve desselecionar jogador ao clicar novamente", async () => {
@@ -284,10 +286,10 @@ describe("ModalInscricao", () => {
       });
 
       fireEvent.click(screen.getByText("João Silva"));
-      expect(screen.getByText("1 jogador(es) selecionado(s)")).toBeInTheDocument();
+      expect(screen.getByText(/^1 de \d+ vaga\(s\) selecionada\(s\)$/)).toBeInTheDocument();
 
       fireEvent.click(screen.getByText("João Silva"));
-      expect(screen.queryByText("1 jogador(es) selecionado(s)")).not.toBeInTheDocument();
+      expect(screen.queryByText(/^1 de \d+ vaga\(s\) selecionada\(s\)$/)).not.toBeInTheDocument();
     });
 
     it("deve permitir selecionar múltiplos jogadores", async () => {
@@ -300,7 +302,7 @@ describe("ModalInscricao", () => {
       fireEvent.click(screen.getByText("João Silva"));
       fireEvent.click(screen.getByText("Pedro Santos"));
 
-      expect(screen.getByText("2 jogador(es) selecionado(s)")).toBeInTheDocument();
+      expect(screen.getByText(/^2 de \d+ vaga\(s\) selecionada\(s\)$/)).toBeInTheDocument();
     });
 
     it("deve limitar seleção às vagas disponíveis", async () => {
@@ -315,9 +317,13 @@ describe("ModalInscricao", () => {
       fireEvent.click(screen.getByText("João Silva"));
       fireEvent.click(screen.getByText("Pedro Santos"));
 
-      expect(window.alert).toHaveBeenCalledWith(
-        "Você só pode inscrever 1 jogador(es) nesta etapa."
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Limite de 1 vaga(s) atingido. Desmarque um jogador para escolher outro."
       );
+
+      // Some ao liberar a vaga
+      fireEvent.click(screen.getByText("João Silva"));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
 
@@ -394,9 +400,9 @@ describe("ModalInscricao", () => {
       fireEvent.click(screen.getByText("Inscrever"));
 
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith(
-          "1 jogador(es) inscrito(s) com sucesso!"
-        );
+        expect(avisarMock).toHaveBeenCalledWith(
+          "1 jogador(es) inscrito(s) com sucesso!", "success"
+      );
       });
     });
 
@@ -468,7 +474,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
-      expect(screen.getByDisplayValue("Intermediário")).toBeInTheDocument();
+      expect(screen.getByText(/· Nível: Intermediário$/)).toBeInTheDocument();
     });
 
     it("deve preencher gênero automaticamente", async () => {
@@ -476,7 +482,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
-      expect(screen.getByDisplayValue("Masculino")).toBeInTheDocument();
+      expect(screen.getByText(/Gênero: Masculino/)).toBeInTheDocument();
     });
 
     it("deve desabilitar botão cadastrar sem nome", async () => {
@@ -673,7 +679,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar primeiro jogador"));
 
-      expect(screen.getByText("Cadastrar Novo Jogador")).toBeInTheDocument();
+      expect(screen.getByText("Cadastrar Jogador")).toBeInTheDocument();
     });
 
     it("deve mostrar mensagem quando todos já estão inscritos", async () => {
@@ -796,7 +802,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
-      expect(screen.getByDisplayValue("Iniciante")).toBeInTheDocument();
+      expect(screen.getByText(/· Nível: Iniciante$/)).toBeInTheDocument();
     });
 
     it("deve mostrar nível Avançado", async () => {
@@ -806,7 +812,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
-      expect(screen.getByDisplayValue("Avançado")).toBeInTheDocument();
+      expect(screen.getByText(/· Nível: Avançado$/)).toBeInTheDocument();
     });
   });
 
@@ -821,7 +827,7 @@ describe("ModalInscricao", () => {
 
       fireEvent.click(screen.getByText("Cadastrar Novo"));
 
-      expect(screen.getByDisplayValue("Feminino")).toBeInTheDocument();
+      expect(screen.getByText(/Gênero: Feminino/)).toBeInTheDocument();
     });
   });
 
@@ -937,9 +943,7 @@ describe("ModalInscricao", () => {
       // Já tem 1 inscrito + 1 selecionado = 2, deveria alertar ao tentar mais um
       fireEvent.click(screen.getByText("Pedro Masculino"));
 
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringMatching(/Limite de jogadores masculinos atingido/)
-      );
+      expect(screen.getByRole("alert")).toHaveTextContent(/Limite de jogadores masculinos atingido/);
     });
 
     it("deve limitar seleção de jogadoras femininas em etapa mista", async () => {
@@ -968,9 +972,7 @@ describe("ModalInscricao", () => {
       // Já tem 1 inscrita + 1 selecionada = 2, deveria alertar ao tentar mais uma
       fireEvent.click(screen.getByText("Ana Feminina"));
 
-      expect(window.alert).toHaveBeenCalledWith(
-        expect.stringMatching(/Limite de jogadoras femininas atingido/)
-      );
+      expect(screen.getByRole("alert")).toHaveTextContent(/Limite de jogadoras femininas atingido/);
     });
 
     it("deve filtrar por gênero em etapa mista, sem perder os selecionados", async () => {
@@ -990,11 +992,11 @@ describe("ModalInscricao", () => {
       );
 
       fireEvent.click(await screen.findByText("João Masculino"));
-      fireEvent.click(screen.getByRole("button", { name: "♀ Fem (1)" }));
+      fireEvent.click(screen.getByRole("button", { name: "Fem (1)" }));
 
       expect(screen.getByText("Maria Feminina")).toBeInTheDocument();
       expect(screen.queryByText("João Masculino")).not.toBeInTheDocument();
-      expect(screen.getByText("1 jogador(es) selecionado(s)")).toBeInTheDocument();
+      expect(screen.getByText(/^1 de \d+ vaga\(s\) selecionada\(s\)$/)).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: "Todos (2)" }));
       expect(screen.getByText("João Masculino")).toBeInTheDocument();
@@ -1026,8 +1028,8 @@ describe("ModalInscricao", () => {
       });
 
       // Deve mostrar indicadores de gênero
-      expect(screen.getAllByText(/♂ M/).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/♀ F/).length).toBeGreaterThan(0);
+      expect(screen.getAllByTitle("Masculino").length).toBeGreaterThan(0);
+      expect(screen.getAllByTitle("Feminino").length).toBeGreaterThan(0);
     });
 
     it("deve permitir selecionar gênero no formulário de cadastro em etapa mista", async () => {
@@ -1159,15 +1161,15 @@ describe("ModalInscricao", () => {
       fireEvent.click(screen.getByText("João Silva"));
       fireEvent.click(screen.getByText("Pedro Santos"));
 
-      expect(screen.getByText("2 jogador(es) selecionado(s)")).toBeInTheDocument();
+      expect(screen.getByText(/^2 de \d+ vaga\(s\) selecionada\(s\)$/)).toBeInTheDocument();
 
       fireEvent.click(screen.getByText("Inscrever"));
 
       await waitFor(() => {
         // Deve mostrar mensagem de sucesso parcial
-        expect(window.alert).toHaveBeenCalledWith(
-          expect.stringMatching(/inscrito\(s\) com sucesso!.*falharam/s)
-        );
+        expect(avisarMock).toHaveBeenCalledWith(
+          expect.stringMatching(/inscrito\(s\) com sucesso!.*falharam/s), "warning"
+      );
       });
     });
 

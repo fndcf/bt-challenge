@@ -15,6 +15,7 @@ import {
   resultadoVazio,
   validarResultado,
 } from "@/utils/resultadosLote";
+import { avisarSucesso } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 type Partidas = Parameters<typeof montarResultadosIniciais>[0];
@@ -136,7 +137,7 @@ export const useResultadosLote = ({
         return;
       }
 
-      alert(`${processados} resultado(s) salvo(s) com sucesso!`);
+      avisarSucesso(`${processados} resultado(s) salvo(s) com sucesso!`);
       onSuccess();
     } catch (err) {
       setErroGlobal(

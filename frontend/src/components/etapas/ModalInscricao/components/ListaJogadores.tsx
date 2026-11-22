@@ -5,18 +5,15 @@
 import React from "react";
 import styled from "styled-components";
 import { Button, EmptyState, Input } from "@/components/ui";
+import { FiltroGenero, ValorFiltroGenero } from "@/components/jogadores/Genero";
 import {
-  FiltroGenero,
-  SeloGenero,
-  ValorFiltroGenero,
-} from "@/components/jogadores/Genero";
+  LinhaJogador,
+  ListaDeJogadores,
+} from "@/components/jogadores/LinhaJogador";
 import LoadingSpinner from "@/components/common/LoadingSpinner/LoadingSpinner";
 import { theme } from "@/styles/theme";
 import { Jogador, NivelJogador } from "@/types/jogador";
 import { getNivelLabel } from "@/utils/formatters";
-
-const { texto, superficie, acao } = theme.semantic;
-const { fontSize, fontWeight } = theme.typography;
 
 interface ListaJogadoresProps {
   busca: string;
@@ -36,75 +33,20 @@ interface ListaJogadoresProps {
   onCadastrar: () => void;
 }
 
-const Grade = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
-  gap: ${theme.spacing[3]};
-  margin-top: ${theme.spacing[4]};
-`;
-
 const Carregando = styled.div`
   padding: ${theme.spacing[12]} 0;
 `;
 
-const Cartao = styled.label<{ $selecionado: boolean }>`
-  display: flex;
-  align-items: flex-start;
-  gap: ${theme.spacing[3]};
-  padding: ${theme.spacing[3]};
-  border: 1px solid
-    ${({ $selecionado }) => ($selecionado ? acao.primaria : superficie.borda)};
-  border-radius: ${theme.borderRadius.lg};
-  background: ${({ $selecionado }) =>
-    $selecionado ? acao.fundoClaro : superficie.fundo};
-  cursor: pointer;
-
-  &:hover {
-    border-color: ${acao.primaria};
-  }
-
-  &:focus-within {
-    outline: 2px solid ${acao.primaria};
-    outline-offset: 1px;
-  }
-
-  input {
-    flex-shrink: 0;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin: 0;
-    accent-color: ${acao.primaria};
-    cursor: pointer;
-  }
-`;
-
-const Dados = styled.span`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing[1]};
-  min-width: 0;
-  overflow-wrap: anywhere;
-`;
-
-const DireitaDoCartao = styled.span`
-  margin-left: auto;
-`;
-
+// Presa no topo: dá para buscar sem voltar a lista toda
 const Filtros = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: ${theme.spacing[2]} 0;
+  background: ${theme.semantic.superficie.fundo};
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing[3]};
-`;
-
-const Nome = styled.span`
-  font-size: ${fontSize.base};
-  font-weight: ${fontWeight.semibold};
-  color: ${texto.principal};
-`;
-
-const Complemento = styled.span`
-  font-size: ${fontSize.sm};
-  color: ${texto.secundario};
 `;
 
 export const ListaJogadores: React.FC<ListaJogadoresProps> = ({
@@ -171,35 +113,20 @@ export const ListaJogadores: React.FC<ListaJogadoresProps> = ({
     }
 
     return (
-      <Grade>
-        {jogadores.map((jogador) => {
-          const selecionado = estaSelecionado(jogador.id);
-
-          return (
-            <Cartao key={jogador.id} $selecionado={selecionado}>
-              <input
-                type="checkbox"
-                checked={selecionado}
-                onChange={() => onToggle(jogador)}
-              />
-              <Dados>
-                <Nome>{jogador.nome}</Nome>
-                {jogador.email && <Complemento>{jogador.email}</Complemento>}
-                {jogador.nivel && (
-                  <Complemento>
-                    Nível: {getNivelLabel(jogador.nivel).toLowerCase()}
-                  </Complemento>
-                )}
-              </Dados>
-              {isMisto && (
-                <DireitaDoCartao>
-                  <SeloGenero genero={jogador.genero} />
-                </DireitaDoCartao>
-              )}
-            </Cartao>
-          );
-        })}
-      </Grade>
+      <ListaDeJogadores>
+        {jogadores.map((jogador) => (
+          <LinhaJogador
+            key={jogador.id}
+            nome={jogador.nome}
+            detalhe={jogador.email}
+            // Com nível definido pela etapa, todos são iguais
+            nivel={etapaNivel ? undefined : jogador.nivel}
+            genero={isMisto ? jogador.genero : undefined}
+            selecionado={estaSelecionado(jogador.id)}
+            onEscolher={() => onToggle(jogador)}
+          />
+        ))}
+      </ListaDeJogadores>
     );
   };
 

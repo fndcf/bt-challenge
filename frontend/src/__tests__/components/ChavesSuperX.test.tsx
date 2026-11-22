@@ -56,6 +56,9 @@ jest.mock("@/components/modals/ConfirmacaoPerigosa/ConfirmacaoPerigosa", () => (
 
 import { ChavesSuperX } from "@/components/etapas/ChavesSuperX/ChavesSuperX";
 import { VarianteSuperX } from "@/types/etapa";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 const mockGrupo = {
   id: "grupo-super-x",
@@ -1007,7 +1010,6 @@ describe("ChavesSuperX", () => {
     });
 
     it("deve mostrar alerta ao erro ao carregar partidas", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       mockBuscarPartidas.mockRejectedValue(new Error("Erro ao carregar"));
 
       render(
@@ -1023,10 +1025,9 @@ describe("ChavesSuperX", () => {
       });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao carregar");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao carregar", "error");
       });
 
-      alertMock.mockRestore();
     });
   });
 
@@ -1116,7 +1117,6 @@ describe("ChavesSuperX", () => {
     });
 
     it("deve mostrar alerta ao erro ao encerrar etapa", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       mockEncerrarEtapa.mockRejectedValue(new Error("Erro ao encerrar"));
 
       const grupoFinalizado = {
@@ -1145,10 +1145,9 @@ describe("ChavesSuperX", () => {
       fireEvent.click(screen.getByText("Confirmar Encerrar"));
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao encerrar");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao encerrar", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve fechar modal ao cancelar", async () => {

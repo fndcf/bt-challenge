@@ -2,6 +2,10 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { useFaseEliminatoriaReiDaPraia } from "@/components/etapas/FaseEliminatoriaReiDaPraia/hooks/useFaseEliminatoriaReiDaPraia";
 import { TipoFase, StatusConfrontoEliminatorio, Grupo } from "@/types/chave";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+import { lerAvisoAposRecarregar } from "@/utils/dialogos";
+
+usarDialogosDeTeste();
 
 // Mocks
 const mockBuscarConfrontosEliminatorios = jest.fn();
@@ -23,11 +27,7 @@ jest.mock("@/services", () => ({
 }));
 
 // Mock do confirm e alert
-const mockConfirm = jest.fn();
-const mockAlert = jest.fn();
 
-window.confirm = mockConfirm;
-window.alert = mockAlert;
 
 // Mock de location.reload usando delete + redefine
 delete (window as any).location;
@@ -514,8 +514,8 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
         classificadosPorGrupo: 2,
         tipoChaveamento: TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES,
       });
-      expect(mockAlert).toHaveBeenCalledWith(
-        "Fase eliminatória Rei da Praia gerada com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Fase eliminatória Rei da Praia gerada com sucesso!", "success"
       );
     });
 
@@ -562,7 +562,7 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
         await result.current.gerarEliminatoria();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao gerar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar", "error");
     });
 
     it("deve chamar onEmpatePendente (sem alert) quando bloqueado por empate", async () => {
@@ -590,7 +590,7 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
       });
 
       expect(onEmpatePendente).toHaveBeenCalled();
-      expect(mockAlert).not.toHaveBeenCalled();
+      expect(avisarMock).not.toHaveBeenCalled();
     });
 
     it("deve manter o alert para outros erros mesmo com onEmpatePendente", async () => {
@@ -614,7 +614,7 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
       });
 
       expect(onEmpatePendente).not.toHaveBeenCalled();
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao gerar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar", "error");
     });
   });
 
@@ -640,7 +640,7 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
       });
 
       expect(mockCancelarEliminatoria).toHaveBeenCalledWith("etapa-1");
-      expect(mockAlert).toHaveBeenCalledWith("Fase eliminatória cancelada!");
+      expect(avisarMock).toHaveBeenCalledWith("Fase eliminatória cancelada!", "success");
     });
 
     it("deve tratar erro ao cancelar eliminatória", async () => {
@@ -663,7 +663,7 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
         await result.current.cancelarEliminatoria();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao cancelar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao cancelar", "error");
     });
   });
 
@@ -689,7 +689,8 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
       });
 
       expect(mockEncerrarEtapa).toHaveBeenCalledWith("etapa-1");
-      expect(mockAlert).toHaveBeenCalledWith(
+      // Guardado para depois do reload (que o jsdom não faz)
+      expect(lerAvisoAposRecarregar()).toBe(
         "Etapa Rei da Praia encerrada com sucesso!"
       );
     });
@@ -712,7 +713,7 @@ describe("useFaseEliminatoriaReiDaPraia", () => {
         await result.current.encerrarEtapa();
       });
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro: Erro ao encerrar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao encerrar", "error");
     });
   });
 

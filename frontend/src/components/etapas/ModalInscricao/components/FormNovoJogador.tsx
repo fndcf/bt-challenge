@@ -4,36 +4,37 @@
 
 import React from "react";
 import styled from "styled-components";
-import { Button, Input, Select } from "@/components/ui";
+import { Input, Select } from "@/components/ui";
 import { theme } from "@/styles/theme";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getGeneroLabel, getNivelLabel } from "@/utils/formatters";
 import { NovoJogador } from "../hooks/useModalInscricao";
 
 interface FormNovoJogadorProps {
+  /** O botão de cadastrar fica no rodapé do modal */
+  id: string;
   jogador: NovoJogador;
   onChange: (jogador: NovoJogador) => void;
   onCadastrar: () => void;
-  loading: boolean;
   /** Etapa mista: escolhe o gênero */
   escolheGenero: boolean;
   /** Etapa de nível livre: escolhe o nível */
   escolheNivel: boolean;
 }
 
-const Formulario = styled.div`
+const Formulario = styled.form`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing[4]};
+  width: 100%;
   max-width: 32rem;
   margin: 0 auto;
 `;
 
-const Titulo = styled.h3`
+const Definidos = styled.p`
   margin: 0;
-  font-size: ${theme.typography.fontSize.lg};
-  font-weight: ${theme.typography.fontWeight.semibold};
-  color: ${theme.semantic.texto.principal};
+  font-size: ${theme.typography.fontSize.sm};
+  color: ${theme.semantic.texto.secundario};
 `;
 
 const opcoes = <T extends string>(valores: T[], rotulo: (v: T) => string) =>
@@ -54,19 +55,33 @@ const OPCOES_NIVEL = opcoes(
 );
 
 export const FormNovoJogador: React.FC<FormNovoJogadorProps> = ({
+  id,
   jogador,
   onChange,
   onCadastrar,
-  loading,
   escolheGenero,
   escolheNivel,
 }) => {
   const alterar = (campos: Partial<NovoJogador>) =>
     onChange({ ...jogador, ...campos });
 
+  // O que a etapa já define não é pergunta: só informa
+  const definidos = [
+    !escolheGenero && `Gênero: ${getGeneroLabel(jogador.genero)}`,
+    !escolheNivel && `Nível: ${getNivelLabel(jogador.nivel)}`,
+  ].filter(Boolean);
+
   return (
-    <Formulario>
-      <Titulo>Cadastrar Novo Jogador</Titulo>
+    <Formulario
+      id={id}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onCadastrar();
+      }}
+    >
+      {definidos.length > 0 && (
+        <Definidos>{`Definido pela etapa: ${definidos.join(" · ")}`}</Definidos>
+      )}
 
       <Input
         label="Nome"
@@ -93,7 +108,7 @@ export const FormNovoJogador: React.FC<FormNovoJogadorProps> = ({
         onChange={(e) => alterar({ telefone: e.target.value })}
       />
 
-      {escolheGenero ? (
+      {escolheGenero && (
         <Select
           label="Gênero"
           required
@@ -103,17 +118,9 @@ export const FormNovoJogador: React.FC<FormNovoJogadorProps> = ({
           value={jogador.genero}
           onChange={(e) => alterar({ genero: e.target.value as GeneroJogador })}
         />
-      ) : (
-        <Input
-          label="Gênero"
-          disabled
-          fullWidth
-          helperText="O jogador será criado automaticamente com o gênero desta etapa"
-          value={getGeneroLabel(jogador.genero)}
-        />
       )}
 
-      {escolheNivel ? (
+      {escolheNivel && (
         <Select
           label="Nível"
           required
@@ -123,23 +130,7 @@ export const FormNovoJogador: React.FC<FormNovoJogadorProps> = ({
           value={jogador.nivel}
           onChange={(e) => alterar({ nivel: e.target.value as NivelJogador })}
         />
-      ) : (
-        <Input
-          label="Nível"
-          disabled
-          fullWidth
-          helperText="O jogador será criado automaticamente com o nível desta etapa"
-          value={getNivelLabel(jogador.nivel)}
-        />
       )}
-
-      <Button
-        fullWidth
-        onClick={onCadastrar}
-        disabled={loading || !jogador.nome.trim()}
-      >
-        {loading ? "Cadastrando..." : "Cadastrar Jogador"}
-      </Button>
     </Formulario>
   );
 };

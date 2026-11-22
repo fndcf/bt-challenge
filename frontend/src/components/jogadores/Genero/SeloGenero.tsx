@@ -3,15 +3,27 @@
  */
 
 import React from "react";
+import { LucideIcon, Mars, Venus } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { GeneroJogador } from "@/types/jogador";
 import { getGeneroLabel } from "@/utils/formatters";
 
 export type GeneroDoJogador = GeneroJogador.MASCULINO | GeneroJogador.FEMININO;
 
-export const SIMBOLO_GENERO: Record<GeneroDoJogador, string> = {
-  [GeneroJogador.MASCULINO]: "♂",
-  [GeneroJogador.FEMININO]: "♀",
+const ICONE: Record<GeneroDoJogador, LucideIcon> = {
+  [GeneroJogador.MASCULINO]: Mars,
+  [GeneroJogador.FEMININO]: Venus,
+};
+
+/**
+ * Ícone do gênero. Desenhado, e não o caractere: no iPhone o caractere sai
+ * menor e fora da linha do texto.
+ */
+export const IconeGenero: React.FC<{ genero: GeneroDoJogador }> = ({
+  genero,
+}) => {
+  const Icone = ICONE[genero];
+  return <Icone aria-hidden="true" size="1.1em" strokeWidth={2.5} />;
 };
 
 const LETRA: Record<GeneroDoJogador, string> = {
@@ -34,7 +46,7 @@ export const SeloGenero: React.FC<SeloGeneroProps> = ({ genero, children }) => {
 
   return (
     <Badge genero={genero} title={getGeneroLabel(genero)}>
-      {`${SIMBOLO_GENERO[genero]} `}
+      <IconeGenero genero={genero} />
       {children ?? LETRA[genero]}
     </Badge>
   );

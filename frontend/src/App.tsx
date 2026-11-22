@@ -16,6 +16,7 @@ import JogadorPerfil from "./pages/JogadorPerfil";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import "./config/firebase";
+import { Dialogos } from "./components/common/Dialogos";
 import { ToastProvider } from "./components/ui";
 
 // Pages - Etapas
@@ -31,8 +32,7 @@ import EtapaDetalhe from "./pages/EtapaDetalhe";
 function App() {
   return (
     <ToastProvider position="top-right">
-      {" "}
-      {/* ← Adicionar */}
+      <Dialogos />
       <BrowserRouter
         future={{
           v7_startTransition: true,

@@ -15,19 +15,21 @@ import { GeneroJogador } from "@/types/jogador";
 
 describe("SeloGenero", () => {
   it.each([
-    [GeneroJogador.MASCULINO, "♂ M", "Masculino", semantic.genero.masculino],
-    [GeneroJogador.FEMININO, "♀ F", "Feminino", semantic.genero.feminino],
+    [GeneroJogador.MASCULINO, "M", "Masculino", semantic.genero.masculino],
+    [GeneroJogador.FEMININO, "F", "Feminino", semantic.genero.feminino],
   ])("deve mostrar símbolo, letra e cor de %s", (genero, texto, titulo, cores) => {
     render(<SeloGenero genero={genero} />);
 
     const selo = screen.getByTitle(titulo);
     expect(selo).toHaveTextContent(texto);
+    // Ícone desenhado: o caractere sai torto no iPhone
+    expect(selo.querySelector("svg")).toBeInTheDocument();
     expect(selo).toHaveStyle({ color: cores.texto, background: cores.fundo });
   });
 
   it("deve aceitar outro texto", () => {
     render(<SeloGenero genero={GeneroJogador.FEMININO}>Fem: 2/4</SeloGenero>);
-    expect(screen.getByText("♀ Fem: 2/4")).toBeInTheDocument();
+    expect(screen.getByText("Fem: 2/4")).toBeInTheDocument();
   });
 
   it("não deve mostrar nada sem gênero definido", () => {
@@ -56,9 +58,9 @@ describe("FiltroGenero", () => {
 
     expect(botao("Todos (4)")).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.click(botao("♀ Fem (1)"));
-    expect(botao("♀ Fem (1)")).toHaveAttribute("aria-pressed", "true");
-    expect(botao("♂ Masc (2)")).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(botao("Fem (1)"));
+    expect(botao("Fem (1)")).toHaveAttribute("aria-pressed", "true");
+    expect(botao("Masc (2)")).toHaveAttribute("aria-pressed", "false");
     expect(botao("Todos (4)")).toHaveAttribute("aria-pressed", "false");
   });
 

@@ -296,8 +296,17 @@ describe("ModalSubstituirJogador", () => {
     const confirmar = screen.getByText("Confirmar Substituição");
     expect(confirmar).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("radio", { name: /Antigo/ }));
-    fireEvent.click(await screen.findByRole("radio", { name: /Novo/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Antigo/ }));
+    // A lista some e fica só o escolhido
+    expect(
+      screen.getByRole("button", { name: "Trocar Antigo" })
+    ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /^Novo/ }));
+
+    // Trocar volta para a lista e desabilita até escolher de novo
+    fireEvent.click(screen.getByRole("button", { name: "Trocar Antigo" }));
+    expect(confirmar).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /^Antigo/ }));
     fireEvent.click(confirmar);
 
     await waitFor(() =>

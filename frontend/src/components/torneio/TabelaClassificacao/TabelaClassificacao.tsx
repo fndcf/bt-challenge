@@ -93,7 +93,12 @@ const CelulaTitulo = styled.th<{ $esquerda?: boolean }>`
 const Linha = styled.tr<{ $classificado: boolean }>`
   ${({ $classificado }) =>
     $classificado &&
-    `box-shadow: inset 4px 0 0 ${status.sucesso.texto};`}
+    css`
+      /* Na célula: o Safari não desenha sombra em <tr> */
+      > td:first-child {
+        box-shadow: inset 4px 0 0 ${status.sucesso.texto};
+      }
+    `}
 
   & + & {
     border-top: 1px solid ${superficie.borda};

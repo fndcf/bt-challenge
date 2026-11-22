@@ -8,13 +8,17 @@ import { getChaveService, getReiDaPraiaService, getSuperXService, getTeamsServic
 import { FormacaoManualEquipeDTO } from "@/types/teams";
 import logger from "@/utils/logger";
 import { getQtdGrupos } from "@/utils/etapa";
+import { avisarErro, avisarSucesso, confirmar } from "@/utils/dialogos";
 import { getMensagemErro, paraError } from "@/utils/erro";
+import { ComLoading, semLoading } from "./useEtapaInscricoes";
 
 export interface UseEtapaChavesParams {
   etapa: Etapa | null;
   onSuccess?: (
     aba?: "inscricoes" | "chaves" | "cabeças"
   ) => void | Promise<void>;
+  /** Bloqueia a tela enquanto gera, depois da confirmação */
+  comLoading?: ComLoading;
 }
 
 export interface UseEtapaChavesReturn {
@@ -35,6 +39,7 @@ export interface UseEtapaChavesReturn {
 export const useEtapaChaves = ({
   etapa,
   onSuccess,
+  comLoading = semLoading,
 }: UseEtapaChavesParams): UseEtapaChavesReturn => {
   const isReiDaPraia = etapa?.formato === FormatoEtapa.REI_DA_PRAIA;
   const isSuperX = etapa?.formato === FormatoEtapa.SUPER_X;
@@ -86,39 +91,44 @@ export const useEtapaChaves = ({
         `• Todos os confrontos da fase de grupos`;
     }
 
-    const confirmar = window.confirm(
-      `Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
+    const acao = isTeams ? "Gerar Equipes" : "Gerar Chaves";
+    const confirmou = await confirmar({
+      titulo: acao,
+      mensagem:
+        `Deseja gerar as chaves para a etapa "${etapa.nome}"?\n\n` +
         `Formato: ${formatoNome}\n\n` +
-        `Isso criará:\n${detalhes}\n\n` +
-        `Esta ação não pode ser desfeita!`
-    );
+        `Isso criará:\n${detalhes}`,
+      textoConfirmar: acao,
+    });
 
-    if (!confirmar) return;
+    if (!confirmou) return;
 
     try {
-      if (isTeams) {
-        const teamsService = getTeamsService();
-        await teamsService.gerarEquipes(etapa.id);
-      } else if (isSuperX) {
-        const superXService = getSuperXService();
-        await superXService.gerarChaves(etapa.id);
-      } else if (isReiDaPraia) {
-        const reiDaPraiaService = getReiDaPraiaService();
-        await reiDaPraiaService.gerarChaves(etapa.id);
-      } else {
-        const chaveService = getChaveService();
-        await chaveService.gerarChaves(etapa.id);
-      }
+      await comLoading("Gerando chaves...", async () => {
+        if (isTeams) {
+          const teamsService = getTeamsService();
+          await teamsService.gerarEquipes(etapa.id);
+        } else if (isSuperX) {
+          const superXService = getSuperXService();
+          await superXService.gerarChaves(etapa.id);
+        } else if (isReiDaPraia) {
+          const reiDaPraiaService = getReiDaPraiaService();
+          await reiDaPraiaService.gerarChaves(etapa.id);
+        } else {
+          const chaveService = getChaveService();
+          await chaveService.gerarChaves(etapa.id);
+        }
 
-      if (onSuccess) await onSuccess("chaves");
+        if (onSuccess) await onSuccess("chaves");
+      });
 
-      alert(isTeams ? "Equipes e confrontos gerados com sucesso!" : "Chaves geradas com sucesso!");
+      avisarSucesso(isTeams ? "Equipes e confrontos gerados com sucesso!" : "Chaves geradas com sucesso!");
     } catch (err) {
       logger.error("Erro ao gerar chaves", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao gerar chaves"));
+      avisarErro(getMensagemErro(err, "Erro ao gerar chaves"));
       throw err;
     }
-  }, [etapa, isReiDaPraia, isSuperX, isTeams, onSuccess]);
+  }, [etapa, isReiDaPraia, isSuperX, isTeams, onSuccess, comLoading]);
 
   /**
    * Apagar chaves (sem confirmação - a confirmação deve ser feita pelo componente)
@@ -141,10 +151,10 @@ export const useEtapaChaves = ({
 
       if (onSuccess) await onSuccess("inscricoes");
 
-      alert(isTeams ? "Equipes e confrontos apagados com sucesso!" : "Chaves apagadas com sucesso!");
+      avisarSucesso(isTeams ? "Equipes e confrontos apagados com sucesso!" : "Chaves apagadas com sucesso!");
     } catch (err) {
       logger.error("Erro ao apagar chaves", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao apagar chaves"));
+      avisarErro(getMensagemErro(err, "Erro ao apagar chaves"));
       throw err;
     }
   }, [etapa, isSuperX, isTeams, onSuccess]);
@@ -161,10 +171,10 @@ export const useEtapaChaves = ({
 
       if (onSuccess) await onSuccess("chaves");
 
-      alert("Equipes formadas com sucesso!");
+      avisarSucesso("Equipes formadas com sucesso!");
     } catch (err) {
       logger.error("Erro ao formar equipes manualmente", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao formar equipes"));
+      avisarErro(getMensagemErro(err, "Erro ao formar equipes"));
       throw err;
     }
   }, [etapa, isTeams, onSuccess]);
@@ -183,10 +193,10 @@ export const useEtapaChaves = ({
 
       if (onSuccess) await onSuccess("chaves");
 
-      alert("Duplas formadas e chaves geradas com sucesso!");
+      avisarSucesso("Duplas formadas e chaves geradas com sucesso!");
     } catch (err) {
       logger.error("Erro ao formar duplas manualmente", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao formar duplas"));
+      avisarErro(getMensagemErro(err, "Erro ao formar duplas"));
       throw err;
     }
   }, [etapa, isDuplaFixa, onSuccess]);

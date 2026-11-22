@@ -16,6 +16,7 @@ import {
   montarPlacarFinal,
   parsePlacarConfronto,
 } from "@/utils/placarMelhorDe3";
+import { avisarSucesso } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 interface ModalRegistrarResultadoEliminatorioProps {
@@ -142,10 +143,10 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
         confronto.id,
         montarPlacarFinal(sets)
       );
-      alert(
+      avisarSucesso(
         isEdicao
-          ? " Resultado atualizado com sucesso!"
-          : " Resultado registrado com sucesso!"
+          ? "Resultado atualizado com sucesso!"
+          : "Resultado registrado com sucesso!"
       );
       onSuccess();
     } catch (err) {

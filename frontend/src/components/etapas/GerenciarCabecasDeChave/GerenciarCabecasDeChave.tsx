@@ -18,6 +18,7 @@ import { getCabecaDeChaveService } from "@/services";
 import { theme } from "@/styles/theme";
 import { CabecaDeChave } from "@/types/cabecaDeChave";
 import { FormatoEtapa, Inscricao } from "@/types/etapa";
+import { avisarAtencao, avisarErro } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 import { getNivelLabel } from "@/utils/formatters";
 
@@ -221,7 +222,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
       await carregarCabecas();
       onUpdate();
     } catch (error) {
-      alert(mensagemErro(error));
+      avisarErro(mensagemErro(error));
     } finally {
       setOperacao(null);
     }
@@ -263,7 +264,7 @@ export const GerenciarCabecasDeChave: React.FC<Props> = ({
 
   const adicionarSelecionados = () => {
     if (cabecas.length + selecionados.size > limite) {
-      alert(
+      avisarAtencao(
         `Limite atingido! Máximo de ${limite} cabeça(s) de chave. ` +
           `Você já tem ${cabecas.length} e está tentando adicionar ${selecionados.size}.`
       );

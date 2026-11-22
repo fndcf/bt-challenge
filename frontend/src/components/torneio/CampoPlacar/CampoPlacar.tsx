@@ -51,11 +51,15 @@ export const ListaPlacares = styled.div`
 `;
 
 const Card = styled.article<{ $erro: boolean }>`
-  padding: ${theme.spacing[4]};
+  padding: ${theme.spacing[3]};
   background: ${superficie.fundo};
   border: 1px solid
     ${({ $erro }) => ($erro ? status.erro.texto : superficie.borda)};
   border-radius: ${theme.borderRadius.lg};
+
+  @media (min-width: 640px) {
+    padding: ${theme.spacing[4]};
+  }
 `;
 
 const Cabecalho = styled.div`
@@ -120,6 +124,11 @@ const TituloSet = styled(Posicionado)`
 `;
 
 const Versus = styled(Posicionado)`
+  /* No celular o espaço vale mais: os campos já separam os lados */
+  @media (max-width: 639px) {
+    display: none;
+  }
+
   font-size: ${fontSize.xs};
   font-weight: ${fontWeight.semibold};
   color: ${texto.secundario};
@@ -214,6 +223,8 @@ export const CampoPlacar: React.FC<CampoPlacarProps> = ({
           }
           aria-invalid={!!erro}
           value={placar[set.chave][campo] ?? ""}
+          // Tocar num placar preenchido e digitar substitui o valor
+          onFocus={(e) => e.target.select()}
           onChange={(e) =>
             onChange(
               set.chave,

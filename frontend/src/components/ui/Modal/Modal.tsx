@@ -5,6 +5,7 @@
 import React, { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import styled, { css, keyframes } from "styled-components";
+import { useAreaVisivel } from "@/hooks/useAreaVisivel";
 import { theme } from "@/styles/theme";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
@@ -114,7 +115,9 @@ const ModalContainer = styled.div<{ $size: ModalSize }>`
   }}
 
   @media (max-width: ${theme.breakpoints.sm}) {
-    max-height: 95vh;
+    /* Da área visível, não da tela: no iPhone, vh conta o espaço atrás da barra
+       do navegador e o cabeçalho do modal ficava fora da tela */
+    max-height: 96%;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     width: 100%;
@@ -122,6 +125,7 @@ const ModalContainer = styled.div<{ $size: ModalSize }>`
 `;
 
 const ModalHeader = styled.div`
+  flex-shrink: 0;
   padding: ${theme.spacing[6]};
   border-bottom: 1px solid ${theme.semantic.superficie.borda};
   display: flex;
@@ -188,7 +192,9 @@ const ModalSubtitle = styled.div`
 
 const ModalBody = styled.div<{ $padding: boolean }>`
   overflow-y: auto;
+  overscroll-behavior: contain;
   flex: 1;
+  min-height: 0;
 
   ${({ $padding }) =>
     $padding &&
@@ -202,6 +208,7 @@ const ModalBody = styled.div<{ $padding: boolean }>`
 `;
 
 const ModalFooter = styled.div`
+  flex-shrink: 0;
   padding: ${theme.spacing[6]};
   border-top: 1px solid ${theme.semantic.superficie.borda};
   display: flex;
@@ -210,10 +217,11 @@ const ModalFooter = styled.div`
 
   @media (max-width: ${theme.breakpoints.sm}) {
     padding: ${theme.spacing[4]};
-    flex-direction: column-reverse;
+    /* Lado a lado; se não couber, a ação principal fica em cima */
+    flex-wrap: wrap-reverse;
 
     > * {
-      width: 100%;
+      flex: 1 1 auto;
     }
   }
 `;
@@ -233,6 +241,7 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const tituloId = useId();
+  const areaVisivel = useAreaVisivel(isOpen);
 
   useEffect(() => {
     if (!isOpen || !closeOnEscape || loading) return;
@@ -259,6 +268,14 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen]);
 
+  // O teclado abriu e o modal encolheu: traz o campo focado para a vista
+  useEffect(() => {
+    const focado = document.activeElement;
+    if (areaVisivel && modalRef.current?.contains(focado)) {
+      focado?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [areaVisivel]);
+
   // Handle overlay click
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (closeOnOverlayClick && !loading && e.target === e.currentTarget) {
@@ -269,7 +286,7 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <Overlay onClick={handleOverlayClick}>
+    <Overlay style={areaVisivel ?? undefined} onClick={handleOverlayClick}>
       <ModalContainer
         ref={modalRef}
         $size={size}

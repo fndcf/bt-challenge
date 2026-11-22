@@ -5,6 +5,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useEtapaChaves } from "@/hooks/useEtapaChaves";
 import { Etapa, FormatoEtapa } from "@/types/etapa";
+import { avisarMock, confirmarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock do logger
 jest.mock("@/utils/logger", () => ({
@@ -32,9 +35,6 @@ jest.mock("@/services", () => ({
   }),
 }));
 
-// Mock do window.confirm e window.alert
-const originalConfirm = window.confirm;
-const originalAlert = window.alert;
 
 describe("useEtapaChaves", () => {
   const mockEtapaDuplaFixa: Etapa = {
@@ -64,16 +64,12 @@ describe("useEtapaChaves", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    window.confirm = jest.fn(() => true);
-    window.alert = jest.fn();
     mockGerarChavesDuplaFixa.mockResolvedValue(undefined);
     mockGerarChavesReiDaPraia.mockResolvedValue(undefined);
     mockExcluirChaves.mockResolvedValue(undefined);
   });
 
   afterAll(() => {
-    window.confirm = originalConfirm;
-    window.alert = originalAlert;
   });
 
   describe("handleGerarChaves - Dupla Fixa", () => {
@@ -86,14 +82,14 @@ describe("useEtapaChaves", () => {
         await result.current.handleGerarChaves();
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
       expect(mockGerarChavesDuplaFixa).toHaveBeenCalledWith("etapa-123");
       expect(mockOnSuccess).toHaveBeenCalledWith("chaves");
-      expect(window.alert).toHaveBeenCalledWith("Chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves geradas com sucesso!", "success");
     });
 
     it("não deve gerar chaves quando cancelado", async () => {
-      (window.confirm as jest.Mock).mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
         useEtapaChaves({ etapa: mockEtapaDuplaFixa, onSuccess: mockOnSuccess })
@@ -116,7 +112,7 @@ describe("useEtapaChaves", () => {
         await result.current.handleGerarChaves();
       });
 
-      expect(window.confirm).not.toHaveBeenCalled();
+      expect(confirmarMock).not.toHaveBeenCalled();
       expect(mockGerarChavesDuplaFixa).not.toHaveBeenCalled();
     });
 
@@ -128,12 +124,14 @@ describe("useEtapaChaves", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleGerarChaves();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleGerarChaves();
+          })
+        )
       ).rejects.toThrow("Erro ao gerar");
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao gerar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar", "error");
     });
   });
 
@@ -147,11 +145,11 @@ describe("useEtapaChaves", () => {
         await result.current.handleGerarChaves();
       });
 
-      expect(window.confirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
       expect(mockGerarChavesReiDaPraia).toHaveBeenCalledWith("etapa-456");
       expect(mockGerarChavesDuplaFixa).not.toHaveBeenCalled();
       expect(mockOnSuccess).toHaveBeenCalledWith("chaves");
-      expect(window.alert).toHaveBeenCalledWith("Chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves geradas com sucesso!", "success");
     });
 
     it("deve mostrar informações de Rei da Praia no confirm", async () => {
@@ -163,7 +161,7 @@ describe("useEtapaChaves", () => {
         await result.current.handleGerarChaves();
       });
 
-      const confirmCall = (window.confirm as jest.Mock).mock.calls[0][0];
+      const confirmCall = confirmarMock.mock.calls[0][0].mensagem;
       expect(confirmCall).toContain("Rei da Praia");
       expect(confirmCall).toContain("grupos de 4 jogadores");
     });
@@ -181,11 +179,11 @@ describe("useEtapaChaves", () => {
         await result.current.handleApagarChaves();
       });
 
-      // Não deve chamar window.confirm - a confirmação é feita pelo componente
-      expect(window.confirm).not.toHaveBeenCalled();
+      // Não deve chamar confirmarMock - a confirmação é feita pelo componente
+      expect(confirmarMock).not.toHaveBeenCalled();
       expect(mockExcluirChaves).toHaveBeenCalledWith("etapa-123");
       expect(mockOnSuccess).toHaveBeenCalledWith("inscricoes");
-      expect(window.alert).toHaveBeenCalledWith("Chaves apagadas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves apagadas com sucesso!", "success");
     });
 
     it("não deve fazer nada quando etapa é null", async () => {
@@ -208,12 +206,14 @@ describe("useEtapaChaves", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleApagarChaves();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleApagarChaves();
+          })
+        )
       ).rejects.toThrow("Erro ao apagar");
 
-      expect(window.alert).toHaveBeenCalledWith("Erro ao apagar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao apagar", "error");
     });
   });
 
@@ -228,7 +228,7 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockGerarChavesDuplaFixa).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith("Chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves geradas com sucesso!", "success");
     });
 
     it("deve funcionar sem onSuccess ao apagar chaves", async () => {
@@ -241,7 +241,7 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockExcluirChaves).toHaveBeenCalled();
-      expect(window.alert).toHaveBeenCalledWith("Chaves apagadas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves apagadas com sucesso!", "success");
     });
   });
 });

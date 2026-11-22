@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { theme } from "@/styles/theme";
 
 export type ToastType = "info" | "success" | "warning" | "error";
@@ -27,6 +27,13 @@ interface ToastContextValue {
   showToast: (message: string, type?: ToastType, duration?: number) => void;
   hideToast: (id: string) => void;
 }
+
+const STATUS_POR_TIPO: Record<ToastType, keyof typeof theme.semantic.status> = {
+  info: "info",
+  success: "sucesso",
+  warning: "aviso",
+  error: "erro",
+};
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
@@ -109,29 +116,12 @@ const ToastItem = styled.div<{ $type: ToastType; $isExiting: boolean }>`
     ${theme.transitions.base} ${theme.easing.easeOut};
 
   ${({ $type }) => {
-    switch ($type) {
-      case "success":
-        return `
-          background: ${theme.colors.success[500]};
-          color: ${theme.colors.white};
-        `;
-      case "warning":
-        return `
-          background: ${theme.colors.warning[500]};
-          color: ${theme.colors.white};
-        `;
-      case "error":
-        return `
-          background: ${theme.colors.error[500]};
-          color: ${theme.colors.white};
-        `;
-      case "info":
-      default:
-        return `
-          background: ${theme.colors.info[500]};
-          color: ${theme.colors.white};
-        `;
-    }
+    const cores = theme.semantic.status[STATUS_POR_TIPO[$type]];
+    return css`
+      border: 1px solid ${cores.borda};
+      background: ${cores.fundo};
+      color: ${cores.texto};
+    `;
   }}
 `;
 
@@ -148,6 +138,9 @@ const ToastIcon = styled.div`
 
 const ToastMessage = styled.div`
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
   font-size: ${theme.typography.fontSize.sm};
   font-weight: ${theme.typography.fontWeight.medium};
 `;
@@ -157,9 +150,14 @@ const ToastCloseButton = styled.button`
   border: none;
   color: inherit;
   cursor: pointer;
-  padding: 0;
+  /* Área de toque de 44px sem aumentar o aviso */
+  width: 44px;
+  height: 44px;
+  margin: -${theme.spacing[3]};
+  flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   opacity: 0.8;
   transition: opacity ${theme.transitions.fast};
 
@@ -301,12 +299,16 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
             {toasts.map((toast) => (
               <ToastItem
                 key={toast.id}
+                role={toast.type === "error" ? "alert" : "status"}
                 $type={toast.type}
                 $isExiting={exitingToasts.has(toast.id)}
               >
                 <ToastIcon>{getToastIcon(toast.type)}</ToastIcon>
                 <ToastMessage>{toast.message}</ToastMessage>
-                <ToastCloseButton onClick={() => hideToast(toast.id)}>
+                <ToastCloseButton
+                  type="button"
+                  aria-label="Fechar aviso"
+                  onClick={() => hideToast(toast.id)}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"

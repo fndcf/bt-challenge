@@ -45,6 +45,9 @@ jest.mock("@/components/ui", () => ({
 }));
 
 import { GerenciarCabecasDeChave } from "@/components/etapas/GerenciarCabecasDeChave/GerenciarCabecasDeChave";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 const mockInscricoes = [
   {
@@ -481,7 +484,6 @@ describe("GerenciarCabecasDeChave", () => {
 
   describe("limite de cabeças", () => {
     it("deve mostrar alerta quando limite é atingido ao adicionar", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
 
       // Já tem 8 cabeças (limite para 4 grupos)
       const cabecasCheias = Array.from({ length: 8 }, (_, i) => ({
@@ -528,12 +530,11 @@ describe("GerenciarCabecasDeChave", () => {
       fireEvent.click(screen.getByText("Adicionar Selecionados"));
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith(
-          expect.stringContaining("Limite atingido")
-        );
+        expect(avisarMock).toHaveBeenCalledWith(
+          expect.stringContaining("Limite atingido"), "warning"
+      );
       });
 
-      alertMock.mockRestore();
     });
   });
 
@@ -568,7 +569,6 @@ describe("GerenciarCabecasDeChave", () => {
 
   describe("tratamento de erros", () => {
     it("deve mostrar alerta em erro ao criar cabeça", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       mockCriar.mockRejectedValue(new Error("Erro ao criar"));
 
       render(<GerenciarCabecasDeChave {...defaultProps} />);
@@ -589,14 +589,12 @@ describe("GerenciarCabecasDeChave", () => {
       fireEvent.click(screen.getByText("Adicionar Selecionados"));
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao criar");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao criar", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alerta em erro ao reordenar", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       mockListarAtivas.mockResolvedValue(mockCabecas);
       mockReordenar.mockRejectedValue(new Error("Erro ao reordenar"));
 
@@ -610,10 +608,9 @@ describe("GerenciarCabecasDeChave", () => {
       fireEvent.click(upButtons[1]);
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao reordenar cabeças");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao reordenar cabeças", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve limpar cabeças em caso de erro ao carregar", async () => {

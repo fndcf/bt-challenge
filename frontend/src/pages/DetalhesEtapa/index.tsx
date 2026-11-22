@@ -2,7 +2,7 @@
  * Responsabilidade única: Orquestrar e renderizar página de detalhes da etapa
  */
 
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDetalhesEtapa } from "@/hooks/useDetalhesEtapa";
 import { ModalInscricao } from "@/components/etapas/ModalInscricao";
@@ -17,6 +17,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CarregandoPagina, Pagina } from "@/components/layout/Pagina";
 import { Alert, Badge, Button, LoadingOverlay, Tabs } from "@/components/ui";
 import { getEtapaService } from "@/services";
+import { ComLoading } from "@/hooks/useEtapaInscricoes";
 import { AbaEtapa } from "@/hooks/useEtapaUI";
 import { StatusEtapa } from "@/types/etapa";
 import { getQtdGrupos } from "@/utils/etapa";
@@ -32,6 +33,7 @@ import { DuplasManuaisTab } from "./components/DuplasManuaisTab";
 
 // Estilos
 import * as S from "./DetalhesEtapa.styles";
+import { avisarErro, avisarSucesso, confirmar } from "@/utils/dialogos";
 import { getMensagemErro, paraError } from "@/utils/erro";
 
 const DetalhesEtapa: React.FC = () => {
@@ -48,6 +50,22 @@ const DetalhesEtapa: React.FC = () => {
 
   // Estado da exportação de súmula
   const [exportandoSumula, setExportandoSumula] = useState(false);
+
+  // Estado global de loading para operações críticas que bloqueiam toda a tela
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState("");
+
+  /** Executa com a tela bloqueada e a mensagem de carregamento */
+  const comLoading = useCallback<ComLoading>(async (mensagem, executar) => {
+    try {
+      setGlobalLoading(true);
+      setGlobalLoadingMessage(mensagem);
+      await executar();
+    } finally {
+      setGlobalLoading(false);
+      setGlobalLoadingMessage("");
+    }
+  }, []);
 
   // Hook customizado gerencia todo o estado e lógica
   const {
@@ -75,31 +93,12 @@ const DetalhesEtapa: React.FC = () => {
     setAbaAtiva,
     setModalInscricaoAberto,
     setModalConfirmacaoAberto,
-  } = useDetalhesEtapa(id);
+  } = useDetalhesEtapa(id, comLoading);
 
   const isDuplaFixa = etapa?.formato === "dupla_fixa";
 
   // Estado de loading para ação de excluir - DEVE VIR ANTES DOS EARLY RETURNS
   const [loadingExcluir, setLoadingExcluir] = React.useState(false);
-
-  // Estado global de loading para operações críticas que bloqueiam toda a tela
-  const [globalLoading, setGlobalLoading] = React.useState(false);
-  const [globalLoadingMessage, setGlobalLoadingMessage] = React.useState("");
-
-  /** Executa com a tela bloqueada e a mensagem de carregamento */
-  const comLoading = async (
-    mensagem: string,
-    executar: () => Promise<unknown>
-  ) => {
-    try {
-      setGlobalLoading(true);
-      setGlobalLoadingMessage(mensagem);
-      await executar();
-    } finally {
-      setGlobalLoading(false);
-      setGlobalLoadingMessage("");
-    }
-  };
 
   // Estados de loading e erro
   if (loading) {
@@ -128,7 +127,7 @@ const DetalhesEtapa: React.FC = () => {
       await etapaService.exportarSumula(etapa.id);
     } catch (err) {
       const message = getMensagemErro(err, "Erro ao exportar súmula");
-      alert(message);
+      avisarErro(message);
     } finally {
       setExportandoSumula(false);
     }
@@ -140,12 +139,16 @@ const DetalhesEtapa: React.FC = () => {
   };
 
   const handleExcluir = async () => {
-    const confirmar = window.confirm(
-      `ATENÇÃO: Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
-        `Esta ação não pode ser desfeita!`
-    );
+    const confirmou = await confirmar({
+      titulo: "Excluir Etapa",
+      mensagem:
+        `Deseja realmente excluir a etapa "${etapa.nome}"?\n\n` +
+        `Esta ação não pode ser desfeita.`,
+      textoConfirmar: "Excluir Etapa",
+      perigo: true,
+    });
 
-    if (!confirmar) return;
+    if (!confirmou) return;
 
     try {
       setLoadingExcluir(true);
@@ -156,11 +159,11 @@ const DetalhesEtapa: React.FC = () => {
         etapaId: etapa.id,
         nome: etapa.nome,
       });
-      alert("Etapa excluída com sucesso!");
+      avisarSucesso("Etapa excluída com sucesso!");
       navigate("/admin/etapas");
     } catch (err) {
       logger.error("Erro ao excluir etapa", { etapaId: etapa.id }, paraError(err));
-      alert(getMensagemErro(err, "Erro ao excluir etapa"));
+      avisarErro(getMensagemErro(err, "Erro ao excluir etapa"));
     } finally {
       setLoadingExcluir(false);
     }
@@ -173,7 +176,7 @@ const DetalhesEtapa: React.FC = () => {
     } else if (isFormacaoManual) {
       setModalFormacaoManualAberto(true);
     } else {
-      await comLoading("Gerando chaves...", handleGerarChaves);
+      await handleGerarChaves();
     }
   };
 
@@ -234,12 +237,8 @@ const DetalhesEtapa: React.FC = () => {
           isReiDaPraia={isReiDaPraia}
           isSuperX={isSuperX}
           isTeams={isTeams}
-          onAbrirInscricoes={() =>
-            comLoading("Reabrindo inscrições...", handleAbrirInscricoes)
-          }
-          onEncerrarInscricoes={() =>
-            comLoading("Encerrando inscrições...", handleEncerrarInscricoes)
-          }
+          onAbrirInscricoes={handleAbrirInscricoes}
+          onEncerrarInscricoes={handleEncerrarInscricoes}
           onGerarChaves={gerarChaves}
           onApagarChaves={() => setModalConfirmacaoAberto(true)}
           onVerChaves={() => {

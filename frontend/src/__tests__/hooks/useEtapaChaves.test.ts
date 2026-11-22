@@ -5,6 +5,9 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useEtapaChaves } from "@/hooks/useEtapaChaves";
 import { FormatoEtapa, TipoFormacaoEquipe, TipoFormacaoDupla } from "@/types/etapa";
+import { avisarMock, confirmarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Mock dos services
 const mockChaveService = {
@@ -43,18 +46,13 @@ jest.mock("@/utils/logger", () => ({
   debug: jest.fn(),
 }));
 
-// Mock do window.confirm e window.alert
-const mockConfirm = jest.fn();
-const mockAlert = jest.fn();
-Object.defineProperty(window, "confirm", { value: mockConfirm, writable: true });
-Object.defineProperty(window, "alert", { value: mockAlert, writable: true });
 
 describe("useEtapaChaves", () => {
   const mockOnSuccess = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockConfirm.mockReturnValue(true);
+    confirmarMock.mockResolvedValue(true);
   });
 
   // ============================================
@@ -116,14 +114,14 @@ describe("useEtapaChaves", () => {
         await result.current.handleGerarChaves();
       });
 
-      expect(mockConfirm).toHaveBeenCalled();
+      expect(confirmarMock).toHaveBeenCalled();
       expect(mockChaveService.gerarChaves).toHaveBeenCalledWith("etapa-1");
       expect(mockOnSuccess).toHaveBeenCalledWith("chaves");
-      expect(mockAlert).toHaveBeenCalledWith("Chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves geradas com sucesso!", "success");
     });
 
     it("não deve gerar se usuário cancelar confirmação", async () => {
-      mockConfirm.mockReturnValue(false);
+      confirmarMock.mockResolvedValue(false);
 
       const { result } = renderHook(() =>
         useEtapaChaves({ etapa: etapaDuplaFixa, onSuccess: mockOnSuccess })
@@ -146,12 +144,14 @@ describe("useEtapaChaves", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleGerarChaves();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleGerarChaves();
+          })
+        )
       ).rejects.toThrow("Erro ao gerar");
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro ao gerar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar", "error");
     });
 
     it("não deve fazer nada se etapa for null", async () => {
@@ -192,7 +192,7 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockReiDaPraiaService.gerarChaves).toHaveBeenCalledWith("etapa-2");
-      expect(mockAlert).toHaveBeenCalledWith("Chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves geradas com sucesso!", "success");
     });
   });
 
@@ -222,7 +222,7 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockSuperXService.gerarChaves).toHaveBeenCalledWith("etapa-3");
-      expect(mockAlert).toHaveBeenCalledWith("Chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves geradas com sucesso!", "success");
     });
 
     it("deve gerar chaves para Super 12 com detalhes corretos", async () => {
@@ -282,8 +282,8 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockTeamsService.gerarEquipes).toHaveBeenCalledWith("etapa-4");
-      expect(mockAlert).toHaveBeenCalledWith(
-        "Equipes e confrontos gerados com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Equipes e confrontos gerados com sucesso!", "success"
       );
     });
 
@@ -328,7 +328,7 @@ describe("useEtapaChaves", () => {
 
       expect(mockChaveService.excluirChaves).toHaveBeenCalledWith("etapa-1");
       expect(mockOnSuccess).toHaveBeenCalledWith("inscricoes");
-      expect(mockAlert).toHaveBeenCalledWith("Chaves apagadas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Chaves apagadas com sucesso!", "success");
     });
 
     it("deve apagar chaves de Super X com sucesso", async () => {
@@ -373,8 +373,8 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockTeamsService.cancelarChaves).toHaveBeenCalledWith("etapa-4");
-      expect(mockAlert).toHaveBeenCalledWith(
-        "Equipes e confrontos apagados com sucesso!"
+      expect(avisarMock).toHaveBeenCalledWith(
+        "Equipes e confrontos apagados com sucesso!", "success"
       );
     });
 
@@ -396,12 +396,14 @@ describe("useEtapaChaves", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleApagarChaves();
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleApagarChaves();
+          })
+        )
       ).rejects.toThrow("Erro ao apagar");
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro ao apagar");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao apagar", "error");
     });
 
     it("não deve fazer nada se etapa for null", async () => {
@@ -453,7 +455,7 @@ describe("useEtapaChaves", () => {
         { formacoes }
       );
       expect(mockOnSuccess).toHaveBeenCalledWith("chaves");
-      expect(mockAlert).toHaveBeenCalledWith("Equipes formadas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Equipes formadas com sucesso!", "success");
     });
 
     it("deve mostrar erro quando formação manual falha", async () => {
@@ -466,12 +468,14 @@ describe("useEtapaChaves", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleGerarChavesManual(formacoes);
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleGerarChavesManual(formacoes);
+          })
+        )
       ).rejects.toThrow("Erro na formação");
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro na formação");
+      expect(avisarMock).toHaveBeenCalledWith("Erro na formação", "error");
     });
 
     it("não deve fazer nada se etapa não for TEAMS", async () => {
@@ -593,7 +597,7 @@ describe("useEtapaChaves", () => {
       });
 
       expect(mockOnSuccess).toHaveBeenCalledWith("chaves");
-      expect(mockAlert).toHaveBeenCalledWith("Duplas formadas e chaves geradas com sucesso!");
+      expect(avisarMock).toHaveBeenCalledWith("Duplas formadas e chaves geradas com sucesso!", "success");
     });
 
     it("deve mostrar erro quando formação de duplas manual falha", async () => {
@@ -606,12 +610,14 @@ describe("useEtapaChaves", () => {
       );
 
       await expect(
-        act(async () => {
-          await result.current.handleGerarDuplasManual(formacoesDupla);
-        })
+        Promise.resolve(
+          act(async () => {
+            await result.current.handleGerarDuplasManual(formacoesDupla);
+          })
+        )
       ).rejects.toThrow("Erro ao formar duplas");
 
-      expect(mockAlert).toHaveBeenCalledWith("Erro ao formar duplas");
+      expect(avisarMock).toHaveBeenCalledWith("Erro ao formar duplas", "error");
     });
 
     it("não deve fazer nada se etapa não for DUPLA_FIXA", async () => {

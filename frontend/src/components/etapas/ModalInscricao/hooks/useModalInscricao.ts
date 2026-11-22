@@ -17,6 +17,7 @@ import {
   ValorFiltroGenero,
 } from "@/components/jogadores/Genero";
 import { getEtapaService, getJogadorService } from "@/services";
+import { avisarAtencao, avisarSucesso } from "@/utils/dialogos";
 import { getMensagemErro } from "@/utils/erro";
 
 export interface UseModalInscricaoParams {
@@ -79,6 +80,8 @@ export const useModalInscricao = ({
   const [loading, setLoading] = useState(false);
   const [loadingJogadores, setLoadingJogadores] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Por que o último jogador tocado não pôde ser marcado */
+  const [aviso, setAviso] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const vagasDisponiveis = maxJogadores - totalInscritos;
@@ -158,7 +161,9 @@ export const useModalInscricao = ({
   /** Motivo para não poder selecionar, ou null se pode */
   const motivoBloqueio = (jogador: Jogador): string | null => {
     if (selecionados.length >= vagasDisponiveis) {
-      return `Você só pode inscrever ${vagasDisponiveis} jogador(es) nesta etapa.`;
+      return vagasDisponiveis > 0
+        ? `Limite de ${vagasDisponiveis} vaga(s) atingido. Desmarque um jogador para escolher outro.`
+        : "Esta etapa não tem mais vagas.";
     }
     if (!exigeProporcao) return null;
 
@@ -179,6 +184,8 @@ export const useModalInscricao = ({
   };
 
   const toggleJogador = (jogador: Jogador) => {
+    setAviso(null);
+
     if (estaSelecionado(jogador.id)) {
       setSelecionados(selecionados.filter((j) => j.id !== jogador.id));
       return;
@@ -186,7 +193,7 @@ export const useModalInscricao = ({
 
     const motivo = motivoBloqueio(jogador);
     if (motivo) {
-      alert(motivo);
+      setAviso(motivo);
       return;
     }
     setSelecionados([...selecionados, jogador]);
@@ -219,10 +226,7 @@ export const useModalInscricao = ({
   };
 
   const inscrever = async () => {
-    if (selecionados.length === 0) {
-      alert("Selecione pelo menos um jogador");
-      return;
-    }
+    if (selecionados.length === 0) return;
 
     try {
       setLoading(true);
@@ -234,11 +238,15 @@ export const useModalInscricao = ({
       );
 
       const falhas = selecionados.length - inscritos.length;
-      alert(
-        falhas > 0
-          ? `${inscritos.length} jogador(es) inscrito(s) com sucesso!\n${falhas} inscrição(ões) falharam. Verifique os critérios (nível, gênero, limite).`
-          : `${selecionados.length} jogador(es) inscrito(s) com sucesso!`
-      );
+      if (falhas > 0) {
+        avisarAtencao(
+          `${inscritos.length} jogador(es) inscrito(s) com sucesso!\n${falhas} inscrição(ões) falharam. Verifique os critérios (nível, gênero, limite).`
+        );
+      } else {
+        avisarSucesso(
+          `${selecionados.length} jogador(es) inscrito(s) com sucesso!`
+        );
+      }
 
       onSuccess();
       onClose();
@@ -259,6 +267,7 @@ export const useModalInscricao = ({
     loading,
     loadingJogadores,
     error,
+    aviso,
     successMessage,
     isMisto,
     exigeProporcao,

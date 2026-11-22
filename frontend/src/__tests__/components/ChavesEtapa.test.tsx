@@ -48,6 +48,9 @@ jest.mock("@/components/ui/LoadingOverlay", () => ({
 }));
 
 import { ChavesEtapa } from "@/components/etapas/ChavesEtapa/ChavesEtapa";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 const mockGrupos = [
   {
@@ -542,7 +545,6 @@ describe("ChavesEtapa", () => {
     });
 
     it("deve mostrar alerta ao erro ao carregar partidas", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       mockBuscarPartidas.mockRejectedValue(new Error("Erro ao carregar"));
 
       render(<ChavesEtapa etapaId="etapa-1" arenaId="arena-1" />);
@@ -552,10 +554,9 @@ describe("ChavesEtapa", () => {
       });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao carregar");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao carregar", "error");
       });
 
-      alertMock.mockRestore();
     });
   });
 

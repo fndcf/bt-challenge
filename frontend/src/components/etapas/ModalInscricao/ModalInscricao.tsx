@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import styled from "styled-components";
 import { Alert, Badge, Button, Modal, Tabs } from "@/components/ui";
 import { SeloGenero } from "@/components/jogadores/Genero";
@@ -83,6 +83,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
 }) => {
   const { etapaNivel, etapaFormato, onClose } = params;
   const modal = useModalInscricao(params);
+  const formId = useId();
   const { aba, setAba, loading, selecionados, totalPorGenero, maxPorGenero } =
     modal;
 
@@ -111,6 +112,11 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
           {modal.successMessage && (
             <Alert variant="success">{modal.successMessage}</Alert>
           )}
+          {aba === "selecionar" && modal.aviso && (
+            <div role="alert">
+              <Alert variant="warning">{modal.aviso}</Alert>
+            </div>
+          )}
           {modal.error && (
             <div role="alert">
               <Alert variant="error">{modal.error}</Alert>
@@ -118,11 +124,24 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
           )}
           <Acoes>
             {aba === "selecionar" && selecionados.length > 0 && (
-              <span>{selecionados.length} jogador(es) selecionado(s)</span>
+              <span>
+                {selecionados.length} de {modal.vagasDisponiveis} vaga(s)
+                selecionada(s)
+              </span>
             )}
             <Button variant="secondary" onClick={onClose} disabled={loading}>
               Cancelar
             </Button>
+            {aba === "cadastrar" && (
+              // Fora do <form> para ficar fixo no rodapé
+              <Button
+                type="submit"
+                form={formId}
+                disabled={loading || !modal.novoJogador.nome.trim()}
+              >
+                {loading ? "Cadastrando..." : "Cadastrar Jogador"}
+              </Button>
+            )}
             {aba === "selecionar" && (
               <Button
                 onClick={modal.inscrever}
@@ -187,10 +206,10 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
           />
         ) : (
           <FormNovoJogador
+            id={formId}
             jogador={modal.novoJogador}
             onChange={modal.setNovoJogador}
             onCadastrar={modal.cadastrarJogador}
-            loading={loading}
             escolheGenero={modal.isMisto}
             escolheNivel={!etapaNivel}
           />

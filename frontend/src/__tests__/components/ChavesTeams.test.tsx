@@ -79,6 +79,9 @@ jest.mock("@/components/jogadores/RankingList", () => ({
 import { ChavesTeams } from "@/components/etapas/ChavesTeams/ChavesTeams";
 import { StatusConfronto, VarianteTeams, TipoFormacaoJogos } from "@/types/teams";
 import { FaseEtapa } from "@/types/chave";
+import { avisarMock, usarDialogosDeTeste } from "../mocks/dialogos";
+
+usarDialogosDeTeste();
 
 // Dados de teste
 const criarEquipeMock = (overrides = {}) => ({
@@ -627,7 +630,6 @@ describe("ChavesTeams", () => {
     });
 
     it("deve avisar o erro e não abrir o modal quando falha", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       mockGerarDecider.mockReset();
       mockBuscarEquipes.mockResolvedValue([
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
@@ -641,7 +643,7 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_4} />);
       fireEvent.click(await screen.findByText("Gerar Decider"));
 
-      await waitFor(() => expect(alertMock).toHaveBeenCalledWith("Decider já existe"));
+      await waitFor(() => expect(avisarMock).toHaveBeenCalledWith("Decider já existe", "error"));
       expect(screen.queryByTestId("modal-definir-jogadores")).not.toBeInTheDocument();
     });
   });
@@ -1669,7 +1671,6 @@ describe("ChavesTeams", () => {
 
   describe("erros de operações", () => {
     it("deve mostrar alerta quando erro ao renomear equipe", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       const equipes = [criarEquipeMock({ grupoId: "A" })];
       mockBuscarEquipes.mockResolvedValue(equipes);
       mockBuscarConfrontos.mockResolvedValue([]);
@@ -1686,14 +1687,12 @@ describe("ChavesTeams", () => {
       fireEvent.keyDown(input, { key: "Enter" });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao renomear");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao renomear", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alerta quando erro ao expandir confronto", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       const equipes = [
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
         criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
@@ -1713,14 +1712,12 @@ describe("ChavesTeams", () => {
       });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao gerar partidas");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar partidas", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alerta quando erro ao gerar decider", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       const equipes = [
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
         criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
@@ -1746,14 +1743,12 @@ describe("ChavesTeams", () => {
       });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao gerar decider");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao gerar decider", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alerta quando erro ao encerrar etapa", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       const equipes = [
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
         criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
@@ -1777,14 +1772,12 @@ describe("ChavesTeams", () => {
       });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao encerrar etapa");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao encerrar etapa", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve mostrar alerta quando erro ao abrir modal de resultados", async () => {
-      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
       const equipes = [
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
         criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
@@ -1804,10 +1797,9 @@ describe("ChavesTeams", () => {
       });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith("Erro ao carregar partidas");
+        expect(avisarMock).toHaveBeenCalledWith("Erro ao carregar partidas", "error");
       });
 
-      alertMock.mockRestore();
     });
 
     it("deve salvar nome vazio e cancelar edição", async () => {

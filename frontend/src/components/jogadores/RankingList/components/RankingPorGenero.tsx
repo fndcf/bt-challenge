@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import LoadingSpinner from "@/components/common/LoadingSpinner/LoadingSpinner";
+import { IconeGenero } from "@/components/jogadores/Genero";
 import { SecaoPublica } from "@/components/torneio";
 import { Alert, Badge, Button, EmptyState, Tabs } from "@/components/ui";
 import { JogadorPublico } from "@/services/arenaPublicService";
@@ -144,7 +145,7 @@ export const RankingPorGenero: React.FC<RankingPorGeneroProps> = ({
       titulo={titulo}
       selo={
         <Badge genero={genero} aria-hidden="true">
-          {genero === GeneroJogador.MASCULINO ? "♂" : "♀"}
+          <IconeGenero genero={genero} />
         </Badge>
       }
       descricao={
