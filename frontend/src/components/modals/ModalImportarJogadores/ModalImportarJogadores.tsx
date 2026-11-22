@@ -4,7 +4,8 @@
 
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import { Upload, X, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
+import { Modal, Button } from "@/components/ui";
 
 interface ImportResult {
   criados: number;
@@ -99,18 +100,23 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
   };
 
   return (
-    <Overlay onClick={handleClose}>
-      <ModalContainer onClick={(e) => e.stopPropagation()}>
-        <Header>
-          <HeaderTitle>
-            <FileSpreadsheet size={24} />
-            Importar Jogadores
-          </HeaderTitle>
-          <CloseButton onClick={handleClose}>
-            <X size={20} />
-          </CloseButton>
-        </Header>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Importar Jogadores"
+      loading={loading}
+      bodyPadding={false}
+      footer={
+        <>
+          <Button variant="secondary" onClick={handleClose} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={handleImportar} disabled={!file || loading}>
+            {loading ? "Importando..." : "Importar Jogadores"}
+          </Button>
+        </>
+      }
+    >
         <Content>
           <Instructions>
             <p>Envie uma planilha Excel (.xlsx) com os jogadores.</p>
@@ -124,10 +130,16 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
             </InstructionDetails>
           </Instructions>
 
-          <ModeloButton onClick={handleBaixarModelo} disabled={downloadingModelo}>
-            <FileSpreadsheet size={16} />
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<FileSpreadsheet size={16} />}
+            onClick={handleBaixarModelo}
+            loading={downloadingModelo}
+            style={{ marginBottom: "1rem" }}
+          >
             {downloadingModelo ? "Baixando..." : "Baixar modelo com jogadores atuais"}
-          </ModeloButton>
+          </Button>
 
           <DropZone
             onClick={() => fileInputRef.current?.click()}
@@ -165,74 +177,11 @@ export const ModalImportarJogadores: React.FC<ModalImportarJogadoresProps> = ({
             </ErrorBox>
           )}
         </Content>
-
-        <Footer>
-          <CancelButton onClick={handleClose} disabled={loading}>
-            Cancelar
-          </CancelButton>
-          <ImportButton onClick={handleImportar} disabled={!file || loading}>
-            {loading ? "Importando..." : "Importar Jogadores"}
-          </ImportButton>
-        </Footer>
-      </ModalContainer>
-    </Overlay>
+    </Modal>
   );
 };
 
 // ============== STYLED COMPONENTS ==============
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  background: white;
-  border-radius: 0.75rem;
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const HeaderTitle = styled.h2`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #111827;
-  }
-`;
 
 const Content = styled.div`
   padding: 1.5rem;
@@ -257,31 +206,6 @@ const InstructionDetails = styled.ul`
 
   li {
     margin-bottom: 0.125rem;
-  }
-`;
-
-const ModeloButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 1rem;
-  transition: background 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #dcfce7;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 `;
 
@@ -359,56 +283,6 @@ const ErrorText = styled.div`
   font-size: 0.8125rem;
   white-space: pre-line;
   line-height: 1.5;
-`;
-
-const Footer = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.625rem 1.25rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  background: white;
-  color: #374151;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #f9fafb;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ImportButton = styled.button`
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 0.375rem;
-  background: #2563eb;
-  color: white;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #1d4ed8;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 
 export default ModalImportarJogadores;

@@ -496,7 +496,7 @@ describe("ModalRegistrarResultadoEliminatorio", () => {
         />
       );
 
-      fireEvent.click(screen.getByText("✕"));
+      fireEvent.click(screen.getByRole("button", { name: "Fechar modal" }));
       expect(mockOnClose).toHaveBeenCalled();
     });
 

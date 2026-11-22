@@ -613,7 +613,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
     it("deve chamar onClose ao clicar no X", () => {
       render(<ModalLancamentoResultadosLoteSuperX {...defaultProps} />);
 
-      fireEvent.click(screen.getByText("×"));
+      fireEvent.click(screen.getByRole("button", { name: "Fechar modal" }));
 
       expect(defaultProps.onClose).toHaveBeenCalled();
     });
@@ -705,7 +705,7 @@ describe("ModalLancamentoResultadosLoteSuperX", () => {
 
       fireEvent.click(screen.getByText(/Salvar 1 Resultado/));
 
-      const closeButton = screen.getByText("×");
+      const closeButton = screen.getByRole("button", { name: "Fechar modal" });
       expect(closeButton).toBeDisabled();
     });
 

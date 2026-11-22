@@ -2,9 +2,9 @@
  * Componente de modal acessível e responsivo
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { theme } from "@/styles/theme";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
@@ -13,12 +13,16 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  /** Linha abaixo do título (ex.: nome da etapa) */
+  subtitle?: React.ReactNode;
   size?: ModalSize;
   children: React.ReactNode;
   footer?: React.ReactNode;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
   loading?: boolean;
+  /** false: conteúdo vai até a borda (abas, tabelas, listas com fundo próprio) */
+  bodyPadding?: boolean;
 }
 
 const fadeIn = keyframes`
@@ -64,7 +68,7 @@ const Overlay = styled.div`
 `;
 
 const ModalContainer = styled.div<{ $size: ModalSize }>`
-  background: ${theme.colors.white};
+  background: ${theme.semantic.superficie.fundo};
   border-radius: ${theme.borderRadius["2xl"]};
   box-shadow: ${theme.shadows["2xl"]};
   display: flex;
@@ -119,7 +123,7 @@ const ModalContainer = styled.div<{ $size: ModalSize }>`
 
 const ModalHeader = styled.div`
   padding: ${theme.spacing[6]};
-  border-bottom: 1px solid ${theme.colors.neutral[200]};
+  border-bottom: 1px solid ${theme.semantic.superficie.borda};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -133,7 +137,7 @@ const ModalHeader = styled.div`
 const ModalTitle = styled.h2`
   font-size: ${theme.typography.fontSize["2xl"]};
   font-weight: ${theme.typography.fontWeight.semibold};
-  color: ${theme.colors.neutral[900]};
+  color: ${theme.semantic.texto.principal};
   margin: 0;
 
   @media (max-width: ${theme.breakpoints.sm}) {
@@ -144,24 +148,24 @@ const ModalTitle = styled.h2`
 const CloseButton = styled.button`
   background: transparent;
   border: none;
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: ${theme.borderRadius.md};
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${theme.colors.neutral[500]};
+  color: ${theme.semantic.texto.secundario};
   transition: all ${theme.transitions.fast} ${theme.easing.easeInOut};
   flex-shrink: 0;
 
   &:hover {
-    background: ${theme.colors.neutral[100]};
-    color: ${theme.colors.neutral[700]};
+    background: ${theme.semantic.superficie.pagina};
+    color: ${theme.semantic.texto.principal};
   }
 
   &:focus-visible {
-    outline: 2px solid ${theme.colors.primary[500]};
+    outline: 2px solid ${theme.semantic.acao.primaria};
     outline-offset: 2px;
   }
 
@@ -176,19 +180,30 @@ const CloseButton = styled.button`
   }
 `;
 
-const ModalBody = styled.div`
-  padding: ${theme.spacing[6]};
+const ModalSubtitle = styled.div`
+  margin-top: ${theme.spacing[1]};
+  font-size: ${theme.typography.fontSize.sm};
+  color: ${theme.semantic.texto.secundario};
+`;
+
+const ModalBody = styled.div<{ $padding: boolean }>`
   overflow-y: auto;
   flex: 1;
 
-  @media (max-width: ${theme.breakpoints.sm}) {
-    padding: ${theme.spacing[4]};
-  }
+  ${({ $padding }) =>
+    $padding &&
+    css`
+      padding: ${theme.spacing[6]};
+
+      @media (max-width: ${theme.breakpoints.sm}) {
+        padding: ${theme.spacing[4]};
+      }
+    `}
 `;
 
 const ModalFooter = styled.div`
   padding: ${theme.spacing[6]};
-  border-top: 1px solid ${theme.colors.neutral[200]};
+  border-top: 1px solid ${theme.semantic.superficie.borda};
   display: flex;
   gap: ${theme.spacing[3]};
   justify-content: flex-end;
@@ -207,14 +222,17 @@ export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
   title,
+  subtitle,
   size = "md",
   children,
   footer,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   loading = false,
+  bodyPadding = true,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const tituloId = useId();
 
   useEffect(() => {
     if (!isOpen || !closeOnEscape || loading) return;
@@ -257,10 +275,14 @@ export const Modal: React.FC<ModalProps> = ({
         $size={size}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? tituloId : undefined}
       >
         {title && (
           <ModalHeader>
-            <ModalTitle>{title}</ModalTitle>
+            <div>
+              <ModalTitle id={tituloId}>{title}</ModalTitle>
+              {subtitle && <ModalSubtitle>{subtitle}</ModalSubtitle>}
+            </div>
             <CloseButton onClick={onClose} aria-label="Fechar modal" disabled={loading}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -279,7 +301,7 @@ export const Modal: React.FC<ModalProps> = ({
           </ModalHeader>
         )}
 
-        <ModalBody>{children}</ModalBody>
+        <ModalBody $padding={bodyPadding}>{children}</ModalBody>
 
         {footer && <ModalFooter>{footer}</ModalFooter>}
       </ModalContainer>

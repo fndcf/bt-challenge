@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { Modal, Button } from "@/components/ui";
 import { PartidaReiDaPraia, ResultadoPartidaLoteSuperXDTO } from "@/types/reiDaPraia";
 import { getSuperXService } from "@/services";
 import {
@@ -36,84 +37,6 @@ const setVazio = (set: SetScore): boolean =>
   (set.gamesDupla2 === undefined || set.gamesDupla2 === null);
 
 // ============== STYLED COMPONENTS ==============
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  overflow-y: auto;
-`;
-
-const OverlayBackground = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  transition: opacity 0.2s;
-`;
-
-const ModalWrapper = styled.div`
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 65rem;
-  width: 100%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-
-  @media (min-width: 768px) {
-    padding: 2rem;
-  }
-`;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #581c87;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const CloseButton = styled.button`
-  color: #9ca3af;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #4b5563;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 const ScrollableContent = styled.div`
   overflow-y: auto;
@@ -296,17 +219,6 @@ const ErrorText = styled.p`
   margin: 0.25rem 0 0 0;
 `;
 
-const Footer = styled.div`
-  border-top: 1px solid #e5e7eb;
-  padding: 1.5rem;
-  background: #f9fafb;
-  flex-shrink: 0;
-
-  @media (min-width: 768px) {
-    padding: 2rem;
-  }
-`;
-
 const SummaryBox = styled.div`
   background: white;
   border: 1px solid #e5e7eb;
@@ -351,55 +263,6 @@ const SummaryValue = styled.span<{ $variant?: "success" | "warning" }>`
 const ButtonsRow = styled.div`
   display: flex;
   gap: 0.75rem;
-`;
-
-const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
-  flex: 1;
-  padding: 0.625rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #7c3aed;
-    color: white;
-    &:hover:not(:disabled) { background: #6d28d9; }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    &:hover:not(:disabled) { background: #f9fafb; }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const Spinner = styled.div`
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
 `;
 
 // ============== HELPERS ==============
@@ -605,18 +468,66 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
   );
 
   return (
-    <Overlay>
-      <OverlayBackground onClick={!loading ? onClose : undefined} />
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Lançamento de Resultados - Super X"
+      size="xl"
+      loading={loading}
+      bodyPadding={false}
+      footer={
+        <div style={{ flex: 1 }}>
+            <SummaryBox>
+              <SummaryItem>
+                <SummaryLabel>Total de Partidas</SummaryLabel>
+                <SummaryValue>{totalPartidas}</SummaryValue>
+              </SummaryItem>
 
-      <ModalWrapper>
-        <ModalContainer>
-          {/* Header */}
-          <Header>
-            <Title>Lançamento de Resultados - Super X</Title>
-            <CloseButton onClick={onClose} disabled={loading}>
-              ×
-            </CloseButton>
-          </Header>
+              <SummaryItem>
+                <SummaryLabel>Já Finalizadas</SummaryLabel>
+                <SummaryValue $variant="success">
+                  {partidasFinalizadas}
+                </SummaryValue>
+              </SummaryItem>
+
+              <SummaryItem>
+                <SummaryLabel>Serão Salvas</SummaryLabel>
+                <SummaryValue $variant="warning">
+                  {resultadosASeremSalvos}
+                </SummaryValue>
+              </SummaryItem>
+            </SummaryBox>
+
+            <ButtonsRow>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                form="form-resultados-lote"
+                disabled={loading || resultadosASeremSalvos === 0 || etapaFinalizada}
+                loading={loading}
+              >
+                {etapaFinalizada ? (
+                  "Etapa Finalizada"
+                ) : loading ? (
+                  "Salvando..."
+                ) : (
+                  <>
+                    Salvar {resultadosASeremSalvos}{" "}
+                    {resultadosASeremSalvos === 1 ? "Resultado" : "Resultados"}
+                  </>
+                )}
+              </Button>
+            </ButtonsRow>
+        </div>
+      }
+    >
 
           {/* Scrollable Content */}
           <ScrollableContent>
@@ -788,62 +699,7 @@ export const ModalLancamentoResultadosLoteSuperX: React.FC<
           </ScrollableContent>
 
           {/* Footer */}
-          <Footer>
-            <SummaryBox>
-              <SummaryItem>
-                <SummaryLabel>Total de Partidas</SummaryLabel>
-                <SummaryValue>{totalPartidas}</SummaryValue>
-              </SummaryItem>
-
-              <SummaryItem>
-                <SummaryLabel>Já Finalizadas</SummaryLabel>
-                <SummaryValue $variant="success">
-                  {partidasFinalizadas}
-                </SummaryValue>
-              </SummaryItem>
-
-              <SummaryItem>
-                <SummaryLabel>Serão Salvas</SummaryLabel>
-                <SummaryValue $variant="warning">
-                  {resultadosASeremSalvos}
-                </SummaryValue>
-              </SummaryItem>
-            </SummaryBox>
-
-            <ButtonsRow>
-              <Button
-                type="button"
-                $variant="secondary"
-                onClick={onClose}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                form="form-resultados-lote"
-                $variant="primary"
-                disabled={loading || resultadosASeremSalvos === 0 || etapaFinalizada}
-              >
-                {etapaFinalizada ? (
-                  "Etapa Finalizada"
-                ) : loading ? (
-                  <>
-                    <Spinner />
-                    <span>Salvando...</span>
-                  </>
-                ) : (
-                  <>
-                    Salvar {resultadosASeremSalvos}{" "}
-                    {resultadosASeremSalvos === 1 ? "Resultado" : "Resultados"}
-                  </>
-                )}
-              </Button>
-            </ButtonsRow>
-          </Footer>
-        </ModalContainer>
-      </ModalWrapper>
-    </Overlay>
+    </Modal>
   );
 };
 

@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { getEtapaService } from "@/services";
+import { Modal, Button } from "@/components/ui";
 import { Inscricao } from "@/types/etapa";
 
 interface JogadorDisponivel {
@@ -24,55 +25,10 @@ interface ModalSubstituirJogadorProps {
 
 // ============== STYLED COMPONENTS ==============
 
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  overflow-y: auto;
-`;
-
-const OverlayBackground = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  transition: opacity 0.2s;
-`;
-
-const ModalWrapper = styled.div`
-  position: relative;
-  z-index: 51;
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  pointer-events: none;
-`;
-
-const ModalContainer = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 48rem;
-  width: 100%;
-  padding: 1.5rem;
-  pointer-events: auto;
-`;
-
-const Title = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-  text-align: center;
-  margin: 0 0 0.5rem 0;
-`;
-
 const Description = styled.p`
   font-size: 0.875rem;
   color: #6b7280;
-  text-align: center;
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.5rem 0;
 `;
 
 const SelectionGrid = styled.div`
@@ -188,66 +144,6 @@ const SelectedName = styled.span`
   color: #111827;
   display: block;
   margin-top: 0.25rem;
-`;
-
-const ButtonsRow = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #3b82f6;
-    color: white;
-    border: none;
-
-    &:hover:not(:disabled) {
-      background: #2563eb;
-    }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-
-    &:hover:not(:disabled) {
-      background: #f9fafb;
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const Spinner = styled.div`
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
 `;
 
 const LoadingMessage = styled.div`
@@ -382,12 +278,28 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
   if (!isOpen) return null;
 
   return (
-    <Overlay>
-      <OverlayBackground onClick={!loading ? handleClose : undefined} />
-
-      <ModalWrapper>
-        <ModalContainer>
-          <Title>Substituir Jogador</Title>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Substituir Jogador"
+      size="lg"
+      loading={loading}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!jogadorAntigoId || !jogadorNovoId || loading}
+            loading={loading}
+          >
+            {loading ? "Substituindo..." : "Confirmar Substituição"}
+          </Button>
+        </>
+      }
+    >
           <Description>
             Selecione o jogador a ser substituído e o novo jogador.
             Só é possível substituir antes de qualquer partida ser jogada.
@@ -485,34 +397,7 @@ export const ModalSubstituirJogador: React.FC<ModalSubstituirJogadorProps> = ({
             </SelectedInfo>
           )}
 
-          <ButtonsRow>
-            <Button
-              type="button"
-              $variant="secondary"
-              onClick={handleClose}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              $variant="primary"
-              onClick={handleConfirm}
-              disabled={!jogadorAntigoId || !jogadorNovoId || loading}
-            >
-              {loading ? (
-                <>
-                  <Spinner />
-                  <span>Substituindo...</span>
-                </>
-              ) : (
-                <span>Confirmar Substituição</span>
-              )}
-            </Button>
-          </ButtonsRow>
-        </ModalContainer>
-      </ModalWrapper>
-    </Overlay>
+    </Modal>
   );
 };
 

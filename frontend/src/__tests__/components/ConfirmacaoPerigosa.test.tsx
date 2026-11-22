@@ -198,18 +198,12 @@ describe("ConfirmacaoPerigosa", () => {
   describe("overlay", () => {
     it("deve chamar onClose ao clicar no overlay background", () => {
       const onClose = jest.fn();
-      const { container } = render(
-        <ConfirmacaoPerigosa {...defaultProps} onClose={onClose} />
-      );
+      render(<ConfirmacaoPerigosa {...defaultProps} onClose={onClose} />);
 
-      // O OverlayBackground é o segundo elemento dentro do Overlay
-      const allDivs = container.querySelectorAll("div");
-      // Encontrar o overlay background (segundo div dentro do overlay)
-      const overlayBackground = allDivs[1];
-      if (overlayBackground) {
-        fireEvent.click(overlayBackground);
-        expect(onClose).toHaveBeenCalledTimes(1);
-      }
+      // Modal do ui renderiza em portal: o overlay envolve o diálogo
+      const overlay = screen.getByRole("dialog").parentElement as HTMLElement;
+      fireEvent.click(overlay);
+      expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     it("deve limpar input ao fechar", () => {

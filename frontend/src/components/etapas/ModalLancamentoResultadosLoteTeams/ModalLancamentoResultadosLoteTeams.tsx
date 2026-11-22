@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { Modal, Button, LoadingOverlay } from "@/components/ui";
 import { getTeamsService } from "@/services";
 import {
   PartidaTeams,
@@ -40,82 +41,6 @@ const setVazio = (set: SetScore): boolean =>
   (set.gamesDupla2 === undefined || set.gamesDupla2 === null);
 
 // ============== STYLED COMPONENTS ==============
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  overflow-y: auto;
-`;
-
-const OverlayBackground = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  transition: opacity 0.2s;
-`;
-
-const ModalWrapper = styled.div`
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 56rem;
-  width: 100%;
-  padding: 1.5rem;
-  max-height: 90vh;
-  overflow-y: auto;
-
-  @media (min-width: 768px) {
-    padding: 2rem;
-  }
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-`;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const CloseButton = styled.button`
-  color: #9ca3af;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #4b5563;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 const ConfrontoBox = styled.div`
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
@@ -309,22 +234,6 @@ const NeedsPlayersAlert = styled.div`
   flex-wrap: wrap;
 `;
 
-const DefinePlayersButton = styled.button`
-  background: #f59e0b;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #d97706;
-  }
-`;
-
 const PlacarGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -413,73 +322,6 @@ const ButtonsRow = styled.div`
   display: flex;
   gap: 0.75rem;
   margin-top: 1.5rem;
-`;
-
-const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
-  flex: 1;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #059669;
-    color: white;
-    &:hover:not(:disabled) { background: #047857; }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    &:hover:not(:disabled) { background: #f9fafb; }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const LoadingOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const Spinner = styled.div`
-  width: 3rem;
-  height: 3rem;
-  border: 4px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const LoadingText = styled.div`
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
 `;
 
 // ============== HELPERS ==============
@@ -721,17 +563,16 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
   const equipe2 = equipes.find((e) => e.id === confronto.equipe2Id);
 
   return (
-    <Overlay>
-      <OverlayBackground onClick={!loading ? onClose : undefined} />
-
-      <ModalWrapper>
-        <ModalContainer>
-          <Header>
-            <Title>Registrar Resultados - Confronto</Title>
-            <CloseButton onClick={onClose} disabled={loading}>
-              ✕
-            </CloseButton>
-          </Header>
+    <>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Registrar Resultados - Confronto"
+      size="xl"
+      loading={loading}
+      // Com o modal de definir jogadores aberto, o Esc fecha só ele
+      closeOnEscape={!partidaParaDefinirJogadores}
+    >
 
           <ConfrontoBox>
             <ConfrontoRow>
@@ -797,9 +638,9 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
                     {precisaDefinirJogadores ? (
                       <NeedsPlayersAlert>
                         <span>Jogadores não definidos</span>
-                        <DefinePlayersButton type="button" onClick={() => handleDefinirJogadores(partida)}>
+                        <Button type="button" size="sm" onClick={() => handleDefinirJogadores(partida)}>
                           Definir Jogadores
-                        </DefinePlayersButton>
+                        </Button>
                       </NeedsPlayersAlert>
                     ) : (
                       <DuplasBox>
@@ -944,23 +785,17 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
             )}
 
             <ButtonsRow>
-              <Button type="button" $variant="secondary" onClick={onClose} disabled={loading}>
+              <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
                 Cancelar
               </Button>
-              <Button type="submit" $variant="primary" disabled={loading || etapaFinalizada}>
+              <Button type="submit" disabled={loading || etapaFinalizada}>
                 {etapaFinalizada ? "Etapa Finalizada" : loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
               </Button>
             </ButtonsRow>
           </Form>
-        </ModalContainer>
-      </ModalWrapper>
 
-      {loading && (
-        <LoadingOverlay>
-          <Spinner />
-          <LoadingText>Salvando resultados...</LoadingText>
-        </LoadingOverlay>
-      )}
+      <LoadingOverlay isLoading={loading} message="Salvando resultados..." />
+    </Modal>
 
       {/* Modal para definir jogadores */}
       {partidaParaDefinirJogadores && equipe1 && equipe2 && (
@@ -984,7 +819,7 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
           }}
         />
       )}
-    </Overlay>
+    </>
   );
 };
 

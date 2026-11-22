@@ -49,28 +49,23 @@
     "styledButton": 3
   },
   "src/components/etapas/ModalInscricao/ModalInscricao.tsx": {
-    "hex": 87,
-    "styledButton": 5
+    "hex": 69,
+    "styledButton": 2
   },
   "src/components/etapas/ModalLancamentoResultadosLoteDuplaFixa/ModalLancamentoResultadosLoteDuplaFixa.tsx": {
-    "hex": 34,
-    "styledButton": 2
+    "hex": 26
   },
   "src/components/etapas/ModalLancamentoResultadosLoteReiDaPraia/ModalLancamentoResultadosLoteReiDaPraia.tsx": {
-    "hex": 34,
-    "styledButton": 2
+    "hex": 26
   },
   "src/components/etapas/ModalLancamentoResultadosLoteSuperX/ModalLancamentoResultadosLoteSuperX.tsx": {
-    "hex": 40,
-    "styledButton": 2
+    "hex": 29
   },
   "src/components/etapas/ModalLancamentoResultadosLoteTeams/ModalLancamentoResultadosLoteTeams.tsx": {
-    "hex": 51,
-    "styledButton": 3
+    "hex": 41
   },
   "src/components/etapas/ModalRegistrarResultadoEliminatorio/ModalRegistrarResultadoEliminatorio.tsx": {
-    "hex": 20,
-    "styledButton": 2
+    "hex": 12
   },
   "src/components/etapas/PainelEmpatesPendentes/ModalResolverEmpate.tsx": {
     "hex": 25,
@@ -91,25 +86,16 @@
     "hex": 8,
     "styledButton": 4
   },
-  "src/components/modals/ConfirmDeleteModal/ConfirmDeleteModal.tsx": {
-    "hex": 14,
-    "styledButton": 1
-  },
-  "src/components/modals/ConfirmacaoPerigosa/ConfirmacaoPerigosa.tsx": {
-    "hex": 14,
-    "styledButton": 1
-  },
   "src/components/modals/ModalImportarJogadores/ModalImportarJogadores.tsx": {
-    "hex": 33,
-    "styledButton": 4
+    "hex": 19
   },
   "src/components/modals/ModalNovaArena/ModalNovaArena.tsx": {
     "hex": 15,
     "styledButton": 2
   },
   "src/components/modals/ModalSubstituirJogador/ModalSubstituirJogador.tsx": {
-    "hex": 26,
-    "styledButton": 2
+    "hex": 20,
+    "styledButton": 1
   },
   "src/components/ui/Alert/Alert.tsx": {
     "styledButton": 1

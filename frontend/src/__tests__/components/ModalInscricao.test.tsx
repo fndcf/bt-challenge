@@ -121,14 +121,14 @@ describe("ModalInscricao", () => {
     it("deve mostrar botão fechar", async () => {
       render(<ModalInscricao {...defaultProps} />);
 
-      expect(screen.getByText("×")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Fechar modal" })).toBeInTheDocument();
     });
 
     it("deve chamar onClose ao clicar no botão fechar", async () => {
       const onClose = jest.fn();
       render(<ModalInscricao {...defaultProps} onClose={onClose} />);
 
-      fireEvent.click(screen.getByText("×"));
+      fireEvent.click(screen.getByRole("button", { name: "Fechar modal" }));
 
       expect(onClose).toHaveBeenCalled();
     });
@@ -764,15 +764,11 @@ describe("ModalInscricao", () => {
   describe("fechar ao clicar fora", () => {
     it("deve fechar ao clicar no overlay", async () => {
       const onClose = jest.fn();
-      const { container } = render(
-        <ModalInscricao {...defaultProps} onClose={onClose} />
-      );
+      render(<ModalInscricao {...defaultProps} onClose={onClose} />);
 
-      // Simula clique no overlay
-      const overlay = container.firstChild;
-      if (overlay) {
-        fireEvent.click(overlay);
-      }
+      // Modal do ui renderiza em portal: o overlay envolve o diálogo
+      const overlay = screen.getByRole("dialog").parentElement as HTMLElement;
+      fireEvent.click(overlay);
 
       expect(onClose).toHaveBeenCalled();
     });
@@ -1191,7 +1187,7 @@ describe("ModalInscricao", () => {
       fireEvent.click(screen.getByText("Cadastrar Jogador"));
 
       // Botão fechar deve estar desabilitado
-      const closeButton = screen.getByText("×");
+      const closeButton = screen.getByRole("button", { name: "Fechar modal" });
       expect(closeButton).toBeDisabled();
     });
 

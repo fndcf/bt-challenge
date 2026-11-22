@@ -390,7 +390,7 @@ describe("ModalLancamentoResultadosLoteDuplaFixa", () => {
     it("deve chamar onClose ao clicar no X", () => {
       render(<ModalLancamentoResultadosLoteDuplaFixa {...defaultProps} />);
 
-      fireEvent.click(screen.getByText("✕"));
+      fireEvent.click(screen.getByRole("button", { name: "Fechar modal" }));
 
       expect(defaultProps.onClose).toHaveBeenCalled();
     });

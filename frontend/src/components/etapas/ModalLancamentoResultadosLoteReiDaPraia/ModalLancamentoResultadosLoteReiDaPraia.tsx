@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import { Modal, Button, LoadingOverlay } from "@/components/ui";
 import {
   PartidaReiDaPraia,
   ResultadoPartidaLoteSuperXDTO,
@@ -33,82 +34,6 @@ const setVazio = (set: SetScore): boolean =>
   (set.gamesDupla2 === undefined || set.gamesDupla2 === null);
 
 // ============== STYLED COMPONENTS ==============
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  overflow-y: auto;
-`;
-
-const OverlayBackground = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  transition: opacity 0.2s;
-`;
-
-const ModalWrapper = styled.div`
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 56rem;
-  width: 100%;
-  padding: 1.5rem;
-  max-height: 90vh;
-  overflow-y: auto;
-
-  @media (min-width: 768px) {
-    padding: 2rem;
-  }
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-`;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #581c87;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const CloseButton = styled.button`
-  color: #9ca3af;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #4b5563;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 const SummaryBox = styled.div`
   background: white;
@@ -326,73 +251,6 @@ const ButtonsRow = styled.div`
   margin-top: 1.5rem;
 `;
 
-const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
-  flex: 1;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #7c3aed;
-    color: white;
-    &:hover:not(:disabled) { background: #6d28d9; }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    &:hover:not(:disabled) { background: #f9fafb; }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const LoadingOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const Spinner = styled.div`
-  width: 3rem;
-  height: 3rem;
-  border: 4px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const LoadingText = styled.div`
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
-`;
-
 // ============== HELPERS ==============
 
 const getStatusLabel = (status: string): string => {
@@ -580,17 +438,13 @@ export const ModalLancamentoResultadosLoteReiDaPraia: React.FC<
   ).length;
 
   return (
-    <Overlay>
-      <OverlayBackground onClick={!loading ? onClose : undefined} />
-
-      <ModalWrapper>
-        <ModalContainer>
-          <Header>
-            <Title>Registrar Resultados - {grupoNome}</Title>
-            <CloseButton onClick={onClose} disabled={loading}>
-              ✕
-            </CloseButton>
-          </Header>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Registrar Resultados - ${grupoNome}`}
+      size="xl"
+      loading={loading}
+    >
 
           <SummaryBox>
             <SummaryItem>
@@ -781,27 +635,20 @@ export const ModalLancamentoResultadosLoteReiDaPraia: React.FC<
             <ButtonsRow>
               <Button
                 type="button"
-                $variant="secondary"
+                variant="secondary"
                 onClick={onClose}
                 disabled={loading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" $variant="primary" disabled={loading || etapaFinalizada}>
+              <Button type="submit" disabled={loading || etapaFinalizada}>
                 {etapaFinalizada ? "Etapa Finalizada" : loading ? "Salvando..." : `Salvar Resultados (${seraoSalvas})`}
               </Button>
             </ButtonsRow>
           </Form>
-        </ModalContainer>
-      </ModalWrapper>
 
-      {loading && (
-        <LoadingOverlay>
-          <Spinner />
-          <LoadingText>Salvando resultados...</LoadingText>
-        </LoadingOverlay>
-      )}
-    </Overlay>
+      <LoadingOverlay isLoading={loading} message="Salvando resultados..." />
+    </Modal>
   );
 };
 

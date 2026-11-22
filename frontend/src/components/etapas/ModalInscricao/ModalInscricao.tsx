@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import styled from "styled-components";
+import { Modal, Button } from "@/components/ui";
 import {
   GeneroJogador,
   Jogador,
@@ -23,73 +24,20 @@ interface ModalInscricaoProps {
 
 // ============== STYLED COMPONENTS ==============
 
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 56rem;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Header = styled.div`
-  padding: 1.5rem;
+const InfoHeader = styled.div`
+  padding: 0 1.5rem 1rem;
   border-bottom: 1px solid #e5e7eb;
+
+  &:empty {
+    display: none;
+  }
 `;
 
-const HeaderTop = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const HeaderContent = styled.div``;
-
-const Title = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-`;
-
-const Subtitle = styled.p`
+const FooterInfo = styled.div`
+  flex: 1;
+  align-self: center;
   font-size: 0.875rem;
   color: #6b7280;
-  margin: 0.25rem 0 0 0;
-`;
-
-const CloseButton = styled.button`
-  font-size: 2rem;
-  color: #9ca3af;
-  border: none;
-  background: none;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  transition: color 0.2s;
-
-  &:hover:not(:disabled) {
-    color: #4b5563;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 `;
 
 const InfoRow = styled.div`
@@ -289,48 +237,6 @@ const HintText = styled.p`
   margin: 0.25rem 0 0 0;
 `;
 
-const Button = styled.button<{
-  $variant?: "primary" | "secondary" | "success";
-}>`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  ${(props) => {
-    switch (props.$variant) {
-      case "success":
-        return `
-          background: #16a34a;
-          color: white;
-          &:hover:not(:disabled) { background: #15803d; }
-        `;
-      case "secondary":
-        return `
-          background: white;
-          color: #374151;
-          border: 1px solid #d1d5db;
-          &:hover:not(:disabled) { background: #f9fafb; }
-        `;
-      default:
-        return `
-          background: #2563eb;
-          color: white;
-          &:hover:not(:disabled) { background: #1d4ed8; }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
 const LoadingContainer = styled.div`
   text-align: center;
   padding: 3rem 0;
@@ -504,56 +410,6 @@ const MessageBox = styled.div<{ $variant: "success" | "error" }>`
   color: ${(props) => (props.$variant === "success" ? "#166534" : "#991b1b")};
 `;
 
-const Footer = styled.div`
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-`;
-
-const FooterContent = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const FooterInfo = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const FooterButtons = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const FooterButton = styled.button<{ $variant?: "primary" | "secondary" }>`
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #2563eb;
-    color: white;
-    &:hover:not(:disabled) { background: #1d4ed8; }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    &:hover:not(:disabled) { background: #f9fafb; }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 // ============== COMPONENTE ==============
 
@@ -826,16 +682,38 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
   };
 
   return (
-    <Overlay onClick={(e) => e.target === e.currentTarget && !loading && onClose()}>
-      <ModalContainer>
-        <Header>
-          <HeaderTop>
-            <HeaderContent>
-              <Title>Inscrever Jogadores</Title>
-              <Subtitle>{etapaNome}</Subtitle>
-            </HeaderContent>
-            <CloseButton onClick={onClose} disabled={loading}>×</CloseButton>
-          </HeaderTop>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Inscrever Jogadores"
+      subtitle={etapaNome}
+      size="xl"
+      loading={loading}
+      bodyPadding={false}
+      footer={
+        <>
+          <FooterInfo>
+            {jogadoresSelecionados.length > 0 && !mostrarFormulario && (
+              <span>
+                {jogadoresSelecionados.length} jogador(es) selecionado(s)
+              </span>
+            )}
+          </FooterInfo>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
+            Cancelar
+          </Button>
+          {!mostrarFormulario && (
+            <Button
+              onClick={handleInscrever}
+              disabled={loading || jogadoresSelecionados.length === 0}
+            >
+              {loading ? "Inscrevendo..." : "Inscrever"}
+            </Button>
+          )}
+        </>
+      }
+    >
+        <InfoHeader>
 
           <InfoRow>
             {etapaNivel && (
@@ -888,7 +766,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
               </GeneroCounterItem>
             </GeneroCounter>
           )}
-        </Header>
+        </InfoHeader>
 
         <TabsContainer>
           <TabsRow>
@@ -1043,7 +921,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
                 </FormField>
 
                 <Button
-                  $variant="success"
+                  fullWidth
                   onClick={handleCadastrarJogador}
                   disabled={loading || !novoJogador.nome.trim()}
                 >
@@ -1125,39 +1003,7 @@ export const ModalInscricao: React.FC<ModalInscricaoProps> = ({
         )}
 
         {error && <MessageBox $variant="error">{error}</MessageBox>}
-
-        <Footer>
-          <FooterContent>
-            <FooterInfo>
-              {jogadoresSelecionados.length > 0 && !mostrarFormulario && (
-                <span>
-                  {jogadoresSelecionados.length} jogador(es) selecionado(s)
-                </span>
-              )}
-            </FooterInfo>
-
-            <FooterButtons>
-              <FooterButton
-                $variant="secondary"
-                onClick={onClose}
-                disabled={loading}
-              >
-                Cancelar
-              </FooterButton>
-              {!mostrarFormulario && (
-                <FooterButton
-                  $variant="primary"
-                  onClick={handleInscrever}
-                  disabled={loading || jogadoresSelecionados.length === 0}
-                >
-                  {loading ? "Inscrevendo..." : "Inscrever"}
-                </FooterButton>
-              )}
-            </FooterButtons>
-          </FooterContent>
-        </Footer>
-      </ModalContainer>
-    </Overlay>
+    </Modal>
   );
 };
 

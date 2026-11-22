@@ -5,6 +5,7 @@ import {
   StatusConfrontoEliminatorio,
 } from "@/types/chave";
 import { getChaveService } from "@/services";
+import { Modal, Button } from "@/components/ui";
 import {
   SetScore,
   venceuSet,
@@ -23,80 +24,6 @@ interface ModalRegistrarResultadoEliminatorioProps {
 }
 
 // ============== STYLED COMPONENTS ==============
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  overflow-y: auto;
-`;
-
-const OverlayBackground = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  transition: opacity 0.2s;
-`;
-
-const ModalWrapper = styled.div`
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 42rem;
-  width: 100%;
-  padding: 1.5rem;
-
-  @media (min-width: 768px) {
-    padding: 2rem;
-  }
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-`;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const CloseButton = styled.button`
-  color: #9ca3af;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 0;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #4b5563;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 const Form = styled.form`
   display: flex;
@@ -206,55 +133,6 @@ const ErrorBox = styled.div`
 const ButtonsRow = styled.div`
   display: flex;
   gap: 0.75rem;
-`;
-
-const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
-  flex: 1;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #2563eb;
-    color: white;
-    &:hover:not(:disabled) { background: #1d4ed8; }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    &:hover:not(:disabled) { background: #f9fafb; }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const Spinner = styled.div`
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
 `;
 
 // ============== COMPONENTE ==============
@@ -385,18 +263,14 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
   const resultado = calcularVencedor();
 
   return (
-    <Overlay>
-      <OverlayBackground onClick={!loading ? onClose : undefined} />
-
-      <ModalWrapper>
-        <ModalContainer>
-          <Header>
-            <Title>
-              {isEdicao ? " Editar Resultado" : " Registrar Resultado"}
-            </Title>
-            <CloseButton onClick={onClose} disabled={loading}>✕</CloseButton>
-          </Header>
-
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={isEdicao ? "Editar Resultado" : "Registrar Resultado"}
+      size="lg"
+      loading={loading}
+    >
+          {/* Botões ficam dentro do form (submit), não no rodapé do Modal */}
           <Form onSubmit={handleSubmit}>
             <InfoBox>
               <InfoLabel>Confronto Eliminatório</InfoLabel>
@@ -545,35 +419,24 @@ export const ModalRegistrarResultadoEliminatorio: React.FC<
             <ButtonsRow>
               <Button
                 type="button"
-                $variant="secondary"
+                variant="secondary"
                 onClick={onClose}
                 disabled={loading}
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                $variant="primary"
-                disabled={loading || !resultado}
-              >
-                {loading ? (
-                  <>
-                    <Spinner />
-                    <span>{isEdicao ? "Atualizando..." : "Salvando..."}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>
-                      {isEdicao ? "Atualizar Resultado" : "Salvar Resultado"}
-                    </span>
-                  </>
-                )}
+              <Button type="submit" disabled={loading || !resultado} loading={loading}>
+                {loading
+                  ? isEdicao
+                    ? "Atualizando..."
+                    : "Salvando..."
+                  : isEdicao
+                    ? "Atualizar Resultado"
+                    : "Salvar Resultado"}
               </Button>
             </ButtonsRow>
           </Form>
-        </ModalContainer>
-      </ModalWrapper>
-    </Overlay>
+    </Modal>
   );
 };
 

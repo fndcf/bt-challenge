@@ -122,12 +122,10 @@ describe("ConfirmDeleteModal", () => {
   describe("overlay", () => {
     it("deve chamar onCancel ao clicar no overlay", () => {
       const onCancel = jest.fn();
-      const { container } = render(
-        <ConfirmDeleteModal {...defaultProps} onCancel={onCancel} />
-      );
+      render(<ConfirmDeleteModal {...defaultProps} onCancel={onCancel} />);
 
-      // O overlay é o primeiro elemento
-      const overlay = container.firstChild as HTMLElement;
+      // Modal do ui renderiza em portal: o overlay envolve o diálogo
+      const overlay = screen.getByRole("dialog").parentElement as HTMLElement;
       fireEvent.click(overlay);
       expect(onCancel).toHaveBeenCalledTimes(1);
     });

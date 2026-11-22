@@ -656,7 +656,7 @@ describe("ModalLancamentoResultadosLoteReiDaPraia", () => {
     it("deve chamar onClose ao clicar no X", () => {
       render(<ModalLancamentoResultadosLoteReiDaPraia {...defaultProps} />);
 
-      fireEvent.click(screen.getByText("✕"));
+      fireEvent.click(screen.getByRole("button", { name: "Fechar modal" }));
 
       expect(defaultProps.onClose).toHaveBeenCalled();
     });
@@ -753,7 +753,7 @@ describe("ModalLancamentoResultadosLoteReiDaPraia", () => {
       fireEvent.click(screen.getByText("Salvar Resultados (1)"));
 
       // O botão de fechar (X) deve estar desabilitado
-      const closeButton = screen.getByText("✕");
+      const closeButton = screen.getByRole("button", { name: "Fechar modal" });
       expect(closeButton).toBeDisabled();
     });
 

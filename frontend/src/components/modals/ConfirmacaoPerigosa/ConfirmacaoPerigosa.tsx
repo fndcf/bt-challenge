@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import styled from "styled-components";
+import { Modal, Button } from "@/components/ui";
+import { theme } from "@/styles/theme";
 
 interface ConfirmacaoPerigosaProps {
   isOpen: boolean;
@@ -14,160 +16,59 @@ interface ConfirmacaoPerigosaProps {
   variante?: "danger" | "warning"; // warning não exige digitação
 }
 
+const { texto, superficie, status, acao } = theme.semantic;
+
 // ============== STYLED COMPONENTS ==============
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  overflow-y: auto;
-`;
-
-const OverlayBackground = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  transition: opacity 0.2s;
-`;
-
-const ModalWrapper = styled.div`
-  position: relative;
-  z-index: 51;
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  pointer-events: none;
-`;
-
-const ModalContainer = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  max-width: 28rem;
-  width: 100%;
-  padding: 1.5rem;
-  pointer-events: auto;
-`;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  text-align: center;
-  margin: 0 0 0.5rem 0;
-`;
 
 const Message = styled.div`
   font-size: 0.875rem;
-  color: #6b7280;
-  text-align: center;
-  margin-bottom: 1.5rem;
+  color: ${texto.secundario};
+  line-height: 1.5;
   white-space: pre-line;
 `;
 
 const InputSection = styled.div`
-  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
 `;
 
 const Label = styled.label`
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: ${texto.principal};
   margin-bottom: 0.5rem;
 `;
 
 const RequiredWord = styled.span`
   font-weight: 700;
-  color: #dc2626;
+  color: ${status.erro.texto};
 `;
 
 const Input = styled.input`
   width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
   padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid ${superficie.bordaForte};
   border-radius: 0.5rem;
   font-size: 0.875rem;
+  color: ${texto.principal};
 
-  &:focus {
-    outline: none;
-    ring: 2px;
-    ring-color: #dc2626;
+  &:focus-visible {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 1px;
   }
 
   &:disabled {
-    background: #f3f4f6;
+    background: ${superficie.pagina};
     cursor: not-allowed;
   }
 `;
 
 const ValidationMessage = styled.p<{ $isValid: boolean }>`
   font-size: 0.75rem;
-  margin-top: 0.25rem;
-  color: ${(props) => (props.$isValid ? "#16a34a" : "#dc2626")};
-`;
-
-const ButtonsRow = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
-  flex: 1;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #dc2626;
-    color: white;
-    border: none;
-    
-    &:hover:not(:disabled) {
-      background: #b91c1c;
-    }
-  `
-      : `
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    
-    &:hover:not(:disabled) {
-      background: #f9fafb;
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const Spinner = styled.div`
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
+  margin: 0.25rem 0 0 0;
+  color: ${(props) => (props.$isValid ? status.sucesso.texto : status.erro.texto)};
 `;
 
 // ============== COMPONENTE ==============
@@ -185,6 +86,7 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
   variante = "danger",
 }) => {
   const [inputValue, setInputValue] = useState("");
+  const inputId = useId();
 
   // Se variante é warning ou não há palavraConfirmacao, não exige digitação
   const exigeDigitacao = variante === "danger" && !!palavraConfirmacao;
@@ -207,75 +109,64 @@ export const ConfirmacaoPerigosa: React.FC<ConfirmacaoPerigosaProps> = ({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   const botaoTexto = textoBotaoConfirmar || textoBotao;
 
   return (
-    <Overlay>
-      <OverlayBackground onClick={!loading ? handleClose : undefined} />
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={titulo}
+      size="sm"
+      loading={loading}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleClose}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            // Ação destrutiva = perigo; aviso (ex.: Sair) = ação comum
+            variant={variante === "danger" ? "danger" : "primary"}
+            onClick={handleConfirm}
+            disabled={!isConfirmacaoCorreta || loading}
+            loading={loading}
+          >
+            {loading ? "Processando..." : botaoTexto}
+          </Button>
+        </>
+      }
+    >
+      <Message>{mensagem}</Message>
 
-      <ModalWrapper>
-        <ModalContainer>
-          <Title>{titulo}</Title>
-
-          <Message>{mensagem}</Message>
-
-          {exigeDigitacao && (
-            <InputSection>
-              <Label>
-                Para confirmar, digite{" "}
-                <RequiredWord>{palavraConfirmacao}</RequiredWord>
-              </Label>
-              <Input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={`Digite "${palavraConfirmacao}"`}
-                disabled={loading}
-                autoFocus
-              />
-              {inputValue && !isConfirmacaoCorreta && (
-                <ValidationMessage $isValid={false}>
-                  Texto incorreto
-                </ValidationMessage>
-              )}
-              {isConfirmacaoCorreta && inputValue && (
-                <ValidationMessage $isValid={true}>
-                  Texto correto
-                </ValidationMessage>
-              )}
-            </InputSection>
+      {exigeDigitacao && (
+        <InputSection>
+          <Label htmlFor={inputId}>
+            Para confirmar, digite{" "}
+            <RequiredWord>{palavraConfirmacao}</RequiredWord>
+          </Label>
+          <Input
+            id={inputId}
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={`Digite "${palavraConfirmacao}"`}
+            disabled={loading}
+            autoFocus
+          />
+          {inputValue && !isConfirmacaoCorreta && (
+            <ValidationMessage $isValid={false}>Texto incorreto</ValidationMessage>
           )}
-
-          <ButtonsRow>
-            <Button
-              type="button"
-              $variant="secondary"
-              onClick={handleClose}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              $variant="primary"
-              onClick={handleConfirm}
-              disabled={!isConfirmacaoCorreta || loading}
-            >
-              {loading ? (
-                <>
-                  <Spinner />
-                  <span>Processando...</span>
-                </>
-              ) : (
-                <span>{botaoTexto}</span>
-              )}
-            </Button>
-          </ButtonsRow>
-        </ModalContainer>
-      </ModalWrapper>
-    </Overlay>
+          {isConfirmacaoCorreta && inputValue && (
+            <ValidationMessage $isValid={true}>Texto correto</ValidationMessage>
+          )}
+        </InputSection>
+      )}
+    </Modal>
   );
 };
 
