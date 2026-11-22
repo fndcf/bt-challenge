@@ -973,6 +973,40 @@ describe("ModalInscricao", () => {
       );
     });
 
+    it("deve filtrar por gênero em etapa mista, sem perder os selecionados", async () => {
+      mockListar.mockResolvedValue({
+        jogadores: [
+          { ...mockJogadores[0], id: "h1", nome: "João Masculino", genero: GeneroJogador.MASCULINO },
+          { ...mockJogadores[0], id: "m1", nome: "Maria Feminina", genero: GeneroJogador.FEMININO },
+        ],
+      });
+
+      render(
+        <ModalInscricao
+          {...defaultProps}
+          etapaGenero={GeneroJogador.MISTO}
+          etapaFormato={FormatoEtapa.TEAMS}
+        />
+      );
+
+      fireEvent.click(await screen.findByText("João Masculino"));
+      fireEvent.click(screen.getByRole("button", { name: "♀ Fem (1)" }));
+
+      expect(screen.getByText("Maria Feminina")).toBeInTheDocument();
+      expect(screen.queryByText("João Masculino")).not.toBeInTheDocument();
+      expect(screen.getByText("1 jogador(es) selecionado(s)")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Todos (2)" }));
+      expect(screen.getByText("João Masculino")).toBeInTheDocument();
+    });
+
+    it("não deve mostrar o filtro quando a etapa é de um gênero só", async () => {
+      render(<ModalInscricao {...defaultProps} />);
+      await screen.findByText("João Silva");
+
+      expect(screen.queryByRole("group", { name: "Filtrar por gênero" })).not.toBeInTheDocument();
+    });
+
     it("deve mostrar gênero do jogador em etapa mista", async () => {
       mockListar.mockResolvedValue({ jogadores: mockJogadoresMistos });
       mockListarInscricoes.mockResolvedValue([]);

@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
-import styled from "styled-components";
 import { getChaveService, getEtapaService } from "@/services";
 import { Dupla, Grupo, Partida } from "@/types/chave";
 import { FaseEliminatoria } from "../FaseEliminatoria";
-import { LoadingOverlay, Button, EmptyState } from "@/components/ui";
+import { Alert, Button, EmptyState, LoadingOverlay, Tabs } from "@/components/ui";
 import { ModalLancamentoResultadosLoteDuplaFixa } from "../ModalLancamentoResultadosLoteDuplaFixa";
 import { PainelEmpatesPendentes } from "../PainelEmpatesPendentes";
-import { GrupoPainel, GruposGrid, TabelaClassificacao } from "@/components/torneio";
+import {
+  CabecalhoChaves,
+  EstadoChaves,
+  GrupoPainel,
+  GruposGrid,
+  TabelaClassificacao,
+  TelaChaves,
+} from "@/components/torneio";
 import { FormatoEtapa } from "@/types/etapa";
 import { COLUNAS_ADMIN, linhasDeDuplas, temJogos } from "@/utils/classificacao";
 
@@ -20,154 +26,10 @@ interface ChavesEtapaProps {
 
 type AbaAtiva = "grupos" | "eliminatoria";
 
-// ============== STYLED COMPONENTS ==============
-
-const Container = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem;
-
-  @media (min-width: 768px) {
-    padding: 1.5rem;
-  }
-`;
-
-const TabsContainer = styled.div`
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 2rem;
-
-  /* MOBILE: Remove borda */
-  @media (max-width: 768px) {
-    border-bottom: none;
-  }
-`;
-
-const TabsList = styled.nav`
-  display: flex;
-  gap: 1rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* MOBILE: Layout vertical */
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-`;
-
-const Tab = styled.button<{ $isActive: boolean }>`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: none;
-  border-bottom: 3px solid
-    ${(props) => (props.$isActive ? "#2563eb" : "transparent")};
-  color: ${(props) => (props.$isActive ? "#2563eb" : "#6b7280")};
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-
-  &:hover {
-    color: #2563eb;
-  }
-
-  /* MOBILE: Botões verticais */
-  @media (max-width: 768px) {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    text-align: left;
-    background: ${(props) => (props.$isActive ? "#eff6ff" : "white")};
-    border-color: ${(props) => (props.$isActive ? "#2563eb" : "#e5e7eb")};
-    border-bottom: 1px solid
-      ${(props) => (props.$isActive ? "#2563eb" : "#e5e7eb")};
-
-    &:hover {
-      background: ${(props) => (props.$isActive ? "#eff6ff" : "#f9fafb")};
-    }
-  }
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-`;
-
-const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-
-  @media (min-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const Stats = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 4rem;
-`;
-
-const Spinner = styled.div`
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 3px solid #dbeafe;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const ErrorContainer = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  color: #991b1b;
-`;
-
-const InfoCard = styled.div`
-  background: #dbeafe;
-  border: 1px solid #bfdbfe;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-top: 1.5rem;
-
-  h4 {
-    color: #1e40af;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9375rem;
-  }
-
-  p {
-    color: #1e40af;
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-`;
+const ABAS: { id: AbaAtiva; label: string }[] = [
+  { id: "grupos", label: "Fase de Grupos" },
+  { id: "eliminatoria", label: "Eliminatória" },
+];
 
 // ============== COMPONENTE ==============
 
@@ -276,50 +138,25 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
     }
   };
 
-  if (loading) {
+  if (loading || error || grupos.length === 0) {
     return (
-      <LoadingContainer>
-        <Spinner />
-      </LoadingContainer>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container>
-        <ErrorContainer>
-          <strong>Erro:</strong> {error}
-        </ErrorContainer>
-      </Container>
-    );
-  }
-
-  if (grupos.length === 0) {
-    return (
-      <Container>
-        <EmptyState titulo="Nenhuma chave gerada ainda" />
-      </Container>
+      <EstadoChaves
+        carregando={loading}
+        erro={error}
+        vazio="Nenhuma chave gerada ainda"
+      />
     );
   }
 
   return (
-    <Container>
-      <TabsContainer>
-        <TabsList>
-          <Tab
-            $isActive={abaAtiva === "grupos"}
-            onClick={() => setAbaAtiva("grupos")}
-          >
-            Fase de Grupos
-          </Tab>
-          <Tab
-            $isActive={abaAtiva === "eliminatoria"}
-            onClick={() => setAbaAtiva("eliminatoria")}
-          >
-            Eliminatória
-          </Tab>
-        </TabsList>
-      </TabsContainer>
+    <TelaChaves>
+      <Tabs
+        rotulo="Fases da etapa"
+        formato={FormatoEtapa.DUPLA_FIXA}
+        abas={ABAS}
+        ativa={abaAtiva}
+        onChange={setAbaAtiva}
+      />
 
       <PainelEmpatesPendentes
         etapaId={etapaId}
@@ -331,12 +168,11 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
 
       {abaAtiva === "grupos" ? (
         <>
-          <Header>
-            <Title>Grupos e Duplas</Title>
-            <Stats>
-              {grupos.length} grupos • {duplas.length} duplas
-            </Stats>
-          </Header>
+          <CabecalhoChaves
+            titulo="Grupos e Duplas"
+            formato={FormatoEtapa.DUPLA_FIXA}
+            resumo={`${grupos.length} grupos • ${duplas.length} duplas`}
+          />
 
           <GruposGrid>
             {grupos.map((grupo) => {
@@ -380,13 +216,10 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
             })}
           </GruposGrid>
 
-          <InfoCard>
-            <h4> Fase de Grupos</h4>
-            <p>
-              Cada dupla joga contra todas as outras duplas do seu grupo. As
-              duplas com melhor campanha classificam para a próxima fase.
-            </p>
-          </InfoCard>
+          <Alert title="Fase de Grupos">
+            Cada dupla joga contra todas as outras duplas do seu grupo. As
+            duplas com melhor campanha classificam para a próxima fase.
+          </Alert>
         </>
       ) : (
         <FaseEliminatoria
@@ -415,7 +248,7 @@ export const ChavesEtapa: React.FC<ChavesEtapaProps> = ({
         isLoading={globalLoading}
         message={globalLoadingMessage}
       />
-    </Container>
+    </TelaChaves>
   );
 };
 

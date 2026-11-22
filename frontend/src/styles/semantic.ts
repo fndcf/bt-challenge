@@ -7,6 +7,7 @@
  * - formato: identidade de cada tipo de etapa (cabeçalho, aba ativa,
  *   cabeçalho de grupo, número da posição, selo do formato)
  * - status: situação (finalizado, aguardando, erro, neutro, info)
+ * - genero: masculino e feminino (sempre com símbolo e texto)
  * - medalha: destaque de colocação (ouro, prata, bronze)
  * - texto / superficie: base neutra
  *
@@ -79,6 +80,13 @@ const status = {
   },
 } satisfies Record<string, CoresStatus>;
 
+// Gênero do jogador. Azul-céu e magenta, para não se confundirem com o azul da
+// Dupla Fixa e o rosa do Super X; só em selo claro, nunca em cabeçalho.
+const genero = {
+  masculino: { texto: "#075985", fundo: "#E0F2FE", borda: "#7DD3FC" },
+  feminino: { texto: "#86198F", fundo: "#FAE8FF", borda: "#F0ABFC" },
+} satisfies Record<string, CoresStatus>;
+
 // Destaque de colocação (1º, 2º, 3º). Texto escuro: os degradês antigos com
 // texto branco reprovavam no contraste (ouro 1.7:1). O bronze fica bege para
 // não se confundir com o laranja do Teams.
@@ -99,6 +107,7 @@ export const semantic = {
   },
   formato,
   status,
+  genero,
   medalha,
   texto: {
     principal: "#18181B",

@@ -101,6 +101,21 @@ export class ConfrontoEquipeRepository implements IConfrontoEquipeRepository {
     });
   }
 
+  async atualizarEmLote(
+    atualizacoes: Array<{ id: string; dados: Partial<ConfrontoEquipe> }>
+  ): Promise<void> {
+    const agora = Timestamp.now();
+
+    // Um batch do Firestore aceita até 500 operações
+    for (let i = 0; i < atualizacoes.length; i += 500) {
+      const batch = db.batch();
+      for (const { id, dados } of atualizacoes.slice(i, i + 500)) {
+        batch.update(this.collection.doc(id), { ...dados, atualizadoEm: agora });
+      }
+      await batch.commit();
+    }
+  }
+
   async deletar(id: string): Promise<void> {
     await this.collection.doc(id).delete();
   }
@@ -195,6 +210,18 @@ export class ConfrontoEquipeRepository implements IConfrontoEquipeRepository {
       vencedoraId,
       vencedoraNome,
       status: StatusConfronto.FINALIZADO,
+      atualizadoEm: Timestamp.now(),
+    });
+  }
+
+  /**
+   * Desfazer a finalização: volta a "em andamento", sem vencedor
+   */
+  async reabrir(id: string): Promise<void> {
+    await this.collection.doc(id).update({
+      status: StatusConfronto.EM_ANDAMENTO,
+      vencedoraId: FieldValue.delete(),
+      vencedoraNome: FieldValue.delete(),
       atualizadoEm: Timestamp.now(),
     });
   }

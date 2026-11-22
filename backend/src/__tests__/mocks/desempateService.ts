@@ -19,6 +19,7 @@ export function createMockDesempateService() {
     garantirSemEmpatesPendentes: jest.fn().mockResolvedValue(undefined),
     definirDesempate: jest.fn(),
     limpar: jest.fn().mockResolvedValue(undefined),
+    renomearParticipante: jest.fn().mockResolvedValue(undefined),
     limparGrupos: jest.fn().mockResolvedValue(undefined),
   };
 }

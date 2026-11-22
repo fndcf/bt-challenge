@@ -744,21 +744,22 @@ describe("ModalLancamentoResultadosLoteTeams", () => {
   // ============================================
 
   describe("labels de duplas", () => {
-    it("deve mostrar nome da equipe quando dupla não definida", () => {
+    it("deve usar o nome atual do confronto, e não a cópia antiga da partida", () => {
       const partidas = [
         criarPartidaTeams("partida-1", TipoJogoTeams.MASCULINO, {
           dupla1: [],
           dupla2: [],
-          equipe1Nome: "Time Alpha",
-          equipe2Nome: "Time Beta",
+          equipe1Nome: "Nome Antigo 1",
+          equipe2Nome: "Nome Antigo 2",
         }),
       ];
 
       render(<ModalLancamentoResultadosLoteTeams {...defaultProps} partidas={partidas} tipoFormacaoManual={false} />);
 
-      // Nome da equipe aparece em múltiplos lugares (header do confronto e nos cards)
-      expect(screen.getAllByText("Time Alpha").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Time Beta").length).toBeGreaterThan(0);
+      // Cabeçalho do confronto e linha da partida
+      expect(screen.getAllByText("Equipe Alpha")).toHaveLength(2);
+      expect(screen.getAllByText("Equipe Beta")).toHaveLength(2);
+      expect(screen.queryByText(/Nome Antigo/)).not.toBeInTheDocument();
     });
 
     const partidaSemNomes = () => [

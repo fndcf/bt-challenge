@@ -15,6 +15,9 @@ export interface IPartidaTeamsRepository {
   buscarPorId(id: string): Promise<PartidaTeams | null>;
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<PartidaTeams[]>;
   atualizar(id: string, dados: Partial<PartidaTeams>): Promise<void>;
+  atualizarEmLote(
+    atualizacoes: Array<{ id: string; dados: Partial<PartidaTeams> }>
+  ): Promise<void>;
   deletar(id: string): Promise<void>;
   deletarPorEtapa(etapaId: string, arenaId: string): Promise<void>;
 

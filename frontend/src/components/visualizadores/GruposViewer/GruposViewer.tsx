@@ -16,6 +16,7 @@ import {
   COLUNAS_PUBLICO_TEAMS,
   LinhaClassificacao,
 } from "@/utils/classificacao";
+import { equipeVenceu, getSituacaoConfronto } from "@/utils/teams";
 
 // ============== TYPES ==============
 
@@ -336,20 +337,14 @@ const JogadorItem = styled.li`
 
 // ============== HELPERS ==============
 
-/** Situação da partida/confronto; `feminino` acompanha "partida" */
+/** Situação da partida */
 const getSituacao = (
-  status: string | undefined,
-  feminino: boolean
+  status: string | undefined
 ): { label: string; tom: BadgeTom } => {
-  switch (status?.toUpperCase()) {
-    case "FINALIZADO":
-    case "FINALIZADA":
-      return { label: feminino ? "Finalizada" : "Finalizado", tom: "sucesso" };
-    case "EM_ANDAMENTO":
-      return { label: "Ao vivo", tom: "info" };
-    default:
-      return { label: feminino ? "Agendada" : "Agendado", tom: "aviso" };
-  }
+  if (estaFinalizada(status)) return { label: "Finalizada", tom: "sucesso" };
+  return status?.toUpperCase() === "EM_ANDAMENTO"
+    ? { label: "Ao vivo", tom: "info" }
+    : { label: "Agendada", tom: "aviso" };
 };
 
 const estaFinalizada = (status?: string): boolean =>
@@ -469,7 +464,7 @@ const renderPartida = (partida: Partida) => {
   return (
     <CardConfronto
       key={partida.id}
-      situacao={getSituacao(partida.status, true)}
+      situacao={getSituacao(partida.status)}
       lado1={{
         nome: partida.dupla1Nome,
         placar: formatarPlacar(partida, "gamesDupla1"),
@@ -495,7 +490,7 @@ const renderPartidaTeams = (partida: PartidaTeams) => {
       etiquetas={
         <Badge>{TIPO_JOGO_LABEL[partida.tipoJogo] ?? partida.tipoJogo}</Badge>
       }
-      situacao={getSituacao(partida.status, true)}
+      situacao={getSituacao(partida.status)}
       lado1={{
         nome: getDuplaNomes(partida.dupla1),
         placar: formatarPlacar(partida, "gamesDupla1"),
@@ -511,22 +506,19 @@ const renderPartidaTeams = (partida: PartidaTeams) => {
 };
 
 const renderConfronto = (confronto: Confronto) => {
-  const venceu = (equipeId?: string) =>
-    !!confronto.vencedoraId && confronto.vencedoraId === equipeId;
-
   return (
     <CardConfronto
       key={confronto.id}
-      situacao={getSituacao(confronto.status, false)}
+      situacao={getSituacaoConfronto(confronto, "Agendado")}
       lado1={{
         nome: confronto.equipe1Nome || "A definir",
         placar: confronto.jogosEquipe1 || 0,
-        vencedor: venceu(confronto.equipe1Id),
+        vencedor: equipeVenceu(confronto, confronto.equipe1Id),
       }}
       lado2={{
         nome: confronto.equipe2Nome || "A definir",
         placar: confronto.jogosEquipe2 || 0,
-        vencedor: venceu(confronto.equipe2Id),
+        vencedor: equipeVenceu(confronto, confronto.equipe2Id),
       }}
     >
       {!!confronto.partidas?.length && (

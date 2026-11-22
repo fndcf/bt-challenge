@@ -585,7 +585,7 @@ describe("ChavesTeams", () => {
     const renderComEmpate = async (decider: object) => {
       mockBuscarEquipes.mockResolvedValue([
         criarEquipeMock({ id: "equipe-1", grupoId: "A" }),
-        criarEquipeMock({ id: "equipe-2", grupoId: "A" }),
+        criarEquipeMock({ id: "equipe-2", nome: "Equipe Beta", grupoId: "A" }),
       ]);
       mockBuscarConfrontos.mockResolvedValue([
         criarConfrontoMock({
@@ -814,6 +814,32 @@ describe("ChavesTeams", () => {
       await waitFor(() => {
         expect(mockRenomearEquipe).toHaveBeenCalledWith("etapa-1", "equipe-1", "Novo Nome");
       });
+    });
+
+    it("deve mostrar o nome novo também nos confrontos", async () => {
+      mockBuscarEquipes.mockResolvedValue([
+        criarEquipeMock({ id: "equipe-1", nome: "Equipe Alpha" }),
+      ]);
+      // Cópia antiga do nome gravada no confronto
+      mockBuscarConfrontos.mockResolvedValue([
+        criarConfrontoMock({ equipe1Id: "equipe-1", equipe1Nome: "Nome Antigo" }),
+      ]);
+      mockRenomearEquipe.mockResolvedValue(undefined);
+
+      render(<ChavesTeams etapaId="etapa-1" />);
+
+      const confronto = await screen.findByRole("article");
+      expect(within(confronto).getByText("Equipe Alpha")).toBeInTheDocument();
+      expect(screen.queryByText("Nome Antigo")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTitle("Renomear equipe"));
+      const input = screen.getByDisplayValue("Equipe Alpha");
+      fireEvent.change(input, { target: { value: "Os Campeões" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      expect(
+        await within(confronto).findByText("Os Campeões")
+      ).toBeInTheDocument();
     });
 
     it("deve cancelar edição ao pressionar Escape", async () => {

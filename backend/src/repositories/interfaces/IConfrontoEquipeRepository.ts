@@ -14,6 +14,9 @@ export interface IConfrontoEquipeRepository {
   buscarPorId(id: string): Promise<ConfrontoEquipe | null>;
   buscarPorEtapa(etapaId: string, arenaId: string): Promise<ConfrontoEquipe[]>;
   atualizar(id: string, dados: Partial<ConfrontoEquipe>): Promise<void>;
+  atualizarEmLote(
+    atualizacoes: Array<{ id: string; dados: Partial<ConfrontoEquipe> }>
+  ): Promise<void>;
   deletar(id: string): Promise<void>;
   deletarPorEtapa(etapaId: string, arenaId: string): Promise<void>;
 
@@ -43,6 +46,7 @@ export interface IConfrontoEquipeRepository {
     vencedoraNome: string
   ): Promise<void>;
   atualizarStatus(id: string, status: StatusConfronto): Promise<void>;
+  reabrir(id: string): Promise<void>;
 
   // Partidas
   adicionarPartidasEmLote(confrontoId: string, partidaIds: string[]): Promise<void>;

@@ -555,11 +555,12 @@ export class TeamsClassificacaoService implements ITeamsClassificacaoService {
         (c.equipe1Id === equipe2Id && c.equipe2Id === equipe1Id)
     );
 
-    if (!confronto || !confronto.vencedoraId) {
+    // Só vale vencedor de confronto encerrado
+    if (confronto?.status !== StatusConfronto.FINALIZADO) {
       return null;
     }
 
-    return confronto.vencedoraId;
+    return confronto.vencedoraId ?? null;
   }
 }
 

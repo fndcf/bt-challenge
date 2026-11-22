@@ -1,12 +1,19 @@
 /**
- * Componente de input reutilizável com label e erro
+ * Campo de texto com label, ajuda e erro
  */
 
-import React, { InputHTMLAttributes, forwardRef } from "react";
+import React, { InputHTMLAttributes, forwardRef, useId } from "react";
 import styled, { css } from "styled-components";
 import { theme } from "@/styles/theme";
+import {
+  CampoAjuda,
+  CampoLabel,
+  CampoWrapper,
+  estiloCampo,
+  TamanhoCampo,
+} from "../Campo/estilosCampo";
 
-export type InputSize = "sm" | "md" | "lg";
+export type InputSize = TamanhoCampo;
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -18,27 +25,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   iconPosition?: "left" | "right";
 }
 
-const InputWrapper = styled.div<{ $fullWidth: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing[2]};
-  width: ${({ $fullWidth }) => ($fullWidth ? "100%" : "auto")};
-`;
-
-const Label = styled.label<{ $required?: boolean }>`
-  font-size: ${theme.typography.fontSize.sm};
-  font-weight: ${theme.typography.fontWeight.medium};
-  color: ${theme.colors.neutral[700]};
-
-  ${({ $required }) =>
-    $required &&
-    css`
-      &::after {
-        content: " *";
-        color: ${theme.colors.error[500]};
-      }
-    `}
-`;
+const { texto } = theme.semantic;
 
 const InputContainer = styled.div`
   position: relative;
@@ -49,89 +36,20 @@ const InputContainer = styled.div`
 const StyledInput = styled.input<{
   $hasError: boolean;
   $size: InputSize;
-  $hasIcon: boolean;
-  $iconPosition: "left" | "right";
+  $icone?: "left" | "right";
 }>`
-  width: 100%;
-  border: 1px solid
-    ${({ $hasError }) =>
-      $hasError ? theme.colors.error[500] : theme.colors.neutral[300]};
-  border-radius: ${theme.borderRadius.lg};
-  font-size: ${theme.typography.fontSize.base};
-  font-family: ${theme.typography.fontFamily.sans};
-  color: ${theme.colors.neutral[900]};
-  background: ${theme.colors.white};
-  transition: all ${theme.transitions.base} ${theme.easing.easeInOut};
+  ${estiloCampo}
 
-  /* Size variants */
-  ${({ $size }) => {
-    switch ($size) {
-      case "sm":
-        return css`
-          padding: ${theme.spacing[2]} ${theme.spacing[3]};
-          height: ${theme.components.input.height.sm};
-          font-size: ${theme.typography.fontSize.sm};
-        `;
-      case "lg":
-        return css`
-          padding: ${theme.spacing[4]} ${theme.spacing[5]};
-          height: ${theme.components.input.height.lg};
-          font-size: ${theme.typography.fontSize.lg};
-        `;
-      case "md":
-      default:
-        return css`
-          padding: ${theme.spacing[3]} ${theme.spacing[4]};
-          height: ${theme.components.input.height.md};
-        `;
-    }
-  }}
+  ${({ $icone }) =>
+    $icone &&
+    css`
+      padding-${$icone}: ${theme.spacing[10]};
+    `}
 
-  /* Icon padding */
-  ${({ $hasIcon, $iconPosition, $size }) => {
-    if (!$hasIcon) return "";
-
-    const paddingSize =
-      $size === "sm"
-        ? theme.spacing[10]
-        : $size === "lg"
-        ? theme.spacing[12]
-        : theme.spacing[10];
-
-    return $iconPosition === "left"
-      ? css`
-          padding-left: ${paddingSize};
-        `
-      : css`
-          padding-right: ${paddingSize};
-        `;
-  }}
-
-  /* Focus state */
-  &:focus {
-    outline: none;
-    border-color: ${({ $hasError }) =>
-      $hasError ? theme.colors.error[500] : theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px
-      ${({ $hasError }) =>
-        $hasError
-          ? `${theme.colors.error[500]}20`
-          : `${theme.colors.primary[500]}20`};
-  }
-
-  /* Disabled state */
-  &:disabled {
-    background: ${theme.colors.neutral[50]};
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  /* Placeholder */
   &::placeholder {
-    color: ${theme.colors.neutral[400]};
+    color: ${texto.secundario};
   }
 
-  /* Remove number input arrows */
   &[type="number"]::-webkit-inner-spin-button,
   &[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -142,49 +60,17 @@ const StyledInput = styled.input<{
   }
 `;
 
-const IconWrapper = styled.div<{
-  $position: "left" | "right";
-  $size: InputSize;
-}>`
+const IconWrapper = styled.div<{ $position: "left" | "right" }>`
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  ${({ $position }) => $position}: ${theme.spacing[3]};
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${theme.colors.neutral[500]};
+  color: ${texto.secundario};
   pointer-events: none;
 
-  ${({ $position, $size }) => {
-    const spacing =
-      $size === "sm"
-        ? theme.spacing[3]
-        : $size === "lg"
-        ? theme.spacing[4]
-        : theme.spacing[3];
-
-    return $position === "left"
-      ? css`
-          left: ${spacing};
-        `
-      : css`
-          right: ${spacing};
-        `;
-  }}
-
   svg {
-    width: ${({ $size }) =>
-      $size === "sm" ? "1rem" : $size === "lg" ? "1.5rem" : "1.25rem"};
-    height: ${({ $size }) =>
-      $size === "sm" ? "1rem" : $size === "lg" ? "1.5rem" : "1.25rem"};
+    width: 1.25rem;
+    height: 1.25rem;
   }
-`;
-
-const HelperText = styled.span<{ $isError?: boolean }>`
-  font-size: ${theme.typography.fontSize.sm};
-  color: ${({ $isError }) =>
-    $isError ? theme.colors.error[500] : theme.colors.neutral[500]};
-  margin-top: ${theme.spacing[1]};
 `;
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -198,36 +84,45 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       icon,
       iconPosition = "left",
       required,
+      id,
       ...props
     },
     ref
   ) => {
+    const idGerado = useId();
+    const campoId = id ?? idGerado;
+    const ajudaId = `${campoId}-ajuda`;
+    const ajuda = error || helperText;
+
     return (
-      <InputWrapper $fullWidth={fullWidth}>
-        {label && <Label $required={required}>{label}</Label>}
+      <CampoWrapper $fullWidth={fullWidth}>
+        {label && (
+          <CampoLabel htmlFor={campoId} $required={required}>
+            {label}
+          </CampoLabel>
+        )}
 
         <InputContainer>
-          {icon && (
-            <IconWrapper $position={iconPosition} $size={inputSize}>
-              {icon}
-            </IconWrapper>
-          )}
-
+          {icon && <IconWrapper $position={iconPosition}>{icon}</IconWrapper>}
           <StyledInput
             ref={ref}
+            id={campoId}
             $hasError={!!error}
             $size={inputSize}
-            $hasIcon={!!icon}
-            $iconPosition={iconPosition}
+            $icone={icon ? iconPosition : undefined}
             required={required}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={ajuda ? ajudaId : undefined}
             {...props}
           />
         </InputContainer>
 
-        {(error || helperText) && (
-          <HelperText $isError={!!error}>{error || helperText}</HelperText>
+        {ajuda && (
+          <CampoAjuda id={ajudaId} $erro={!!error}>
+            {ajuda}
+          </CampoAjuda>
         )}
-      </InputWrapper>
+      </CampoWrapper>
     );
   }
 );

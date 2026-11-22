@@ -196,11 +196,13 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     ).length;
 
     // Atualizar confronto
+    const status = this.statusComJogoLancado(confronto);
     await this.confrontoRepository.atualizar(confronto.id, {
       jogosEquipe1,
       jogosEquipe2,
       partidasFinalizadas,
       totalPartidas: partidasAtualizadas.length,
+      status,
     });
 
     // Construir confronto atualizado localmente
@@ -210,6 +212,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       jogosEquipe2,
       partidasFinalizadas,
       totalPartidas: partidasAtualizadas.length,
+      status,
     };
 
     // Construir partida atualizada localmente
@@ -709,12 +712,23 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       ]);
     }
 
-    await this.confrontoRepository.atualizarStatus(
-      confronto.id,
-      StatusConfronto.EM_ANDAMENTO
-    );
+    await this.confrontoRepository.reabrir(confronto.id);
 
-    return { ...confronto, status: StatusConfronto.EM_ANDAMENTO };
+    return {
+      ...confronto,
+      status: StatusConfronto.EM_ANDAMENTO,
+      vencedoraId: undefined,
+      vencedoraNome: undefined,
+    };
+  }
+
+  /**
+   * Com jogo lançado o confronto está em andamento, até ser finalizado
+   */
+  private statusComJogoLancado(confronto: ConfrontoEquipe): StatusConfronto {
+    return confronto.status === StatusConfronto.FINALIZADO
+      ? StatusConfronto.FINALIZADO
+      : StatusConfronto.EM_ANDAMENTO;
   }
 
   private async verificarPrecisaDecider(
@@ -1071,11 +1085,13 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       (p) => p.status === StatusPartida.FINALIZADA
     ).length;
 
+    const status = this.statusComJogoLancado(confronto);
     await this.confrontoRepository.atualizar(confronto.id, {
       jogosEquipe1,
       jogosEquipe2,
       partidasFinalizadas,
       totalPartidas: partidasConfronto.length,
+      status,
     });
 
     const confrontoAtualizado: ConfrontoEquipe = {
@@ -1084,6 +1100,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       jogosEquipe2,
       partidasFinalizadas,
       totalPartidas: partidasConfronto.length,
+      status,
     };
 
     const confrontoFinalizado = await this.verificarConfrontoFinalizado(

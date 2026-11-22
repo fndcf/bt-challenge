@@ -1,5 +1,6 @@
 import React from "react";
 import styled, { keyframes } from "styled-components";
+import { theme } from "@/styles/theme";
 
 interface LoadingSpinnerProps {
   size?: "small" | "medium" | "large";
@@ -38,8 +39,8 @@ const SpinnerContainer = styled.div`
 const SpinnerCircle = styled.div<{ $size: "small" | "medium" | "large" }>`
   border-radius: 50%;
   border-style: solid;
-  border-color: #e5e7eb;
-  border-top-color: #134e5e;
+  border-color: ${theme.semantic.superficie.borda};
+  border-top-color: ${theme.semantic.acao.primaria};
   animation: ${spin} 0.8s linear infinite;
 
   ${(props) => {
@@ -68,7 +69,7 @@ const SpinnerCircle = styled.div<{ $size: "small" | "medium" | "large" }>`
 
 const Message = styled.p<{ $size: "small" | "medium" | "large" }>`
   margin: 0;
-  color: #6b7280;
+  color: ${theme.semantic.texto.secundario};
   font-weight: 500;
   text-align: center;
 

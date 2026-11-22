@@ -107,6 +107,20 @@ describe("styles/semantic", () => {
       }
     );
 
+    it.each(Object.entries(semantic.genero))(
+      "gênero %s: texto no fundo",
+      (_, cores) => {
+        expect(contraste(cores.texto, cores.fundo)).toBeGreaterThanOrEqual(CONTRASTE_MINIMO);
+      }
+    );
+
+    it("gênero não usa as cores de nenhum formato", () => {
+      const doFormato = Object.values(semantic.formato).flatMap((f) => [f.claro, f.suave, f.borda, f.texto]) as string[];
+      Object.values(semantic.genero).forEach((g) => {
+        [g.fundo, g.borda, g.texto].forEach((cor) => expect(doFormato).not.toContain(cor));
+      });
+    });
+
     it.each(Object.entries(semantic.medalha))(
       "medalha %s: texto no fundo",
       (_, cores) => {

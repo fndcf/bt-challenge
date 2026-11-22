@@ -20,6 +20,11 @@ import { Etapa, StatusEtapa, FormatoEtapa } from "../../models/Etapa";
 import { NivelJogador, GeneroJogador } from "../../models/Jogador";
 import { IEquipeRepository } from "../../repositories/interfaces/IEquipeRepository";
 import EquipeRepository from "../../repositories/firebase/EquipeRepository";
+import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfrontoEquipeRepository";
+import ConfrontoEquipeRepository from "../../repositories/firebase/ConfrontoEquipeRepository";
+import { IPartidaTeamsRepository } from "../../repositories/interfaces/IPartidaTeamsRepository";
+import PartidaTeamsRepository from "../../repositories/firebase/PartidaTeamsRepository";
+import desempateService, { DesempateService } from "../DesempateService";
 import { EstatisticasJogadorService } from "../EstatisticasJogadorService";
 import { ValidationError, NotFoundError } from "../../utils/errors";
 import {
@@ -67,7 +72,10 @@ export interface ITeamsEquipeService {
 export class TeamsEquipeService implements ITeamsEquipeService {
   constructor(
     private equipeRepository: IEquipeRepository = EquipeRepository,
-    private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService()
+    private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService(),
+    private confrontoRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository,
+    private partidaRepository: IPartidaTeamsRepository = PartidaTeamsRepository,
+    private desempate: DesempateService = desempateService
   ) {}
 
   /**
@@ -331,15 +339,63 @@ export class TeamsEquipeService implements ITeamsEquipeService {
       );
     }
 
+    const nome = novoNome.trim();
     await this.equipeRepository.atualizarEmLote([
-      { id: equipeId, dados: { nome: novoNome.trim() } },
+      { id: equipeId, dados: { nome } },
     ]);
+    await this.propagarNome(equipe, nome);
 
     logger.info("Equipe renomeada", {
       equipeId,
       nomeAntigo: equipe.nome,
-      nomeNovo: novoNome.trim(),
+      nomeNovo: nome,
     });
+  }
+
+  /**
+   * O nome da equipe é copiado nos confrontos, partidas e empates pendentes
+   * (evita buscar a equipe a cada leitura): todas as cópias mudam junto
+   */
+  private async propagarNome(equipe: Equipe, nome: string): Promise<void> {
+    const { id, etapaId, arenaId } = equipe;
+    const [confrontos, partidas] = await Promise.all([
+      this.confrontoRepository.buscarPorEtapa(etapaId, arenaId),
+      this.partidaRepository.buscarPorEtapa(etapaId, arenaId),
+    ]);
+
+    const daEquipe = (item: { equipe1Id?: string; equipe2Id?: string }) =>
+      item.equipe1Id === id || item.equipe2Id === id;
+    const nomesDosLados = (item: {
+      equipe1Id?: string;
+      equipe2Id?: string;
+    }) => ({
+      ...(item.equipe1Id === id && { equipe1Nome: nome }),
+      ...(item.equipe2Id === id && { equipe2Nome: nome }),
+    });
+
+    await Promise.all([
+      this.confrontoRepository.atualizarEmLote(
+        confrontos.filter(daEquipe).map((confronto) => ({
+          id: confronto.id,
+          dados: {
+            ...nomesDosLados(confronto),
+            ...(confronto.vencedoraId === id && { vencedoraNome: nome }),
+          },
+        }))
+      ),
+      this.partidaRepository.atualizarEmLote(
+        partidas.filter(daEquipe).map((partida) => ({
+          id: partida.id,
+          dados: {
+            ...nomesDosLados(partida),
+            ...(partida.vencedoraEquipeId === id && {
+              vencedoraEquipeNome: nome,
+            }),
+          },
+        }))
+      ),
+      this.desempate.renomearParticipante(etapaId, id, nome),
+    ]);
   }
 
   // ==================== MÉTODOS PRIVADOS ====================

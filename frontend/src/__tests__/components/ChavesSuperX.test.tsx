@@ -326,7 +326,7 @@ describe("ChavesSuperX", () => {
       });
     });
 
-    it("deve mostrar badge de Grupo Unico", async () => {
+    it("deve mostrar badge de Grupo Único", async () => {
       render(
         <ChavesSuperX
           etapaId="etapa-1"
@@ -336,7 +336,7 @@ describe("ChavesSuperX", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Grupo Unico")).toBeInTheDocument();
+        expect(screen.getByText("Grupo Único")).toBeInTheDocument();
       });
     });
 
@@ -351,7 +351,7 @@ describe("ChavesSuperX", () => {
 
       await waitFor(() => {
         // Verificar se o componente renderiza corretamente
-        expect(screen.getByText("Grupo Unico")).toBeInTheDocument();
+        expect(screen.getByText("Grupo Único")).toBeInTheDocument();
       });
     });
 
@@ -598,7 +598,7 @@ describe("ChavesSuperX", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Classificacao por pontos/)
+          screen.getByText(/Classificação por pontos/)
         ).toBeInTheDocument();
       });
     });

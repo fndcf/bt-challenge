@@ -63,6 +63,7 @@ import {
 import { NivelJogador, GeneroJogador } from "../../models/Jogador";
 import { TEST_IDS } from "../fixtures";
 import { ValidationError, NotFoundError } from "../../utils/errors";
+import desempateService from "../../services/DesempateService";
 
 describe("TeamsService", () => {
   let service: TeamsService;
@@ -94,6 +95,7 @@ describe("TeamsService", () => {
     buscarPorEtapa: jest.fn(),
     buscarPorEtapaOrdenados: jest.fn(),
     atualizar: jest.fn(),
+    atualizarEmLote: jest.fn(),
     deletar: jest.fn(),
     deletarPorEtapa: jest.fn(),
     buscarPorFase: jest.fn(),
@@ -101,6 +103,7 @@ describe("TeamsService", () => {
     buscarPorEquipe: jest.fn(),
     registrarResultado: jest.fn(),
     atualizarStatus: jest.fn(),
+    reabrir: jest.fn(),
     adicionarPartida: jest.fn(),
     adicionarPartidasEmLote: jest.fn(),
     incrementarPartidasFinalizadas: jest.fn(),
@@ -120,6 +123,7 @@ describe("TeamsService", () => {
     buscarPorConfronto: jest.fn(),
     buscarPorConfrontoOrdenadas: jest.fn(),
     atualizar: jest.fn(),
+    atualizarEmLote: jest.fn(),
     deletar: jest.fn(),
     deletarPorEtapa: jest.fn(),
     deletarPorConfronto: jest.fn(),
@@ -585,19 +589,58 @@ describe("TeamsService", () => {
       ).rejects.toThrow("Nome da equipe não pode ter mais de 100 caracteres");
     });
 
-    it("deve renomear equipe com sucesso", async () => {
+    it("deve renomear a equipe e as cópias do nome", async () => {
       mockEquipeRepository.buscarPorId.mockResolvedValue({
         id: "equipe-1",
+        etapaId: TEST_ETAPA_ID,
         arenaId: TEST_ARENA_ID,
         nome: "Equipe 1",
       });
-      mockEquipeRepository.atualizarEmLote.mockResolvedValue(undefined);
-
-      await service.renomearEquipe("equipe-1", "Os Campeoes", TEST_ARENA_ID);
-
-      expect(mockEquipeRepository.atualizarEmLote).toHaveBeenCalledWith([
-        { id: "equipe-1", dados: { nome: "Os Campeoes" } },
+      mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([
+        { id: "c1", equipe1Id: "equipe-1", equipe2Id: "equipe-2", vencedoraId: "equipe-1" },
+        { id: "c2", equipe1Id: "equipe-3", equipe2Id: "equipe-1", vencedoraId: "equipe-3" },
+        { id: "c3", equipe1Id: "equipe-2", equipe2Id: "equipe-3" },
+        { id: "vaga", equipe1Id: "", equipe2Id: "" },
       ]);
+      mockPartidaRepository.buscarPorEtapa.mockResolvedValue([
+        { id: "p1", equipe1Id: "equipe-1", equipe2Id: "equipe-2", vencedoraEquipeId: "equipe-2" },
+        { id: "p2", equipe1Id: "equipe-2", equipe2Id: "equipe-1", vencedoraEquipeId: "equipe-1" },
+        { id: "p3", equipe1Id: "equipe-2", equipe2Id: "equipe-3" },
+      ]);
+
+      await service.renomearEquipe("equipe-1", " Os Campeoes ", TEST_ARENA_ID);
+
+      const nome = "Os Campeoes";
+      expect(mockEquipeRepository.atualizarEmLote).toHaveBeenCalledWith([
+        { id: "equipe-1", dados: { nome } },
+      ]);
+      expect(mockConfrontoRepository.atualizarEmLote).toHaveBeenCalledWith([
+        { id: "c1", dados: { equipe1Nome: nome, vencedoraNome: nome } },
+        { id: "c2", dados: { equipe2Nome: nome } },
+      ]);
+      expect(mockPartidaRepository.atualizarEmLote).toHaveBeenCalledWith([
+        { id: "p1", dados: { equipe1Nome: nome } },
+        { id: "p2", dados: { equipe2Nome: nome, vencedoraEquipeNome: nome } },
+      ]);
+      expect(desempateService.renomearParticipante).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        "equipe-1",
+        nome
+      );
+    });
+
+    it("nao deve mexer em nada quando a validacao falha", async () => {
+      mockEquipeRepository.buscarPorId.mockResolvedValue({
+        id: "equipe-1",
+        arenaId: "outra-arena",
+        nome: "Equipe 1",
+      });
+
+      await expect(
+        service.renomearEquipe("equipe-1", "Novo", TEST_ARENA_ID)
+      ).rejects.toThrow();
+      expect(mockEquipeRepository.atualizarEmLote).not.toHaveBeenCalled();
+      expect(mockConfrontoRepository.atualizarEmLote).not.toHaveBeenCalled();
     });
   });
 

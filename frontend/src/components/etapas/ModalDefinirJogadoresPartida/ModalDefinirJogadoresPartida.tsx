@@ -5,7 +5,11 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
-import { Modal } from "@/components/ui/Modal";
+import { Alert, Button, Modal } from "@/components/ui";
+import { SeloGenero } from "@/components/jogadores/Genero";
+import { theme } from "@/styles/theme";
+import { getCoresFormato } from "@/styles/semantic";
+import { FormatoEtapa } from "@/types/etapa";
 import { PartidaTeams, JogadorEquipe } from "@/types/teams";
 
 interface ModalDefinirJogadoresPartidaProps {
@@ -22,158 +26,97 @@ interface ModalDefinirJogadoresPartidaProps {
 
 // ============== STYLED COMPONENTS ==============
 
+const { texto, superficie, acao, status } = theme.semantic;
+const { fontSize, fontWeight } = theme.typography;
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const InfoBox = styled.div`
-  background: #dbeafe;
-  border: 1px solid #93c5fd;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  color: #1e40af;
-  font-size: 0.875rem;
-
-  strong {
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-`;
-
-const ErrorBox = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  color: #dc2626;
-  font-size: 0.875rem;
-`;
-
-const PartidaInfo = styled.div`
-  background: #f3f4f6;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  text-align: center;
-  color: #374151;
+  gap: ${theme.spacing[4]};
 `;
 
 const EquipesContainer = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: ${theme.spacing[4]};
 `;
 
 const EquipeCard = styled.div`
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
+  border: 1px solid ${superficie.borda};
+  border-radius: ${theme.borderRadius.lg};
   overflow: hidden;
 `;
 
 const EquipeHeader = styled.div`
-  background: #6b7280;
-  color: white;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
+  padding: ${theme.spacing[3]} ${theme.spacing[4]};
+  background: ${getCoresFormato(FormatoEtapa.TEAMS).solido};
+  color: ${texto.inverso};
+  font-weight: ${fontWeight.semibold};
   text-align: center;
 `;
 
 const JogadoresContainer = styled.div`
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: ${theme.spacing[2]};
+  padding: ${theme.spacing[3]};
 `;
 
-const JogadorCheckbox = styled.label<{ $disabled: boolean; $used: boolean }>`
+const JogadorOpcao = styled.label<{ $selecionado: boolean; $bloqueado: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: ${(props) =>
-    props.$used ? "#fee2e2" :
-    props.$disabled ? "#f3f4f6" :
-    "white"};
-  border: 1px solid ${(props) =>
-    props.$used ? "#fca5a5" :
-    props.$disabled ? "#e5e7eb" :
-    "#d1d5db"};
-  border-radius: 0.5rem;
-  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  opacity: ${(props) => (props.$disabled || props.$used ? 0.6 : 1)};
-  transition: all 0.2s;
+  gap: ${theme.spacing[3]};
+  min-height: 44px;
+  padding: ${theme.spacing[2]} ${theme.spacing[3]};
+  border: 1px solid
+    ${({ $selecionado }) => ($selecionado ? acao.primaria : superficie.borda)};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${({ $selecionado, $bloqueado }) => {
+    if ($selecionado) return acao.fundoClaro;
+    return $bloqueado ? superficie.pagina : superficie.fundo;
+  }};
+  color: ${({ $bloqueado }) =>
+    $bloqueado ? texto.secundario : texto.principal};
+  font-size: ${fontSize.sm};
+  font-weight: ${fontWeight.medium};
+  cursor: ${({ $bloqueado }) => ($bloqueado ? "not-allowed" : "pointer")};
 
-  &:hover {
-    ${(props) => !props.$disabled && !props.$used && `
-      border-color: #3b82f6;
-      background: #eff6ff;
-    `}
+  &:focus-within {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 1px;
   }
 
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
+  input {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0;
+    accent-color: ${acao.primaria};
+    cursor: inherit;
   }
 `;
 
 const JogadorNome = styled.span`
   flex: 1;
-  font-size: 0.875rem;
-  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
-const UsedLabel = styled.span`
-  font-size: 0.75rem;
-  color: #dc2626;
-  font-weight: 500;
+const MotivoBloqueio = styled.span`
+  font-size: ${fontSize.xs};
+  color: ${status.erro.texto};
 `;
 
-const ButtonsContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1rem;
-`;
+// ============== HELPERS ==============
 
-const Button = styled.button<{ $variant: "primary" | "secondary" }>`
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+const TIPO_PARTIDA: Record<string, string> = {
+  feminino: "Partida Feminina",
+  masculino: "Partida Masculina",
+  misto: "Partida Mista",
+  decider: "Partida Decider",
+};
 
-  ${(props) =>
-    props.$variant === "primary"
-      ? `
-    background: #3b82f6;
-    color: white;
-    &:hover:not(:disabled) {
-      background: #2563eb;
-    }
-  `
-      : `
-    background: #e5e7eb;
-    color: #374151;
-    &:hover:not(:disabled) {
-      background: #d1d5db;
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
+const chaveDupla = (ids: string[]): string => [...ids].sort().join("-");
 
 // ============== COMPONENT ==============
 
@@ -219,30 +162,14 @@ export const ModalDefinirJogadoresPartida: React.FC<ModalDefinirJogadoresPartida
     for (const p of partidasConfrontoComJogadores) {
       if (p.id === partida.id) continue; // Ignorar partida atual
 
-      // Se a partida atual é decider, só validar duplas repetidas
-      // Se não é decider, validar tanto duplas quanto jogadores
-      const podeValidarJogadores = !isDecider && p.tipoJogo !== "decider";
+      // Decider: só a dupla não pode repetir. Nas demais, nem o jogador
+      const validaJogadores = !isDecider && p.tipoJogo !== "decider";
 
-      // Verificar se dupla1 está preenchida
-      if (p.dupla1.length === 2) {
-        const ids = [p.dupla1[0].id, p.dupla1[1].id].sort().join("-");
-        duplas.add(ids);
-
-        if (podeValidarJogadores) {
-          jogadores.add(p.dupla1[0].id);
-          jogadores.add(p.dupla1[1].id);
-        }
-      }
-
-      // Verificar se dupla2 está preenchida
-      if (p.dupla2.length === 2) {
-        const ids = [p.dupla2[0].id, p.dupla2[1].id].sort().join("-");
-        duplas.add(ids);
-
-        if (podeValidarJogadores) {
-          jogadores.add(p.dupla2[0].id);
-          jogadores.add(p.dupla2[1].id);
-        }
+      for (const dupla of [p.dupla1, p.dupla2]) {
+        if (dupla.length !== 2) continue;
+        const ids = dupla.map((j) => j.id);
+        duplas.add(chaveDupla(ids));
+        if (validaJogadores) ids.forEach((id) => jogadores.add(id));
       }
     }
 
@@ -258,64 +185,33 @@ export const ModalDefinirJogadoresPartida: React.FC<ModalDefinirJogadoresPartida
   };
 
   // Verificar se uma dupla já foi usada
-  const isDuplaUsada = (jogadorId: string, outroJogadorId: string | null): boolean => {
-    if (!outroJogadorId) return false;
-    const duplaKey = [jogadorId, outroJogadorId].sort().join("-");
-    return duplasUsadas.has(duplaKey);
-  };
+  const isDuplaUsada = (jogadorId: string, outroJogadorId?: string): boolean =>
+    !!outroJogadorId && duplasUsadas.has(chaveDupla([jogadorId, outroJogadorId]));
 
-  const handleToggleEquipe1 = (jogadorId: string) => {
+  const alternarJogador = (
+    jogadorId: string,
+    selecionados: string[],
+    setSelecionados: (ids: string[]) => void
+  ) => {
     setError(null);
 
-    if (selectedEquipe1.includes(jogadorId)) {
-      setSelectedEquipe1(selectedEquipe1.filter(id => id !== jogadorId));
-    } else {
-      if (selectedEquipe1.length >= 2) {
-        setError("Selecione apenas 2 jogadores por equipe");
-        return;
-      }
-
-      // Verificar se o jogador já participou do confronto (exceto no decider)
-      if (isJogadorJaJogou(jogadorId)) {
-        setError("Este jogador já participou de uma partida neste confronto");
-        return;
-      }
-
-      // Verificar se forma dupla já usada
-      if (selectedEquipe1.length === 1 && isDuplaUsada(jogadorId, selectedEquipe1[0])) {
-        setError("Esta dupla já jogou neste confronto");
-        return;
-      }
-
-      setSelectedEquipe1([...selectedEquipe1, jogadorId]);
+    if (selecionados.includes(jogadorId)) {
+      setSelecionados(selecionados.filter((id) => id !== jogadorId));
+      return;
     }
-  };
-
-  const handleToggleEquipe2 = (jogadorId: string) => {
-    setError(null);
-
-    if (selectedEquipe2.includes(jogadorId)) {
-      setSelectedEquipe2(selectedEquipe2.filter(id => id !== jogadorId));
-    } else {
-      if (selectedEquipe2.length >= 2) {
-        setError("Selecione apenas 2 jogadores por equipe");
-        return;
-      }
-
-      // Verificar se o jogador já participou do confronto (exceto no decider)
-      if (isJogadorJaJogou(jogadorId)) {
-        setError("Este jogador já participou de uma partida neste confronto");
-        return;
-      }
-
-      // Verificar se forma dupla já usada
-      if (selectedEquipe2.length === 1 && isDuplaUsada(jogadorId, selectedEquipe2[0])) {
-        setError("Esta dupla já jogou neste confronto");
-        return;
-      }
-
-      setSelectedEquipe2([...selectedEquipe2, jogadorId]);
+    if (selecionados.length >= 2) {
+      setError("Selecione apenas 2 jogadores por equipe");
+      return;
     }
+    if (isJogadorJaJogou(jogadorId)) {
+      setError("Este jogador já participou de uma partida neste confronto");
+      return;
+    }
+    if (isDuplaUsada(jogadorId, selecionados[0])) {
+      setError("Esta dupla já jogou neste confronto");
+      return;
+    }
+    setSelecionados([...selecionados, jogadorId]);
   };
 
   const handleConfirm = async () => {
@@ -352,116 +248,107 @@ export const ModalDefinirJogadoresPartida: React.FC<ModalDefinirJogadoresPartida
 
   const canConfirm = selectedEquipe1.length === 2 && selectedEquipe2.length === 2 && !loading;
 
+  const equipeMista =
+    new Set(equipe1Jogadores.concat(equipe2Jogadores).map((j) => j.genero))
+      .size > 1;
+
+  const renderEquipe = (
+    nome: string,
+    jogadores: JogadorEquipe[],
+    selecionados: string[],
+    setSelecionados: (ids: string[]) => void
+  ) => (
+    <EquipeCard>
+      <EquipeHeader>
+        {nome} ({selecionados.length}/2)
+      </EquipeHeader>
+      <JogadoresContainer>
+        {jogadores.map((jogador) => {
+          const selecionado = selecionados.includes(jogador.id);
+          const equipeCheia = !selecionado && selecionados.length >= 2;
+          const jaJogou = isJogadorJaJogou(jogador.id);
+          const duplaUsada = isDuplaUsada(
+            jogador.id,
+            selecionados.find((id) => id !== jogador.id)
+          );
+          const bloqueado = equipeCheia || jaJogou || duplaUsada;
+
+          return (
+            <JogadorOpcao
+              key={jogador.id}
+              $selecionado={selecionado}
+              $bloqueado={bloqueado}
+            >
+              <input
+                type="checkbox"
+                checked={selecionado}
+                onChange={() =>
+                  alternarJogador(jogador.id, selecionados, setSelecionados)
+                }
+                disabled={bloqueado}
+              />
+              <JogadorNome>{jogador.nome}</JogadorNome>
+              {equipeMista && <SeloGenero genero={jogador.genero} />}
+              {jaJogou && <MotivoBloqueio>Já jogou</MotivoBloqueio>}
+              {!jaJogou && duplaUsada && (
+                <MotivoBloqueio>Dupla já usada</MotivoBloqueio>
+              )}
+            </JogadorOpcao>
+          );
+        })}
+      </JogadoresContainer>
+    </EquipeCard>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Definir Jogadores da Partida" loading={loading}>
-      <Container>
-        <PartidaInfo>
-          {partida.tipoJogo === "feminino" && "Partida Feminina"}
-          {partida.tipoJogo === "masculino" && "Partida Masculina"}
-          {partida.tipoJogo === "misto" && "Partida Mista"}
-          {partida.tipoJogo === "decider" && "Partida Decider"}
-          {" - "}
-          {equipe1Nome} vs {equipe2Nome}
-        </PartidaInfo>
-
-        <InfoBox>
-          <strong>Instruções:</strong>
-          Selecione 2 jogadores de cada equipe para formar as duplas desta partida.
-          As duplas não podem se repetir no mesmo confronto.
-        </InfoBox>
-
-        {error && <ErrorBox>{error}</ErrorBox>}
-
-        <EquipesContainer>
-          {/* Equipe 1 */}
-          <EquipeCard>
-            <EquipeHeader>
-              {equipe1Nome} ({selectedEquipe1.length}/2)
-            </EquipeHeader>
-            <JogadoresContainer>
-              {equipe1Jogadores.map((jogador) => {
-                const isSelected = selectedEquipe1.includes(jogador.id);
-                const isDisabled = !isSelected && selectedEquipe1.length >= 2;
-                const outroSelecionado = selectedEquipe1.find(id => id !== jogador.id);
-
-                // Verificar se o jogador já participou do confronto
-                const jaJogou = isJogadorJaJogou(jogador.id);
-
-                // Verificar se forma dupla já usada
-                const duplaUsada = outroSelecionado && isDuplaUsada(jogador.id, outroSelecionado);
-
-                const isUsed = jaJogou || duplaUsada;
-
-                return (
-                  <JogadorCheckbox
-                    key={jogador.id}
-                    $disabled={isDisabled}
-                    $used={!!isUsed}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleEquipe1(jogador.id)}
-                      disabled={isDisabled || !!isUsed}
-                    />
-                    <JogadorNome>{jogador.nome}</JogadorNome>
-                    {jaJogou && <UsedLabel>Já jogou</UsedLabel>}
-                    {!jaJogou && duplaUsada && <UsedLabel>Dupla já usada</UsedLabel>}
-                  </JogadorCheckbox>
-                );
-              })}
-            </JogadoresContainer>
-          </EquipeCard>
-
-          {/* Equipe 2 */}
-          <EquipeCard>
-            <EquipeHeader>
-              {equipe2Nome} ({selectedEquipe2.length}/2)
-            </EquipeHeader>
-            <JogadoresContainer>
-              {equipe2Jogadores.map((jogador) => {
-                const isSelected = selectedEquipe2.includes(jogador.id);
-                const isDisabled = !isSelected && selectedEquipe2.length >= 2;
-                const outroSelecionado = selectedEquipe2.find(id => id !== jogador.id);
-
-                // Verificar se o jogador já participou do confronto
-                const jaJogou = isJogadorJaJogou(jogador.id);
-
-                // Verificar se forma dupla já usada
-                const duplaUsada = outroSelecionado && isDuplaUsada(jogador.id, outroSelecionado);
-
-                const isUsed = jaJogou || duplaUsada;
-
-                return (
-                  <JogadorCheckbox
-                    key={jogador.id}
-                    $disabled={isDisabled}
-                    $used={!!isUsed}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleEquipe2(jogador.id)}
-                      disabled={isDisabled || !!isUsed}
-                    />
-                    <JogadorNome>{jogador.nome}</JogadorNome>
-                    {jaJogou && <UsedLabel>Já jogou</UsedLabel>}
-                    {!jaJogou && duplaUsada && <UsedLabel>Dupla já usada</UsedLabel>}
-                  </JogadorCheckbox>
-                );
-              })}
-            </JogadoresContainer>
-          </EquipeCard>
-        </EquipesContainer>
-
-        <ButtonsContainer>
-          <Button $variant="secondary" onClick={handleClose} disabled={loading}>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Definir Jogadores da Partida"
+      subtitle={[
+        partida.tipoJogo && TIPO_PARTIDA[partida.tipoJogo],
+        `${equipe1Nome} vs ${equipe2Nome}`,
+      ]
+        .filter(Boolean)
+        .join(" - ")}
+      loading={loading}
+      footer={
+        <>
+          <Button variant="secondary" onClick={handleClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button $variant="primary" onClick={handleConfirm} disabled={!canConfirm}>
+          <Button onClick={handleConfirm} disabled={!canConfirm}>
             {loading ? "Salvando..." : "Confirmar"}
           </Button>
-        </ButtonsContainer>
+        </>
+      }
+    >
+      <Container>
+        <Alert>
+          Selecione 2 jogadores de cada equipe para formar as duplas desta
+          partida. As duplas não podem se repetir no mesmo confronto.
+        </Alert>
+
+        {error && (
+          <div role="alert">
+            <Alert variant="error">{error}</Alert>
+          </div>
+        )}
+
+        <EquipesContainer>
+          {renderEquipe(
+            equipe1Nome,
+            equipe1Jogadores,
+            selectedEquipe1,
+            setSelectedEquipe1
+          )}
+          {renderEquipe(
+            equipe2Nome,
+            equipe2Jogadores,
+            selectedEquipe2,
+            setSelectedEquipe2
+          )}
+        </EquipesContainer>
       </Container>
     </Modal>
   );

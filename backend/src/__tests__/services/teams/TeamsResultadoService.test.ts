@@ -24,6 +24,7 @@ jest.mock("../../../repositories/firebase/ConfrontoEquipeRepository", () => ({
     atualizarContadorJogos: jest.fn(),
     marcarTemDecider: jest.fn(),
     atualizarStatus: jest.fn(),
+    reabrir: jest.fn(),
     resetarConfronto: jest.fn(),
   },
 }));
@@ -332,10 +333,8 @@ describe("TeamsResultadoService", () => {
         { id: "equipe-1", incrementos: { confrontos: -1, vitorias: -1, pontos: -3 } },
         { id: "equipe-2", incrementos: { confrontos: -1, derrotas: -1 } },
       ]);
-      expect(mockConfrontoRepository.atualizarStatus).toHaveBeenCalledWith(
-        "confronto-1",
-        StatusConfronto.EM_ANDAMENTO
-      );
+      // Reaberto sem vencedor
+      expect(mockConfrontoRepository.reabrir).toHaveBeenCalledWith("confronto-1");
     });
 
     describe("edição no mata-mata", () => {
@@ -458,7 +457,75 @@ describe("TeamsResultadoService", () => {
       expect(
         (service as any).estatisticasService.reverterAposPartidaComIncrement
       ).not.toHaveBeenCalled();
-      expect(mockConfrontoRepository.atualizarStatus).not.toHaveBeenCalled();
+      expect(mockConfrontoRepository.reabrir).not.toHaveBeenCalled();
+    });
+
+    it("primeiro lançamento: confronto passa a estar em andamento", async () => {
+      const partida = criarPartidaMock();
+      mockPartidaRepository.buscarPorId.mockResolvedValue(partida as any);
+      mockConfrontoRepository.buscarPorId.mockResolvedValue(criarConfrontoMock() as any);
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        partida,
+        criarPartidaMock({ id: "partida-2" }),
+      ] as any);
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
+
+      const { confronto } = await service.registrarResultadoPartida(
+        "partida-1",
+        "arena-1",
+        { placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] }
+      );
+
+      expect(mockConfrontoRepository.atualizar).toHaveBeenCalledWith(
+        "confronto-1",
+        expect.objectContaining({
+          jogosEquipe1: 1,
+          jogosEquipe2: 0,
+          status: StatusConfronto.EM_ANDAMENTO,
+        })
+      );
+      expect(confronto.status).toBe(StatusConfronto.EM_ANDAMENTO);
+      expect(mockConfrontoRepository.registrarResultado).not.toHaveBeenCalled();
+    });
+
+    it("edição que volta ao empate: fica em andamento e sem vencedor", async () => {
+      const finalizada = (id: string) =>
+        criarPartidaMock({
+          id,
+          status: StatusPartida.FINALIZADA,
+          placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 3 }],
+          vencedoraEquipeId: "equipe-1",
+        });
+      mockPartidaRepository.buscarPorId.mockResolvedValue(finalizada("partida-1") as any);
+      mockConfrontoRepository.buscarPorId.mockResolvedValue(
+        criarConfrontoMock({
+          status: StatusConfronto.FINALIZADO,
+          vencedoraId: "equipe-1",
+          vencedoraNome: "Equipe Alpha",
+          jogosEquipe1: 2,
+          temDecider: true,
+        }) as any
+      );
+      mockPartidaRepository.buscarPorConfrontoOrdenadas.mockResolvedValue([
+        finalizada("partida-1"),
+        finalizada("partida-2"),
+      ] as any);
+      mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
+
+      const { confronto } = await service.registrarResultadoPartida(
+        "partida-1",
+        "arena-1",
+        { placar: [{ numero: 1, gamesDupla1: 3, gamesDupla2: 6 }] }
+      );
+
+      expect(mockConfrontoRepository.reabrir).toHaveBeenCalledWith("confronto-1");
+      expect(confronto).toMatchObject({
+        jogosEquipe1: 1,
+        jogosEquipe2: 1,
+        status: StatusConfronto.EM_ANDAMENTO,
+      });
+      expect(confronto.vencedoraId).toBeUndefined();
+      expect(mockConfrontoRepository.registrarResultado).not.toHaveBeenCalled();
     });
 
     it("deve gerar decider automaticamente quando empate 1-1", async () => {

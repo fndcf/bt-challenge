@@ -80,6 +80,21 @@ export class PartidaTeamsRepository implements IPartidaTeamsRepository {
     });
   }
 
+  async atualizarEmLote(
+    atualizacoes: Array<{ id: string; dados: Partial<PartidaTeams> }>
+  ): Promise<void> {
+    const agora = Timestamp.now();
+
+    // Um batch do Firestore aceita até 500 operações
+    for (let i = 0; i < atualizacoes.length; i += 500) {
+      const batch = db.batch();
+      for (const { id, dados } of atualizacoes.slice(i, i + 500)) {
+        batch.update(this.collection.doc(id), { ...dados, atualizadoEm: agora });
+      }
+      await batch.commit();
+    }
+  }
+
   async deletar(id: string): Promise<void> {
     await this.collection.doc(id).delete();
   }

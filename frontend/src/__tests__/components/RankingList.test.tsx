@@ -10,10 +10,12 @@ import { GeneroJogador, NivelJogador } from "@/types/jogador";
 // Mock do serviço
 const mockBuscarRanking = jest.fn();
 
+// Mesmo objeto sempre, como o container real: um novo a cada render faria o
+// hook recarregar sem parar
+const mockArenaPublicService = { buscarRanking: mockBuscarRanking };
+
 jest.mock("@/services", () => ({
-  getArenaPublicService: () => ({
-    buscarRanking: mockBuscarRanking,
-  }),
+  getArenaPublicService: () => mockArenaPublicService,
 }));
 
 const mockJogadores = [
@@ -69,7 +71,8 @@ describe("RankingList", () => {
 
     it("deve mostrar carregando inicialmente", () => {
       mockBuscarRanking.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve([]), 1000))
+        // Nunca responde: uma resposta atrasada cairia no cache dos outros testes
+        () => new Promise(() => {})
       );
 
       renderWithRouter(<RankingListComponent arenaSlug="minha-arena" />);

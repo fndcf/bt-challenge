@@ -196,6 +196,41 @@ export class DesempateService {
   }
 
   /**
+   * Atualizar o nome de um participante nos empates pendentes
+   */
+  async renomearParticipante(
+    etapaId: string,
+    participanteId: string,
+    nome: string
+  ): Promise<void> {
+    const etapa = await this.buscarEtapa(etapaId);
+
+    for (const [grupoId, empates] of Object.entries(
+      etapa?.empatesPendentes ?? {}
+    )) {
+      const participa = empates.some((e) =>
+        e.participantes.some((p) => p.id === participanteId)
+      );
+      if (!participa) continue;
+
+      const atualizados = empates.map((e) => ({
+        ...e,
+        participantes: e.participantes.map((p) =>
+          p.id === participanteId ? { ...p, nome } : p
+        ),
+      }));
+      await this.etapas
+        .doc(etapaId)
+        .update(
+          new FieldPath("empatesPendentes", grupoId),
+          atualizados,
+          "atualizadoEm",
+          Timestamp.now()
+        );
+    }
+  }
+
+  /**
    * Limpar empates e desempates (ao excluir/cancelar chaves)
    */
   async limpar(etapaId: string): Promise<void> {

@@ -31,4 +31,9 @@ export type { BadgeTom, BadgeTamanho } from "./Badge";
 
 export { EmptyState } from "./EmptyState";
 
+export { IconButton } from "./IconButton";
+
+export { Tabs } from "./Tabs";
+export type { Aba } from "./Tabs";
+
 export { LoadingOverlay } from "./LoadingOverlay";

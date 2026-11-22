@@ -80,7 +80,9 @@ export class TeamsService {
     // Isso garante que os testes que mockam repositórios funcionem corretamente
     this.equipeService = new TeamsEquipeService(
       equipeRepository,
-      estatisticasService
+      estatisticasService,
+      confrontoRepository,
+      partidaRepository
     );
 
     this.confrontoService = new TeamsConfrontoService(

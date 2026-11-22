@@ -168,13 +168,13 @@ describe("ModalFormacaoManualEquipes", () => {
       render(<ModalFormacaoManualEquipes {...defaultProps} />);
 
       // Verificar que há 8 jogadores disponíveis
-      expect(screen.getByText("Jogadores Disponiveis (8)")).toBeInTheDocument();
+      expect(screen.getByText("Jogadores Disponíveis (8)")).toBeInTheDocument();
 
       // Adicionar João
       fireEvent.click(screen.getByText("João"));
 
       // Verificar que agora há 7 disponíveis
-      expect(screen.getByText("Jogadores Disponiveis (7)")).toBeInTheDocument();
+      expect(screen.getByText("Jogadores Disponíveis (7)")).toBeInTheDocument();
     });
 
     it("deve preencher primeira equipe antes de passar para segunda", () => {
@@ -224,14 +224,14 @@ describe("ModalFormacaoManualEquipes", () => {
 
       // Adicionar João
       fireEvent.click(screen.getByText("João"));
-      expect(screen.getByText("Jogadores Disponiveis (7)")).toBeInTheDocument();
+      expect(screen.getByText("Jogadores Disponíveis (7)")).toBeInTheDocument();
 
       // Remover João
       const removeButtons = screen.getAllByTitle("Remover jogador");
       fireEvent.click(removeButtons[0]);
 
       // Verificar que voltou à lista
-      expect(screen.getByText("Jogadores Disponiveis (8)")).toBeInTheDocument();
+      expect(screen.getByText("Jogadores Disponíveis (8)")).toBeInTheDocument();
     });
   });
 
@@ -456,7 +456,7 @@ describe("ModalFormacaoManualEquipes", () => {
 
       // Pendente não deve aparecer nos disponíveis
       expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
-      expect(screen.getByText("Jogadores Disponiveis (3)")).toBeInTheDocument();
+      expect(screen.getByText("Jogadores Disponíveis (3)")).toBeInTheDocument();
     });
   });
 });

@@ -69,6 +69,19 @@ const AlertTitle = styled.div`
 const AlertMessage = styled.div`
   font-size: ${theme.typography.fontSize.sm};
   line-height: ${theme.typography.lineHeight.relaxed};
+
+  p {
+    margin: 0;
+  }
+
+  p + p,
+  ul {
+    margin: ${theme.spacing[2]} 0 0 0;
+  }
+
+  ul {
+    padding-left: ${theme.spacing[5]};
+  }
 `;
 
 const CloseButton = styled.button`

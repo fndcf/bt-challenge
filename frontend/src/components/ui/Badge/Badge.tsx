@@ -2,6 +2,7 @@
  * Selo (badge) de status ou de formato
  *
  * - tom: situação (sucesso, aviso, erro, neutro, info) — sempre com texto
+ * - genero: masculino ou feminino (use o SeloGenero)
  * - formato: identidade do tipo de etapa (selo "Rei da Praia", etc.)
  * Cores por função: docs/ARCHITECTURE.md > "Cores por funcao".
  */
@@ -20,6 +21,8 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   tom?: BadgeTom;
   /** Selo de identidade do formato da etapa */
   formato?: FormatoEtapa;
+  /** Gênero do jogador */
+  genero?: keyof typeof theme.semantic.genero;
   tamanho?: BadgeTamanho;
   children: React.ReactNode;
 }
@@ -58,19 +61,21 @@ const StyledBadge = styled.span<{ $cores: CoresBadge; $tamanho: BadgeTamanho }>`
 export const Badge: React.FC<BadgeProps> = ({
   tom = "neutro",
   formato,
+  genero,
   tamanho = "sm",
   children,
   ...props
 }) => {
-  const cores: CoresBadge = formato
-    ? (() => {
-        const f = getCoresFormato(formato);
-        return { texto: f.texto, fundo: f.claro, borda: f.borda };
-      })()
-    : theme.semantic.status[tom];
+  const getCores = (): CoresBadge => {
+    if (formato) {
+      const cores = getCoresFormato(formato);
+      return { texto: cores.texto, fundo: cores.claro, borda: cores.borda };
+    }
+    return genero ? theme.semantic.genero[genero] : theme.semantic.status[tom];
+  };
 
   return (
-    <StyledBadge $cores={cores} $tamanho={tamanho} {...props}>
+    <StyledBadge $cores={getCores()} $tamanho={tamanho} {...props}>
       {children}
     </StyledBadge>
   );

@@ -5,6 +5,16 @@
 
 import React, { useState, useMemo } from "react";
 import styled from "styled-components";
+import {
+  FiltroGenero,
+  passaNoFiltroGenero,
+  SeloGenero,
+  ValorFiltroGenero,
+} from "@/components/jogadores/Genero";
+import { X } from "lucide-react";
+import { IconButton } from "@/components/ui";
+import { theme } from "@/styles/theme";
+import { getNivelAbrev } from "@/utils/formatters";
 import { Inscricao } from "@/types/etapa";
 
 interface DuplasManuaisTabProps {
@@ -16,6 +26,8 @@ interface DuplasManuaisTabProps {
 }
 
 // ============== STYLED COMPONENTS ==============
+
+const { texto, superficie, acao } = theme.semantic;
 
 const Container = styled.div`
   display: flex;
@@ -77,47 +89,25 @@ const DuplaBody = styled.div`
   gap: 0.5rem;
 `;
 
-const JogadorSlot = styled.div<{ $isEmpty: boolean; $genero?: string }>`
+const JogadorSlot = styled.div<{ $isEmpty: boolean }>`
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  ${(props) =>
-    props.$isEmpty
-      ? `
-    background: #f3f4f6;
-    border: 2px dashed #d1d5db;
-    color: #9ca3af;
-    min-height: 2.5rem;
-  `
-      : `
-    background: ${props.$genero === "feminino" ? "#fce7f3" : "#dbeafe"};
-    border: 1px solid ${props.$genero === "feminino" ? "#f9a8d4" : "#93c5fd"};
-    color: #374151;
-  `}
+  min-height: 2.5rem;
+  border: 1px ${({ $isEmpty }) => ($isEmpty ? "dashed" : "solid")}
+    ${superficie.bordaForte};
+  background: ${({ $isEmpty }) =>
+    $isEmpty ? superficie.fundo : superficie.fundoAlternativo};
+  color: ${({ $isEmpty }) => ($isEmpty ? texto.secundario : texto.principal)};
 `;
 
 const JogadorInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-`;
-
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-
-  &:hover {
-    color: #ef4444;
-    background: #fee2e2;
-  }
 `;
 
 const JogadoresDisponiveis = styled.div`
@@ -142,28 +132,33 @@ const JogadoresList = styled.div`
   overflow-y: auto;
 `;
 
-const JogadorChip = styled.button<{ $genero: string; $disabled?: boolean }>`
-  padding: 0.5rem 0.75rem;
+const JogadorChip = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid ${superficie.bordaForte};
   border-radius: 9999px;
+  background: ${superficie.fundo};
+  color: ${texto.principal};
   font-size: 0.8125rem;
   font-weight: 500;
-  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  opacity: ${(props) => (props.$disabled ? 0.5 : 1)};
-  transition: all 0.2s;
-  border: none;
+  cursor: pointer;
 
-  ${(props) =>
-    props.$genero === "feminino"
-      ? `
-    background: #fce7f3;
-    color: #9d174d;
-    &:hover:not(:disabled) { background: #fbcfe8; }
-  `
-      : `
-    background: #dbeafe;
-    color: #1e40af;
-    &:hover:not(:disabled) { background: #bfdbfe; }
-  `}
+  &:hover:not(:disabled) {
+    border-color: ${acao.primaria};
+    background: ${acao.fundoClaro};
+  }
+
+  &:disabled {
+    color: ${texto.desabilitado};
+    cursor: not-allowed;
+  }
+`;
+
+const Filtro = styled.div`
+  margin-bottom: 0.75rem;
 `;
 
 const NivelBadge = styled.span<{ $nivel: string }>`
@@ -245,21 +240,6 @@ const Spinner = styled.span`
   }
 `;
 
-// ============== HELPERS ==============
-
-const getNivelAbrev = (nivel: string): string => {
-  switch (nivel) {
-    case "iniciante":
-      return "INI";
-    case "intermediario":
-      return "INT";
-    case "avancado":
-      return "AVA";
-    default:
-      return nivel.substring(0, 3).toUpperCase();
-  }
-};
-
 // ============== COMPONENTE ==============
 
 interface DuplaState {
@@ -297,6 +277,11 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
       (i) => !jogadoresAlocados.has(i.jogadorId)
     );
   }, [inscricoesConfirmadas, jogadoresAlocados]);
+
+  const [filtroGenero, setFiltroGenero] = useState<ValorFiltroGenero>("todos");
+  const jogadoresListados = jogadoresDisponiveis.filter((i) =>
+    passaNoFiltroGenero(i.jogadorGenero, filtroGenero)
+  );
 
   const inscricoesMap = useMemo(() => {
     const map = new Map<string, Inscricao>();
@@ -410,22 +395,25 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
                     <JogadorSlot
                       key={jogadorId}
                       $isEmpty={false}
-                      $genero={inscricao?.jogadorGenero}
                     >
                       <JogadorInfo>
                         <span>{inscricao?.jogadorNome}</span>
+                        {isMisto && (
+                          <SeloGenero genero={inscricao?.jogadorGenero} />
+                        )}
                         {inscricao?.jogadorNivel && (
                           <NivelBadge $nivel={inscricao.jogadorNivel}>
                             {getNivelAbrev(inscricao.jogadorNivel)}
                           </NivelBadge>
                         )}
                       </JogadorInfo>
-                      <RemoveButton
-                        onClick={() => removerJogador(duplaIndex, jogadorId)}
+                      <IconButton
+                        rotulo={`Remover ${inscricao?.jogadorNome}`}
                         title="Remover jogador"
-                      >
-                        X
-                      </RemoveButton>
+                        tom="perigo"
+                        icone={<X aria-hidden="true" />}
+                        onClick={() => removerJogador(duplaIndex, jogadorId)}
+                      />
                     </JogadorSlot>
                   );
                 })}
@@ -447,13 +435,24 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
         <SectionTitle>
           Jogadores Disponiveis ({jogadoresDisponiveis.length})
         </SectionTitle>
+        {isMisto && (
+          <Filtro>
+            <FiltroGenero
+              valor={filtroGenero}
+              onChange={setFiltroGenero}
+              generos={jogadoresDisponiveis.map((i) => i.jogadorGenero)}
+            />
+          </Filtro>
+        )}
         <JogadoresList>
-          {jogadoresDisponiveis.length === 0 ? (
-            <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>
-              Todos os jogadores foram alocados
-            </span>
+          {jogadoresListados.length === 0 ? (
+            <span style={{ color: texto.secundario }}>
+                {jogadoresDisponiveis.length === 0
+                  ? "Todos os jogadores foram alocados"
+                  : "Nenhum jogador disponível com esse filtro"}
+              </span>
           ) : (
-            jogadoresDisponiveis.map((inscricao) => {
+            jogadoresListados.map((inscricao) => {
               const duplaIncompleta = duplas.findIndex(
                 (d) => d.jogadorIds.length < 2
               );
@@ -461,8 +460,7 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
               return (
                 <JogadorChip
                   key={inscricao.jogadorId}
-                  $genero={inscricao.jogadorGenero}
-                  $disabled={duplaIncompleta === -1}
+                  type="button"
                   onClick={() => {
                     if (duplaIncompleta !== -1) {
                       adicionarJogador(duplaIncompleta, inscricao.jogadorId);
@@ -471,6 +469,7 @@ export const DuplasManuaisTab: React.FC<DuplasManuaisTabProps> = ({
                   disabled={duplaIncompleta === -1}
                 >
                   {inscricao.jogadorNome}
+                  {isMisto && <SeloGenero genero={inscricao.jogadorGenero} />}
                   {inscricao.jogadorNivel && (
                     <NivelBadge $nivel={inscricao.jogadorNivel}>
                       {getNivelAbrev(inscricao.jogadorNivel)}

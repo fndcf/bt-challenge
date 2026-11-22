@@ -1188,12 +1188,12 @@ describe("GruposViewer", () => {
       expect(screen.getByText("Semifinal 1")).toBeInTheDocument();
     });
 
-    it("deve mostrar status Em andamento (Ao vivo)", () => {
+    it("deve mostrar status Em andamento", () => {
       render(<GruposViewer grupos={mockGruposTeamsEliminatoria} />);
 
       fireEvent.click(screen.getByText("▼ Expandir"));
 
-      expect(screen.getByText("Ao vivo")).toBeInTheDocument();
+      expect(screen.getByText("Em andamento")).toBeInTheDocument();
     });
 
     it("deve mostrar tipo de jogo Decider", () => {

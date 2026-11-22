@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { Badge, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import {
   CampoPlacar,
   ListaPlacares,
@@ -16,6 +16,7 @@ import {
   Equipe,
   StatusPartidaTeams,
 } from "@/types/teams";
+import { SeloTipoJogo } from "../ChavesTeams/components/SeloTipoJogo";
 import { ModalDefinirJogadoresPartida } from "../ModalDefinirJogadoresPartida";
 import { useResultadosLote } from "@/hooks/useResultadosLote";
 import { getSituacaoPartida } from "@/utils/resultadosLote";
@@ -73,22 +74,6 @@ const AvisoJogadores = styled.div`
 
 // ============== HELPERS ==============
 
-const getTipoJogoLabel = (tipo?: string): string => {
-  if (!tipo) return "";
-  switch (tipo) {
-    case "feminino":
-      return "FEM";
-    case "masculino":
-      return "MASC";
-    case "misto":
-      return "MISTO";
-    case "decider":
-      return "DECIDER";
-    default:
-      return tipo.toUpperCase();
-  }
-};
-
 /** Nomes da dupla com a equipe embaixo; sem dupla, só a equipe */
 const montarLado = (
   partida: PartidaTeams,
@@ -96,11 +81,11 @@ const montarLado = (
   lado: 1 | 2
 ): { nome: string; detalhe?: string } => {
   const dupla = lado === 1 ? partida.dupla1 : partida.dupla2;
-  // O decider é criado sem o nome das equipes na partida
+  // A cópia do nome na partida pode faltar (decider) ou estar antiga
   const equipe =
     lado === 1
-      ? partida.equipe1Nome || confronto.equipe1Nome
-      : partida.equipe2Nome || confronto.equipe2Nome;
+      ? confronto.equipe1Nome || partida.equipe1Nome
+      : confronto.equipe2Nome || partida.equipe2Nome;
 
   if (!dupla || dupla.length === 0) {
     return { nome: equipe || "A definir" };
@@ -201,13 +186,7 @@ export const ModalLancamentoResultadosLoteTeams: React.FC<
               <CampoPlacar
                 key={partida.id}
                 titulo={`JOGO ${index + 1}`}
-                etiquetas={
-                  partida.tipoJogo && (
-                    <Badge tom={partida.tipoJogo === "decider" ? "aviso" : "neutro"}>
-                      {getTipoJogoLabel(partida.tipoJogo)}
-                    </Badge>
-                  )
-                }
+                etiquetas={<SeloTipoJogo tipo={partida.tipoJogo} />}
                 situacao={getSituacaoPartida(partida.status)}
                 lado1={montarLado(partida, confronto, 1)}
                 lado2={montarLado(partida, confronto, 2)}

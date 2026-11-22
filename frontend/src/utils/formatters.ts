@@ -70,6 +70,22 @@ export const getNivelLabel = (nivel: NivelJogador | string): string => {
 };
 
 /**
+ * Nível abreviado em 3 letras, para selos
+ */
+export const getNivelAbrev = (nivel: NivelJogador | string): string => {
+  switch (nivel) {
+    case NivelJogador.INICIANTE:
+      return "INI";
+    case NivelJogador.INTERMEDIARIO:
+      return "INT";
+    case NivelJogador.AVANCADO:
+      return "AVA";
+    default:
+      return nivel.substring(0, 3).toUpperCase();
+  }
+};
+
+/**
  * Converte gênero de jogador para label amigável
  */
 export const getGeneroLabel = (genero: GeneroJogador | string): string => {

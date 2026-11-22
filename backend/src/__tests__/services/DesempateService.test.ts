@@ -344,6 +344,38 @@ describe("DesempateService", () => {
     });
   });
 
+  describe("renomearParticipante", () => {
+    const etapaComEmpate = (empates: object) =>
+      mockGet.mockResolvedValue({
+        exists: true,
+        id: "etapa-1",
+        data: () => ({ empatesPendentes: empates }),
+      });
+
+    it("deve trocar o nome só no grupo em que participa", async () => {
+      etapaComEmpate({
+        A: [{ grupoId: "A", participantes: [{ id: "e1", nome: "Antigo" }, { id: "e2", nome: "Outra" }] }],
+        B: [{ grupoId: "B", participantes: [{ id: "e3", nome: "Terceira" }] }],
+      });
+
+      await service.renomearParticipante("etapa-1", "e1", "Novo");
+
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        new FieldPath("empatesPendentes", "A"),
+        [{ grupoId: "A", participantes: [{ id: "e1", nome: "Novo" }, { id: "e2", nome: "Outra" }] }],
+        "atualizadoEm",
+        expect.anything()
+      );
+    });
+
+    it("não deve gravar nada sem empate pendente", async () => {
+      etapaComEmpate({});
+      await service.renomearParticipante("etapa-1", "e1", "Novo");
+      expect(mockUpdate).not.toHaveBeenCalled();
+    });
+  });
+
   describe("limparGrupos", () => {
     it("deve apagar pendências (e desempates, se pedido) das chaves informadas", async () => {
       await service.limparGrupos("etapa-1", ["eliminatoria-primeiros"], true);

@@ -10,13 +10,15 @@ import { NivelJogador, GeneroJogador } from "@/types/jogador";
 
 // Mock do Modal
 jest.mock("@/components/ui/Modal", () => ({
-  Modal: ({ isOpen, children, title, onClose, loading }: any) =>
+  Modal: ({ isOpen, children, title, subtitle, footer, onClose, loading }: any) =>
     isOpen ? (
       <div data-testid="modal">
         <h2>{title}</h2>
+        <p>{subtitle}</p>
         {loading && <span data-testid="loading">Loading...</span>}
         <button onClick={onClose} data-testid="close-modal">Close</button>
         {children}
+        {footer}
       </div>
     ) : null,
 }));

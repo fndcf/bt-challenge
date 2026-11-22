@@ -1008,4 +1008,25 @@ describe("TeamsClassificacaoService", () => {
       });
     });
   });
+
+  describe("confronto direto", () => {
+    const direto = (dados: object) =>
+      (service as any).verificarConfrontoDireto(
+        [{ equipe1Id: "e1", equipe2Id: "e2", vencedoraId: "e1", ...dados }],
+        "e2",
+        "e1"
+      );
+
+    it("vale o vencedor do confronto encerrado", () => {
+      expect(direto({ status: "finalizado" })).toBe("e1");
+    });
+
+    it("ignora vencedor antigo de confronto reaberto", () => {
+      expect(direto({ status: "em_andamento" })).toBeNull();
+    });
+
+    it("sem confronto entre as duas, não desempata", () => {
+      expect(direto({ equipe2Id: "e9", status: "finalizado" })).toBeNull();
+    });
+  });
 });
