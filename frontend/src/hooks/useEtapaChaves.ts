@@ -67,7 +67,7 @@ export const useEtapaChaves = ({
       const numEquipes = Math.floor(etapa.totalInscritos / variante);
       const numGrupos = distribuirEmGrupos(numEquipes).length;
       const numConfrontos = contarConfrontosTeams(numEquipes);
-      formatoNome = `TEAMS ${variante}`;
+      formatoNome = `Teams ${variante}`;
       detalhes =
         `• ${numEquipes} equipes de ${variante} jogadores\n` +
         (numGrupos > 1

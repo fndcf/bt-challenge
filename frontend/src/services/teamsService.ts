@@ -504,7 +504,7 @@ class TeamsService implements ITeamsService {
     if (!variante || ![VarianteTeams.TEAMS_4, VarianteTeams.TEAMS_6].includes(variante)) {
       return {
         podeGerar: false,
-        mensagem: "Variante TEAMS inválida",
+        mensagem: "Variante Teams inválida",
       };
     }
 

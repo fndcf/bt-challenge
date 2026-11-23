@@ -553,7 +553,7 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
         } else if (formData.formato === FormatoEtapa.TEAMS) {
           // Validar formato TEAMS
           if (!formData.varianteTeams) {
-            setError("TEAMS: selecione a variante (4 ou 6 jogadores por equipe)");
+            setError("Teams: selecione a variante (4 ou 6 jogadores por equipe)");
             setLoading(false);
             return;
           }
@@ -562,35 +562,35 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
             VarianteTeams.TEAMS_6,
           ];
           if (!variantesValidas.includes(formData.varianteTeams)) {
-            setError("TEAMS: variante inválida");
+            setError("Teams: variante inválida");
             setLoading(false);
             return;
           }
           if (!formData.tipoFormacaoEquipe) {
-            setError("TEAMS: selecione o tipo de formação de equipes");
+            setError("Teams: selecione o tipo de formação de equipes");
             setLoading(false);
             return;
           }
           const minimoJogadores = formData.varianteTeams * 2;
           if (formData.maxJogadores < minimoJogadores) {
-            setError(`TEAMS ${formData.varianteTeams}: mínimo ${minimoJogadores} jogadores para 2 equipes`);
+            setError(`Teams ${formData.varianteTeams}: mínimo ${minimoJogadores} jogadores para 2 equipes`);
             setLoading(false);
             return;
           }
           const maximoJogadores = formData.varianteTeams * MAX_EQUIPES_TEAMS;
           if (formData.maxJogadores > maximoJogadores) {
-            setError(`TEAMS ${formData.varianteTeams}: máximo de ${maximoJogadores} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
+            setError(`Teams ${formData.varianteTeams}: máximo de ${maximoJogadores} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
             setLoading(false);
             return;
           }
           if (formData.maxJogadores % formData.varianteTeams !== 0) {
-            setError(`TEAMS: número de jogadores deve ser múltiplo de ${formData.varianteTeams}`);
+            setError(`Teams: número de jogadores deve ser múltiplo de ${formData.varianteTeams}`);
             setLoading(false);
             return;
           }
           // TEAMS com "Mesmo Nível" requer seleção de nível
           if (formData.tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL && !formData.nivel) {
-            setError("TEAMS com formação 'Mesmo Nível': selecione o nível dos jogadores");
+            setError("Teams com formação 'Mesmo Nível': selecione o nível dos jogadores");
             setLoading(false);
             return;
           }

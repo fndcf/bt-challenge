@@ -21,11 +21,11 @@ export const getVarianteTeamsInfo = (
 ): VarianteTeamsInfo => {
   switch (variante) {
     case VarianteTeams.TEAMS_4:
-      return { nome: "TEAMS 4", jogadoresPorEquipe: 4, jogosPorConfronto: 2 };
+      return { nome: "Teams 4", jogadoresPorEquipe: 4, jogosPorConfronto: 2 };
     case VarianteTeams.TEAMS_6:
-      return { nome: "TEAMS 6", jogadoresPorEquipe: 6, jogosPorConfronto: 3 };
+      return { nome: "Teams 6", jogadoresPorEquipe: 6, jogosPorConfronto: 3 };
     default:
-      return { nome: "TEAMS", jogadoresPorEquipe: 4, jogosPorConfronto: 2 };
+      return { nome: "Teams", jogadoresPorEquipe: 4, jogosPorConfronto: 2 };
   }
 };
 

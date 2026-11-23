@@ -95,11 +95,11 @@ describe("utils/teams", () => {
 
   it("deve descrever variante, situação e tipo de jogo", () => {
     expect(getVarianteTeamsInfo(VarianteTeams.TEAMS_6)).toEqual({
-      nome: "TEAMS 6",
+      nome: "Teams 6",
       jogadoresPorEquipe: 6,
       jogosPorConfronto: 3,
     });
-    expect(getVarianteTeamsInfo().nome).toBe("TEAMS");
+    expect(getVarianteTeamsInfo().nome).toBe("Teams");
     expect(getTipoJogoLabel("misto")).toBe("MISTO");
     expect(getTipoJogoLabel("outro")).toBe("OUTRO");
   });

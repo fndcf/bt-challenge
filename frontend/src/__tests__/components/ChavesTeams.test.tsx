@@ -213,7 +213,7 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_4} />);
 
       await waitFor(() => {
-        expect(screen.getByText("TEAMS 4")).toBeInTheDocument();
+        expect(screen.getByText("Teams 4")).toBeInTheDocument();
         expect(screen.getByText("Equipes")).toBeInTheDocument();
         // Equipes aparecem nos cards
         const alphaElements = screen.getAllByText("Equipe Alpha");
@@ -228,7 +228,7 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_6} />);
 
       await waitFor(() => {
-        expect(screen.getByText("TEAMS 6")).toBeInTheDocument();
+        expect(screen.getByText("Teams 6")).toBeInTheDocument();
       });
     });
 
@@ -1106,7 +1106,7 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_4} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Formato TEAMS 4")).toBeInTheDocument();
+        expect(screen.getByText("Formato Teams 4")).toBeInTheDocument();
         expect(screen.getByText(/4 jogadores/)).toBeInTheDocument();
         expect(screen.getByText(/2 jogos/)).toBeInTheDocument();
         expect(screen.getByText(/decider se empate 1-1/)).toBeInTheDocument();
@@ -1121,7 +1121,7 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" varianteTeams={VarianteTeams.TEAMS_6} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Formato TEAMS 6")).toBeInTheDocument();
+        expect(screen.getByText("Formato Teams 6")).toBeInTheDocument();
         expect(screen.getByText(/6 jogadores/)).toBeInTheDocument();
         expect(screen.getByText(/3 jogos/)).toBeInTheDocument();
       });
@@ -1855,8 +1855,8 @@ describe("ChavesTeams", () => {
       render(<ChavesTeams etapaId="etapa-1" />);
 
       await waitFor(() => {
-        expect(screen.getByText("TEAMS")).toBeInTheDocument();
-        expect(screen.getByText("Formato TEAMS")).toBeInTheDocument();
+        expect(screen.getByText("Teams")).toBeInTheDocument();
+        expect(screen.getByText("Formato Teams")).toBeInTheDocument();
       });
     });
   });

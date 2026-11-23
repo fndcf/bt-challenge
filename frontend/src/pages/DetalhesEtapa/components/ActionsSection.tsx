@@ -79,7 +79,7 @@ export const ActionsSection: React.FC<ActionsSectionProps> = ({
       const multiplo = etapa.varianteTeams || 4;
       const proximos = proximosValidos(totalInscritos, multiplo);
       return (
-        <Alert title={`TEAMS ${etapa.varianteTeams}`}>
+        <Alert title={`Teams ${etapa.varianteTeams}`}>
           <p>
             {`O número de jogadores deve ser múltiplo de ${multiplo} para formar equipes completas. Atualmente: ${totalInscritos} jogadores.`}
           </p>

@@ -1,5 +1,8 @@
 /**
  * Responsabilidade: Galeria de screenshots do sistema com tabs por categoria
+ *
+ * Os prints são gerados por scripts/galeria (node scripts/galeria/rodar.mjs).
+ * Nome do arquivo aqui = nome em scripts/galeria/telas.mjs.
  */
 
 import React, { useState } from "react";
@@ -19,127 +22,137 @@ interface Categoria {
   screenshots: Screenshot[];
 }
 
+const telas = (...nomes: string[]) =>
+  nomes.map((nome) => `/screenshots/${nome}.webp`);
+
 const categorias: Categoria[] = [
   {
-    id: "administrativo",
-    label: "Administrativo",
+    id: "primeiros-passos",
+    label: "Primeiros passos",
     screenshots: [
       {
+        id: "cadastro-arena",
+        title: "Criar sua arena",
+        description: "Cadastro rápido da arena e do administrador.",
+        images: telas("cadastro-arena"),
+      },
+      {
         id: "dashboard",
-        title: "Dashboard",
-        description:
-          "Visão geral com estatísticas de jogadores, etapas e rankings.",
-        images: ["/screenshots/dashboard.png", "/screenshots/dashboard2.png"],
+        title: "Painel",
+        description: "Visão geral de jogadores, etapas e rankings da arena.",
+        images: telas("dashboard", "dashboard2"),
       },
       {
         id: "jogadores",
-        title: "Gestão de Jogadores",
-        description: "Cadastro e listagem de jogadores por nível e gênero.",
-        images: ["/screenshots/jogadores.png", "/screenshots/jogadores2.png"],
-      },
-      {
-        id: "criar-etapa",
-        title: "Criar Etapa",
-        description: "Configure torneios com diferentes formatos e regras.",
-        images: [
-          "/screenshots/criar-etapa.png",
-          "/screenshots/criar-etapa2.png",
-          "/screenshots/criar-etapa3.png",
-          "/screenshots/criar-etapa4.png",
-        ],
+        title: "Jogadores",
+        description:
+          "Cadastro por nível e gênero, filtros e importação por planilha Excel.",
+        images: telas("jogadores", "novo-jogador", "importar-jogadores"),
       },
       {
         id: "etapas",
         title: "Etapas",
         description: "Lista de etapas da arena com status, formato e inscritos.",
-        images: ["/screenshots/etapas.png"],
+        images: telas("etapas"),
+      },
+    ],
+  },
+  {
+    id: "montar",
+    label: "Montar a etapa",
+    screenshots: [
+      {
+        id: "criar-etapa",
+        title: "Criar etapa",
+        description:
+          "Escolha o formato, as datas, as vagas e as regras de pontuação.",
+        images: telas("criar-etapa", "criar-etapa2", "criar-etapa3"),
+      },
+      {
+        id: "inscricoes",
+        title: "Inscrições",
+        description: "Inscreva jogadores da arena e acompanhe as vagas.",
+        images: telas("inscricoes", "inscricoes2"),
+      },
+      {
+        id: "cabecas-chave",
+        title: "Cabeças de chave",
+        description:
+          "Defina os jogadores mais fortes para que fiquem em grupos diferentes.",
+        images: telas("cabecas-chave"),
+      },
+      {
+        id: "duplas-manuais",
+        title: "Duplas manuais",
+        description: "Na Dupla Fixa, monte você mesmo as duplas da etapa.",
+        images: telas("duplas-manuais"),
+      },
+      {
+        id: "equipes-manuais",
+        title: "Formação de equipes",
+        description: "No Teams, monte as equipes manualmente.",
+        images: telas("equipes-manuais"),
       },
     ],
   },
   {
     id: "torneio",
-    label: "Torneio",
+    label: "Durante o torneio",
     screenshots: [
       {
-        id: "detalhes-etapa",
-        title: "Detalhes da Etapa",
-        description: "Visão completa de uma etapa em andamento.",
-        images: [
-          "/screenshots/detalhe-etapa.png",
-          "/screenshots/detalhe-etapa2.png",
-          "/screenshots/detalhe-etapa3.png",
-          "/screenshots/detalhe-etapa4.png",
-          "/screenshots/detalhe-etapa5.png",
-        ],
-      },
-      {
-        id: "inscritos-etapa",
-        title: "Inscrições da Etapa",
-        description: "Inscrição com validação de inscritos da etapa.",
-        images: [
-          "/screenshots/inscrever-jogador.png",
-          "/screenshots/inscrever-jogador2.png",
-          "/screenshots/inscrever-jogador3.png",
-          "/screenshots/inscrever-jogador4.png",
-        ],
-      },
-      {
-        id: "cabecas-chave-etapa",
-        title: "Cabeças de Chave da Etapa",
-        description: "Escolha os cabeças de chave de cada etapa.",
-        images: [
-          "/screenshots/cabecas-chave.png",
-          "/screenshots/cabecas-chave2.png",
-          "/screenshots/cabecas-chave3.png",
-          "/screenshots/cabecas-chave4.png",
-        ],
-      },
-      {
-        id: "resultados",
-        title: "Lançar Resultados",
-        description: "Registre placares das partidas de forma simples.",
-        images: [
-          "/screenshots/resultados.png",
-          "/screenshots/resultados2.png",
-          "/screenshots/resultados3.png",
-          "/screenshots/resultados4.png",
-          "/screenshots/resultados5.png",
-          "/screenshots/resultados6.png",
-        ],
-      },
-      {
-        id: "grupos",
-        title: "Fase de Grupos",
-        description: "Acompanhe classificação e resultados de cada grupo.",
-        images: [
-          "/screenshots/fase-grupos.png",
-          "/screenshots/fase-grupos2.png",
-          "/screenshots/fase-grupos3.png",
-          "/screenshots/fase-grupos4.png",
-        ],
-      },
-      {
-        id: "chaves",
-        title: "Chaves Eliminatórias",
-        description: "Bracket visual das fases eliminatórias.",
-        images: [
-          "/screenshots/fase-eliminatoria.png",
-          "/screenshots/fase-eliminatoria2.png",
-          "/screenshots/fase-eliminatoria3.png",
-          "/screenshots/fase-eliminatoria4.png",
-        ],
-      },
-      {
-        id: "confrontro-jogadores",
-        title: "Escalação nos Confrontos",
+        id: "dupla-fixa",
+        title: "Dupla Fixa",
         description:
-          "Escalação manual ou automática dos jogadores em cada confronto.",
-        images: [
-          "/screenshots/definir-jogadores.png",
-          "/screenshots/definir-jogadores2.png",
-          "/screenshots/definir-jogadores3.png",
-          "/screenshots/definir-jogadores4.png",
-        ],
+          "Grupos com classificação, lançamento de resultados e chave eliminatória.",
+        images: telas(
+          "dupla-fixa-grupos",
+          "dupla-fixa-resultados",
+          "dupla-fixa-eliminatoria",
+          "dupla-fixa-eliminatoria2"
+        ),
+      },
+      {
+        id: "rei-da-praia",
+        title: "Rei da Praia",
+        description:
+          "Grupos de 4 com parceiros rotativos, classificação individual e eliminatória.",
+        images: telas(
+          "rei-da-praia-grupos",
+          "rei-da-praia-resultados",
+          "rei-da-praia-eliminatoria"
+        ),
+      },
+      {
+        id: "super-x",
+        title: "Super X",
+        description: "Grupo único com rodadas e classificação individual.",
+        images: telas("super-x", "super-x-resultados"),
+      },
+      {
+        id: "teams",
+        title: "Teams",
+        description:
+          "Confrontos entre equipes, escalação dos jogadores e resultados de cada jogo.",
+        images: telas(
+          "teams-confrontos",
+          "teams-partidas",
+          "teams-resultados",
+          "teams-escalacao"
+        ),
+      },
+      {
+        id: "empates",
+        title: "Empates e substituições",
+        description:
+          "Resolva empates na classificação e troque jogadores quando preciso.",
+        images: telas("empates", "empates2", "substituir-jogador"),
+      },
+      {
+        id: "etapa-encerrada",
+        title: "Etapa encerrada",
+        description:
+          "Campeão definido e pontos do ranking atribuídos automaticamente.",
+        images: telas("etapa-encerrada"),
       },
     ],
   },
@@ -149,30 +162,57 @@ const categorias: Categoria[] = [
     screenshots: [
       {
         id: "arena-publica",
-        title: "Página da Arena",
+        title: "Página da arena",
         description: "Página exclusiva para divulgar etapas e resultados.",
-        images: ["/screenshots/arena-publica.png"],
+        images: telas("arena-publica"),
       },
       {
         id: "ranking",
         title: "Ranking",
-        description: "Ranking atualizado automaticamente após cada etapa.",
-        images: ["/screenshots/ranking.png"],
+        description: "Ranking por gênero e nível, atualizado após cada etapa.",
+        images: telas("ranking"),
       },
       {
         id: "etapa-publica",
-        title: "Etapa Pública",
-        description: "Visualização pública dos grupos e resultados.",
-        images: [
-          "/screenshots/detalhe-etapa-publica.png",
-          "/screenshots/detalhe-etapa-publica2.png",
-        ],
+        title: "Etapa pública",
+        description: "Grupos, resultados e chaveamento abertos para todos.",
+        images: telas("etapa-publica", "etapa-publica2"),
       },
       {
         id: "perfil-jogador",
-        title: "Perfil do Jogador",
+        title: "Perfil do jogador",
         description: "Histórico e estatísticas individuais do jogador.",
-        images: ["/screenshots/perfil-jogador.png"],
+        images: telas("perfil-jogador"),
+      },
+    ],
+  },
+  {
+    id: "celular",
+    label: "No celular",
+    screenshots: [
+      {
+        id: "celular-resultados",
+        title: "Resultados na quadra",
+        description: "Lance os placares pelo celular, direto da quadra.",
+        images: telas("celular-resultados"),
+      },
+      {
+        id: "celular-dashboard",
+        title: "Painel",
+        description: "Toda a gestão da arena também no celular.",
+        images: telas("celular-dashboard"),
+      },
+      {
+        id: "celular-etapa-publica",
+        title: "Etapa pública",
+        description: "Jogadores acompanham grupos e chaves pelo telefone.",
+        images: telas("celular-etapa-publica"),
+      },
+      {
+        id: "celular-ranking",
+        title: "Ranking",
+        description: "Ranking da arena sempre à mão.",
+        images: telas("celular-ranking"),
       },
     ],
   },

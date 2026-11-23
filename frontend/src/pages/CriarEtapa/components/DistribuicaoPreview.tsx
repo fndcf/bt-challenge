@@ -65,7 +65,7 @@ const montarPreview = ({
 
   if (formato === FormatoEtapa.TEAMS && infoTeams) {
     return {
-      titulo: `Distribuição TEAMS ${infoTeams.variante}`,
+      titulo: `Distribuição Teams ${infoTeams.variante}`,
       valido: infoTeams.valido,
       de: [infoTeams.totalJogadores, "jogadores"],
       para: plural(infoTeams.totalEquipes, "equipe"),

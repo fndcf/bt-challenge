@@ -263,20 +263,20 @@ export const useEditarEtapa = (
           const maximo = variante * MAX_EQUIPES_TEAMS;
 
           if (formData.maxJogadores < minimo) {
-            setError(`TEAMS ${variante}: mínimo de ${minimo} jogadores (2 equipes)`);
+            setError(`Teams ${variante}: mínimo de ${minimo} jogadores (2 equipes)`);
             setSalvando(false);
             return;
           }
 
           if (formData.maxJogadores > maximo) {
-            setError(`TEAMS ${variante}: máximo de ${maximo} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
+            setError(`Teams ${variante}: máximo de ${maximo} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
             setSalvando(false);
             return;
           }
 
           if (formData.maxJogadores % variante !== 0) {
             setError(
-              `TEAMS ${variante}: número de jogadores deve ser múltiplo de ${variante}`
+              `Teams ${variante}: número de jogadores deve ser múltiplo de ${variante}`
             );
             setSalvando(false);
             return;

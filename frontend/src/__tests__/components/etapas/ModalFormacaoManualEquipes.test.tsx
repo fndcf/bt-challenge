@@ -91,7 +91,7 @@ describe("ModalFormacaoManualEquipes", () => {
     it("deve mostrar info de TEAMS 4", () => {
       render(<ModalFormacaoManualEquipes {...defaultProps} />);
 
-      expect(screen.getByText(/TEAMS 4/)).toBeInTheDocument();
+      expect(screen.getByText(/Teams 4/)).toBeInTheDocument();
       expect(screen.getByText(/2 equipes de 4 jogadores/)).toBeInTheDocument();
     });
 
@@ -104,7 +104,7 @@ describe("ModalFormacaoManualEquipes", () => {
         />
       );
 
-      expect(screen.getByText(/TEAMS 6/)).toBeInTheDocument();
+      expect(screen.getByText(/Teams 6/)).toBeInTheDocument();
       expect(screen.getByText(/2 equipes de 6 jogadores/)).toBeInTheDocument();
     });
 

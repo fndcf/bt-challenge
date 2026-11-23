@@ -46,10 +46,25 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // Conectar aos emuladores em desenvolvimento
+// Portas trocáveis para rodar um segundo emulador (ex.: prints da galeria)
 if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099");
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
-  connectStorageEmulator(storage, "127.0.0.1", 9199);
+  const porta = (nome: string, padrao: number) =>
+    Number(import.meta.env[nome]) || padrao;
+
+  connectAuthEmulator(
+    auth,
+    `http://127.0.0.1:${porta("VITE_EMULADOR_AUTH_PORTA", 9099)}`
+  );
+  connectFirestoreEmulator(
+    db,
+    "127.0.0.1",
+    porta("VITE_EMULADOR_FIRESTORE_PORTA", 8080)
+  );
+  connectStorageEmulator(
+    storage,
+    "127.0.0.1",
+    porta("VITE_EMULADOR_STORAGE_PORTA", 9199)
+  );
 
   logger.info("Conectado aos emuladores do Firebase");
 }

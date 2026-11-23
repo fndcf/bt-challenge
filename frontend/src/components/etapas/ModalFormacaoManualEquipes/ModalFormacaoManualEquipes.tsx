@@ -165,7 +165,7 @@ export const ModalFormacaoManualEquipes: React.FC<
     >
       <Container>
         <Alert
-          title={`TEAMS ${varianteTeams} - ${numEquipes} equipes de ${jogadoresPorEquipe} jogadores`}
+          title={`Teams ${varianteTeams} - ${numEquipes} equipes de ${jogadoresPorEquipe} jogadores`}
         >
           Clique nos jogadores disponíveis para adicioná-los a uma equipe.
           {isMisto &&

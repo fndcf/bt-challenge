@@ -662,7 +662,7 @@ describe("useEditarEtapa", () => {
       });
 
       expect(result.current.error).toBe(
-        "TEAMS 4: mínimo de 8 jogadores (2 equipes)"
+        "Teams 4: mínimo de 8 jogadores (2 equipes)"
       );
     });
 
@@ -686,7 +686,7 @@ describe("useEditarEtapa", () => {
       });
 
       expect(result.current.error).toBe(
-        "TEAMS 4: máximo de 104 jogadores (26 equipes)"
+        "Teams 4: máximo de 104 jogadores (26 equipes)"
       );
     });
 
@@ -710,7 +710,7 @@ describe("useEditarEtapa", () => {
       });
 
       expect(result.current.error).toBe(
-        "TEAMS 4: número de jogadores deve ser múltiplo de 4"
+        "Teams 4: número de jogadores deve ser múltiplo de 4"
       );
     });
   });

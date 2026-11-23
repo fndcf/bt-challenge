@@ -1,5 +1,5 @@
 /**
- * Responsabilidade única: Seletor de formato do torneio (Dupla Fixa, Rei da Praia, Super X ou TEAMS)
+ * Responsabilidade única: Seletor de formato do torneio (Dupla Fixa, Rei da Praia, Super X ou Teams)
  */
 
 import React from "react";
@@ -30,7 +30,7 @@ const OPCOES = [
   },
   {
     valor: FormatoEtapa.TEAMS,
-    titulo: "TEAMS",
+    titulo: "Teams",
     descricao: "Equipes de 4 ou 6 jogadores, todos contra todos",
   },
 ].map((opcao) => ({ ...opcao, formato: opcao.valor }));

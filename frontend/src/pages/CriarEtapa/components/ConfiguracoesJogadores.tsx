@@ -72,11 +72,11 @@ const VARIANTES_SUPER_X = [
 const VARIANTES_TEAMS = [
   {
     value: VarianteTeams.TEAMS_4,
-    label: "TEAMS 4 (4 jogadores por equipe, 2 jogos + decider)",
+    label: "Teams 4 (4 jogadores por equipe, 2 jogos + decider)",
   },
   {
     value: VarianteTeams.TEAMS_6,
-    label: "TEAMS 6 (6 jogadores por equipe, 3 jogos)",
+    label: "Teams 6 (6 jogadores por equipe, 3 jogos)",
   },
 ];
 
@@ -208,7 +208,7 @@ export const ConfiguracoesJogadores: React.FC<ConfiguracoesJogadoresProps> = ({
       {isTeams && (
         <>
           <Select
-            label="Variante TEAMS"
+            label="Variante Teams"
             required
             fullWidth
             options={VARIANTES_TEAMS}
