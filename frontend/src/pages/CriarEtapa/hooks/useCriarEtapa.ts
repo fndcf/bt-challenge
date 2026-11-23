@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { CriarEtapaDTO, FormatoEtapa, VarianteSuperX, VarianteTeams, TipoFormacaoEquipe, TipoFormacaoJogos, TipoFormacaoDupla } from "@/types/etapa";
 import { TipoChaveamentoReiDaPraia } from "@/types/reiDaPraia";
 import { GeneroJogador, NivelJogador } from "@/types/jogador";
@@ -393,8 +394,9 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
       const inicio = new Date(formData.dataInicio);
       const fim = new Date(formData.dataFim);
       const realizacao = new Date(formData.dataRealizacao);
-      // Comparar apenas datas (sem hora) usando string YYYY-MM-DD
-      const hojeStr = new Date().toISOString().split("T")[0];
+      // "Hoje" no fuso de quem usa (o toISOString daria a data em UTC:
+      // no Brasil, depois das 21h, já seria amanhã)
+      const hojeStr = format(new Date(), "yyyy-MM-dd");
 
       if (inicio >= fim) {
         erros.dataFim = "Data fim deve ser após a data de início";

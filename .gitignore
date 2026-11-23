@@ -66,3 +66,8 @@ tmpclaude-*
 
 # Playwright MCP
 .playwright-mcp/
+
+# Playwright (E2E)
+frontend/e2e/.auth/
+frontend/e2e/.resultados/
+frontend/e2e/relatorio/

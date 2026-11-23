@@ -1,8 +1,8 @@
 /**
  * Responsabilidade: Galeria de screenshots do sistema com tabs por categoria
  *
- * Os prints são gerados por scripts/galeria (node scripts/galeria/rodar.mjs).
- * Nome do arquivo aqui = nome em scripts/galeria/telas.mjs.
+ * Os prints são gerados por scripts/demo/galeria (npm run galeria).
+ * Nome do arquivo aqui = nome em scripts/demo/galeria/telas.mjs.
  */
 
 import React, { useState } from "react";

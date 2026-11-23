@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "1.65.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -32,7 +33,7 @@
     "globals": "^15.15.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
-    "playwright-core": "^1.65.1",
+    "playwright-core": "1.65.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.73.0",
@@ -51,6 +52,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "galeria": "node ../scripts/galeria/rodar.mjs"
+    "galeria": "node ../scripts/demo/galeria/rodar.mjs",
+    "e2e": "playwright test --project=regressao",
+    "e2e:smoke": "playwright test --project=smoke",
+    "e2e:celular": "playwright test --project=celular",
+    "e2e:relatorio": "playwright show-report e2e/relatorio"
   }
 }
