@@ -10,10 +10,9 @@ import etapaService from "../services/EtapaService";
 import chaveService from "../services/ChaveService";
 import excelSumulaService from "../services/ExcelSumulaService";
 import desempateService from "../services/DesempateService";
-import {
-  listarEmpatesPendentes,
-  isRankingEliminatoria,
-} from "../utils/desempate";
+import encerramentoService from "../services/EncerramentoService";
+import { getFormato } from "../services/formatos";
+import { listarEmpatesPendentes } from "../utils/desempate";
 import {
   CriarEtapaSchema,
   AtualizarEtapaSchema,
@@ -476,7 +475,7 @@ class EtapaController extends BaseController {
         return;
       }
 
-      if (etapa.formato === "rei_da_praia") {
+      if (etapa.formato === FormatoEtapa.REI_DA_PRAIA) {
         logger.warn("Tentativa de gerar chaves para Rei da Praia", {
           etapaId: id,
         });
@@ -793,7 +792,7 @@ class EtapaController extends BaseController {
 
       logger.info("Encerrando etapa", { etapaId: id });
 
-      await etapaService.encerrarEtapa(id, arenaId);
+      await encerramentoService.encerrarEtapa(id, arenaId);
 
       logger.info("Etapa encerrada com sucesso", { etapaId: id });
 
@@ -872,42 +871,8 @@ class EtapaController extends BaseController {
         modo
       );
 
-      // Reaplicar a classificação do grupo com a decisão (limpa a pendência)
-      switch (etapa.formato) {
-        case FormatoEtapa.DUPLA_FIXA: {
-          const classificacaoService = (
-            await import("../services/ClassificacaoService")
-          ).default;
-          await classificacaoService.recalcularClassificacaoGrupo(grupoId);
-          break;
-        }
-        case FormatoEtapa.REI_DA_PRAIA: {
-          // Ranking entre grupos (duplas da eliminatória): a decisão é
-          // aplicada na próxima geração, não há grupo para recalcular
-          if (isRankingEliminatoria(grupoId)) break;
-
-          const reiDaPraiaService = (
-            await import("../services/ReiDaPraiaService")
-          ).default;
-          await reiDaPraiaService.recalcularClassificacaoGrupo(grupoId, id);
-          // Sem empate no grupo, o ranking entre grupos pode ter empate a decidir
-          await reiDaPraiaService.atualizarEmpatesEntreGrupos(id, arenaId);
-          break;
-        }
-        case FormatoEtapa.SUPER_X: {
-          const superXService = (await import("../services/SuperXService"))
-            .default;
-          await superXService.recalcularClassificacaoGrupo(grupoId, id);
-          break;
-        }
-        case FormatoEtapa.TEAMS: {
-          const { teamsClassificacaoService } = await import(
-            "../services/teams"
-          );
-          await teamsClassificacaoService.recalcularClassificacao(id, arenaId);
-          break;
-        }
-      }
+      // Reaplicar a classificação com a decisão (limpa a pendência)
+      await getFormato(etapa.formato).reaplicarClassificacao(etapa, grupoId);
 
       ResponseHelper.success(res, resultado, "Desempate definido com sucesso");
     } catch (error: any) {

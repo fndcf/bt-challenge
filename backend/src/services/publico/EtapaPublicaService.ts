@@ -6,6 +6,7 @@ import { ConfrontoEliminatorio } from "../../models/Eliminatoria";
 import { EstatisticasJogador } from "../../models/EstatisticasJogador";
 import { Etapa, FormatoEtapa } from "../../models/Etapa";
 import { Grupo } from "../../models/Grupo";
+import { getRegras } from "../../models/RegrasFormato";
 import { confrontoEliminatorioRepository } from "../../repositories/firebase/ConfrontoEliminatorioRepository";
 import confrontoEquipeRepository from "../../repositories/firebase/ConfrontoEquipeRepository";
 import { duplaRepository } from "../../repositories/firebase/DuplaRepository";
@@ -52,8 +53,6 @@ const POSICAO_POR_COLOCACAO: Record<string, number> = {
   participacao: 99,
 };
 
-const FORMATOS_INDIVIDUAIS = [FormatoEtapa.REI_DA_PRAIA, FormatoEtapa.SUPER_X];
-
 const STATUS_CHAVE = ["finalizada", "bye", "em_andamento"];
 
 type ComData = { criadoEm: EstatisticasJogador["criadoEm"] | string };
@@ -91,7 +90,7 @@ export class EtapaPublicaService {
 
     return Promise.all(
       grupos.map((grupo) =>
-        FORMATOS_INDIVIDUAIS.includes(etapa.formato)
+        getRegras(etapa.formato).grupoIndividual
           ? this.montarGrupoIndividual(grupo, etapa.formato)
           : this.montarGrupoDuplas(grupo)
       )

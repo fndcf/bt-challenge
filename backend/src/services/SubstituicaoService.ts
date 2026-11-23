@@ -2,8 +2,8 @@
  * Service para substituição de jogadores após geração de chaves
  */
 
-import { FormatoEtapa, TipoFormacaoDupla, TipoFormacaoEquipe } from "../models/Etapa";
 import { Jogador, GeneroJogador } from "../models/Jogador";
+import { getRegras } from "../models/RegrasFormato";
 import logger from "../utils/logger";
 import { BadRequestError, NotFoundError } from "../utils/errors";
 
@@ -12,19 +12,7 @@ import { EtapaRepository } from "../repositories/firebase/EtapaRepository";
 import { JogadorRepository } from "../repositories/firebase/JogadorRepository";
 import { EstatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
 import { InscricaoRepository } from "../repositories/firebase/InscricaoRepository";
-import { PartidaRepository } from "../repositories/firebase/PartidaRepository";
-import { PartidaReiDaPraiaRepository } from "../repositories/firebase/PartidaReiDaPraiaRepository";
-import { ConfrontoEquipeRepository } from "../repositories/firebase/ConfrontoEquipeRepository";
-
-// Models
-import { StatusPartida } from "../models/Partida";
-import { StatusConfronto } from "../models/Teams";
-
-// Services específicos por formato
-import reiDaPraiaService from "./ReiDaPraiaService";
-import superXService from "./SuperXService";
-import chaveService from "./ChaveService";
-import teamsService from "./TeamsService";
+import { getFormato } from "./formatos";
 
 interface SubstituicaoResult {
   sucesso: boolean;
@@ -40,47 +28,9 @@ class SubstituicaoService {
   private jogadorRepository = new JogadorRepository();
   private estatisticasRepository = new EstatisticasJogadorRepository();
   private inscricaoRepository = new InscricaoRepository();
-  private partidaRepository = new PartidaRepository();
-  private partidaReiDaPraiaRepository = new PartidaReiDaPraiaRepository();
-  private confrontoEquipeRepository = new ConfrontoEquipeRepository();
-
-  /**
-   * Verificar se há partidas/confrontos jogados na etapa
-   * Retorna true se alguma partida já foi jogada
-   */
-  private async verificarPartidasJogadas(
-    etapaId: string,
-    arenaId: string,
-    formato: FormatoEtapa
-  ): Promise<boolean> {
-    switch (formato) {
-      case FormatoEtapa.DUPLA_FIXA: {
-        // Buscar partidas da etapa
-        const partidas = await this.partidaRepository.buscarPorEtapa(etapaId, arenaId);
-        return partidas.some((p) => p.status !== StatusPartida.AGENDADA);
-      }
-
-      case FormatoEtapa.REI_DA_PRAIA:
-      case FormatoEtapa.SUPER_X: {
-        // Buscar partidas do Rei da Praia/Super X
-        const partidasRdp = await this.partidaReiDaPraiaRepository.buscarPorEtapa(etapaId, arenaId);
-        return partidasRdp.some((p) => p.status !== "agendada");
-      }
-
-      case FormatoEtapa.TEAMS: {
-        // Buscar confrontos de equipes
-        const confrontos = await this.confrontoEquipeRepository.buscarPorEtapa(etapaId, arenaId);
-        return confrontos.some((c) => c.status !== StatusConfronto.AGENDADO);
-      }
-
-      default:
-        return false;
-    }
-  }
 
   /**
    * Substituir jogador em uma etapa
-   * Detecta o formato e delega para o service específico
    */
   async substituirJogador(
     etapaId: string,
@@ -106,8 +56,9 @@ class SubstituicaoService {
     }
 
     // 2. Verificar se há partidas/confrontos já jogados na etapa
-    const temPartidasJogadas = await this.verificarPartidasJogadas(etapaId, arenaId, etapa.formato);
-    if (temPartidasJogadas) {
+    const formato = getFormato(etapa.formato);
+
+    if (await formato.temPartidasJogadas(etapaId, arenaId)) {
       throw new BadRequestError(
         "Não é possível substituir jogador pois já existem partidas jogadas nesta etapa"
       );
@@ -169,47 +120,13 @@ class SubstituicaoService {
       .concat([jogadorNovo.id]);
     await this.etapaRepository.definirInscritos(etapaId, novaListaJogadores);
 
-    // 8. Delegar para o service específico do formato
-    switch (etapa.formato) {
-      case FormatoEtapa.REI_DA_PRAIA:
-        await reiDaPraiaService.substituirJogador(
-          etapaId,
-          arenaId,
-          jogadorAntigoId,
-          jogadorNovo
-        );
-        break;
-
-      case FormatoEtapa.SUPER_X:
-        await superXService.substituirJogador(
-          etapaId,
-          arenaId,
-          jogadorAntigoId,
-          jogadorNovo
-        );
-        break;
-
-      case FormatoEtapa.DUPLA_FIXA:
-        await chaveService.substituirJogador(
-          etapaId,
-          arenaId,
-          jogadorAntigoId,
-          jogadorNovo
-        );
-        break;
-
-      case FormatoEtapa.TEAMS:
-        await teamsService.substituirJogador(
-          etapaId,
-          arenaId,
-          jogadorAntigoId,
-          jogadorNovo
-        );
-        break;
-
-      default:
-        throw new BadRequestError(`Formato de etapa não suportado: ${etapa.formato}`);
-    }
+    // 8. Trocar o jogador nas chaves, do jeito do formato
+    await formato.substituirJogador(
+      etapaId,
+      arenaId,
+      jogadorAntigoId,
+      jogadorNovo
+    );
 
     logger.info("Substituição de jogador concluída com sucesso", {
       etapaId,
@@ -253,24 +170,8 @@ class SubstituicaoService {
     const estatisticas = await this.estatisticasRepository.buscarPorEtapa(etapaId, arenaId);
     const jogadoresNaEtapa = new Set(estatisticas.map((e) => e.jogadorId));
 
-    // Determinar se deve filtrar por nível
-    // Filtra por nível se:
-    // - A etapa tem nível definido
-    // Não filtra por nível em:
-    // - DUPLA_FIXA com formação BALANCEADO (mistura níveis)
-    // - TEAMS com formação BALANCEADO (mistura níveis)
-    const isDuplaFixaBalanceada =
-      etapa.formato === FormatoEtapa.DUPLA_FIXA &&
-      etapa.tipoFormacaoDupla === TipoFormacaoDupla.BALANCEADO;
-
-    const isTeamsBalanceado =
-      etapa.formato === FormatoEtapa.TEAMS &&
-      etapa.tipoFormacaoEquipe === TipoFormacaoEquipe.BALANCEADO;
-
     const filtrarPorNivel =
-      etapa.nivel &&
-      !isDuplaFixaBalanceada &&
-      !isTeamsBalanceado;
+      etapa.nivel && !getRegras(etapa.formato).misturaNiveis(etapa);
 
     // Filtrar jogadores
     return todosJogadores.jogadores.filter((jogador) => {

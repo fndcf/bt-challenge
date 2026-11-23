@@ -10,7 +10,21 @@ import { container } from "./ServiceContainer";
 import { PartidaReiDaPraiaRepository } from "../repositories/firebase/PartidaReiDaPraiaRepository";
 import { ConfrontoEquipeRepository } from "../repositories/firebase/ConfrontoEquipeRepository";
 
+type Gerador = (
+  workbook: ExcelJS.Workbook,
+  etapaId: string,
+  arenaId: string
+) => Promise<void>;
+
 class ExcelSumulaService {
+  // Formato novo no enum sem súmula aqui não compila
+  private geradores: Record<FormatoEtapa, Gerador> = {
+    [FormatoEtapa.DUPLA_FIXA]: this.gerarSumulaDuplaFixa,
+    [FormatoEtapa.REI_DA_PRAIA]: this.gerarSumulaReiDaPraia,
+    [FormatoEtapa.SUPER_X]: this.gerarSumulaSuperX,
+    [FormatoEtapa.TEAMS]: this.gerarSumulaTeams,
+  };
+
   /**
    * Gerar súmula Excel baseado no formato da etapa
    */
@@ -34,22 +48,11 @@ class ExcelSumulaService {
     workbook.creator = "Dupley";
     workbook.created = new Date();
 
-    switch (etapa.formato) {
-      case FormatoEtapa.DUPLA_FIXA:
-        await this.gerarSumulaDuplaFixa(workbook, etapaId, arenaId);
-        break;
-      case FormatoEtapa.REI_DA_PRAIA:
-        await this.gerarSumulaReiDaPraia(workbook, etapaId, arenaId);
-        break;
-      case FormatoEtapa.SUPER_X:
-        await this.gerarSumulaSuperX(workbook, etapaId, arenaId);
-        break;
-      case FormatoEtapa.TEAMS:
-        await this.gerarSumulaTeams(workbook, etapaId, arenaId);
-        break;
-      default:
-        throw new Error(`Formato não suportado: ${etapa.formato}`);
+    const gerar = this.geradores[etapa.formato];
+    if (!gerar) {
+      throw new Error(`Formato não suportado: ${etapa.formato}`);
     }
+    await gerar.call(this, workbook, etapaId, arenaId);
 
     const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
     const nomeArquivo = `sumula-${etapa.nome.replace(/\s+/g, "-").toLowerCase()}.xlsx`;
