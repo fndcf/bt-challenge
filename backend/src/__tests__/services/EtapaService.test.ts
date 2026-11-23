@@ -859,7 +859,6 @@ describe("EtapaService", () => {
         mockEstatisticasRepository.buscarPorJogadorEEtapa.mockResolvedValue(
           createEstatisticasJogadorFixture()
         );
-        mockEstatisticasRepository.atualizarPontuacao.mockResolvedValue(undefined);
         mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
 
         await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
@@ -1092,7 +1091,6 @@ describe("EtapaService", () => {
         mockEstatisticasRepository.buscarPorJogadorEEtapa.mockResolvedValue(
           createEstatisticasJogadorFixture()
         );
-        mockEstatisticasRepository.atualizarPontuacao.mockResolvedValue(undefined);
         mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
 
         await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);
@@ -1254,7 +1252,6 @@ describe("EtapaService", () => {
         mockEstatisticasRepository.buscarPorJogadorEEtapa.mockResolvedValue(
           createEstatisticasJogadorFixture()
         );
-        mockEstatisticasRepository.atualizarPontuacao.mockResolvedValue(undefined);
         mockEtapaRepository.definirCampeao.mockResolvedValue(undefined);
 
         await etapaService.encerrarEtapa(TEST_ETAPA_ID, TEST_ARENA_ID);

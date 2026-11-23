@@ -40,6 +40,12 @@ export interface IEtapaRepository
   buscarPorStatus(arenaId: string, status: StatusEtapa): Promise<Etapa[]>;
 
   /**
+   * Ids das etapas que contam pontos no ranking. Etapa antiga, sem o campo,
+   * conta.
+   */
+  buscarIdsQueContamPontos(arenaId: string): Promise<Set<string>>;
+
+  /**
    * Buscar etapas ativas (não finalizadas)
    */
   buscarAtivas(arenaId: string): Promise<Etapa[]>;

@@ -2,147 +2,110 @@
  * Service para gerenciar estatísticas individuais de jogadores
  */
 
-import { db } from "../config/firebase";
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import {
-  EstatisticasJogador,
-  CriarEstatisticasJogadorDTO,
   AtualizarEstatisticasPartidaDTO,
+  CriarEstatisticasJogadorDTO,
+  EstatisticasJogador,
 } from "../models/EstatisticasJogador";
+import { estatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
+import { etapaRepository } from "../repositories/firebase/EtapaRepository";
+import { IEstatisticasJogadorRepository } from "../repositories/interfaces/IEstatisticasJogadorRepository";
+import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
+import {
+  grupoDaPartida,
+  inverter,
+  JogadorRanking,
+  montarRanking,
+  somarEtapas,
+  TotaisDaPartida,
+  totaisDaPartida,
+} from "../utils/estatisticas";
 import logger from "../utils/logger";
 
+/** Resultado de uma partida para uma estatística já conhecida */
+interface PartidaPorEstatistica {
+  estatisticaId: string;
+  dto: AtualizarEstatisticasPartidaDTO;
+}
+
+export interface EstatisticasAgregadas extends JogadorRanking {
+  arenaId: string;
+  nivel?: string;
+  /** 0 quando não está no ranking */
+  posicaoRanking: number;
+}
+
 export class EstatisticasJogadorService {
-  private collection = "estatisticas_jogador";
+  constructor(
+    private estatisticas: IEstatisticasJogadorRepository = estatisticasJogadorRepository,
+    private etapas: IEtapaRepository = etapaRepository
+  ) {}
+
+  /** Registra o erro com o contexto e repassa */
+  private async executar<T>(
+    acao: string,
+    contexto: Record<string, unknown>,
+    operacao: () => Promise<T>
+  ): Promise<T> {
+    try {
+      return await operacao();
+    } catch (error) {
+      logger.error(`Erro ao ${acao}`, contexto, error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * Faz a operação com a estatística do jogador na etapa. Sem estatística,
+   * só avisa no log.
+   */
+  private async comEstatistica(
+    acao: string,
+    jogadorId: string,
+    etapaId: string,
+    operacao: (estatistica: EstatisticasJogador) => Promise<void>
+  ): Promise<void> {
+    const contexto = { jogadorId, etapaId };
+
+    await this.executar(acao, contexto, async () => {
+      const estatistica = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
+
+      if (!estatistica) {
+        logger.warn(`Estatísticas não encontradas para ${acao}`, contexto);
+        return;
+      }
+
+      await operacao(estatistica);
+    });
+  }
+
+  // ==================== CRIAR ====================
 
   /**
    * Criar estatísticas iniciais para um jogador
    */
   async criar(dto: CriarEstatisticasJogadorDTO): Promise<EstatisticasJogador> {
-    try {
-      const estatisticas: Omit<EstatisticasJogador, "id"> = {
-        etapaId: dto.etapaId,
-        arenaId: dto.arenaId,
-        jogadorId: dto.jogadorId,
-        jogadorNome: dto.jogadorNome,
-        jogadorNivel: dto.jogadorNivel,
-        jogadorGenero: dto.jogadorGenero,
-        grupoId: dto.grupoId,
-        grupoNome: dto.grupoNome,
-        // Estatísticas Rei da Praia (fase de grupos)
-        jogosGrupo: 0,
-        vitoriasGrupo: 0,
-        derrotasGrupo: 0,
-        pontosGrupo: 0,
-        setsVencidosGrupo: 0,
-        setsPerdidosGrupo: 0,
-        saldoSetsGrupo: 0,
-        gamesVencidosGrupo: 0,
-        gamesPerdidosGrupo: 0,
-        saldoGamesGrupo: 0,
-        // Estatísticas Dupla Fixa
-        jogos: 0,
-        vitorias: 0,
-        derrotas: 0,
-        pontos: 0,
-        setsVencidos: 0,
-        setsPerdidos: 0,
-        gamesVencidos: 0,
-        gamesPerdidos: 0,
-        saldoSets: 0,
-        saldoGames: 0,
-        classificado: false,
-        criadoEm: Timestamp.now(),
-        atualizadoEm: Timestamp.now(),
-      };
-
-      const docRef = await db.collection(this.collection).add(estatisticas);
-
-      const novaEstatistica = {
-        id: docRef.id,
-        ...estatisticas,
-      };
-
-      return novaEstatistica;
-    } catch (error) {
-      logger.error(
-        "Erro ao criar estatísticas de jogador",
-        {
-          etapaId: dto.etapaId,
-          jogadorId: dto.jogadorId,
-        },
-        error as Error
-      );
-      throw error;
-    }
+    return this.executar(
+      "criar estatísticas de jogador",
+      { etapaId: dto.etapaId, jogadorId: dto.jogadorId },
+      () => this.estatisticas.criar(dto)
+    );
   }
 
   /**
-   * Criar estatísticas em lote (batch)
+   * Criar estatísticas em lote
    */
   async criarEmLote(
     dtos: CriarEstatisticasJogadorDTO[]
   ): Promise<EstatisticasJogador[]> {
-    try {
-      const batch = db.batch();
-      const estatisticasArray: EstatisticasJogador[] = [];
-      const agora = Timestamp.now();
-
-      for (const dto of dtos) {
-        const docRef = db.collection(this.collection).doc();
-        const estatisticas: Omit<EstatisticasJogador, "id"> = {
-          etapaId: dto.etapaId,
-          arenaId: dto.arenaId,
-          jogadorId: dto.jogadorId,
-          jogadorNome: dto.jogadorNome,
-          jogadorNivel: dto.jogadorNivel,
-          jogadorGenero: dto.jogadorGenero,
-          grupoId: dto.grupoId,
-          grupoNome: dto.grupoNome,
-          // Estatísticas Rei da Praia (fase de grupos)
-          jogosGrupo: 0,
-          vitoriasGrupo: 0,
-          derrotasGrupo: 0,
-          pontosGrupo: 0,
-          setsVencidosGrupo: 0,
-          setsPerdidosGrupo: 0,
-          saldoSetsGrupo: 0,
-          gamesVencidosGrupo: 0,
-          gamesPerdidosGrupo: 0,
-          saldoGamesGrupo: 0,
-          // Estatísticas Dupla Fixa
-          jogos: 0,
-          vitorias: 0,
-          derrotas: 0,
-          pontos: 0,
-          setsVencidos: 0,
-          setsPerdidos: 0,
-          gamesVencidos: 0,
-          gamesPerdidos: 0,
-          saldoSets: 0,
-          saldoGames: 0,
-          classificado: false,
-          criadoEm: agora,
-          atualizadoEm: agora,
-        };
-
-        batch.set(docRef, estatisticas);
-        estatisticasArray.push({
-          id: docRef.id,
-          ...estatisticas,
-        });
-      }
-      await batch.commit();
-
-      return estatisticasArray;
-    } catch (error) {
-      logger.error(
-        "Erro ao criar estatísticas em lote",
-        { quantidade: dtos.length },
-        error as Error
-      );
-      throw error;
-    }
+    return this.executar(
+      "criar estatísticas em lote",
+      { quantidade: dtos.length },
+      () => this.estatisticas.criarEmLote(dtos)
+    );
   }
+
+  // ==================== BUSCAR ====================
 
   /**
    * Buscar estatísticas de um jogador em uma etapa
@@ -151,468 +114,29 @@ export class EstatisticasJogadorService {
     jogadorId: string,
     etapaId: string
   ): Promise<EstatisticasJogador | null> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("jogadorId", "==", jogadorId)
-      .where("etapaId", "==", etapaId)
-      .limit(1)
-      .get();
-
-    if (snapshot.empty) {
-      return null;
-    }
-
-    const doc = snapshot.docs[0];
-    return {
-      id: doc.id,
-      ...doc.data(),
-    } as EstatisticasJogador;
+    return this.estatisticas.buscarPorJogadorEEtapa(jogadorId, etapaId);
   }
 
   /**
-   * Atualizar estatísticas após uma partida (Dupla Fixa)
+   * Buscar estatísticas de vários jogadores de uma etapa, por id do jogador
    */
-  async atualizarAposPartida(
-    jogadorId: string,
-    etapaId: string,
-    dto: AtualizarEstatisticasPartidaDTO
-  ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
+  async buscarPorJogadoresEtapa(
+    jogadorIds: string[],
+    etapaId: string
+  ): Promise<Map<string, EstatisticasJogador>> {
+    const estatisticas = await this.estatisticas.buscarPorJogadoresDaEtapa(
+      jogadorIds,
+      etapaId
+    );
 
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para atualizar", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      const novasEstatisticas = {
-        jogos: estatisticas.jogos + 1,
-        vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
-        derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
-        pontos: estatisticas.pontos,
-        setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
-        setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
-        gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
-        gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
-        saldoSets:
-          estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
-        saldoGames:
-          estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
-        atualizadoEm: Timestamp.now(),
-      };
-
-      await db
-        .collection(this.collection)
-        .doc(estatisticas.id)
-        .update(novasEstatisticas);
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar estatísticas após partida",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Reverter estatísticas após edição de resultado
-   */
-  async reverterAposPartida(
-    jogadorId: string,
-    etapaId: string,
-    dto: AtualizarEstatisticasPartidaDTO
-  ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para reverter", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      const estatisticasRevertidas = {
-        jogos: estatisticas.jogos - 1,
-        vitorias: estatisticas.vitorias - (dto.venceu ? 1 : 0),
-        derrotas: estatisticas.derrotas - (dto.venceu ? 0 : 1),
-        pontos: estatisticas.pontos,
-        setsVencidos: estatisticas.setsVencidos - dto.setsVencidos,
-        setsPerdidos: estatisticas.setsPerdidos - dto.setsPerdidos,
-        gamesVencidos: estatisticas.gamesVencidos - dto.gamesVencidos,
-        gamesPerdidos: estatisticas.gamesPerdidos - dto.gamesPerdidos,
-        saldoSets:
-          estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
-        saldoGames:
-          estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
-        atualizadoEm: Timestamp.now(),
-      };
-
-      await db
-        .collection(this.collection)
-        .doc(estatisticas.id)
-        .update(estatisticasRevertidas);
-    } catch (error) {
-      logger.error(
-        "Erro ao reverter estatísticas",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Atualizar estatísticas após partida da FASE DE GRUPOS
-   */
-  async atualizarAposPartidaGrupo(
-    jogadorId: string,
-    etapaId: string,
-    dto: AtualizarEstatisticasPartidaDTO
-  ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para atualizar (grupo)", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      const novasEstatisticas = {
-        // Estatísticas de GRUPO
-        jogosGrupo: (estatisticas.jogosGrupo || 0) + 1,
-        vitoriasGrupo: (estatisticas.vitoriasGrupo || 0) + (dto.venceu ? 1 : 0),
-        derrotasGrupo: (estatisticas.derrotasGrupo || 0) + (dto.venceu ? 0 : 1),
-        pontosGrupo: (estatisticas.pontosGrupo || 0) + (dto.venceu ? 3 : 0),
-        setsVencidosGrupo:
-          (estatisticas.setsVencidosGrupo || 0) + dto.setsVencidos,
-        setsPerdidosGrupo:
-          (estatisticas.setsPerdidosGrupo || 0) + dto.setsPerdidos,
-        saldoSetsGrupo:
-          (estatisticas.saldoSetsGrupo || 0) +
-          (dto.setsVencidos - dto.setsPerdidos),
-        gamesVencidosGrupo:
-          (estatisticas.gamesVencidosGrupo || 0) + dto.gamesVencidos,
-        gamesPerdidosGrupo:
-          (estatisticas.gamesPerdidosGrupo || 0) + dto.gamesPerdidos,
-        saldoGamesGrupo:
-          (estatisticas.saldoGamesGrupo || 0) +
-          (dto.gamesVencidos - dto.gamesPerdidos),
-
-        // Estatísticas TOTAIS
-        jogos: estatisticas.jogos + 1,
-        vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
-        derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
-        setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
-        setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
-        saldoSets:
-          estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
-        gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
-        gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
-        saldoGames:
-          estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
-
-        atualizadoEm: Timestamp.now(),
-      };
-
-      await db
-        .collection(this.collection)
-        .doc(estatisticas.id)
-        .update(novasEstatisticas);
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar estatísticas após partida de grupo",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Reverter estatísticas após edição de resultado da FASE DE GRUPOS
-   */
-  async reverterAposPartidaGrupo(
-    jogadorId: string,
-    etapaId: string,
-    dto: AtualizarEstatisticasPartidaDTO
-  ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para reverter (grupo)", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      const estatisticasRevertidas = {
-        // Estatísticas de GRUPO
-        jogosGrupo: Math.max(0, (estatisticas.jogosGrupo || 0) - 1),
-        vitoriasGrupo: Math.max(
-          0,
-          (estatisticas.vitoriasGrupo || 0) - (dto.venceu ? 1 : 0)
-        ),
-        derrotasGrupo: Math.max(
-          0,
-          (estatisticas.derrotasGrupo || 0) - (dto.venceu ? 0 : 1)
-        ),
-        pontosGrupo: Math.max(
-          0,
-          (estatisticas.pontosGrupo || 0) - (dto.venceu ? 3 : 0)
-        ),
-        setsVencidosGrupo: Math.max(
-          0,
-          (estatisticas.setsVencidosGrupo || 0) - dto.setsVencidos
-        ),
-        setsPerdidosGrupo: Math.max(
-          0,
-          (estatisticas.setsPerdidosGrupo || 0) - dto.setsPerdidos
-        ),
-        saldoSetsGrupo:
-          (estatisticas.saldoSetsGrupo || 0) -
-          (dto.setsVencidos - dto.setsPerdidos),
-        gamesVencidosGrupo: Math.max(
-          0,
-          (estatisticas.gamesVencidosGrupo || 0) - dto.gamesVencidos
-        ),
-        gamesPerdidosGrupo: Math.max(
-          0,
-          (estatisticas.gamesPerdidosGrupo || 0) - dto.gamesPerdidos
-        ),
-        saldoGamesGrupo:
-          (estatisticas.saldoGamesGrupo || 0) -
-          (dto.gamesVencidos - dto.gamesPerdidos),
-
-        // Estatísticas TOTAIS
-        jogos: Math.max(0, estatisticas.jogos - 1),
-        vitorias: Math.max(0, estatisticas.vitorias - (dto.venceu ? 1 : 0)),
-        derrotas: Math.max(0, estatisticas.derrotas - (dto.venceu ? 0 : 1)),
-        setsVencidos: Math.max(0, estatisticas.setsVencidos - dto.setsVencidos),
-        setsPerdidos: Math.max(0, estatisticas.setsPerdidos - dto.setsPerdidos),
-        saldoSets:
-          estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
-        gamesVencidos: Math.max(
-          0,
-          estatisticas.gamesVencidos - dto.gamesVencidos
-        ),
-        gamesPerdidos: Math.max(
-          0,
-          estatisticas.gamesPerdidos - dto.gamesPerdidos
-        ),
-        saldoGames:
-          estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
-
-        atualizadoEm: Timestamp.now(),
-      };
-
-      await db
-        .collection(this.collection)
-        .doc(estatisticas.id)
-        .update(estatisticasRevertidas);
-    } catch (error) {
-      logger.error(
-        "Erro ao reverter estatísticas de grupo",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Atualizar estatísticas após partida da ELIMINATÓRIA
-   */
-  async atualizarAposPartidaEliminatoria(
-    jogadorId: string,
-    etapaId: string,
-    dto: AtualizarEstatisticasPartidaDTO
-  ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn(
-          "Estatísticas não encontradas para atualizar (eliminatória)",
-          {
-            jogadorId,
-            etapaId,
-          }
-        );
-        return;
-      }
-
-      const novasEstatisticas = {
-        jogos: estatisticas.jogos + 1,
-        vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
-        derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
-        setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
-        setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
-        saldoSets:
-          estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
-        gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
-        gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
-        saldoGames:
-          estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
-        atualizadoEm: Timestamp.now(),
-      };
-
-      await db
-        .collection(this.collection)
-        .doc(estatisticas.id)
-        .update(novasEstatisticas);
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar estatísticas após partida eliminatória",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Reverter estatísticas após partida da ELIMINATÓRIA
-   */
-  async reverterAposPartidaEliminatoria(
-    jogadorId: string,
-    etapaId: string,
-    dto: AtualizarEstatisticasPartidaDTO
-  ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn(
-          "Estatísticas não encontradas para reverter (eliminatória)",
-          {
-            jogadorId,
-            etapaId,
-          }
-        );
-        return;
-      }
-
-      const estatisticasRevertidas = {
-        jogos: Math.max(0, estatisticas.jogos - 1),
-        vitorias: Math.max(0, estatisticas.vitorias - (dto.venceu ? 1 : 0)),
-        derrotas: Math.max(0, estatisticas.derrotas - (dto.venceu ? 0 : 1)),
-        setsVencidos: Math.max(0, estatisticas.setsVencidos - dto.setsVencidos),
-        setsPerdidos: Math.max(0, estatisticas.setsPerdidos - dto.setsPerdidos),
-        saldoSets:
-          estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
-        gamesVencidos: Math.max(
-          0,
-          estatisticas.gamesVencidos - dto.gamesVencidos
-        ),
-        gamesPerdidos: Math.max(
-          0,
-          estatisticas.gamesPerdidos - dto.gamesPerdidos
-        ),
-        saldoGames:
-          estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
-        atualizadoEm: Timestamp.now(),
-      };
-
-      await db
-        .collection(this.collection)
-        .doc(estatisticas.id)
-        .update(estatisticasRevertidas);
-    } catch (error) {
-      logger.error(
-        "Erro ao reverter estatísticas eliminatória",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Buscar todas as estatísticas de uma etapa
-   */
-  async buscarPorEtapa(
-    etapaId: string,
-    arenaId: string
-  ): Promise<EstatisticasJogador[]> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("etapaId", "==", etapaId)
-      .where("arenaId", "==", arenaId)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
+    return new Map(estatisticas.map((e) => [e.jogadorId, e]));
   }
 
   /**
    * Buscar estatísticas de um grupo
    */
   async buscarPorGrupo(grupoId: string): Promise<EstatisticasJogador[]> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("grupoId", "==", grupoId)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
-  }
-
-  /**
-   * Buscar estatísticas de múltiplos jogadores de uma etapa em uma única query
-   */
-  async buscarPorJogadoresEtapa(
-    jogadorIds: string[],
-    etapaId: string
-  ): Promise<Map<string, EstatisticasJogador>> {
-    if (jogadorIds.length === 0) return new Map();
-
-    // Firestore permite até 30 itens no 'in' - como temos max 4 jogadores por partida, está ok
-    const snapshot = await db
-      .collection(this.collection)
-      .where("etapaId", "==", etapaId)
-      .where("jogadorId", "in", jogadorIds)
-      .get();
-
-    const result = new Map<string, EstatisticasJogador>();
-    snapshot.docs.forEach((doc) => {
-      const data = { id: doc.id, ...doc.data() } as EstatisticasJogador;
-      result.set(data.jogadorId, data);
-    });
-
-    return result;
+    return this.estatisticas.buscarPorGrupo(grupoId);
   }
 
   /**
@@ -622,67 +146,174 @@ export class EstatisticasJogadorService {
     grupoId: string,
     limite: number = 2
   ): Promise<EstatisticasJogador[]> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("grupoId", "==", grupoId)
-      .orderBy("posicaoGrupo", "asc")
-      .limit(limite)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
+    return this.estatisticas.buscarClassificados(grupoId, limite);
   }
 
+  // ==================== PARTIDAS ====================
+
   /**
-   * Atualizar grupo do jogador
+   * Somar uma partida nos totais do jogador
    */
-  async atualizarGrupo(
+  async atualizarAposPartida(
     jogadorId: string,
     etapaId: string,
-    grupoId: string,
-    grupoNome: string
+    dto: AtualizarEstatisticasPartidaDTO
   ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para atualizar grupo", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      await db.collection(this.collection).doc(estatisticas.id).update({
-        grupoId,
-        grupoNome,
-        atualizadoEm: Timestamp.now(),
-      });
-
-      logger.info("Grupo atualizado nas estatísticas", {
-        jogadorId,
-        etapaId,
-        grupoId,
-        grupoNome,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar grupo",
-        {
-          jogadorId,
-          etapaId,
-          grupoId,
-        },
-        error as Error
-      );
-      throw error;
-    }
+    await this.comEstatistica(
+      "atualizar estatísticas após partida",
+      jogadorId,
+      etapaId,
+      ({ id }) =>
+        this.estatisticas.incrementarEmLote([
+          { id, incrementos: totaisDaPartida(dto) },
+        ])
+    );
   }
 
   /**
-   * Atualizar grupo de múltiplos jogadores em batch usando estatisticaId
+   * Tirar uma partida dos totais do jogador
+   */
+  async reverterAposPartida(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    await this.comEstatistica(
+      "reverter estatísticas",
+      jogadorId,
+      etapaId,
+      ({ id }) =>
+        this.estatisticas.incrementarEmLote([
+          { id, incrementos: inverter(totaisDaPartida(dto)) },
+        ])
+    );
+  }
+
+  /**
+   * Somar uma partida da eliminatória nos totais do jogador
+   */
+  async atualizarAposPartidaEliminatoria(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    await this.atualizarAposPartida(jogadorId, etapaId, dto);
+  }
+
+  /**
+   * Tirar uma partida da eliminatória dos totais, sem deixar contagem negativa
+   */
+  async reverterAposPartidaEliminatoria(
+    jogadorId: string,
+    etapaId: string,
+    dto: AtualizarEstatisticasPartidaDTO
+  ): Promise<void> {
+    await this.comEstatistica(
+      "reverter estatísticas eliminatória",
+      jogadorId,
+      etapaId,
+      async (estatistica) => {
+        const partida = totaisDaPartida(dto);
+        const dados = Object.fromEntries(
+          (Object.keys(partida) as (keyof TotaisDaPartida)[]).map((campo) => {
+            const valor = (estatistica[campo] || 0) - partida[campo];
+            return [
+              campo,
+              campo.startsWith("saldo") ? valor : Math.max(0, valor),
+            ];
+          })
+        );
+
+        await this.estatisticas.atualizarEmLote([
+          { id: estatistica.id, dados },
+        ]);
+      }
+    );
+  }
+
+  /**
+   * Somar partidas só nos totais (Teams, que não tem grupo individual)
+   */
+  async atualizarAposPartidaComIncrement(
+    atualizacoes: PartidaPorEstatistica[]
+  ): Promise<void> {
+    await this.executar(
+      "atualizar estatísticas TEAMS com increment",
+      { quantidade: atualizacoes.length },
+      () =>
+        this.estatisticas.incrementarEmLote(
+          atualizacoes.map(({ estatisticaId, dto }) => ({
+            id: estatisticaId,
+            incrementos: totaisDaPartida(dto),
+          }))
+        )
+    );
+  }
+
+  /**
+   * Tirar partidas só dos totais (Teams, que não tem grupo individual)
+   */
+  async reverterTotaisComIncrement(
+    reversoes: PartidaPorEstatistica[]
+  ): Promise<void> {
+    await this.executar(
+      "reverter estatísticas TEAMS com increment",
+      { quantidade: reversoes.length },
+      () =>
+        this.estatisticas.incrementarEmLote(
+          reversoes.map(({ estatisticaId, dto }) => ({
+            id: estatisticaId,
+            incrementos: inverter(totaisDaPartida(dto)),
+          }))
+        )
+    );
+  }
+
+  /**
+   * Somar partidas nos totais e na classificação do grupo
+   */
+  async atualizarAposPartidaGrupoComIncrement(
+    atualizacoes: PartidaPorEstatistica[]
+  ): Promise<void> {
+    await this.executar(
+      "atualizar estatísticas com increment",
+      { quantidade: atualizacoes.length },
+      () =>
+        this.estatisticas.incrementarEmLote(
+          atualizacoes.map(({ estatisticaId, dto }) => ({
+            id: estatisticaId,
+            incrementos: { ...grupoDaPartida(dto), ...totaisDaPartida(dto) },
+          }))
+        )
+    );
+  }
+
+  /**
+   * Tirar partidas dos totais e da classificação do grupo
+   */
+  async reverterAposPartidaComIncrement(
+    reversoes: PartidaPorEstatistica[]
+  ): Promise<void> {
+    await this.executar(
+      "reverter estatísticas com increment",
+      { quantidade: reversoes.length },
+      () =>
+        this.estatisticas.incrementarEmLote(
+          reversoes.map(({ estatisticaId, dto }) => ({
+            id: estatisticaId,
+            incrementos: inverter({
+              ...grupoDaPartida(dto),
+              ...totaisDaPartida(dto),
+            }),
+          }))
+        )
+    );
+  }
+
+  // ==================== GRUPO E CLASSIFICAÇÃO ====================
+
+  /**
+   * Atualizar grupo de vários jogadores, pelo id da estatística
    */
   async atualizarGrupoEmLotePorId(
     atualizacoes: Array<{
@@ -691,31 +322,22 @@ export class EstatisticasJogadorService {
       grupoNome: string;
     }>
   ): Promise<void> {
-    if (atualizacoes.length === 0) return;
-
-    try {
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (const { estatisticaId, grupoId, grupoNome } of atualizacoes) {
-        const docRef = db.collection(this.collection).doc(estatisticaId);
-        batch.update(docRef, {
-          grupoId,
-          grupoNome,
-          atualizadoEm: now,
-        });
-      }
-
-      await batch.commit();
-    } catch (error) {
-      logger.error("Erro ao atualizar grupos em lote", {}, error as Error);
-      throw error;
-    }
+    await this.executar(
+      "atualizar grupos em lote",
+      { quantidade: atualizacoes.length },
+      () =>
+        this.estatisticas.atualizarEmLote(
+          atualizacoes.map(({ estatisticaId, grupoId, grupoNome }) => ({
+            id: estatisticaId,
+            dados: { grupoId, grupoNome },
+          }))
+        )
+    );
   }
 
   /**
-   * Atualizar grupo de múltiplos jogadores em batch (busca por jogadorId+etapaId)
-   * ⚠️ NOTA: Para melhor performance, use atualizarGrupoEmLotePorId quando tiver os IDs
+   * Atualizar grupo de vários jogadores, pelo id do jogador.
+   * Tendo o id da estatística, use atualizarGrupoEmLotePorId.
    */
   async atualizarGrupoEmLote(
     atualizacoes: Array<{
@@ -725,461 +347,39 @@ export class EstatisticasJogadorService {
       grupoNome: string;
     }>
   ): Promise<void> {
-    if (atualizacoes.length === 0) return;
+    await this.executar(
+      "atualizar grupos em lote",
+      { quantidade: atualizacoes.length },
+      async () => {
+        const ids = await this.buscarIds(atualizacoes);
 
-    try {
-      // Buscar todos os IDs em paralelo primeiro
-      const buscas = await Promise.all(
-        atualizacoes.map(({ jogadorId, etapaId }) =>
-          this.buscarPorJogadorEtapa(jogadorId, etapaId)
-        )
-      );
-
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (let i = 0; i < atualizacoes.length; i++) {
-        const estatisticas = buscas[i];
-        if (estatisticas) {
-          const docRef = db.collection(this.collection).doc(estatisticas.id);
-          batch.update(docRef, {
-            grupoId: atualizacoes[i].grupoId,
-            grupoNome: atualizacoes[i].grupoNome,
-            atualizadoEm: now,
-          });
-        }
+        await this.estatisticas.atualizarEmLote(
+          atualizacoes.flatMap(({ grupoId, grupoNome }, i) => {
+            const id = ids[i];
+            return id ? [{ id, dados: { grupoId, grupoNome } }] : [];
+          })
+        );
       }
-
-      await batch.commit();
-
-      logger.info("Grupos atualizados em lote", {
-        total: atualizacoes.length,
-      });
-    } catch (error) {
-      logger.error("Erro ao atualizar grupos em lote", {}, error as Error);
-      throw error;
-    }
+    );
   }
 
   /**
-   * Recebe array de jogadores com suas estatísticas para atualizar
-   */
-  async atualizarAposPartidaGrupoEmLote(
-    atualizacoes: Array<{
-      jogadorId: string;
-      etapaId: string;
-      dto: AtualizarEstatisticasPartidaDTO;
-    }>
-  ): Promise<void> {
-    if (atualizacoes.length === 0) return;
-
-    try {
-      // Buscar todas as estatísticas em paralelo
-      const estatisticasList = await Promise.all(
-        atualizacoes.map(({ jogadorId, etapaId }) =>
-          this.buscarPorJogadorEtapa(jogadorId, etapaId)
-        )
-      );
-
-      // Criar batch de atualizações
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (let i = 0; i < atualizacoes.length; i++) {
-        const estatisticas = estatisticasList[i];
-        const { dto } = atualizacoes[i];
-
-        if (!estatisticas) continue;
-
-        const novasEstatisticas = {
-          // Estatísticas de GRUPO
-          jogosGrupo: (estatisticas.jogosGrupo || 0) + 1,
-          vitoriasGrupo:
-            (estatisticas.vitoriasGrupo || 0) + (dto.venceu ? 1 : 0),
-          derrotasGrupo:
-            (estatisticas.derrotasGrupo || 0) + (dto.venceu ? 0 : 1),
-          pontosGrupo: (estatisticas.pontosGrupo || 0) + (dto.venceu ? 3 : 0),
-          setsVencidosGrupo:
-            (estatisticas.setsVencidosGrupo || 0) + dto.setsVencidos,
-          setsPerdidosGrupo:
-            (estatisticas.setsPerdidosGrupo || 0) + dto.setsPerdidos,
-          saldoSetsGrupo:
-            (estatisticas.saldoSetsGrupo || 0) +
-            (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidosGrupo:
-            (estatisticas.gamesVencidosGrupo || 0) + dto.gamesVencidos,
-          gamesPerdidosGrupo:
-            (estatisticas.gamesPerdidosGrupo || 0) + dto.gamesPerdidos,
-          saldoGamesGrupo:
-            (estatisticas.saldoGamesGrupo || 0) +
-            (dto.gamesVencidos - dto.gamesPerdidos),
-          // Estatísticas TOTAIS
-          jogos: estatisticas.jogos + 1,
-          vitorias: estatisticas.vitorias + (dto.venceu ? 1 : 0),
-          derrotas: estatisticas.derrotas + (dto.venceu ? 0 : 1),
-          setsVencidos: estatisticas.setsVencidos + dto.setsVencidos,
-          setsPerdidos: estatisticas.setsPerdidos + dto.setsPerdidos,
-          saldoSets:
-            estatisticas.saldoSets + (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidos: estatisticas.gamesVencidos + dto.gamesVencidos,
-          gamesPerdidos: estatisticas.gamesPerdidos + dto.gamesPerdidos,
-          saldoGames:
-            estatisticas.saldoGames + (dto.gamesVencidos - dto.gamesPerdidos),
-          atualizadoEm: now,
-        };
-
-        const docRef = db.collection(this.collection).doc(estatisticas.id);
-        batch.update(docRef, novasEstatisticas);
-      }
-
-      // Commit único
-      await batch.commit();
-
-      logger.info("Estatísticas de grupo atualizadas em lote", {
-        quantidade: atualizacoes.length,
-        etapaId: atualizacoes[0]?.etapaId,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar estatísticas em lote",
-        { quantidade: atualizacoes.length },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Reverter estatísticas de múltiplos jogadores em batch
-   */
-  async reverterAposPartidaEmLote(
-    reversoes: Array<{
-      jogadorId: string;
-      etapaId: string;
-      dto: AtualizarEstatisticasPartidaDTO;
-    }>
-  ): Promise<void> {
-    if (reversoes.length === 0) return;
-
-    try {
-      // Buscar todas as estatísticas em paralelo
-      const estatisticasList = await Promise.all(
-        reversoes.map(({ jogadorId, etapaId }) =>
-          this.buscarPorJogadorEtapa(jogadorId, etapaId)
-        )
-      );
-
-      // Criar batch de atualizações
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (let i = 0; i < reversoes.length; i++) {
-        const estatisticas = estatisticasList[i];
-        const { dto } = reversoes[i];
-
-        if (!estatisticas) continue;
-
-        const estatisticasRevertidas = {
-          // Estatísticas de GRUPO
-          jogosGrupo: Math.max(0, (estatisticas.jogosGrupo || 0) - 1),
-          vitoriasGrupo: Math.max(
-            0,
-            (estatisticas.vitoriasGrupo || 0) - (dto.venceu ? 1 : 0)
-          ),
-          derrotasGrupo: Math.max(
-            0,
-            (estatisticas.derrotasGrupo || 0) - (dto.venceu ? 0 : 1)
-          ),
-          pontosGrupo: Math.max(
-            0,
-            (estatisticas.pontosGrupo || 0) - (dto.venceu ? 3 : 0)
-          ),
-          setsVencidosGrupo: Math.max(
-            0,
-            (estatisticas.setsVencidosGrupo || 0) - dto.setsVencidos
-          ),
-          setsPerdidosGrupo: Math.max(
-            0,
-            (estatisticas.setsPerdidosGrupo || 0) - dto.setsPerdidos
-          ),
-          saldoSetsGrupo:
-            (estatisticas.saldoSetsGrupo || 0) -
-            (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidosGrupo: Math.max(
-            0,
-            (estatisticas.gamesVencidosGrupo || 0) - dto.gamesVencidos
-          ),
-          gamesPerdidosGrupo: Math.max(
-            0,
-            (estatisticas.gamesPerdidosGrupo || 0) - dto.gamesPerdidos
-          ),
-          saldoGamesGrupo:
-            (estatisticas.saldoGamesGrupo || 0) -
-            (dto.gamesVencidos - dto.gamesPerdidos),
-          // Estatísticas TOTAIS
-          jogos: Math.max(0, estatisticas.jogos - 1),
-          vitorias: Math.max(0, estatisticas.vitorias - (dto.venceu ? 1 : 0)),
-          derrotas: Math.max(0, estatisticas.derrotas - (dto.venceu ? 0 : 1)),
-          setsVencidos: Math.max(
-            0,
-            estatisticas.setsVencidos - dto.setsVencidos
-          ),
-          setsPerdidos: Math.max(
-            0,
-            estatisticas.setsPerdidos - dto.setsPerdidos
-          ),
-          saldoSets:
-            estatisticas.saldoSets - (dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidos: Math.max(
-            0,
-            estatisticas.gamesVencidos - dto.gamesVencidos
-          ),
-          gamesPerdidos: Math.max(
-            0,
-            estatisticas.gamesPerdidos - dto.gamesPerdidos
-          ),
-          saldoGames:
-            estatisticas.saldoGames - (dto.gamesVencidos - dto.gamesPerdidos),
-          atualizadoEm: now,
-        };
-
-        const docRef = db.collection(this.collection).doc(estatisticas.id);
-        batch.update(docRef, estatisticasRevertidas);
-      }
-
-      // Commit único
-      await batch.commit();
-
-      logger.info("Estatísticas revertidas em lote", {
-        quantidade: reversoes.length,
-        etapaId: reversoes[0]?.etapaId,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao reverter estatísticas em lote",
-        { quantidade: reversoes.length },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Recebe array de jogadores já ordenados com suas posições
+   * Atualizar a posição no grupo de vários jogadores
    */
   async atualizarPosicoesGrupoEmLote(
-    atualizacoes: Array<{
-      estatisticaId: string;
-      posicaoGrupo: number;
-    }>
+    atualizacoes: Array<{ estatisticaId: string; posicaoGrupo: number }>
   ): Promise<void> {
-    if (atualizacoes.length === 0) return;
-
-    try {
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (const { estatisticaId, posicaoGrupo } of atualizacoes) {
-        const docRef = db.collection(this.collection).doc(estatisticaId);
-        batch.update(docRef, {
-          posicaoGrupo,
-          atualizadoEm: now,
-        });
-      }
-
-      await batch.commit();
-
-      logger.info("Posições de grupo atualizadas em lote", {
-        quantidade: atualizacoes.length,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar posições em lote",
-        { quantidade: atualizacoes.length },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Atualizar estatísticas usando FieldValue.increment
-   */
-  async atualizarAposPartidaComIncrement(
-    atualizacoes: Array<{
-      estatisticaId: string;
-      dto: AtualizarEstatisticasPartidaDTO;
-    }>
-  ): Promise<void> {
-    if (atualizacoes.length === 0) return;
-
-    try {
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (const { estatisticaId, dto } of atualizacoes) {
-        const docRef = db.collection(this.collection).doc(estatisticaId);
-
-        // Usar increment para atualizar sem precisar ler primeiro
-        batch.update(docRef, {
-          // Apenas estatísticas TOTAIS (para TEAMS - não tem fase de grupos)
-          jogos: FieldValue.increment(1),
-          vitorias: FieldValue.increment(dto.venceu ? 1 : 0),
-          derrotas: FieldValue.increment(dto.venceu ? 0 : 1),
-          setsVencidos: FieldValue.increment(dto.setsVencidos),
-          setsPerdidos: FieldValue.increment(dto.setsPerdidos),
-          saldoSets: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidos: FieldValue.increment(dto.gamesVencidos),
-          gamesPerdidos: FieldValue.increment(dto.gamesPerdidos),
-          saldoGames: FieldValue.increment(
-            dto.gamesVencidos - dto.gamesPerdidos
-          ),
-          atualizadoEm: now,
-        });
-      }
-
-      await batch.commit();
-
-      logger.info(
-        "Estatísticas TEAMS atualizadas com increment (sem leitura)",
-        {
-          quantidade: atualizacoes.length,
-        }
-      );
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar estatísticas TEAMS com increment",
-        { quantidade: atualizacoes.length },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Atualizar estatísticas usando FieldValue.increment
-   */
-  async atualizarAposPartidaGrupoComIncrement(
-    atualizacoes: Array<{
-      estatisticaId: string;
-      dto: AtualizarEstatisticasPartidaDTO;
-    }>
-  ): Promise<void> {
-    if (atualizacoes.length === 0) return;
-
-    try {
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (const { estatisticaId, dto } of atualizacoes) {
-        const docRef = db.collection(this.collection).doc(estatisticaId);
-
-        // Usar increment para atualizar sem precisar ler primeiro
-        batch.update(docRef, {
-          // Estatísticas de GRUPO
-          jogosGrupo: FieldValue.increment(1),
-          vitoriasGrupo: FieldValue.increment(dto.venceu ? 1 : 0),
-          derrotasGrupo: FieldValue.increment(dto.venceu ? 0 : 1),
-          pontosGrupo: FieldValue.increment(dto.venceu ? 3 : 0),
-          setsVencidosGrupo: FieldValue.increment(dto.setsVencidos),
-          setsPerdidosGrupo: FieldValue.increment(dto.setsPerdidos),
-          saldoSetsGrupo: FieldValue.increment(
-            dto.setsVencidos - dto.setsPerdidos
-          ),
-          gamesVencidosGrupo: FieldValue.increment(dto.gamesVencidos),
-          gamesPerdidosGrupo: FieldValue.increment(dto.gamesPerdidos),
-          saldoGamesGrupo: FieldValue.increment(
-            dto.gamesVencidos - dto.gamesPerdidos
-          ),
-          // Estatísticas TOTAIS
-          jogos: FieldValue.increment(1),
-          vitorias: FieldValue.increment(dto.venceu ? 1 : 0),
-          derrotas: FieldValue.increment(dto.venceu ? 0 : 1),
-          setsVencidos: FieldValue.increment(dto.setsVencidos),
-          setsPerdidos: FieldValue.increment(dto.setsPerdidos),
-          saldoSets: FieldValue.increment(dto.setsVencidos - dto.setsPerdidos),
-          gamesVencidos: FieldValue.increment(dto.gamesVencidos),
-          gamesPerdidos: FieldValue.increment(dto.gamesPerdidos),
-          saldoGames: FieldValue.increment(
-            dto.gamesVencidos - dto.gamesPerdidos
-          ),
-          atualizadoEm: now,
-        });
-      }
-
-      await batch.commit();
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar estatísticas com increment",
-        { quantidade: atualizacoes.length },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Reverter estatísticas usando FieldValue.increment negativo
-   */
-  async reverterAposPartidaComIncrement(
-    reversoes: Array<{
-      estatisticaId: string;
-      dto: AtualizarEstatisticasPartidaDTO;
-    }>
-  ): Promise<void> {
-    if (reversoes.length === 0) return;
-
-    try {
-      const batch = db.batch();
-      const now = Timestamp.now();
-
-      for (const { estatisticaId, dto } of reversoes) {
-        const docRef = db.collection(this.collection).doc(estatisticaId);
-
-        // Usar increment negativo para reverter
-        batch.update(docRef, {
-          // Estatísticas de GRUPO
-          jogosGrupo: FieldValue.increment(-1),
-          vitoriasGrupo: FieldValue.increment(dto.venceu ? -1 : 0),
-          derrotasGrupo: FieldValue.increment(dto.venceu ? 0 : -1),
-          pontosGrupo: FieldValue.increment(dto.venceu ? -3 : 0),
-          setsVencidosGrupo: FieldValue.increment(-dto.setsVencidos),
-          setsPerdidosGrupo: FieldValue.increment(-dto.setsPerdidos),
-          saldoSetsGrupo: FieldValue.increment(
-            -(dto.setsVencidos - dto.setsPerdidos)
-          ),
-          gamesVencidosGrupo: FieldValue.increment(-dto.gamesVencidos),
-          gamesPerdidosGrupo: FieldValue.increment(-dto.gamesPerdidos),
-          saldoGamesGrupo: FieldValue.increment(
-            -(dto.gamesVencidos - dto.gamesPerdidos)
-          ),
-          // Estatísticas TOTAIS
-          jogos: FieldValue.increment(-1),
-          vitorias: FieldValue.increment(dto.venceu ? -1 : 0),
-          derrotas: FieldValue.increment(dto.venceu ? 0 : -1),
-          setsVencidos: FieldValue.increment(-dto.setsVencidos),
-          setsPerdidos: FieldValue.increment(-dto.setsPerdidos),
-          saldoSets: FieldValue.increment(
-            -(dto.setsVencidos - dto.setsPerdidos)
-          ),
-          gamesVencidos: FieldValue.increment(-dto.gamesVencidos),
-          gamesPerdidos: FieldValue.increment(-dto.gamesPerdidos),
-          saldoGames: FieldValue.increment(
-            -(dto.gamesVencidos - dto.gamesPerdidos)
-          ),
-          atualizadoEm: now,
-        });
-      }
-
-      await batch.commit();
-    } catch (error) {
-      logger.error(
-        "Erro ao reverter estatísticas com increment",
-        { quantidade: reversoes.length },
-        error as Error
-      );
-      throw error;
-    }
+    await this.executar(
+      "atualizar posições em lote",
+      { quantidade: atualizacoes.length },
+      () =>
+        this.estatisticas.atualizarEmLote(
+          atualizacoes.map(({ estatisticaId, posicaoGrupo }) => ({
+            id: estatisticaId,
+            dados: { posicaoGrupo },
+          }))
+        )
+    );
   }
 
   /**
@@ -1190,32 +390,13 @@ export class EstatisticasJogadorService {
     etapaId: string,
     posicaoGrupo: number
   ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para atualizar posição", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      await db.collection(this.collection).doc(estatisticas.id).update({
-        posicaoGrupo,
-        atualizadoEm: Timestamp.now(),
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao atualizar posição no grupo",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
+    await this.comEstatistica(
+      "atualizar posição no grupo",
+      jogadorId,
+      etapaId,
+      ({ id }) =>
+        this.estatisticas.atualizarEmLote([{ id, dados: { posicaoGrupo } }])
+    );
   }
 
   /**
@@ -1226,495 +407,165 @@ export class EstatisticasJogadorService {
     etapaId: string,
     classificado: boolean
   ): Promise<void> {
-    try {
-      const estatisticas = await this.buscarPorJogadorEtapa(jogadorId, etapaId);
-
-      if (!estatisticas) {
-        logger.warn("Estatísticas não encontradas para marcar classificado", {
-          jogadorId,
-          etapaId,
-        });
-        return;
-      }
-
-      await db.collection(this.collection).doc(estatisticas.id).update({
-        classificado,
-        atualizadoEm: Timestamp.now(),
-      });
-
-      logger.info("Jogador marcado como classificado", {
-        jogadorId,
-        etapaId,
-        classificado,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao marcar como classificado",
-        {
-          jogadorId,
-          etapaId,
-        },
-        error as Error
-      );
-      throw error;
-    }
+    await this.comEstatistica(
+      "marcar como classificado",
+      jogadorId,
+      etapaId,
+      ({ id }) =>
+        this.estatisticas.atualizarEmLote([{ id, dados: { classificado } }])
+    );
   }
 
   /**
-   * Marcar múltiplos jogadores como classificados em lote
+   * Marcar vários jogadores como classificados
    */
   async marcarComoClassificadoEmLote(
     jogadores: Array<{ jogadorId: string; etapaId: string }>,
     classificado: boolean
   ): Promise<void> {
-    if (jogadores.length === 0) return;
-
-    try {
-      // Buscar todas as estatísticas em paralelo
-      const estatisticasPromises = jogadores.map((j) =>
-        this.buscarPorJogadorEtapa(j.jogadorId, j.etapaId)
-      );
-      const estatisticas = await Promise.all(estatisticasPromises);
-
-      // Filtrar estatísticas válidas
-      const estatisticasValidas = estatisticas.filter(
-        (e): e is EstatisticasJogador => e !== null
-      );
-
-      if (estatisticasValidas.length === 0) {
-        logger.warn(
-          "Nenhuma estatística encontrada para marcar classificados",
-          {
-            total: jogadores.length,
-          }
+    await this.executar(
+      "marcar classificados em lote",
+      { total: jogadores.length },
+      async () => {
+        const ids = (await this.buscarIds(jogadores)).filter(
+          (id): id is string => id !== undefined
         );
-        return;
+
+        if (ids.length < jogadores.length) {
+          logger.warn("Classificados sem estatísticas", {
+            total: jogadores.length,
+            encontrados: ids.length,
+          });
+        }
+
+        await this.estatisticas.atualizarEmLote(
+          ids.map((id) => ({ id, dados: { classificado } }))
+        );
       }
-
-      // Atualizar todas em paralelo
-      const updatePromises = estatisticasValidas.map((e) =>
-        db.collection(this.collection).doc(e.id).update({
-          classificado,
-          atualizadoEm: Timestamp.now(),
-        })
-      );
-      await Promise.all(updatePromises);
-
-      logger.info("Jogadores marcados como classificados em lote", {
-        total: estatisticasValidas.length,
-        classificado,
-      });
-    } catch (error) {
-      logger.error(
-        "Erro ao marcar classificados em lote",
-        { total: jogadores.length },
-        error as Error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Buscar histórico de um jogador (todas as etapas)
-   */
-  async buscarHistoricoJogador(
-    jogadorId: string,
-    arenaId: string
-  ): Promise<EstatisticasJogador[]> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("jogadorId", "==", jogadorId)
-      .where("arenaId", "==", arenaId)
-      .orderBy("criadoEm", "desc")
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
-  }
-
-  /**
-   * Buscar IDs das etapas que contam pontos no ranking
-   */
-  private async buscarEtapasQueContamPontos(
-    arenaId: string
-  ): Promise<Set<string>> {
-    const etapasSnapshot = await db
-      .collection("etapas")
-      .where("arenaId", "==", arenaId)
-      .where("contaPontosRanking", "==", true)
-      .get();
-
-    const etapaIds = new Set<string>();
-    etapasSnapshot.docs.forEach((doc) => {
-      etapaIds.add(doc.id);
-    });
-
-    // Para retrocompatibilidade: etapas sem o campo contaPontosRanking
-    // são consideradas como contando pontos (comportamento antigo)
-    const etapasSemCampoSnapshot = await db
-      .collection("etapas")
-      .where("arenaId", "==", arenaId)
-      .get();
-
-    etapasSemCampoSnapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      // Se não tem o campo, considera como true (retrocompatibilidade)
-      if (data.contaPontosRanking === undefined) {
-        etapaIds.add(doc.id);
-      }
-    });
-
-    return etapaIds;
-  }
-
-  /**
-   * Buscar estatísticas AGREGADAS de um jogador POR NÍVEL
-   * Separa pontos por categoria (iniciante, intermediário, avançado)
-   * IMPORTANTE: Só considera etapas com contaPontosRanking = true
-   */
-  async buscarEstatisticasAgregadasPorNivel(
-    jogadorId: string,
-    arenaId: string,
-    nivel: string
-  ): Promise<any> {
-    // Buscar etapas que contam pontos
-    const etapasQueContam = await this.buscarEtapasQueContamPontos(arenaId);
-
-    const snapshot = await db
-      .collection(this.collection)
-      .where("jogadorId", "==", jogadorId)
-      .where("arenaId", "==", arenaId)
-      .where("jogadorNivel", "==", nivel)
-      .get();
-
-    if (snapshot.empty) {
-      return null;
-    }
-
-    // Agregar estatísticas apenas do nível especificado E de etapas que contam pontos
-    let jogadorNome = "";
-    let jogadorNivel: string | undefined = undefined;
-    let jogadorGenero: string | undefined = undefined;
-    let etapasParticipadas = 0;
-    let jogos = 0;
-    let vitorias = 0;
-    let derrotas = 0;
-    let pontos = 0;
-    let setsVencidos = 0;
-    let setsPerdidos = 0;
-    let gamesVencidos = 0;
-    let gamesPerdidos = 0;
-
-    snapshot.docs.forEach((doc) => {
-      const stat = doc.data() as EstatisticasJogador;
-
-      jogadorNome = stat.jogadorNome;
-      jogadorNivel = stat.jogadorNivel;
-      jogadorGenero = stat.jogadorGenero;
-      etapasParticipadas++;
-      jogos += stat.jogos || 0;
-      vitorias += stat.vitorias || 0;
-      derrotas += stat.derrotas || 0;
-      setsVencidos += stat.setsVencidos || 0;
-      setsPerdidos += stat.setsPerdidos || 0;
-      gamesVencidos += stat.gamesVencidos || 0;
-      gamesPerdidos += stat.gamesPerdidos || 0;
-
-      // Pontos só são contados se a etapa conta para o ranking
-      if (etapasQueContam.has(stat.etapaId)) {
-        pontos += stat.pontos || 0;
-      }
-    });
-
-    const saldoSets = setsVencidos - setsPerdidos;
-    const saldoGames = gamesVencidos - gamesPerdidos;
-
-    // Buscar posição no ranking DO NÍVEL
-    const rankingCompleto = await this.buscarRankingPorNivel(
-      arenaId,
-      nivel,
-      999
     );
-    const posicaoRanking =
-      rankingCompleto.findIndex((j) => j.jogadorId === jogadorId) + 1;
-
-    return {
-      jogadorId,
-      jogadorNome,
-      jogadorNivel,
-      jogadorGenero,
-      arenaId,
-      nivel,
-      etapasParticipadas,
-      jogos,
-      vitorias,
-      derrotas,
-      pontos,
-      setsVencidos,
-      setsPerdidos,
-      gamesVencidos,
-      gamesPerdidos,
-      saldoSets,
-      saldoGames,
-      posicaoRanking,
-    };
   }
 
-  /**
-   * Buscar estatísticas AGREGADAS de um jogador (todas as etapas - TODOS OS NÍVEIS)
-   * @deprecated Use buscarEstatisticasAgregadasPorNivel para estatísticas separadas por categoria
-   */
-  async buscarEstatisticasAgregadas(
-    jogadorId: string,
-    arenaId: string
-  ): Promise<any> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("jogadorId", "==", jogadorId)
-      .where("arenaId", "==", arenaId)
-      .get();
-
-    if (snapshot.empty) {
-      return null;
-    }
-
-    // Agregar estatísticas
-    let jogadorNome = "";
-    let jogadorNivel: string | undefined = undefined;
-    let jogadorGenero: string | undefined = undefined;
-    let etapasParticipadas = 0;
-    let jogos = 0;
-    let vitorias = 0;
-    let derrotas = 0;
-    let pontos = 0;
-    let setsVencidos = 0;
-    let setsPerdidos = 0;
-    let gamesVencidos = 0;
-    let gamesPerdidos = 0;
-
-    snapshot.docs.forEach((doc) => {
-      const stat = doc.data() as EstatisticasJogador;
-      jogadorNome = stat.jogadorNome;
-      jogadorNivel = stat.jogadorNivel;
-      jogadorGenero = stat.jogadorGenero;
-      etapasParticipadas++;
-      jogos += stat.jogos || 0;
-      vitorias += stat.vitorias || 0;
-      derrotas += stat.derrotas || 0;
-      pontos += stat.pontos || 0;
-      setsVencidos += stat.setsVencidos || 0;
-      setsPerdidos += stat.setsPerdidos || 0;
-      gamesVencidos += stat.gamesVencidos || 0;
-      gamesPerdidos += stat.gamesPerdidos || 0;
-    });
-
-    const saldoSets = setsVencidos - setsPerdidos;
-    const saldoGames = gamesVencidos - gamesPerdidos;
-
-    // Buscar posição no ranking
-    const rankingCompleto = await this.buscarRankingGlobalAgregado(
-      arenaId,
-      999
+  /** Id da estatística de cada jogador, na mesma ordem */
+  private async buscarIds(
+    jogadores: Array<{ jogadorId: string; etapaId: string }>
+  ): Promise<(string | undefined)[]> {
+    const encontradas = await Promise.all(
+      jogadores.map((j) => this.buscarPorJogadorEtapa(j.jogadorId, j.etapaId))
     );
-    const posicaoRanking =
-      rankingCompleto.findIndex((j) => j.jogadorId === jogadorId) + 1;
 
-    return {
-      jogadorId,
-      jogadorNome,
-      jogadorNivel,
-      jogadorGenero,
-      arenaId,
-      etapasParticipadas,
-      jogos,
-      vitorias,
-      derrotas,
-      pontos,
-      setsVencidos,
-      setsPerdidos,
-      gamesVencidos,
-      gamesPerdidos,
-      saldoSets,
-      saldoGames,
-      posicaoRanking,
-    };
+    return encontradas.map((e) => e?.id);
   }
 
+  // ==================== RANKING ====================
+
   /**
-   * Buscar ranking POR NÍVEL (separado por categoria)
-   *
-   * IMPORTANTE: Quando jogador muda de nível (ex: iniciante → intermediário),
-   * os pontos ficam separados por categoria. Isso garante que:
-   * - Ranking de iniciantes só considera pontos ganhos como iniciante
-   * - Ranking de intermediários só considera pontos ganhos como intermediário
-   * - Jogador começa do zero ao mudar de categoria
-   *
-   * IMPORTANTE: Só considera etapas com contaPontosRanking = true
-   *
-   * @param arenaId - ID da arena
-   * @param nivel - Nível do jogador ('iniciante' | 'intermediario' | 'avancado')
-   * @param limite - Quantidade máxima de resultados
+   * Ranking de um nível. Os pontos ficam separados por nível: quem muda de
+   * categoria começa do zero na nova. Só contam pontos as etapas com
+   * contaPontosRanking.
    */
   async buscarRankingPorNivel(
     arenaId: string,
     nivel: string,
     limite: number = 50
-  ): Promise<Array<any>> {
-    // Buscar etapas que contam pontos
-    const etapasQueContam = await this.buscarEtapasQueContamPontos(arenaId);
-
-    const snapshot = await db
-      .collection(this.collection)
-      .where("arenaId", "==", arenaId)
-      .where("jogadorNivel", "==", nivel)
-      .get();
-
-    // Agregar por jogador (vitórias/derrotas de todas etapas, pontos apenas de etapas que contam)
-    const jogadoresMap = new Map<string, any>();
-
-    snapshot.docs.forEach((doc) => {
-      const stats = doc.data() as EstatisticasJogador;
-
-      if (!jogadoresMap.has(stats.jogadorId)) {
-        jogadoresMap.set(stats.jogadorId, {
-          jogadorId: stats.jogadorId,
-          jogadorNome: stats.jogadorNome,
-          jogadorNivel: stats.jogadorNivel,
-          jogadorGenero: stats.jogadorGenero,
-          etapasParticipadas: 0,
-          jogos: 0,
-          vitorias: 0,
-          derrotas: 0,
-          pontos: 0,
-          setsVencidos: 0,
-          setsPerdidos: 0,
-          gamesVencidos: 0,
-          gamesPerdidos: 0,
-          saldoSets: 0,
-          saldoGames: 0,
-        });
-      }
-
-      const jogador = jogadoresMap.get(stats.jogadorId);
-      jogador.etapasParticipadas += 1;
-      jogador.jogos += stats.jogos || 0;
-      jogador.vitorias += stats.vitorias || 0;
-      jogador.derrotas += stats.derrotas || 0;
-      jogador.setsVencidos += stats.setsVencidos || 0;
-      jogador.setsPerdidos += stats.setsPerdidos || 0;
-      jogador.gamesVencidos += stats.gamesVencidos || 0;
-      jogador.gamesPerdidos += stats.gamesPerdidos || 0;
-      jogador.saldoSets += stats.saldoSets || 0;
-      jogador.saldoGames += stats.saldoGames || 0;
-
-      // Pontos só são contados se a etapa conta para o ranking
-      if (etapasQueContam.has(stats.etapaId)) {
-        jogador.pontos += stats.pontos || 0;
-      }
-    });
-
-    // Converter para array e ordenar
-    const ranking = Array.from(jogadoresMap.values());
-
-    // Critérios de desempate em ordem:
-    // 1. Pontos (maior melhor)
-    // 2. Vitórias (maior melhor)
-    // 3. Saldo de Games (maior melhor)
-    // 4. Games Vencidos (maior melhor)
-    ranking.sort((a, b) => {
-      if (a.pontos !== b.pontos) return b.pontos - a.pontos;
-      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
-      if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
-      if (a.gamesVencidos !== b.gamesVencidos)
-        return b.gamesVencidos - a.gamesVencidos;
-      return 0;
-    });
-
-    logger.info("Ranking por nível calculado", {
+  ): Promise<JogadorRanking[]> {
+    const etapasQueContam = await this.etapas.buscarIdsQueContamPontos(arenaId);
+    const ranking = await this.montarRankingDoNivel(
       arenaId,
       nivel,
-      totalJogadores: ranking.length,
-    });
+      etapasQueContam
+    );
 
     return ranking.slice(0, limite);
   }
 
+  private async montarRankingDoNivel(
+    arenaId: string,
+    nivel: string,
+    etapasQueContam: Set<string>
+  ): Promise<JogadorRanking[]> {
+    return montarRanking(
+      await this.estatisticas.buscarPorArena(arenaId, nivel),
+      (etapaId) => etapasQueContam.has(etapaId)
+    );
+  }
+
   /**
-   * Buscar ranking GLOBAL agregado (todas as etapas - TODOS OS NÍVEIS MISTURADOS)
+   * Ranking com todos os níveis somados
    *
-   * @deprecated Use buscarRankingPorNivel para rankings separados por categoria.
-   * Este método soma pontos de todos os níveis, o que pode ser injusto quando
-   * um jogador muda de categoria.
+   * @deprecated Use buscarRankingPorNivel: somar os níveis é injusto quando um
+   * jogador muda de categoria.
    */
   async buscarRankingGlobalAgregado(
     arenaId: string,
     limite: number = 50
-  ): Promise<Array<any>> {
-    const snapshot = await db
-      .collection(this.collection)
-      .where("arenaId", "==", arenaId)
-      .get();
+  ): Promise<JogadorRanking[]> {
+    const estatisticas = await this.estatisticas.buscarPorArena(arenaId);
 
-    // Agregar por jogador
-    const jogadoresMap = new Map<string, any>();
+    return montarRanking(estatisticas).slice(0, limite);
+  }
 
-    snapshot.docs.forEach((doc) => {
-      const stats = doc.data() as EstatisticasJogador;
+  /**
+   * Totais do jogador em um nível, com a posição no ranking do nível
+   */
+  async buscarEstatisticasAgregadasPorNivel(
+    jogadorId: string,
+    arenaId: string,
+    nivel: string
+  ): Promise<EstatisticasAgregadas | null> {
+    const todas = await this.estatisticas.buscarPorJogador(jogadorId, arenaId);
+    const doNivel = todas.filter((e) => e.jogadorNivel === nivel);
 
-      if (!jogadoresMap.has(stats.jogadorId)) {
-        jogadoresMap.set(stats.jogadorId, {
-          jogadorId: stats.jogadorId,
-          jogadorNome: stats.jogadorNome,
-          jogadorNivel: stats.jogadorNivel,
-          jogadorGenero: stats.jogadorGenero,
-          etapasParticipadas: 0,
-          jogos: 0,
-          vitorias: 0,
-          derrotas: 0,
-          pontos: 0,
-          setsVencidos: 0,
-          setsPerdidos: 0,
-          gamesVencidos: 0,
-          gamesPerdidos: 0,
-          saldoSets: 0,
-          saldoGames: 0,
-        });
-      }
+    if (doNivel.length === 0) return null;
 
-      const jogador = jogadoresMap.get(stats.jogadorId);
-      jogador.etapasParticipadas += 1;
-      jogador.jogos += stats.jogos || 0;
-      jogador.vitorias += stats.vitorias || 0;
-      jogador.derrotas += stats.derrotas || 0;
-      jogador.pontos += stats.pontos || 0;
-      jogador.setsVencidos += stats.setsVencidos || 0;
-      jogador.setsPerdidos += stats.setsPerdidos || 0;
-      jogador.gamesVencidos += stats.gamesVencidos || 0;
-      jogador.gamesPerdidos += stats.gamesPerdidos || 0;
-      jogador.saldoSets += stats.saldoSets || 0;
-      jogador.saldoGames += stats.saldoGames || 0;
-    });
+    const etapasQueContam = await this.etapas.buscarIdsQueContamPontos(arenaId);
+    const ranking = await this.montarRankingDoNivel(
+      arenaId,
+      nivel,
+      etapasQueContam
+    );
 
-    // Converter para array e ordenar
-    const ranking = Array.from(jogadoresMap.values());
+    return {
+      ...this.agregar(doNivel, ranking, (id) => etapasQueContam.has(id)),
+      nivel,
+    };
+  }
 
-    // Critérios de desempate em ordem:
-    // 1. Pontos (maior melhor)
-    // 2. Vitórias (maior melhor)
-    // 3. Saldo de Games (maior melhor)
-    // 4. Games Vencidos (maior melhor)
-    ranking.sort((a, b) => {
-      if (a.pontos !== b.pontos) return b.pontos - a.pontos;
-      if (a.vitorias !== b.vitorias) return b.vitorias - a.vitorias;
-      if (a.saldoGames !== b.saldoGames) return b.saldoGames - a.saldoGames;
-      if (a.gamesVencidos !== b.gamesVencidos)
-        return b.gamesVencidos - a.gamesVencidos;
-      return 0;
-    });
+  /**
+   * Totais do jogador com todos os níveis somados
+   *
+   * @deprecated Use buscarEstatisticasAgregadasPorNivel
+   */
+  async buscarEstatisticasAgregadas(
+    jogadorId: string,
+    arenaId: string
+  ): Promise<EstatisticasAgregadas | null> {
+    const todas = await this.estatisticas.buscarPorJogador(jogadorId, arenaId);
 
-    return ranking.slice(0, limite);
+    if (todas.length === 0) return null;
+
+    return this.agregar(todas, await this.buscarRankingGlobalAgregado(arenaId, 999));
+  }
+
+  private agregar(
+    estatisticas: EstatisticasJogador[],
+    ranking: JogadorRanking[],
+    contaPontos?: (etapaId: string) => boolean
+  ): EstatisticasAgregadas {
+    const { jogadorId, jogadorNome, jogadorNivel, jogadorGenero, arenaId } =
+      estatisticas[estatisticas.length - 1];
+    const totais = somarEtapas(estatisticas, contaPontos);
+
+    return {
+      jogadorId,
+      jogadorNome,
+      jogadorNivel,
+      jogadorGenero,
+      arenaId,
+      ...totais,
+      saldoSets: totais.setsVencidos - totais.setsPerdidos,
+      saldoGames: totais.gamesVencidos - totais.gamesPerdidos,
+      posicaoRanking: ranking.findIndex((j) => j.jogadorId === jogadorId) + 1,
+    };
   }
 }
 

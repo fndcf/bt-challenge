@@ -3,6 +3,7 @@
  */
 
 import { ConfrontoEliminatorio } from "../../models/Eliminatoria";
+import { EstatisticasJogador } from "../../models/EstatisticasJogador";
 import { Etapa, FormatoEtapa } from "../../models/Etapa";
 import { Grupo } from "../../models/Grupo";
 import { confrontoEliminatorioRepository } from "../../repositories/firebase/ConfrontoEliminatorioRepository";
@@ -19,10 +20,7 @@ import { IConfrontoEliminatorioRepository } from "../../repositories/interfaces/
 import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfrontoEquipeRepository";
 import { IDuplaRepository } from "../../repositories/interfaces/IDuplaRepository";
 import { IEquipeRepository } from "../../repositories/interfaces/IEquipeRepository";
-import {
-  EstatisticasJogador,
-  IEstatisticasJogadorRepository,
-} from "../../repositories/interfaces/IEstatisticasJogadorRepository";
+import { IEstatisticasJogadorRepository } from "../../repositories/interfaces/IEstatisticasJogadorRepository";
 import { IEtapaRepository } from "../../repositories/interfaces/IEtapaRepository";
 import { IGrupoRepository } from "../../repositories/interfaces/IGrupoRepository";
 import { IPartidaReiDaPraiaRepository } from "../../repositories/interfaces/IPartidaReiDaPraiaRepository";

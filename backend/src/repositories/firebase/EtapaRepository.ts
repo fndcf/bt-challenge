@@ -293,6 +293,25 @@ export class EtapaRepository implements IEtapaRepository {
   }
 
   /**
+   * Ids das etapas que contam pontos no ranking. Etapa antiga, sem o campo,
+   * conta.
+   */
+  async buscarIdsQueContamPontos(arenaId: string): Promise<Set<string>> {
+    const snapshot = await this.collection
+      .where("arenaId", "==", arenaId)
+      .get();
+
+    return new Set(
+      snapshot.docs
+        .filter((doc) => {
+          const { contaPontosRanking } = doc.data();
+          return contaPontosRanking === true || contaPontosRanking === undefined;
+        })
+        .map((doc) => doc.id)
+    );
+  }
+
+  /**
    * Buscar etapas ativas (não finalizadas)
    */
   async buscarAtivas(arenaId: string): Promise<Etapa[]> {

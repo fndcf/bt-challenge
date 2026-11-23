@@ -9,11 +9,13 @@ jest.mock("../../utils/logger", () => ({
 
 const mockUpdate = jest.fn();
 const mockAdd = jest.fn();
+const mockGet = jest.fn();
 
 jest.mock("../../config/firebase", () => ({
   db: {
     collection: jest.fn(() => ({
       add: mockAdd,
+      where: jest.fn(() => ({ get: mockGet })),
       doc: jest.fn(() => ({ update: mockUpdate })),
     })),
   },
@@ -138,6 +140,21 @@ describe("EtapaRepository", () => {
         [...inicio, pendentesDe("A"), apagar, desempatesDe("A"), apagar],
       ]);
     });
+  });
+
+  it("conta pontos a etapa marcada ou antiga, sem o campo", async () => {
+    const doc = (id: string, dados = {}) => ({ id, data: () => dados });
+    mockGet.mockResolvedValue({
+      docs: [
+        doc("sim", { contaPontosRanking: true }),
+        doc("nao", { contaPontosRanking: false }),
+        doc("antiga"),
+      ],
+    });
+
+    expect(await repositorio.buscarIdsQueContamPontos("a1")).toEqual(
+      new Set(["sim", "antiga"])
+    );
   });
 
   it("não grava a quantidade de grupos, que depende do formato", async () => {

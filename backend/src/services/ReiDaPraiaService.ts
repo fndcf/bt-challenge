@@ -297,7 +297,7 @@ export class ReiDaPraiaService {
         estatisticasDTOs
       );
       jogadores.push(
-        ...(estatisticasCriadas as unknown as EstatisticasJogador[])
+        ...estatisticasCriadas
       );
 
       return jogadores;
@@ -1020,7 +1020,7 @@ export class ReiDaPraiaService {
 
         // Cast necessário pois o service retorna o model e não a interface do repository
         todosClassificados.push(
-          ...(classificados as unknown as EstatisticasJogador[])
+          ...classificados
         );
       }
 
@@ -1150,7 +1150,7 @@ export class ReiDaPraiaService {
       await Promise.all(
         grupos.map((g) => estatisticasJogadorService.buscarClassificados(g.id, 2))
       )
-    ).flat() as unknown as EstatisticasJogador[];
+    ).flat();
 
     await this.classificarRankingEntreGrupos(
       etapaId,

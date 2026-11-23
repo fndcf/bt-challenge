@@ -34,10 +34,6 @@ export default tseslint.config(
       "src/controllers/**/*.ts",
       "src/routes/**/*.ts",
     ],
-    // Ainda acessam o banco direto (passo 8). A lista so pode diminuir.
-    ignores: [
-      "src/services/EstatisticasJogadorService.ts",
-    ],
     rules: {
       "no-restricted-imports": [
         "error",

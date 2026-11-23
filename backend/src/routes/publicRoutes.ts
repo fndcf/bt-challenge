@@ -6,6 +6,7 @@ import etapaService from "../services/EtapaService";
 import jogadorService from "../services/JogadorService";
 import estatisticasJogadorService from "../services/EstatisticasJogadorService";
 import etapaPublicaService from "../services/publico/EtapaPublicaService";
+import { JogadorRanking } from "../utils/estatisticas";
 import logger from "../utils/logger";
 
 const router = Router();
@@ -389,7 +390,7 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
     const arena = await arenaService.getArenaBySlug(arenaSlug);
     const limiteNum = parseInt(limite as string);
 
-    let ranking: any[];
+    let ranking: JogadorRanking[];
 
     // Isso garante que os pontos sejam calculados APENAS para o nível solicitado
     if (nivel) {

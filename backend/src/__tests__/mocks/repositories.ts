@@ -118,6 +118,7 @@ export function createMockEtapaRepository(): MockedEtapaRepository {
     listar: jest.fn(),
     buscarPorStatus: jest.fn(),
     buscarAtivas: jest.fn(),
+    buscarIdsQueContamPontos: jest.fn(),
     atualizarStatus: jest.fn(),
     marcarChavesGeradas: jest.fn(),
     incrementarInscritos: jest.fn(),
@@ -341,27 +342,22 @@ type MockedEstatisticasRepository = {
 
 export function createMockEstatisticasRepository(): MockedEstatisticasRepository {
   return {
-    // IBaseRepository (sem 'listar')
     criar: jest.fn(),
-    buscarPorId: jest.fn(),
-    atualizar: jest.fn(),
-    deletar: jest.fn(),
-    existe: jest.fn(),
-    // IEstatisticasJogadorRepository específicos
+    criarEmLote: jest.fn(),
     buscarPorEtapa: jest.fn(),
+    buscarPorArena: jest.fn(),
     buscarPorJogadorEEtapa: jest.fn(),
+    buscarPorJogadoresDaEtapa: jest.fn(),
     buscarPorJogador: jest.fn(),
     buscarPorGrupo: jest.fn(),
     buscarPorGrupoOrdenado: jest.fn(),
-    atualizarEstatisticasPartida: jest.fn(),
-    incrementarEstatisticas: jest.fn(),
-    atualizarPosicaoGrupo: jest.fn(),
-    atualizarPontuacao: jest.fn(),
-    atribuirGrupo: jest.fn(),
-    deletarPorEtapa: jest.fn(),
-    recalcularSaldos: jest.fn(),
-    zerarEstatisticas: jest.fn(),
+    buscarClassificados: jest.fn(),
+    atualizar: jest.fn(),
+    atualizarEmLote: jest.fn(),
+    incrementarEmLote: jest.fn(),
     atualizarPontuacaoEmLote: jest.fn(),
+    deletar: jest.fn(),
+    deletarPorEtapa: jest.fn(),
   };
 }
 

@@ -2,87 +2,13 @@
  * Interface do repository de EstatisticasJogador
  */
 
-import { IBaseRepository } from "./IBaseRepository";
+import {
+  CriarEstatisticasJogadorDTO,
+  EstatisticasJogador,
+} from "../../models/EstatisticasJogador";
+import { IncrementosDaPartida } from "../../utils/estatisticas";
 
-/**
- * Estrutura de estatísticas do jogador em uma etapa
- */
-export interface EstatisticasJogador {
-  id: string;
-  jogadorId: string;
-  jogadorNome: string;
-  jogadorNivel?: string;
-  jogadorGenero?: string;
-  etapaId: string;
-  arenaId: string;
-  grupoId?: string;
-  grupoNome?: string;
-  // Estatísticas gerais
-  jogos?: number;
-  vitorias: number;
-  derrotas: number;
-  setsVencidos: number;
-  setsPerdidos: number;
-  pontosFeitos: number;
-  pontosSofridos: number;
-  saldoSets: number;
-  saldoPontos: number;
-  gamesVencidos?: number;
-  gamesPerdidos?: number;
-  // Estatísticas de grupo (Rei da Praia)
-  jogosGrupo?: number;
-  pontosGrupo?: number;
-  vitoriasGrupo?: number;
-  derrotasGrupo?: number;
-  setsVencidosGrupo?: number;
-  setsPerdidosGrupo?: number;
-  saldoSetsGrupo?: number;
-  gamesVencidosGrupo?: number;
-  gamesPerdidosGrupo?: number;
-  saldoGamesGrupo?: number;
-  // Classificação
-  posicaoGrupo?: number;
-  pontos?: number;
-  colocacao?: string;
-  classificado?: boolean;
-  // Metadados
-  criadoEm: FirebaseFirestore.Timestamp;
-  atualizadoEm: FirebaseFirestore.Timestamp;
-}
-
-/**
- * DTO para criar estatísticas
- */
-export interface CriarEstatisticasJogadorDTO {
-  jogadorId: string;
-  jogadorNome: string;
-  jogadorNivel?: string;
-  jogadorGenero?: string;
-  etapaId: string;
-  arenaId: string;
-  grupoId?: string;
-  grupoNome?: string;
-}
-
-/**
- * DTO para atualizar estatísticas após partida
- */
-export interface AtualizarEstatisticasPartidaDTO {
-  vitorias?: number;
-  derrotas?: number;
-  setsVencidos?: number;
-  setsPerdidos?: number;
-  pontosFeitos?: number;
-  pontosSofridos?: number;
-}
-
-/**
- * DTO para atualizar pontuação final
- */
-export interface AtualizarPontuacaoDTO {
-  pontos: number;
-  colocacao: string;
-}
+export type { EstatisticasJogador };
 
 /**
  * DTO para atualizar pontuação em lote
@@ -96,15 +22,19 @@ export interface AtualizarPontuacaoEmLoteDTO {
 /**
  * Interface do repository de EstatisticasJogador
  */
-export interface IEstatisticasJogadorRepository
-  extends Omit<
-    IBaseRepository<
-      EstatisticasJogador,
-      CriarEstatisticasJogadorDTO,
-      Partial<EstatisticasJogador>
-    >,
-    "listar"
-  > {
+export interface IEstatisticasJogadorRepository {
+  /**
+   * Criar estatísticas zeradas
+   */
+  criar(dto: CriarEstatisticasJogadorDTO): Promise<EstatisticasJogador>;
+
+  /**
+   * Criar estatísticas zeradas de vários jogadores
+   */
+  criarEmLote(
+    dtos: CriarEstatisticasJogadorDTO[]
+  ): Promise<EstatisticasJogador[]>;
+
   /**
    * Buscar estatísticas por etapa
    */
@@ -114,12 +44,28 @@ export interface IEstatisticasJogadorRepository
   ): Promise<EstatisticasJogador[]>;
 
   /**
+   * Buscar estatísticas da arena, de um nível ou de todos
+   */
+  buscarPorArena(
+    arenaId: string,
+    nivel?: string
+  ): Promise<EstatisticasJogador[]>;
+
+  /**
    * Buscar estatísticas de um jogador em uma etapa
    */
   buscarPorJogadorEEtapa(
     jogadorId: string,
     etapaId: string
   ): Promise<EstatisticasJogador | null>;
+
+  /**
+   * Buscar estatísticas de vários jogadores em uma etapa
+   */
+  buscarPorJogadoresDaEtapa(
+    jogadorIds: string[],
+    etapaId: string
+  ): Promise<EstatisticasJogador[]>;
 
   /**
    * Buscar todas as estatísticas de um jogador na arena
@@ -140,53 +86,48 @@ export interface IEstatisticasJogadorRepository
   buscarPorGrupoOrdenado(grupoId: string): Promise<EstatisticasJogador[]>;
 
   /**
-   * Atualizar estatísticas após partida
+   * Buscar os primeiros colocados de um grupo
    */
-  atualizarEstatisticasPartida(
+  buscarClassificados(
+    grupoId: string,
+    limite: number
+  ): Promise<EstatisticasJogador[]>;
+
+  /**
+   * Atualizar estatísticas
+   */
+  atualizar(
     id: string,
-    dados: AtualizarEstatisticasPartidaDTO
+    dados: Partial<EstatisticasJogador>
+  ): Promise<EstatisticasJogador>;
+
+  /**
+   * Atualizar vários registros
+   */
+  atualizarEmLote(
+    itens: { id: string; dados: Partial<EstatisticasJogador> }[]
   ): Promise<void>;
 
   /**
-   * Incrementar estatísticas (soma aos valores existentes)
+   * Somar valores em vários registros. A soma é feita pelo banco: partidas
+   * gravadas ao mesmo tempo não se sobrescrevem.
    */
-  incrementarEstatisticas(
-    id: string,
-    dados: AtualizarEstatisticasPartidaDTO
+  incrementarEmLote(
+    itens: { id: string; incrementos: IncrementosDaPartida }[]
   ): Promise<void>;
 
   /**
-   * Atualizar posição no grupo
+   * Atualizar pontuação em lote
    */
-  atualizarPosicaoGrupo(id: string, posicao: number): Promise<void>;
+  atualizarPontuacaoEmLote(items: AtualizarPontuacaoEmLoteDTO[]): Promise<void>;
 
   /**
-   * Atualizar pontuação final
+   * Deletar estatísticas
    */
-  atualizarPontuacao(id: string, dados: AtualizarPontuacaoDTO): Promise<void>;
-
-  /**
-   * Atribuir grupo ao jogador
-   */
-  atribuirGrupo(id: string, grupoId: string, grupoNome: string): Promise<void>;
+  deletar(id: string): Promise<void>;
 
   /**
    * Deletar todas as estatísticas de uma etapa
    */
   deletarPorEtapa(etapaId: string, arenaId: string): Promise<number>;
-
-  /**
-   * Recalcular saldos (setsVencidos - setsPerdidos, etc)
-   */
-  recalcularSaldos(id: string): Promise<void>;
-
-  /**
-   * Zerar estatísticas (para recálculo)
-   */
-  zerarEstatisticas(id: string): Promise<void>;
-
-  /**
-   * Atualizar pontuação em lote (batch write)
-   */
-  atualizarPontuacaoEmLote(items: AtualizarPontuacaoEmLoteDTO[]): Promise<void>;
 }

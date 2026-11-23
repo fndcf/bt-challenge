@@ -203,7 +203,7 @@ export class SuperXService {
         estatisticasDTOs
       );
 
-      return jogadores as unknown as EstatisticasJogador[];
+      return jogadores;
     } catch (error) {
       logger.error(
         "Erro ao criar estatísticas dos jogadores",
@@ -452,7 +452,7 @@ export class SuperXService {
     partida: PartidaReiDaPraia,
     estatisticasMap: Map<
       string,
-      import("../models/EstatisticasJogador").EstatisticasJogador
+      EstatisticasJogador
     >
   ): Promise<void> {
     if (!partida.placar || partida.placar.length === 0) return;

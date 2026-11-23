@@ -2,18 +2,31 @@
  * Implementação Firebase do repository de EstatisticasJogador
  */
 
+import { FieldValue, Query, Timestamp } from "firebase-admin/firestore";
 import { db } from "../../config/firebase";
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import {
-  IEstatisticasJogadorRepository,
-  EstatisticasJogador,
   CriarEstatisticasJogadorDTO,
-  AtualizarEstatisticasPartidaDTO,
-  AtualizarPontuacaoDTO,
-  AtualizarPontuacaoEmLoteDTO,
-} from "../interfaces/IEstatisticasJogadorRepository";
+  EstatisticasJogador,
+} from "../../models/EstatisticasJogador";
+import { IncrementosDaPartida } from "../../utils/estatisticas";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
+import {
+  AtualizarPontuacaoEmLoteDTO,
+  IEstatisticasJogadorRepository,
+} from "../interfaces/IEstatisticasJogadorRepository";
+
+// Limite de gravações por lote e de valores no "in" do Firestore
+const TAMANHO_LOTE = 500;
+const TAMANHO_IN = 30;
+
+const dividir = <T>(itens: T[], tamanho: number): T[][] => {
+  const partes: T[][] = [];
+  for (let i = 0; i < itens.length; i += tamanho) {
+    partes.push(itens.slice(i, i + tamanho));
+  }
+  return partes;
+};
 
 /**
  * Implementação Firebase do repository de EstatisticasJogador
@@ -23,64 +36,91 @@ export class EstatisticasJogadorRepository
 {
   private collection = db.collection("estatisticas_jogador");
 
-  /**
-   * Criar estatísticas para jogador
-   */
-  async criar(
-    dados: CriarEstatisticasJogadorDTO
-  ): Promise<EstatisticasJogador> {
-    const now = Timestamp.now();
+  private async listar(consulta: Query): Promise<EstatisticasJogador[]> {
+    const snapshot = await consulta.get();
 
-    const novaEstatistica: Omit<EstatisticasJogador, "id"> = {
-      ...dados,
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as EstatisticasJogador
+    );
+  }
+
+  /**
+   * Dados gravados de uma estatística nova
+   */
+  private montarNova(
+    dto: CriarEstatisticasJogadorDTO,
+    agora: Timestamp
+  ): Omit<EstatisticasJogador, "id"> {
+    return {
+      etapaId: dto.etapaId,
+      arenaId: dto.arenaId,
+      jogadorId: dto.jogadorId,
+      jogadorNome: dto.jogadorNome,
+      jogadorNivel: dto.jogadorNivel,
+      jogadorGenero: dto.jogadorGenero,
+      grupoId: dto.grupoId,
+      grupoNome: dto.grupoNome,
+      // Classificação do grupo
+      jogosGrupo: 0,
+      vitoriasGrupo: 0,
+      derrotasGrupo: 0,
+      pontosGrupo: 0,
+      setsVencidosGrupo: 0,
+      setsPerdidosGrupo: 0,
+      saldoSetsGrupo: 0,
+      gamesVencidosGrupo: 0,
+      gamesPerdidosGrupo: 0,
+      saldoGamesGrupo: 0,
+      // Totais da etapa
+      jogos: 0,
       vitorias: 0,
       derrotas: 0,
+      pontos: 0,
       setsVencidos: 0,
       setsPerdidos: 0,
-      pontosFeitos: 0,
-      pontosSofridos: 0,
+      gamesVencidos: 0,
+      gamesPerdidos: 0,
       saldoSets: 0,
-      saldoPontos: 0,
-      criadoEm: now,
-      atualizadoEm: now,
-    };
-
-    const docRef = await this.collection.add(novaEstatistica);
-
-    logger.info("Estatísticas criadas", {
-      id: docRef.id,
-      jogadorId: dados.jogadorId,
-      etapaId: dados.etapaId,
-    });
-
-    return {
-      id: docRef.id,
-      ...novaEstatistica,
+      saldoGames: 0,
+      classificado: false,
+      criadoEm: agora,
+      atualizadoEm: agora,
     };
   }
 
   /**
-   * Buscar por ID
+   * Criar estatísticas zeradas
    */
-  async buscarPorId(id: string): Promise<EstatisticasJogador | null> {
-    const doc = await this.collection.doc(id).get();
+  async criar(dto: CriarEstatisticasJogadorDTO): Promise<EstatisticasJogador> {
+    const nova = this.montarNova(dto, Timestamp.now());
+    const docRef = await this.collection.add(nova);
 
-    if (!doc.exists) {
-      return null;
+    return { id: docRef.id, ...nova };
+  }
+
+  /**
+   * Criar estatísticas zeradas de vários jogadores
+   */
+  async criarEmLote(
+    dtos: CriarEstatisticasJogadorDTO[]
+  ): Promise<EstatisticasJogador[]> {
+    const agora = Timestamp.now();
+    const criadas: EstatisticasJogador[] = [];
+
+    for (const parte of dividir(dtos, TAMANHO_LOTE)) {
+      const batch = db.batch();
+
+      for (const dto of parte) {
+        const docRef = this.collection.doc();
+        const nova = this.montarNova(dto, agora);
+        batch.set(docRef, nova);
+        criadas.push({ id: docRef.id, ...nova });
+      }
+
+      await batch.commit();
     }
 
-    return {
-      id: doc.id,
-      ...doc.data(),
-    } as EstatisticasJogador;
-  }
-
-  /**
-   * Verificar se existe
-   */
-  async existe(id: string): Promise<boolean> {
-    const doc = await this.collection.doc(id).get();
-    return doc.exists;
+    return criadas;
   }
 
   /**
@@ -90,15 +130,25 @@ export class EstatisticasJogadorRepository
     etapaId: string,
     arenaId: string
   ): Promise<EstatisticasJogador[]> {
-    const snapshot = await this.collection
-      .where("etapaId", "==", etapaId)
-      .where("arenaId", "==", arenaId)
-      .get();
+    return this.listar(
+      this.collection
+        .where("etapaId", "==", etapaId)
+        .where("arenaId", "==", arenaId)
+    );
+  }
 
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
+  /**
+   * Buscar estatísticas da arena, de um nível ou de todos
+   */
+  async buscarPorArena(
+    arenaId: string,
+    nivel?: string
+  ): Promise<EstatisticasJogador[]> {
+    const daArena = this.collection.where("arenaId", "==", arenaId);
+
+    return this.listar(
+      nivel ? daArena.where("jogadorNivel", "==", nivel) : daArena
+    );
   }
 
   /**
@@ -108,21 +158,34 @@ export class EstatisticasJogadorRepository
     jogadorId: string,
     etapaId: string
   ): Promise<EstatisticasJogador | null> {
-    const snapshot = await this.collection
-      .where("jogadorId", "==", jogadorId)
-      .where("etapaId", "==", etapaId)
-      .limit(1)
-      .get();
+    const [estatistica] = await this.listar(
+      this.collection
+        .where("jogadorId", "==", jogadorId)
+        .where("etapaId", "==", etapaId)
+        .limit(1)
+    );
 
-    if (snapshot.empty) {
-      return null;
-    }
+    return estatistica ?? null;
+  }
 
-    const doc = snapshot.docs[0];
-    return {
-      id: doc.id,
-      ...doc.data(),
-    } as EstatisticasJogador;
+  /**
+   * Buscar estatísticas de vários jogadores em uma etapa
+   */
+  async buscarPorJogadoresDaEtapa(
+    jogadorIds: string[],
+    etapaId: string
+  ): Promise<EstatisticasJogador[]> {
+    const partes = await Promise.all(
+      dividir(jogadorIds, TAMANHO_IN).map((ids) =>
+        this.listar(
+          this.collection
+            .where("etapaId", "==", etapaId)
+            .where("jogadorId", "in", ids)
+        )
+      )
+    );
+
+    return partes.flat();
   }
 
   /**
@@ -132,29 +195,18 @@ export class EstatisticasJogadorRepository
     jogadorId: string,
     arenaId: string
   ): Promise<EstatisticasJogador[]> {
-    const snapshot = await this.collection
-      .where("jogadorId", "==", jogadorId)
-      .where("arenaId", "==", arenaId)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
+    return this.listar(
+      this.collection
+        .where("jogadorId", "==", jogadorId)
+        .where("arenaId", "==", arenaId)
+    );
   }
 
   /**
    * Buscar estatísticas por grupo
    */
   async buscarPorGrupo(grupoId: string): Promise<EstatisticasJogador[]> {
-    const snapshot = await this.collection
-      .where("grupoId", "==", grupoId)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as EstatisticasJogador[];
+    return this.listar(this.collection.where("grupoId", "==", grupoId));
   }
 
   /**
@@ -172,6 +224,21 @@ export class EstatisticasJogadorRepository
   }
 
   /**
+   * Buscar os primeiros colocados de um grupo
+   */
+  async buscarClassificados(
+    grupoId: string,
+    limite: number
+  ): Promise<EstatisticasJogador[]> {
+    return this.listar(
+      this.collection
+        .where("grupoId", "==", grupoId)
+        .orderBy("posicaoGrupo", "asc")
+        .limit(limite)
+    );
+  }
+
+  /**
    * Atualizar estatísticas
    */
   async atualizar(
@@ -179,170 +246,73 @@ export class EstatisticasJogadorRepository
     dados: Partial<EstatisticasJogador>
   ): Promise<EstatisticasJogador> {
     const docRef = this.collection.doc(id);
-    const doc = await docRef.get();
 
-    if (!doc.exists) {
+    if (!(await docRef.get()).exists) {
       throw new NotFoundError("Estatísticas não encontradas");
     }
 
-    const updateData = {
-      ...dados,
-      atualizadoEm: Timestamp.now(),
-    };
+    await docRef.update({ ...dados, atualizadoEm: Timestamp.now() });
 
-    // Remover campos undefined
-    Object.keys(updateData).forEach((key) => {
-      if (updateData[key as keyof typeof updateData] === undefined) {
-        delete updateData[key as keyof typeof updateData];
-      }
-    });
-
-    await docRef.update(updateData);
-
-    const updated = await this.buscarPorId(id);
-    return updated!;
+    const atualizado = await docRef.get();
+    return { id, ...atualizado.data() } as EstatisticasJogador;
   }
 
-  /**
-   * Atualizar estatísticas após partida (valores absolutos)
-   */
-  async atualizarEstatisticasPartida(
-    id: string,
-    dados: AtualizarEstatisticasPartidaDTO
+  /** Grava em lotes, com a data de atualização */
+  private async gravarEmLote<T>(
+    itens: T[],
+    paraGravacao: (item: T) => { id: string; dados: object }
   ): Promise<void> {
-    const doc = await this.collection.doc(id).get();
+    const atualizadoEm = Timestamp.now();
 
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
+    for (const parte of dividir(itens, TAMANHO_LOTE)) {
+      const batch = db.batch();
+
+      parte.map(paraGravacao).forEach(({ id, dados }) => {
+        batch.update(this.collection.doc(id), { ...dados, atualizadoEm });
+      });
+
+      await batch.commit();
     }
-
-    const updateData: any = {
-      ...dados,
-      atualizadoEm: Timestamp.now(),
-    };
-
-    // Recalcular saldos se necessário
-    if (dados.setsVencidos !== undefined || dados.setsPerdidos !== undefined) {
-      const currentData = doc.data()!;
-      const setsVencidos = dados.setsVencidos ?? currentData.setsVencidos ?? 0;
-      const setsPerdidos = dados.setsPerdidos ?? currentData.setsPerdidos ?? 0;
-      updateData.saldoSets = setsVencidos - setsPerdidos;
-    }
-
-    if (
-      dados.pontosFeitos !== undefined ||
-      dados.pontosSofridos !== undefined
-    ) {
-      const currentData = doc.data()!;
-      const pontosFeitos = dados.pontosFeitos ?? currentData.pontosFeitos ?? 0;
-      const pontosSofridos =
-        dados.pontosSofridos ?? currentData.pontosSofridos ?? 0;
-      updateData.saldoPontos = pontosFeitos - pontosSofridos;
-    }
-
-    await this.collection.doc(id).update(updateData);
   }
 
   /**
-   * Incrementar estatísticas (soma aos valores existentes)
+   * Atualizar vários registros
    */
-  async incrementarEstatisticas(
-    id: string,
-    dados: AtualizarEstatisticasPartidaDTO
+  async atualizarEmLote(
+    itens: { id: string; dados: Partial<EstatisticasJogador> }[]
   ): Promise<void> {
-    const doc = await this.collection.doc(id).get();
-
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
-    }
-
-    const updateData: any = {
-      atualizadoEm: Timestamp.now(),
-    };
-
-    if (dados.vitorias !== undefined) {
-      updateData.vitorias = FieldValue.increment(dados.vitorias);
-    }
-    if (dados.derrotas !== undefined) {
-      updateData.derrotas = FieldValue.increment(dados.derrotas);
-    }
-    if (dados.setsVencidos !== undefined) {
-      updateData.setsVencidos = FieldValue.increment(dados.setsVencidos);
-      updateData.saldoSets = FieldValue.increment(dados.setsVencidos);
-    }
-    if (dados.setsPerdidos !== undefined) {
-      updateData.setsPerdidos = FieldValue.increment(dados.setsPerdidos);
-      updateData.saldoSets = FieldValue.increment(-dados.setsPerdidos);
-    }
-    if (dados.pontosFeitos !== undefined) {
-      updateData.pontosFeitos = FieldValue.increment(dados.pontosFeitos);
-      updateData.saldoPontos = FieldValue.increment(dados.pontosFeitos);
-    }
-    if (dados.pontosSofridos !== undefined) {
-      updateData.pontosSofridos = FieldValue.increment(dados.pontosSofridos);
-      updateData.saldoPontos = FieldValue.increment(-dados.pontosSofridos);
-    }
-
-    await this.collection.doc(id).update(updateData);
+    await this.gravarEmLote(itens, (item) => item);
   }
 
   /**
-   * Atualizar posição no grupo
+   * Somar valores em vários registros (soma feita pelo banco)
    */
-  async atualizarPosicaoGrupo(id: string, posicao: number): Promise<void> {
-    const doc = await this.collection.doc(id).get();
-
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
-    }
-
-    await this.collection.doc(id).update({
-      posicaoGrupo: posicao,
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
-  /**
-   * Atualizar pontuação final
-   */
-  async atualizarPontuacao(
-    id: string,
-    dados: AtualizarPontuacaoDTO
+  async incrementarEmLote(
+    itens: { id: string; incrementos: IncrementosDaPartida }[]
   ): Promise<void> {
-    const doc = await this.collection.doc(id).get();
-
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
-    }
-
-    await this.collection.doc(id).update({
-      pontos: dados.pontos,
-      colocacao: dados.colocacao,
-      atualizadoEm: Timestamp.now(),
-    });
-
-    logger.info("Pontuação atualizada", { id, ...dados });
+    await this.gravarEmLote(itens, ({ id, incrementos }) => ({
+      id,
+      dados: Object.fromEntries(
+        Object.entries(incrementos).map(([campo, valor]) => [
+          campo,
+          FieldValue.increment(valor),
+        ])
+      ),
+    }));
   }
 
   /**
-   * Atribuir grupo ao jogador
+   * Atualizar pontuação em lote
    */
-  async atribuirGrupo(
-    id: string,
-    grupoId: string,
-    grupoNome: string
+  async atualizarPontuacaoEmLote(
+    items: AtualizarPontuacaoEmLoteDTO[]
   ): Promise<void> {
-    const doc = await this.collection.doc(id).get();
+    await this.gravarEmLote(items, ({ estatisticaId, pontos, colocacao }) => ({
+      id: estatisticaId,
+      dados: { pontos, colocacao },
+    }));
 
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
-    }
-
-    await this.collection.doc(id).update({
-      grupoId,
-      grupoNome,
-      atualizadoEm: Timestamp.now(),
-    });
+    logger.info("Pontuações atualizadas em lote", { quantidade: items.length });
   }
 
   /**
@@ -386,141 +356,6 @@ export class EstatisticasJogadorRepository
     });
 
     return snapshot.size;
-  }
-
-  /**
-   * Recalcular saldos
-   */
-  async recalcularSaldos(id: string): Promise<void> {
-    const doc = await this.collection.doc(id).get();
-
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
-    }
-
-    const data = doc.data()!;
-    const saldoSets = (data.setsVencidos || 0) - (data.setsPerdidos || 0);
-    const saldoPontos = (data.pontosFeitos || 0) - (data.pontosSofridos || 0);
-
-    await this.collection.doc(id).update({
-      saldoSets,
-      saldoPontos,
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
-  /**
-   * Zerar estatísticas (para recálculo)
-   */
-  async zerarEstatisticas(id: string): Promise<void> {
-    const doc = await this.collection.doc(id).get();
-
-    if (!doc.exists) {
-      throw new NotFoundError("Estatísticas não encontradas");
-    }
-
-    await this.collection.doc(id).update({
-      vitorias: 0,
-      derrotas: 0,
-      setsVencidos: 0,
-      setsPerdidos: 0,
-      pontosFeitos: 0,
-      pontosSofridos: 0,
-      saldoSets: 0,
-      saldoPontos: 0,
-      atualizadoEm: Timestamp.now(),
-    });
-  }
-
-  /**
-   * Criar em lote
-   */
-  async criarEmLote(
-    items: CriarEstatisticasJogadorDTO[]
-  ): Promise<EstatisticasJogador[]> {
-    if (items.length === 0) {
-      return [];
-    }
-
-    const batch = db.batch();
-    const now = Timestamp.now();
-    const resultados: EstatisticasJogador[] = [];
-
-    for (const item of items) {
-      const docRef = this.collection.doc();
-
-      const novaEstatistica: EstatisticasJogador = {
-        id: docRef.id,
-        ...item,
-        vitorias: 0,
-        derrotas: 0,
-        setsVencidos: 0,
-        setsPerdidos: 0,
-        pontosFeitos: 0,
-        pontosSofridos: 0,
-        saldoSets: 0,
-        saldoPontos: 0,
-        criadoEm: now,
-        atualizadoEm: now,
-      };
-
-      batch.set(docRef, novaEstatistica);
-      resultados.push(novaEstatistica);
-    }
-
-    await batch.commit();
-
-    logger.info("Estatísticas criadas em lote", { quantidade: items.length });
-
-    return resultados;
-  }
-
-  /**
-   * Deletar em lote
-   */
-  async deletarEmLote(ids: string[]): Promise<number> {
-    if (ids.length === 0) {
-      return 0;
-    }
-
-    const batch = db.batch();
-
-    for (const id of ids) {
-      batch.delete(this.collection.doc(id));
-    }
-
-    await batch.commit();
-
-    logger.info("Estatísticas deletadas em lote", { quantidade: ids.length });
-
-    return ids.length;
-  }
-
-  /**
-   * Atualizar pontuação em lote (batch write)
-   */
-  async atualizarPontuacaoEmLote(
-    items: AtualizarPontuacaoEmLoteDTO[]
-  ): Promise<void> {
-    if (items.length === 0) {
-      return;
-    }
-
-    const batch = db.batch();
-    const now = Timestamp.now();
-
-    for (const item of items) {
-      const docRef = this.collection.doc(item.estatisticaId);
-      batch.update(docRef, {
-        pontos: item.pontos,
-        colocacao: item.colocacao,
-        atualizadoEm: now,
-      });
-    }
-
-    await batch.commit();
-
-    logger.info("Pontuações atualizadas em lote", { quantidade: items.length });
   }
 }
 

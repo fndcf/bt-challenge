@@ -149,7 +149,7 @@ describe("TeamsService", () => {
     incrementarEstatisticas: jest.fn(),
     buscarPorJogadoresEtapa: jest.fn(),
     atualizarAposPartidaGrupoComIncrement: jest.fn(),
-    reverterAposPartidaComIncrement: jest.fn(),
+    reverterTotaisComIncrement: jest.fn(),
     marcarComoClassificadoEmLote: jest.fn(),
   };
 
@@ -801,7 +801,7 @@ describe("TeamsService", () => {
           ["j2", { id: "est-j2" }],
         ])
       );
-      mockEstatisticasService.reverterAposPartidaComIncrement.mockResolvedValue(undefined);
+      mockEstatisticasService.reverterTotaisComIncrement.mockResolvedValue(undefined);
       mockEquipeRepository.incrementarEstatisticasEmLote.mockResolvedValue(undefined);
       mockPartidaRepository.deletarPorConfronto.mockResolvedValue(undefined);
       mockConfrontoRepository.resetarConfronto.mockResolvedValue(undefined);
@@ -809,7 +809,7 @@ describe("TeamsService", () => {
 
       await service.cancelarFaseEliminatoria(TEST_ETAPA_ID, TEST_ARENA_ID);
 
-      expect(mockEstatisticasService.reverterAposPartidaComIncrement).toHaveBeenCalledWith(
+      expect(mockEstatisticasService.reverterTotaisComIncrement).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ estatisticaId: "est-j1" }),
           expect.objectContaining({ estatisticaId: "est-j2" }),

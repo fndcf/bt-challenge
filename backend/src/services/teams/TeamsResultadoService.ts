@@ -647,7 +647,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     ].filter((r) => r.estatisticaId);
 
     if (reversoes.length > 0) {
-      await this.estatisticasService.reverterAposPartidaComIncrement(reversoes);
+      await this.estatisticasService.reverterTotaisComIncrement(reversoes);
     }
 
     // Equipes (incrementos negativos)

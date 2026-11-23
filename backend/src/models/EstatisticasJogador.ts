@@ -54,6 +54,9 @@ export interface EstatisticasJogador {
   posicaoGrupo?: number; // 1º, 2º, 3º, 4º dentro do grupo
   classificado: boolean; // Se passou para fase eliminatória
 
+  // Colocação final (campeao, vice, semifinalista...), gravada ao encerrar
+  colocacao?: string;
+
   // Metadados
   criadoEm: Timestamp;
   atualizadoEm: Timestamp;

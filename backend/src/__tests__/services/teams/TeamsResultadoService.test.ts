@@ -62,7 +62,7 @@ jest.mock("../../../services/EstatisticasJogadorService", () => ({
     buscarPorJogadoresEtapa: jest.fn().mockResolvedValue(new Map()),
     atualizarEstatisticasPartidaTeams: jest.fn().mockResolvedValue(undefined),
     reverterEstatisticasPartidaTeams: jest.fn().mockResolvedValue(undefined),
-    reverterAposPartidaComIncrement: jest.fn().mockResolvedValue(undefined),
+    reverterTotaisComIncrement: jest.fn().mockResolvedValue(undefined),
     atualizarAposPartidaComIncrement: jest.fn().mockResolvedValue(undefined),
   })),
 }));
@@ -317,7 +317,7 @@ describe("TeamsResultadoService", () => {
         .catch(() => undefined);
 
       // Jogadores: estatística antiga revertida
-      expect(estatisticasService.reverterAposPartidaComIncrement).toHaveBeenCalledWith(
+      expect(estatisticasService.reverterTotaisComIncrement).toHaveBeenCalledWith(
         expect.arrayContaining([
           { estatisticaId: "est-1", dto: expect.objectContaining({ venceu: true, gamesVencidos: 6, gamesPerdidos: 3 }) },
           { estatisticaId: "est-3", dto: expect.objectContaining({ venceu: false, gamesVencidos: 3, gamesPerdidos: 6 }) },
@@ -406,7 +406,7 @@ describe("TeamsResultadoService", () => {
 
         // Nada foi revertido nem gravado
         expect(
-          (service as any).estatisticasService.reverterAposPartidaComIncrement
+          (service as any).estatisticasService.reverterTotaisComIncrement
         ).not.toHaveBeenCalled();
         expect(mockPartidaRepository.registrarResultado).not.toHaveBeenCalled();
       });
@@ -455,7 +455,7 @@ describe("TeamsResultadoService", () => {
         .catch(() => undefined);
 
       expect(
-        (service as any).estatisticasService.reverterAposPartidaComIncrement
+        (service as any).estatisticasService.reverterTotaisComIncrement
       ).not.toHaveBeenCalled();
       expect(mockConfrontoRepository.reabrir).not.toHaveBeenCalled();
     });
