@@ -837,7 +837,7 @@ export class EtapaService {
   async obterEstatisticas(arenaId: string): Promise<EstatisticasEtapa> {
     try {
       return await this.etapaRepository.obterEstatisticas(arenaId);
-    } catch (error) {
+    } catch {
       return {
         totalEtapas: 0,
         inscricoesAbertas: 0,

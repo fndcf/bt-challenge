@@ -32,7 +32,7 @@ import teamsService from "./teamsService";
  * Gerencia todas as instâncias de services da aplicação
  */
 class ServiceContainer {
-  private services = new Map<string, any>();
+  private services = new Map<string, unknown>();
 
   /**
    * Registrar um service no container

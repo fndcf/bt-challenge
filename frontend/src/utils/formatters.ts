@@ -61,11 +61,11 @@ export const getGeneroLabel = (genero: GeneroJogador | string): string => {
 /**
  * Formata data do Firebase ou ISO string para formato brasileiro
  */
-export const formatarData = (data: any): string => {
+export const formatarData = (data: unknown): string => {
   try {
     // Data do Firestore com _seconds
     if (data && typeof data === "object" && "_seconds" in data) {
-      const date = new Date(data._seconds * 1000);
+      const date = new Date(Number(data._seconds) * 1000);
       return format(date, "dd/MM/yyyy", { locale: ptBR });
     }
 

@@ -137,7 +137,7 @@ export const optionalAuth = async (
     }
 
     next();
-  } catch (error) {
+  } catch {
     next();
   }
 };

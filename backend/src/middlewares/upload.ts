@@ -92,7 +92,7 @@ export const uploadExcel = (req: Request, res: Response, next: NextFunction) => 
     // Desenvolvimento local: pipar o request stream para o busboy
     req.pipe(busboy);
   }
-  } catch (error) {
+  } catch {
     ResponseHelper.badRequest(res, "Erro ao processar upload. Verifique o formato do arquivo.");
   }
 };

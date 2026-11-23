@@ -12,7 +12,7 @@ class CabecaDeChaveService implements ICabecaDeChaveService {
    * Criar cabeça de chave
    */
   async criar(dto: CriarCabecaDeChaveDTO): Promise<CabecaDeChave> {
-    const response = await apiClient.post("/cabecas-de-chave", dto);
+    const response = await apiClient.post<CabecaDeChave>("/cabecas-de-chave", dto);
 
     logger.info("Cabeça de chave criada", {
       etapaId: dto.etapaId,
@@ -31,7 +31,7 @@ class CabecaDeChaveService implements ICabecaDeChaveService {
     arenaId: string,
     etapaId: string
   ): Promise<CabecaDeChave[]> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<CabecaDeChave[]>(
       `/arenas/${arenaId}/etapas/${etapaId}/cabecas-de-chave`
     );
     return response;
@@ -45,7 +45,7 @@ class CabecaDeChaveService implements ICabecaDeChaveService {
     etapaId: string,
     jogadorId: string
   ): Promise<boolean> {
-    const response = await apiClient.get(
+    const response = await apiClient.get<{ ehCabecaDeChave: boolean }>(
       `/arenas/${arenaId}/etapas/${etapaId}/jogadores/${jogadorId}/eh-cabeca-de-chave`
     );
     return response.ehCabecaDeChave;

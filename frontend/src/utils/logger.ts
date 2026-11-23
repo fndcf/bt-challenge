@@ -48,7 +48,7 @@ class Logger {
   /**
    * 🔴 ERROR - Erros críticos
    */
-  error(message: string, context?: Record<string, any>, error?: Error): void {
+  error(message: string, context?: object, error?: Error): void {
     if (!shouldLog(LogLevel.ERROR)) return;
 
     const timestamp = getTimestamp();
@@ -84,7 +84,7 @@ class Logger {
   /**
    * 🟡 WARN - Avisos importantes
    */
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: object): void {
     if (!shouldLog(LogLevel.WARN)) return;
 
     const timestamp = getTimestamp();
@@ -103,7 +103,7 @@ class Logger {
   /**
    * 🟢 INFO - Informações importantes
    */
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: object): void {
     if (!shouldLog(LogLevel.INFO)) return;
 
     const timestamp = getTimestamp();
@@ -122,7 +122,7 @@ class Logger {
   /**
    * 🔵 DEBUG - Detalhes técnicos (só desenvolvimento)
    */
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: object): void {
     if (!shouldLog(LogLevel.DEBUG)) return;
 
     const timestamp = getTimestamp();
@@ -165,7 +165,7 @@ class Logger {
   /**
    * Tabela (visualizar dados estruturados)
    */
-  table(data: any[], columns?: string[]): void {
+  table(data: unknown[], columns?: string[]): void {
     if (!config.enabled) return;
     console.table(data, columns);
   }

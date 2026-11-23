@@ -243,7 +243,7 @@ class ApiClient {
   /**
    * GET request
    */
-  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  async get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<ApiResponse<T>>(url, config);
     return response.data.data as T;
   }
@@ -251,9 +251,9 @@ class ApiClient {
   /**
    * POST request
    */
-  async post<T = any>(
+  async post<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.post<ApiResponse<T>>(url, data, config);
@@ -263,9 +263,9 @@ class ApiClient {
   /**
    * PUT request
    */
-  async put<T = any>(
+  async put<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.put<ApiResponse<T>>(url, data, config);
@@ -275,9 +275,9 @@ class ApiClient {
   /**
    * PATCH request
    */
-  async patch<T = any>(
+  async patch<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.client.patch<ApiResponse<T>>(url, data, config);
@@ -287,7 +287,7 @@ class ApiClient {
   /**
    * DELETE request
    */
-  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  async delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete<ApiResponse<T>>(url, config);
     return response.data.data as T;
   }
@@ -295,7 +295,7 @@ class ApiClient {
   /**
    * Upload de arquivo
    */
-  async upload<T = any>(
+  async upload<T = unknown>(
     url: string,
     file: File,
     onProgress?: (progress: number) => void

@@ -88,7 +88,7 @@ export class CabecaDeChaveService {
     try {
       const cabeca = await this.buscarPorJogador(arenaId, etapaId, jogadorId);
       return cabeca !== null && cabeca.ativo;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

@@ -1870,7 +1870,6 @@ export class ReiDaPraiaService {
       }
 
       // Reverter estatísticas de partidas finalizadas
-      let partidasRevertidas = 0;
 
       if (partidasEliminatorias.length > 0) {
         // Buscar todas as duplas necessárias em paralelo
@@ -1975,7 +1974,6 @@ export class ReiDaPraiaService {
                 )
               );
 
-              partidasRevertidas++;
             }
           }
         }

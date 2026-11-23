@@ -1133,11 +1133,9 @@ export class EliminatoriaService implements IEliminatoriaService {
       }
 
       //  Reverter estatísticas de partidas finalizadas
-      let partidasRevertidas = 0;
       for (const confronto of confrontos) {
         if (confronto.status === StatusConfrontoEliminatorio.FINALIZADA) {
           await this.reverterEstatisticasConfronto(confronto);
-          partidasRevertidas++;
         }
       }
 

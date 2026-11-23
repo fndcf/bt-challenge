@@ -56,18 +56,4 @@ export const media = {
   "2xl": `@media (min-width: ${tokens.breakpoints["2xl"]})`,
 } as const;
 
-// Função helper para acessar cores
-export const getColor = (color: string): string => {
-  const [category, shade] = color.split(".");
-  if (category && shade) {
-    const colorCategory = tokens.colors[category as keyof typeof tokens.colors];
-
-    // Verificar se é um objeto (não string primitiva como white/black)
-    if (colorCategory && typeof colorCategory === "object") {
-      return (colorCategory as any)[shade] || color;
-    }
-  }
-  return color;
-};
-
 export type Theme = typeof theme;

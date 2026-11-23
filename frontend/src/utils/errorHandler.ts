@@ -1,31 +1,17 @@
-import { AxiosError } from "axios";
+import { isAxiosError } from "axios";
 import logger from "./logger";
 
 export interface AppError {
   message: string;
   code?: string;
   status?: number;
-  field?: string;
-  details?: any;
+  details?: unknown;
 }
 
-/**
- * Classe de erro customizada
- */
-export class ApplicationError extends Error {
-  public code?: string;
-  public status?: number;
-  public field?: string;
-  public details?: any;
-
-  constructor(error: AppError) {
-    super(error.message);
-    this.name = "ApplicationError";
-    this.code = error.code;
-    this.status = error.status;
-    this.field = error.field;
-    this.details = error.details;
-  }
+/** Corpo de erro que a API devolve */
+interface RespostaDeErro {
+  error?: string;
+  code?: string;
 }
 
 /**
@@ -53,27 +39,6 @@ const errorMessages: Record<string, string> = {
   "auth/invalid-action-code": "Link inválido ou já utilizado",
 
   // ============================================
-  // ERROS DE VALIDAÇÃO
-  // ============================================
-  "validation/required-field": "Campo obrigatório",
-  "validation/invalid-email": "Email inválido",
-  "validation/invalid-phone": "Telefone inválido",
-  "validation/invalid-date": "Data inválida",
-  "validation/min-length": "Mínimo de caracteres não atingido",
-  "validation/max-length": "Máximo de caracteres excedido",
-
-  // ============================================
-  // ERROS DE NEGÓCIO
-  // ============================================
-  "business/inscricoes-encerradas": "Inscrições encerradas",
-  "business/vagas-esgotadas": "Vagas esgotadas",
-  "business/jogador-ja-inscrito": "Jogador já está inscrito",
-  "business/chaves-ja-geradas": "Chaves já foram geradas",
-  "business/etapa-nao-encontrada": "Etapa não encontrada",
-  "business/jogador-nao-encontrado": "Jogador não encontrado",
-  "business/arena-nao-encontrada": "Arena não encontrada",
-
-  // ============================================
   // ERROS HTTP
   // ============================================
   400: "Requisição inválida",
@@ -88,76 +53,49 @@ const errorMessages: Record<string, string> = {
   503: "Serviço temporariamente indisponível",
 };
 
-/**
- * Obter mensagem de erro traduzida por código
- */
-export const getErrorMessageByCode = (code: string): string | undefined => {
-  return errorMessages[code];
+const lerTexto = (erro: unknown, campo: "code" | "message") => {
+  if (typeof erro !== "object" || erro === null) return undefined;
+  const valor = (erro as Record<string, unknown>)[campo];
+  return typeof valor === "string" ? valor : undefined;
 };
 
 /**
  * Extrai mensagem de erro amigável
  */
-export const getErrorMessage = (error: any): string => {
-  // Erro customizado
-  if (error instanceof ApplicationError) {
-    return error.message;
-  }
-
+export const getErrorMessage = (error: unknown): string => {
   // Erro do Firebase (código específico)
-  if (error?.code && errorMessages[error.code]) {
-    return errorMessages[error.code];
-  }
+  const traduzida = errorMessages[lerTexto(error, "code") ?? ""];
+  if (traduzida) return traduzida;
 
-  // Erro do Axios
-  if (error?.isAxiosError) {
-    const axiosError = error as AxiosError<any>;
-
+  if (isAxiosError<RespostaDeErro>(error)) {
     // Mensagem do backend
-    if (axiosError.response?.data?.error) {
-      return axiosError.response.data.error;
-    }
+    if (error.response?.data?.error) return error.response.data.error;
 
     // Status HTTP
-    if (axiosError.response?.status) {
-      return errorMessages[axiosError.response.status] || "Erro na requisição";
+    if (error.response?.status) {
+      return errorMessages[error.response.status] || "Erro na requisição";
     }
 
-    // Erro de rede
-    if (axiosError.message === "Network Error") {
+    if (error.message === "Network Error") {
       return "Erro de conexão. Verifique sua internet";
     }
   }
 
-  // Erro genérico com mensagem
-  if (error?.message) {
-    return error.message;
-  }
-
-  return "Erro desconhecido. Tente novamente";
+  return lerTexto(error, "message") || "Erro desconhecido. Tente novamente";
 };
 
 /**
  * Log de erro
  */
-export const logError = (error: any, context?: string) => {
-  const errorInfo = {
-    message: getErrorMessage(error),
-    context,
-    error:
-      error instanceof Error
-        ? {
-            name: error.name,
-            message: error.message,
-          }
-        : error,
-  };
-
+export const logError = (error: unknown, context?: string) => {
   logger.error(
-    errorInfo.message,
+    getErrorMessage(error),
     {
-      context: errorInfo.context,
-      errorDetails: errorInfo.error,
+      context,
+      errorDetails:
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : error,
     },
     error instanceof Error ? error : undefined
   );
@@ -166,59 +104,19 @@ export const logError = (error: any, context?: string) => {
 /**
  * Trata erro e retorna mensagem formatada
  */
-export const handleError = (error: any, context?: string): AppError => {
+export const handleError = (error: unknown, context?: string): AppError => {
   logError(error, context);
 
-  let appError: AppError = {
-    message: getErrorMessage(error),
-  };
+  const message = getErrorMessage(error);
 
-  // Adicionar informações extras se disponível
-  if (error instanceof ApplicationError) {
-    appError = {
-      message: error.message,
-      code: error.code,
-      status: error.status,
-      field: error.field,
-      details: error.details,
-    };
-  } else if (error?.isAxiosError) {
-    const axiosError = error as AxiosError<any>;
-    appError = {
-      message: getErrorMessage(error),
-      status: axiosError.response?.status,
-      code: axiosError.response?.data?.code,
-      details: axiosError.response?.data,
+  if (isAxiosError<RespostaDeErro>(error)) {
+    return {
+      message,
+      status: error.response?.status,
+      code: error.response?.data?.code,
+      details: error.response?.data,
     };
   }
 
-  return appError;
-};
-
-/**
- * Verifica se é erro de autenticação
- */
-export const isAuthError = (error: any): boolean => {
-  if (error?.code?.startsWith("auth/")) return true;
-  if (error?.status === 401) return true;
-  if (error?.isAxiosError && error?.response?.status === 401) return true;
-  return false;
-};
-
-/**
- * Verifica se é erro de validação
- */
-export const isValidationError = (error: any): boolean => {
-  if (error?.code?.startsWith("validation/")) return true;
-  if (error?.status === 422) return true;
-  return false;
-};
-
-/**
- * Verifica se é erro de rede
- */
-export const isNetworkError = (error: any): boolean => {
-  if (error?.message === "Network Error") return true;
-  if (error?.code === "ECONNABORTED") return true;
-  return false;
+  return { message };
 };

@@ -92,7 +92,7 @@ export class ArenaService {
         // Enviar email de verificação (opcional)
         try {
           await auth.generateEmailVerificationLink(data.adminEmail);
-        } catch (error) {
+        } catch {
           logger.warn("Falha ao gerar link de verificação", {
             email: data.adminEmail,
           });

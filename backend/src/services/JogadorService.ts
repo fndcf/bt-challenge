@@ -270,7 +270,7 @@ export class JogadorService {
   async contar(arenaId: string): Promise<number> {
     try {
       return await this.jogadorRepository.contar(arenaId);
-    } catch (error) {
+    } catch {
       return 0;
     }
   }
@@ -281,7 +281,7 @@ export class JogadorService {
   async contarPorNivel(arenaId: string): Promise<Record<NivelJogador, number>> {
     try {
       return await this.jogadorRepository.contarPorNivel(arenaId);
-    } catch (error) {
+    } catch {
       return {
         [NivelJogador.INICIANTE]: 0,
         [NivelJogador.INTERMEDIARIO]: 0,
