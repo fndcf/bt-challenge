@@ -12,7 +12,7 @@
  * - texto / superficie: base neutra
  *
  * Regras de uso: docs/ARCHITECTURE.md > "Cores por funcao".
- * Paleta e contrastes: docs/PLANO_DESIGN.md > "Paleta".
+ * Contraste AA travado em __tests__/styles/semantic.test.ts.
  */
 
 import { FormatoEtapa } from "@/types/etapa";

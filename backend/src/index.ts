@@ -13,9 +13,22 @@ import { auth as adminAuth } from "./config/firebase";
 */
 import routes from "./routes";
 import { errorHandler } from "./middlewares/errorHandler";
+import {
+  limiteCadastroArena,
+  limiteGeral,
+  limitePublico,
+} from "./middlewares/limiteRequisicoes";
 import logger from "./utils/logger";
 
 const app = express();
+
+/**
+ * Proxies na frente da API (Hosting / front end do Google): o IP do usuário
+ * vem no X-Forwarded-For. O número diz quantos saltos, contando da direita,
+ * são confiáveis; o limite de requisições usa o IP que sobra.
+ * Conferir no staging (ver ARCHITECTURE.md > "Limite de requisicoes").
+ */
+app.set("trust proxy", Number(process.env.PROXIES_CONFIAVEIS ?? 1));
 
 /**
  * Configurações de segurança
@@ -93,6 +106,13 @@ app.get("/health", (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+/**
+ * Limite de requisições por IP (middlewares/limiteRequisicoes.ts)
+ */
+app.use("/api", limiteGeral);
+app.use("/api/public", limitePublico);
+app.post("/api/arenas", limiteCadastroArena);
 
 /**
  * Rotas da API

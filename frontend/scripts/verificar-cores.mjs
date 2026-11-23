@@ -2,9 +2,9 @@
  * Catraca de cores fixas e botões feitos à mão
  *
  * Regra (docs/ARCHITECTURE.md): cores vêm de styles/ (theme.semantic) e
- * botões de components/ui/. O código antigo ainda tem muitas violações e
- * migra aos poucos (docs/PLANO_DESIGN.md), então esta verificação não exige
- * zero: ela compara com a linha de base e falha só se algum arquivo PIORAR.
+ * botões de components/ui/. Cores fixas já estão zeradas; restam poucos
+ * styled.button antigos. A verificação compara com a linha de base e falha
+ * só se algum arquivo PIORAR.
  *
  * - Arquivo novo: não pode ter cor fixa nem styled.button.
  * - Arquivo existente: a contagem não pode aumentar. Diminuir é bem-vindo.
@@ -28,7 +28,7 @@ const IGNORAR = [/^src\/styles\//, /\/__tests__\//, /\.test\.tsx?$/];
 const REGRAS = {
   hex: {
     regex: /#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g,
-    descricao: "cor hex fixa (use theme.semantic.* — docs/MAPA_CORES.md)",
+    descricao: "cor hex fixa (use theme.semantic.* — docs/ARCHITECTURE.md > Cores por funcao)",
   },
   styledButton: {
     regex: /styled\.button\b/g,
@@ -103,7 +103,7 @@ if (pioras.length > 0) {
   }
   console.error(
     "\nUse os tokens de styles/semantic.ts e os componentes de components/ui/." +
-      "\nRegras: docs/ARCHITECTURE.md > \"Cores por funcao\". Mapa: docs/MAPA_CORES.md."
+      "\nRegras: docs/ARCHITECTURE.md > \"Cores por funcao\"."
   );
   process.exit(1);
 }

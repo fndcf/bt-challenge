@@ -25,13 +25,16 @@ export const validate = (req: Request, _res: Response, next: NextFunction) => {
  */
 export const runValidations = (validations: ValidationChain[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Executar todas as validações
-    for (const validation of validations) {
-      await validation.run(req);
+    // Express 4 não captura erro de função async: sem o try, o erro de
+    // validação virava rejeição não tratada e derrubava o processo
+    try {
+      for (const validation of validations) {
+        await validation.run(req);
+      }
+      validate(req, res, next);
+    } catch (error) {
+      next(error);
     }
-
-    // Verificar se houve erros
-    validate(req, res, next);
   };
 };
 
