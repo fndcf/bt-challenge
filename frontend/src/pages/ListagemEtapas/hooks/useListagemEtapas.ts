@@ -15,9 +15,26 @@ export interface EstatisticasEtapas {
   inscricoesAbertas: number;
   emAndamento: number;
   finalizadas: number;
-  reiDaPraia: number;
-  duplaFixa: number;
+  porFormato: Record<FormatoEtapa, number>;
 }
+
+const SEM_ETAPAS: Record<FormatoEtapa, number> = {
+  [FormatoEtapa.DUPLA_FIXA]: 0,
+  [FormatoEtapa.REI_DA_PRAIA]: 0,
+  [FormatoEtapa.SUPER_X]: 0,
+  [FormatoEtapa.TEAMS]: 0,
+};
+
+/** Etapas de cada formato (etapa antiga, sem formato, é Dupla Fixa) */
+export const contarPorFormato = (etapas: Pick<Etapa, "formato">[]) =>
+  etapas.reduce(
+    (contagem, etapa) => {
+      const formato = etapa.formato ?? FormatoEtapa.DUPLA_FIXA;
+      contagem[formato] += 1;
+      return contagem;
+    },
+    { ...SEM_ETAPAS }
+  );
 
 export interface UseListagemEtapasReturn {
   // Estado
@@ -82,8 +99,7 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
     inscricoesAbertas: 0,
     emAndamento: 0,
     finalizadas: 0,
-    reiDaPraia: 0,
-    duplaFixa: 0,
+    porFormato: SEM_ETAPAS,
   });
 
   // Calcular total de páginas
@@ -160,15 +176,10 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
       setEtapas(resultado.etapas);
       setTotalEtapas(resultado.total);
 
-      // Calcular estatísticas por formato usando TODAS as etapas (sem filtros)
-      const reiDaPraiaCount = todasEtapas.etapas.filter(
-        (e) => e.formato === FormatoEtapa.REI_DA_PRAIA
-      ).length;
-
+      // Por formato, sobre TODAS as etapas (sem filtros)
       setStats({
         ...estatisticas,
-        reiDaPraia: reiDaPraiaCount,
-        duplaFixa: todasEtapas.etapas.length - reiDaPraiaCount,
+        porFormato: contarPorFormato(todasEtapas.etapas),
       });
 
       logger.info("Etapas carregadas com sucesso", {

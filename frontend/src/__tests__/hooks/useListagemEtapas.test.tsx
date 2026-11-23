@@ -128,18 +128,22 @@ describe("useListagemEtapas", () => {
       expect(result.current.error).toBe("Erro ao carregar etapas");
     });
 
-    it("deve calcular estatísticas por formato", async () => {
+    it("deve contar as etapas de cada formato (Super X e Teams não viram Dupla Fixa)", async () => {
       const etapasMock = [
         { id: "1", formato: FormatoEtapa.REI_DA_PRAIA },
         { id: "2", formato: FormatoEtapa.REI_DA_PRAIA },
         { id: "3", formato: FormatoEtapa.DUPLA_FIXA },
+        { id: "4", formato: FormatoEtapa.SUPER_X },
+        { id: "5", formato: FormatoEtapa.TEAMS },
+        { id: "6", formato: FormatoEtapa.TEAMS },
+        { id: "7" }, // antiga, sem formato: Dupla Fixa
       ];
       mockListarEtapas.mockResolvedValue({
         etapas: etapasMock,
-        total: 3,
+        total: 7,
       });
       mockObterEstatisticas.mockResolvedValue({
-        totalEtapas: 3,
+        totalEtapas: 7,
         inscricoesAbertas: 1,
         emAndamento: 1,
         finalizadas: 1,
@@ -151,8 +155,12 @@ describe("useListagemEtapas", () => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.stats.reiDaPraia).toBe(2);
-      expect(result.current.stats.duplaFixa).toBe(1);
+      expect(result.current.stats.porFormato).toEqual({
+        [FormatoEtapa.DUPLA_FIXA]: 2,
+        [FormatoEtapa.REI_DA_PRAIA]: 2,
+        [FormatoEtapa.SUPER_X]: 1,
+        [FormatoEtapa.TEAMS]: 2,
+      });
     });
   });
 
