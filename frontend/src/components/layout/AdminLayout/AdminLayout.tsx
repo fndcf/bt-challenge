@@ -278,11 +278,13 @@ const ArenaSelector = styled.div`
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const ArenaSelectorLabel = styled.div`
+// 80% de branco: contraste AA no fundo do menu (com 50% dava 3,6:1)
+const ArenaSelectorLabel = styled.label`
+  display: block;
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.375rem;
 `;
 
@@ -401,8 +403,9 @@ const AdminLayout: React.FC = () => {
         {/* Seletor de Arenas */}
         {sidebarOpen && arenas.length > 0 && (
           <ArenaSelector>
-            <ArenaSelectorLabel>Arena</ArenaSelectorLabel>
+            <ArenaSelectorLabel htmlFor="seletor-arena">Arena</ArenaSelectorLabel>
             <ArenaSelectorSelect
+              id="seletor-arena"
               value={arena?.id || ""}
               onChange={(e) => switchArena(e.target.value)}
             >

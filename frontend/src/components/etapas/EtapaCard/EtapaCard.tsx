@@ -41,7 +41,8 @@ const Card = styled.article`
   }
 `;
 
-const Titulo = styled.h3`
+// h2: vem logo abaixo do h1 da página (ordem dos títulos)
+const Titulo = styled.h2`
   margin: 0 0 ${theme.spacing[2]} 0;
   overflow-wrap: anywhere;
   font-size: ${fontSize.lg};

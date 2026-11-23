@@ -51,7 +51,8 @@ const Avatar = styled.div`
   font-weight: ${fontWeight.bold};
 `;
 
-const Nome = styled.h3`
+// h2: vem logo abaixo do h1 da página (ordem dos títulos)
+const Nome = styled.h2`
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
