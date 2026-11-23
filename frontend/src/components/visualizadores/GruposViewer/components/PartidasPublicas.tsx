@@ -15,7 +15,7 @@ import {
   getSituacaoPartida,
   getVencedorPartida,
 } from "../gruposHelpers";
-import { Confronto, Partida, PartidaTeams } from "../types";
+import { Confronto, Partida, PartidaTeams } from "@/types/etapaPublica";
 
 const PartidasDoConfronto = styled(ListaConfrontos)`
   margin-top: ${theme.spacing[3]};

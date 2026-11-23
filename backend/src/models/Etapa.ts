@@ -164,6 +164,14 @@ export interface Etapa {
 }
 
 /**
+ * Dados da etapa que podem aparecer sem login
+ */
+export const paraEtapaPublica = (etapa: Etapa): Omit<Etapa, "criadoPor"> => {
+  const { criadoPor: _criadoPor, ...publica } = etapa;
+  return publica;
+};
+
+/**
  * DTOs
  */
 

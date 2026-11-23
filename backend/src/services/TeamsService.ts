@@ -30,6 +30,7 @@ import { Jogador } from "../models/Jogador";
 import { BadRequestError } from "../utils/errors";
 import { Etapa, FaseEtapa } from "../models/Etapa";
 import { NivelJogador, GeneroJogador } from "../models/Jogador";
+import { Inscricao as InscricaoEtapa } from "../models/Inscricao";
 import { IEquipeRepository } from "../repositories/interfaces/IEquipeRepository";
 import { IConfrontoEquipeRepository } from "../repositories/interfaces/IConfrontoEquipeRepository";
 import { IPartidaTeamsRepository } from "../repositories/interfaces/IPartidaTeamsRepository";
@@ -61,6 +62,13 @@ interface Inscricao {
   nivel: NivelJogador;
   genero: GeneroJogador;
 }
+
+const paraInscricaoTeams = (inscricao: InscricaoEtapa): Inscricao => ({
+  jogadorId: inscricao.jogadorId,
+  jogadorNome: inscricao.jogadorNome,
+  nivel: inscricao.jogadorNivel as NivelJogador,
+  genero: inscricao.jogadorGenero as GeneroJogador,
+});
 
 export class TeamsService {
   private equipeService: ITeamsEquipeService;
@@ -112,6 +120,58 @@ export class TeamsService {
     // Configurar dependências circulares
     this.resultadoService.setPartidaService(this.partidaService);
     this.resultadoService.setClassificacaoService(this.classificacaoService);
+  }
+
+  // ==================== GERAÇÃO DAS CHAVES ====================
+
+  /**
+   * Gera equipes e confrontos e marca as chaves da etapa como geradas
+   */
+  async gerarChaves(
+    etapa: Etapa,
+    inscricoes: InscricaoEtapa[],
+    tipoFormacaoJogos?: TipoFormacaoJogos
+  ): Promise<{ equipes: Equipe[]; confrontos: ConfrontoEquipe[] }> {
+    const { equipes } = await this.gerarEquipes(
+      etapa,
+      inscricoes.map(paraInscricaoTeams)
+    );
+
+    return this.concluirChaves(etapa, equipes, tipoFormacaoJogos);
+  }
+
+  /**
+   * O mesmo que gerarChaves, com as equipes escolhidas pelo organizador
+   */
+  async formarChavesManualmente(
+    etapa: Etapa,
+    inscricoes: InscricaoEtapa[],
+    formacoes: FormacaoManualEquipeDTO[],
+    tipoFormacaoJogos?: TipoFormacaoJogos
+  ): Promise<{ equipes: Equipe[]; confrontos: ConfrontoEquipe[] }> {
+    const { equipes } = await this.formarEquipesManualmente(
+      etapa,
+      inscricoes.map(paraInscricaoTeams),
+      formacoes
+    );
+
+    return this.concluirChaves(etapa, equipes, tipoFormacaoJogos);
+  }
+
+  private async concluirChaves(
+    etapa: Etapa,
+    equipes: Equipe[],
+    tipoFormacaoJogos?: TipoFormacaoJogos
+  ): Promise<{ equipes: Equipe[]; confrontos: ConfrontoEquipe[] }> {
+    const confrontos = await this.gerarConfrontos(
+      etapa,
+      tipoFormacaoJogos,
+      equipes
+    );
+
+    await this.etapaRepository.marcarChavesGeradas(etapa.id, true);
+
+    return { equipes, confrontos };
   }
 
   // ==================== FORMAÇÃO DE EQUIPES ====================
@@ -379,6 +439,18 @@ export class TeamsService {
     arenaId: string
   ): Promise<ConfrontoEquipe[]> {
     return this.confrontoService.buscarConfrontos(etapaId, arenaId);
+  }
+
+  /**
+   * Busca um confronto da etapa (null se não existe ou é de outra etapa)
+   */
+  async buscarConfronto(
+    confrontoId: string,
+    etapaId: string
+  ): Promise<ConfrontoEquipe | null> {
+    const confronto = await this.confrontoRepository.buscarPorId(confrontoId);
+
+    return confronto?.etapaId === etapaId ? confronto : null;
   }
 
   /**

@@ -18,6 +18,7 @@ export interface EstatisticasJogador {
   grupoId?: string;
   grupoNome?: string;
   // Estatísticas gerais
+  jogos?: number;
   vitorias: number;
   derrotas: number;
   setsVencidos: number;
@@ -26,12 +27,19 @@ export interface EstatisticasJogador {
   pontosSofridos: number;
   saldoSets: number;
   saldoPontos: number;
+  gamesVencidos?: number;
+  gamesPerdidos?: number;
   // Estatísticas de grupo (Rei da Praia)
+  jogosGrupo?: number;
   pontosGrupo?: number;
   vitoriasGrupo?: number;
-  saldoGamesGrupo?: number;
+  derrotasGrupo?: number;
+  setsVencidosGrupo?: number;
+  setsPerdidosGrupo?: number;
   saldoSetsGrupo?: number;
   gamesVencidosGrupo?: number;
+  gamesPerdidosGrupo?: number;
+  saldoGamesGrupo?: number;
   // Classificação
   posicaoGrupo?: number;
   pontos?: number;
@@ -112,6 +120,14 @@ export interface IEstatisticasJogadorRepository
     jogadorId: string,
     etapaId: string
   ): Promise<EstatisticasJogador | null>;
+
+  /**
+   * Buscar todas as estatísticas de um jogador na arena
+   */
+  buscarPorJogador(
+    jogadorId: string,
+    arenaId: string
+  ): Promise<EstatisticasJogador[]>;
 
   /**
    * Buscar estatísticas por grupo

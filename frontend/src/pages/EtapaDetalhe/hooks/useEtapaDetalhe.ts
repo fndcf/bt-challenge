@@ -9,6 +9,7 @@ import {
   JogadorPublico,
 } from "@/services/arenaPublicService";
 import { getArenaPublicService } from "@/services";
+import { Chaves, Grupo } from "@/types/etapaPublica";
 import { getMensagemErro } from "@/utils/erro";
 
 export interface UseEtapaDetalheReturn {
@@ -16,8 +17,8 @@ export interface UseEtapaDetalheReturn {
   arena: ArenaPublica | null;
   etapa: EtapaPublica | null;
   jogadores: JogadorPublico[];
-  chaves: any;
-  grupos: any[];
+  chaves: Chaves | null;
+  grupos: Grupo[];
 
   // Estado
   loading: boolean;
@@ -33,8 +34,8 @@ export const useEtapaDetalhe = (
   const [arena, setArena] = useState<ArenaPublica | null>(null);
   const [etapa, setEtapa] = useState<EtapaPublica | null>(null);
   const [jogadores, setJogadores] = useState<JogadorPublico[]>([]);
-  const [chaves, setChaves] = useState<any>(null);
-  const [grupos, setGrupos] = useState<any[]>([]);
+  const [chaves, setChaves] = useState<Chaves | null>(null);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {

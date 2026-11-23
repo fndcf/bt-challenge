@@ -9,9 +9,10 @@ import { Games } from "./Games";
 import { SecaoPublica } from "@/components/torneio";
 import { EmptyState } from "@/components/ui";
 import { theme } from "@/styles/theme";
+import { Participacao } from "@/types/etapaPublica";
 
 export interface HistoricoCardProps {
-  historico: any[];
+  historico: Participacao[];
   slug: string;
 }
 

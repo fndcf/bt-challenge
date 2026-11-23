@@ -11,7 +11,7 @@ import { theme } from "@/styles/theme";
 import { FormatoEtapa } from "@/types/etapa";
 import { GrupoPublico } from "./components/GrupoPublico";
 import { getFormato, ordenarGrupos, resumirGrupos } from "./gruposHelpers";
-import { Grupo } from "./types";
+import { Grupo } from "@/types/etapaPublica";
 
 interface GruposViewerProps {
   grupos: Grupo[];

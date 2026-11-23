@@ -3,7 +3,8 @@
  */
 
 import { apiClient } from "./apiClient";
-import { Etapa } from "../types/etapa";
+import { Etapa, EstatisticasEtapa } from "../types/etapa";
+import { Chaves, Grupo, Participacao } from "../types/etapaPublica";
 import logger from "../utils/logger";
 import { IArenaPublicService } from "./interfaces/IArenaPublicService";
 import { getMensagemErro, paraError } from "@/utils/erro";
@@ -154,9 +155,9 @@ class ArenaPublicService implements IArenaPublicService {
   /**
    * Buscar estatísticas gerais da arena
    */
-  async buscarEstatisticas(slug: string): Promise<any> {
+  async buscarEstatisticas(slug: string): Promise<EstatisticasEtapa | null> {
     try {
-      const estatisticas = await apiClient.get<any>(
+      const estatisticas = await apiClient.get<EstatisticasEtapa>(
         `${this.basePath}/${slug}/estatisticas`
       );
       return estatisticas;
@@ -221,9 +222,12 @@ class ArenaPublicService implements IArenaPublicService {
   /**
    * Buscar grupos de uma etapa
    */
-  async buscarGruposEtapa(slug: string, etapaId: string): Promise<any> {
+  async buscarGruposEtapa(
+    slug: string,
+    etapaId: string
+  ): Promise<Grupo[] | null> {
     try {
-      const grupos = await apiClient.get<any>(
+      const grupos = await apiClient.get<Grupo[]>(
         `${this.basePath}/${slug}/etapas/${etapaId}/grupos`
       );
       return grupos;
@@ -236,9 +240,9 @@ class ArenaPublicService implements IArenaPublicService {
   /**
    * Buscar chaves/partidas de uma etapa
    */
-  async buscarChavesEtapa(slug: string, etapaId: string): Promise<any> {
+  async buscarChavesEtapa(slug: string, etapaId: string): Promise<Chaves | null> {
     try {
-      const chaves = await apiClient.get<any>(
+      const chaves = await apiClient.get<Chaves>(
         `${this.basePath}/${slug}/etapas/${etapaId}/chaves`
       );
       return chaves;
@@ -372,9 +376,12 @@ class ArenaPublicService implements IArenaPublicService {
   /**
    * Buscar histórico de um jogador
    */
-  async buscarHistoricoJogador(slug: string, jogadorId: string): Promise<any> {
+  async buscarHistoricoJogador(
+    slug: string,
+    jogadorId: string
+  ): Promise<Participacao[] | null> {
     try {
-      const historico = await apiClient.get<any>(
+      const historico = await apiClient.get<Participacao[]>(
         `${this.basePath}/${slug}/jogadores/${jogadorId}/historico`
       );
       return historico;

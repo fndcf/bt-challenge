@@ -10,6 +10,8 @@ import {
   FiltrosEtapasPublicas,
   FiltrosJogadoresPublicos,
 } from "@/services/arenaPublicService";
+import { EstatisticasEtapa } from "@/types/etapa";
+import { Chaves, Grupo, Participacao } from "@/types/etapaPublica";
 
 export interface IArenaPublicService {
   /**
@@ -24,7 +26,7 @@ export interface IArenaPublicService {
    * @param slug - Slug único da arena
    * @returns Promise com estatísticas gerais ou null em caso de erro
    */
-  buscarEstatisticas(slug: string): Promise<any>;
+  buscarEstatisticas(slug: string): Promise<EstatisticasEtapa | null>;
 
   /**
    * Listar etapas públicas da arena
@@ -51,7 +53,10 @@ export interface IArenaPublicService {
    * @param etapaId - ID da etapa
    * @returns Promise com dados dos grupos ou null em caso de erro
    */
-  buscarGruposEtapa(slug: string, etapaId: string): Promise<any>;
+  buscarGruposEtapa(
+    slug: string,
+    etapaId: string
+  ): Promise<Grupo[] | null>;
 
   /**
    * Buscar chaves/partidas de uma etapa
@@ -59,7 +64,7 @@ export interface IArenaPublicService {
    * @param etapaId - ID da etapa
    * @returns Promise com dados das chaves ou null em caso de erro
    */
-  buscarChavesEtapa(slug: string, etapaId: string): Promise<any>;
+  buscarChavesEtapa(slug: string, etapaId: string): Promise<Chaves | null>;
 
   /**
    * Buscar inscritos de uma etapa
@@ -115,7 +120,10 @@ export interface IArenaPublicService {
    * @param jogadorId - ID do jogador
    * @returns Promise com histórico do jogador ou null em caso de erro
    */
-  buscarHistoricoJogador(slug: string, jogadorId: string): Promise<any>;
+  buscarHistoricoJogador(
+    slug: string,
+    jogadorId: string
+  ): Promise<Participacao[] | null>;
 
   /**
    * Buscar estatísticas agregadas de um jogador

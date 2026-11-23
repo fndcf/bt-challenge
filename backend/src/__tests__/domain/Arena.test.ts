@@ -103,6 +103,17 @@ describe("Arena Domain", () => {
     });
   });
 
+  describe("toPublic", () => {
+    it("não deve expor os dados do administrador", () => {
+      expect(new Arena(createArenaData()).toPublic()).toEqual({
+        id: "arena-123",
+        nome: "Arena Beach Tennis",
+        slug: "arena-beach-tennis",
+        ativa: true,
+      });
+    });
+  });
+
   describe("fromFirestore", () => {
     it("deve criar Arena a partir de dados do Firestore", () => {
       const firestoreData = {

@@ -6,7 +6,7 @@ import type { BadgeTom } from "@/components/ui";
 import { FormatoEtapa } from "@/types/etapa";
 import { LinhaClassificacao } from "@/utils/classificacao";
 import { confrontoFinalizado } from "@/utils/teams";
-import { DuplaPartidaTeams, Grupo, JogadorEquipe, Partida } from "./types";
+import { DuplaPartidaTeams, Grupo, JogadorEquipe, Partida } from "@/types/etapaPublica";
 
 export const estaFinalizada = (status?: string): boolean =>
   ["FINALIZADO", "FINALIZADA"].includes(status?.toUpperCase() ?? "");

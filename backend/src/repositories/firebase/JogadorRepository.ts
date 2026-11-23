@@ -280,8 +280,9 @@ export class JogadorRepository implements IJogadorRepository {
       jogadores = jogadores.filter(
         (j) =>
           j.nome.toLowerCase().includes(termo) ||
-          j.email?.toLowerCase().includes(termo) ||
-          j.telefone?.includes(termo)
+          (!filtros.buscaSoNome &&
+            (j.email?.toLowerCase().includes(termo) ||
+              j.telefone?.includes(termo)))
       );
     }
 

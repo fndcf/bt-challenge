@@ -51,7 +51,7 @@ export class ArenaController {
       const { id } = req.params;
       const arena = await arenaService.getArenaById(id);
 
-      return ResponseHelper.success(res, arena.toObject());
+      return ResponseHelper.success(res, arena.toPublic());
     } catch (error) {
       logger.error(
         "Erro ao buscar arena por ID",
@@ -71,7 +71,7 @@ export class ArenaController {
       const { slug } = req.params;
       const arena = await arenaService.getArenaBySlug(slug);
 
-      return ResponseHelper.success(res, arena.toObject());
+      return ResponseHelper.success(res, arena.toPublic());
     } catch (error) {
       logger.error(
         "Erro ao buscar arena por slug",
@@ -194,7 +194,7 @@ export class ArenaController {
       const arenas = await arenaService.listArenas();
 
       return ResponseHelper.success(res, {
-        arenas: arenas.map((arena) => arena.toObject()),
+        arenas: arenas.map((arena) => arena.toPublic()),
         total: arenas.length,
       });
     } catch (error) {

@@ -54,6 +54,18 @@ export class Arena implements ArenaType {
   }
 
   /**
+   * Dados que podem aparecer sem login
+   */
+  toPublic(): Pick<ArenaType, "id" | "nome" | "slug" | "ativa"> {
+    return {
+      id: this.id,
+      nome: this.nome,
+      slug: this.slug,
+      ativa: this.ativa,
+    };
+  }
+
+  /**
    * Criar Arena a partir de dados do Firestore
    */
   static fromFirestore(data: any): Arena {

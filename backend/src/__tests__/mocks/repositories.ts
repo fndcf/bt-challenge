@@ -350,6 +350,7 @@ export function createMockEstatisticasRepository(): MockedEstatisticasRepository
     // IEstatisticasJogadorRepository específicos
     buscarPorEtapa: jest.fn(),
     buscarPorJogadorEEtapa: jest.fn(),
+    buscarPorJogador: jest.fn(),
     buscarPorGrupo: jest.fn(),
     buscarPorGrupoOrdenado: jest.fn(),
     atualizarEstatisticasPartida: jest.fn(),

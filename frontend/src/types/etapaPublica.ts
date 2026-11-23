@@ -1,6 +1,8 @@
 /**
- * Dados da fase de grupos como chegam da API pública
+ * Dados da etapa e do jogador como chegam da API pública
  */
+
+// ============== FASE DE GRUPOS ==============
 
 export interface Dupla {
   id: string;
@@ -136,3 +138,56 @@ export interface Grupo {
   tipo?: "grupos" | "eliminatoria"; // Para TEAMS: diferenciar fase de grupos de eliminatórias
 }
 
+// ============== CHAVE ELIMINATÓRIA ==============
+
+export interface ParticipanteChave {
+  id: string;
+  nome: string;
+}
+
+export type StatusPartidaChave =
+  | "agendada"
+  | "em_andamento"
+  | "finalizada"
+  | "bye";
+
+export interface PartidaChave {
+  id: string;
+  numero: number;
+  jogador1: ParticipanteChave;
+  jogador2: ParticipanteChave | null;
+  placar?: string | null;
+  placarDetalhado?: Array<{
+    numero: number;
+    gamesDupla1: number;
+    gamesDupla2: number;
+  }> | null;
+  vencedor?: "jogador1" | "jogador2" | null;
+  status: StatusPartidaChave;
+}
+
+export interface RodadaChave {
+  numero: number;
+  nome: string;
+  partidas: PartidaChave[];
+}
+
+export interface Chaves {
+  formato: string;
+  temChaves: boolean;
+  rodadas: RodadaChave[];
+}
+
+// ============== JOGADOR ==============
+
+/** Uma participação no histórico do jogador */
+export interface Participacao {
+  id: string;
+  etapaId: string;
+  etapaNome?: string;
+  vitorias?: number;
+  derrotas?: number;
+  gamesVencidos?: number;
+  gamesPerdidos?: number;
+  pontos?: number;
+}

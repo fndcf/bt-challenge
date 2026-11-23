@@ -198,6 +198,98 @@ describe("TeamsService", () => {
     );
   });
 
+  // ==================== GERAR CHAVES ====================
+  describe("gerar chaves", () => {
+    const equipes = [{ id: "eq1" }, { id: "eq2" }];
+    const confrontos = [{ id: "c1" }];
+    const inscricoes = [
+      {
+        id: "i1",
+        jogadorId: "j1",
+        jogadorNome: "Um",
+        jogadorNivel: NivelJogador.AVANCADO,
+        jogadorGenero: GeneroJogador.FEMININO,
+      },
+    ];
+    const convertidas = [
+      {
+        jogadorId: "j1",
+        jogadorNome: "Um",
+        nivel: NivelJogador.AVANCADO,
+        genero: GeneroJogador.FEMININO,
+      },
+    ];
+    const etapa = criarEtapaTeams() as any;
+    const manual = TipoFormacaoJogos.MANUAL;
+
+    it("sorteia as equipes, gera os confrontos delas e marca as chaves", async () => {
+      const gerar = jest
+        .spyOn(service, "gerarEquipes")
+        .mockResolvedValue({ equipes } as any);
+      const gerarConfrontos = jest
+        .spyOn(service, "gerarConfrontos")
+        .mockResolvedValue(confrontos as any);
+
+      expect(
+        await service.gerarChaves(etapa, inscricoes as any, manual)
+      ).toEqual({ equipes, confrontos });
+      expect(gerar).toHaveBeenCalledWith(etapa, convertidas);
+      expect(gerarConfrontos).toHaveBeenCalledWith(etapa, manual, equipes);
+      expect(mockEtapaRepository.marcarChavesGeradas).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        true
+      );
+    });
+
+    it("usa as equipes escolhidas na formação manual", async () => {
+      const formacoes = [{ nome: "Time", jogadorIds: ["j1"] }];
+      const formar = jest
+        .spyOn(service, "formarEquipesManualmente")
+        .mockResolvedValue({ equipes } as any);
+      jest
+        .spyOn(service, "gerarConfrontos")
+        .mockResolvedValue(confrontos as any);
+
+      await service.formarChavesManualmente(
+        etapa,
+        inscricoes as any,
+        formacoes as any
+      );
+
+      expect(formar).toHaveBeenCalledWith(etapa, convertidas, formacoes);
+      expect(mockEtapaRepository.marcarChavesGeradas).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        true
+      );
+    });
+
+    it("não marca as chaves se os confrontos falharem", async () => {
+      jest.spyOn(service, "gerarEquipes").mockResolvedValue({ equipes } as any);
+      jest
+        .spyOn(service, "gerarConfrontos")
+        .mockRejectedValue(new Error("falhou"));
+
+      await expect(
+        service.gerarChaves(etapa, inscricoes as any)
+      ).rejects.toThrow("falhou");
+      expect(mockEtapaRepository.marcarChavesGeradas).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("buscarConfronto", () => {
+    it.each([
+      ["da etapa", { id: "c1", etapaId: TEST_ETAPA_ID }, true],
+      ["de outra etapa", { id: "c1", etapaId: "outra" }, false],
+      ["inexistente", null, false],
+    ])("confronto %s", async (_, confronto, encontra) => {
+      mockConfrontoRepository.buscarPorId.mockResolvedValue(confronto);
+
+      expect(await service.buscarConfronto("c1", TEST_ETAPA_ID)).toEqual(
+        encontra ? confronto : null
+      );
+    });
+  });
+
   // ==================== GERAR EQUIPES ====================
   describe("gerarEquipes", () => {
     it("deve lancar erro se etapa nao for formato TEAMS", async () => {

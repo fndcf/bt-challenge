@@ -126,6 +126,24 @@ export class EstatisticasJogadorRepository
   }
 
   /**
+   * Buscar todas as estatísticas de um jogador na arena
+   */
+  async buscarPorJogador(
+    jogadorId: string,
+    arenaId: string
+  ): Promise<EstatisticasJogador[]> {
+    const snapshot = await this.collection
+      .where("jogadorId", "==", jogadorId)
+      .where("arenaId", "==", arenaId)
+      .get();
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as EstatisticasJogador[];
+  }
+
+  /**
    * Buscar estatísticas por grupo
    */
   async buscarPorGrupo(grupoId: string): Promise<EstatisticasJogador[]> {

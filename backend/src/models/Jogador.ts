@@ -52,6 +52,33 @@ export interface Jogador {
 }
 
 /**
+ * Dados do jogador que podem aparecer sem login. Contato, nascimento e
+ * observações nunca entram aqui.
+ */
+export type JogadorPublico = Pick<
+  Jogador,
+  | "id"
+  | "nome"
+  | "nivel"
+  | "genero"
+  | "status"
+  | "vitorias"
+  | "derrotas"
+  | "pontos"
+>;
+
+export const paraJogadorPublico = (jogador: Jogador): JogadorPublico => ({
+  id: jogador.id,
+  nome: jogador.nome,
+  nivel: jogador.nivel,
+  genero: jogador.genero,
+  status: jogador.status,
+  vitorias: jogador.vitorias,
+  derrotas: jogador.derrotas,
+  pontos: jogador.pontos,
+});
+
+/**
  * Campos do jogador, sem valores padrão
  */
 const CamposJogadorSchema = z.object({
@@ -118,6 +145,7 @@ export interface FiltrosJogador {
   status?: StatusJogador;
   genero?: GeneroJogador;
   busca?: string; // Busca por nome, email ou telefone
+  buscaSoNome?: boolean; // Sem login: buscar por email revelaria de quem ele é
   ordenarPor?: "nome" | "criadoEm" | "pontos" | "vitorias";
   ordem?: "asc" | "desc";
   limite?: number;

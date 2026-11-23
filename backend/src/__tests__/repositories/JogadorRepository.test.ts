@@ -9,12 +9,17 @@ jest.mock("../../utils/logger", () => ({
 
 const mockBatch = { set: jest.fn(), delete: jest.fn(), commit: jest.fn() };
 const mockAdd = jest.fn();
+const mockGet = jest.fn();
 const mockRef = { id: "novo", get: jest.fn(), update: jest.fn() };
 const mockDoc = jest.fn(() => mockRef);
 
 jest.mock("../../config/firebase", () => ({
   db: {
-    collection: jest.fn(() => ({ add: mockAdd, doc: mockDoc })),
+    collection: jest.fn(() => ({
+      add: mockAdd,
+      doc: mockDoc,
+      where: jest.fn(() => ({ get: mockGet })),
+    })),
     batch: jest.fn(() => mockBatch),
   },
 }));
@@ -88,6 +93,31 @@ describe("JogadorRepository", () => {
       observacoes: "nota",
       atualizadoEm: expect.any(Timestamp),
     });
+  });
+
+  it.each([
+    ["ana@test", undefined, 1],
+    ["9999", undefined, 1],
+    ["ana@test", true, 0],
+    ["9999", true, 0],
+    ["paula", true, 1],
+  ])("busca %s (só nome: %s) encontra %i", async (busca, buscaSoNome, total) => {
+    mockGet.mockResolvedValue({
+      docs: [
+        {
+          id: "j1",
+          data: () => ({
+            nome: "Ana Paula",
+            email: "ana@test.com",
+            telefone: "11999998888",
+          }),
+        },
+      ],
+    });
+
+    const lista = await repositorio.listar({ arenaId: "a1", busca, buscaSoNome });
+
+    expect(lista.total).toBe(total);
   });
 
   it("criarEmLote divide em lotes de 500", async () => {

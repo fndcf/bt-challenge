@@ -13,7 +13,7 @@ import { theme } from "@/styles/theme";
 import { FormatoEtapa } from "@/types/etapa";
 import { COLUNAS_PUBLICO, COLUNAS_PUBLICO_TEAMS } from "@/utils/classificacao";
 import { montarTabela } from "../gruposHelpers";
-import { Grupo } from "../types";
+import { Grupo } from "@/types/etapaPublica";
 import { ConfrontoPublico, PartidaPublica } from "./PartidasPublicas";
 
 const { texto, superficie } = theme.semantic;

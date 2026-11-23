@@ -9,6 +9,7 @@ import {
   ArenaPublica,
 } from "@/services/arenaPublicService";
 import { getArenaPublicService } from "@/services";
+import { Participacao } from "@/types/etapaPublica";
 import logger from "@/utils/logger";
 import { getMensagemErro, paraError } from "@/utils/erro";
 
@@ -18,7 +19,7 @@ export interface UseJogadorPerfilReturn {
   error: string;
   arena: ArenaPublica | null;
   jogador: JogadorPublico | null;
-  historico: any[];
+  historico: Participacao[];
   estatisticas: EstatisticasAgregadas | null;
 
   // Dados processados
@@ -45,7 +46,7 @@ export const useJogadorPerfil = (
   const [error, setError] = useState("");
   const [arena, setArena] = useState<ArenaPublica | null>(null);
   const [jogador, setJogador] = useState<JogadorPublico | null>(null);
-  const [historico, setHistorico] = useState<any[]>([]);
+  const [historico, setHistorico] = useState<Participacao[]>([]);
   const [estatisticas, setEstatisticas] =
     useState<EstatisticasAgregadas | null>(null);
 
@@ -54,13 +55,7 @@ export const useJogadorPerfil = (
    */
   const getNomeJogador = (j: JogadorPublico | null): string => {
     if (!j) return "Jogador";
-    return (
-      j.nome ||
-      j.jogadorNome ||
-      (j as any).nomeCompleto ||
-      (j as any).apelido ||
-      "Jogador"
-    );
+    return j.nome || j.jogadorNome || "Jogador";
   };
 
   /**
@@ -68,7 +63,7 @@ export const useJogadorPerfil = (
    */
   const getNivel = (j: JogadorPublico | null): string | undefined => {
     if (!j) return undefined;
-    return j.nivel || j.jogadorNivel || (j as any).categoria;
+    return j.nivel || j.jogadorNivel;
   };
 
   /**
@@ -76,7 +71,7 @@ export const useJogadorPerfil = (
    */
   const getGenero = (j: JogadorPublico | null): string | undefined => {
     if (!j) return undefined;
-    return j.genero || j.jogadorGenero || (j as any).sexo;
+    return j.genero || j.jogadorGenero;
   };
 
   /**

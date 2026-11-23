@@ -7,46 +7,10 @@ import styled from "styled-components";
 import { CardConfronto, SecaoPublica } from "@/components/torneio";
 import { BadgeTom, EmptyState } from "@/components/ui";
 import { theme } from "@/styles/theme";
-
-// ============== TYPES ==============
-
-interface Jogador {
-  id: string;
-  nome: string;
-  seed?: number;
-}
-
-type StatusPartida = "agendada" | "em_andamento" | "finalizada" | "bye";
-
-interface Partida {
-  id: string;
-  numero: number;
-  jogador1: Jogador;
-  jogador2: Jogador | null;
-  placar?: string | null;
-  placarDetalhado?: Array<{
-    numero: number;
-    gamesDupla1: number;
-    gamesDupla2: number;
-  }>;
-  vencedor?: "jogador1" | "jogador2" | null;
-  status: StatusPartida;
-}
-
-interface Rodada {
-  numero: number;
-  nome: string;
-  partidas: Partida[];
-}
-
-interface ChavesData {
-  formato: string;
-  temChaves: boolean;
-  rodadas: Rodada[];
-}
+import { Chaves, PartidaChave, StatusPartidaChave } from "@/types/etapaPublica";
 
 interface BracketViewerProps {
-  chaves: ChavesData;
+  chaves: Chaves;
 }
 
 // ============== STYLED COMPONENTS ==============
@@ -100,14 +64,14 @@ const Bye = styled.div`
 
 // ============== HELPERS ==============
 
-const SITUACAO: Record<StatusPartida, { label: string; tom: BadgeTom }> = {
+const SITUACAO: Record<StatusPartidaChave, { label: string; tom: BadgeTom }> = {
   agendada: { label: "Aguardando", tom: "aviso" },
   em_andamento: { label: "Ao vivo", tom: "info" },
   finalizada: { label: "Finalizada", tom: "sucesso" },
   bye: { label: "BYE", tom: "neutro" },
 };
 
-const renderPartida = (partida: Partida) => {
+const renderPartida = (partida: PartidaChave) => {
   if (partida.status === "bye") {
     return <Bye key={partida.id}>{`${partida.jogador1.nome} (BYE)`}</Bye>;
   }

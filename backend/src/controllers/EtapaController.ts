@@ -19,11 +19,8 @@ import {
   AtualizarEtapaSchema,
   FiltrosEtapa,
   FormatoEtapa,
-  StatusEtapa,
   TipoChaveamentoReiDaPraia,
 } from "../models/Etapa";
-import { Timestamp } from "firebase-admin/firestore";
-import { db } from "../config/firebase";
 import { z } from "zod";
 import logger from "../utils/logger";
 
@@ -1015,19 +1012,7 @@ class EtapaController extends BaseController {
       const { arenaId } = req.user;
       const { id } = req.params;
 
-      const { db } = await import("../config/firebase");
-
-      const snapshot = await db
-        .collection("grupos")
-        .where("etapaId", "==", id)
-        .where("arenaId", "==", arenaId)
-        .orderBy("ordem", "asc")
-        .get();
-
-      const grupos = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
+      const grupos = await chaveService.buscarGrupos(id, arenaId);
 
       ResponseHelper.success(res, grupos);
     } catch (error: any) {
@@ -1103,19 +1088,10 @@ class EtapaController extends BaseController {
       const { arenaId } = req.user;
       const { id } = req.params;
 
-      const { db } = await import("../config/firebase");
-
-      const snapshot = await db
-        .collection("confrontos_eliminatorios")
-        .where("etapaId", "==", id)
-        .where("arenaId", "==", arenaId)
-        .orderBy("ordem", "asc")
-        .get();
-
-      const confrontos = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const confrontos = await chaveService.buscarConfrontosEliminatorios(
+        id,
+        arenaId
+      );
 
       ResponseHelper.success(res, confrontos);
     } catch (error: any) {
@@ -1562,44 +1538,25 @@ class EtapaController extends BaseController {
         return;
       }
 
-      const inscricoesRaw = await etapaService.listarInscricoes(id, arenaId);
-
-      // Mapear inscricoes para o formato esperado pelo TeamsService
-      const inscricoes = inscricoesRaw.map((i) => ({
-        jogadorId: i.jogadorId,
-        jogadorNome: i.jogadorNome,
-        nivel: i.jogadorNivel as any,
-        genero: i.jogadorGenero as any,
-      }));
+      const inscricoes = await etapaService.listarInscricoes(id, arenaId);
 
       const teamsService = (await import("../services/TeamsService")).default;
 
-      const resultado = await teamsService.gerarEquipes(etapa, inscricoes);
-
-      // Gerar confrontos automaticamente (passando equipes já criadas para evitar query extra)
-      const confrontos = await teamsService.gerarConfrontos(
+      const { equipes, confrontos } = await teamsService.gerarChaves(
         etapa,
-        tipoFormacaoJogos,
-        resultado.equipes
+        inscricoes,
+        tipoFormacaoJogos
       );
-
-      // Atualizar status da etapa para indicar que chaves foram geradas
-      await db.collection("etapas").doc(id).update({
-        chavesGeradas: true,
-        dataGeracaoChaves: Timestamp.now(),
-        status: StatusEtapa.CHAVES_GERADAS,
-        atualizadoEm: Timestamp.now(),
-      });
 
       logger.info("Equipes TEAMS geradas", {
         etapaId: id,
-        equipes: resultado.equipes.length,
+        equipes: equipes.length,
         confrontos: confrontos.length,
       });
 
       ResponseHelper.success(res, {
         message: "Equipes TEAMS geradas com sucesso",
-        equipes: resultado.equipes.length,
+        equipes: equipes.length,
         confrontos: confrontos.length,
       });
     } catch (error: any) {
@@ -1636,46 +1593,26 @@ class EtapaController extends BaseController {
         return;
       }
 
-      const inscricoesRaw = await etapaService.listarInscricoes(id, arenaId);
-
-      // Mapear inscricoes para o formato esperado pelo TeamsService
-      const inscricoes = inscricoesRaw.map((i) => ({
-        jogadorId: i.jogadorId,
-        jogadorNome: i.jogadorNome,
-        nivel: i.jogadorNivel as any,
-        genero: i.jogadorGenero as any,
-      }));
+      const inscricoes = await etapaService.listarInscricoes(id, arenaId);
 
       const teamsService = (await import("../services/TeamsService")).default;
-      const resultado = await teamsService.formarEquipesManualmente(
-        etapa,
-        inscricoes,
-        formacoes
-      );
-
-      // Gerar confrontos automaticamente
-      const confrontos = await teamsService.gerarConfrontos(
-        etapa,
-        tipoFormacaoJogos
-      );
-
-      // Atualizar status da etapa para indicar que chaves foram geradas
-      await db.collection("etapas").doc(id).update({
-        chavesGeradas: true,
-        dataGeracaoChaves: Timestamp.now(),
-        status: StatusEtapa.CHAVES_GERADAS,
-        atualizadoEm: Timestamp.now(),
-      });
+      const { equipes, confrontos } =
+        await teamsService.formarChavesManualmente(
+          etapa,
+          inscricoes,
+          formacoes,
+          tipoFormacaoJogos
+        );
 
       logger.info("Equipes TEAMS formadas manualmente", {
         etapaId: id,
-        equipes: resultado.equipes.length,
+        equipes: equipes.length,
         confrontos: confrontos.length,
       });
 
       ResponseHelper.success(res, {
         message: "Equipes formadas com sucesso",
-        equipes: resultado.equipes.length,
+        equipes: equipes.length,
         confrontos: confrontos.length,
       });
     } catch (error: any) {
@@ -1749,25 +1686,21 @@ class EtapaController extends BaseController {
 
       logger.info("Gerando partidas do confronto TEAMS", { confrontoId });
 
-      const { db } = await import("../config/firebase");
-      const [etapa, confrontoDoc] = await Promise.all([
-        etapaService.buscarPorId(id, arenaId),
-        db.collection("confrontos_equipe").doc(confrontoId).get(),
-      ]);
+      const etapa = await etapaService.buscarPorId(id, arenaId);
 
       if (!etapa) {
         ResponseHelper.notFound(res, "Etapa não encontrada");
         return;
       }
 
-      if (!confrontoDoc.exists) {
+      const teamsService = (await import("../services/TeamsService")).default;
+      const confronto = await teamsService.buscarConfronto(confrontoId, id);
+
+      if (!confronto) {
         ResponseHelper.notFound(res, "Confronto não encontrado");
         return;
       }
 
-      const confronto = { id: confrontoDoc.id, ...confrontoDoc.data() } as any;
-
-      const teamsService = (await import("../services/TeamsService")).default;
       const partidas = await teamsService.gerarPartidasConfronto(
         confronto,
         etapa
@@ -1818,20 +1751,14 @@ class EtapaController extends BaseController {
         return;
       }
 
-      const { db } = await import("../config/firebase");
-      const confrontoDoc = await db
-        .collection("confrontos_equipe")
-        .doc(confrontoId)
-        .get();
+      const teamsService = (await import("../services/TeamsService")).default;
+      const confronto = await teamsService.buscarConfronto(confrontoId, id);
 
-      if (!confrontoDoc.exists) {
+      if (!confronto) {
         ResponseHelper.notFound(res, "Confronto não encontrado");
         return;
       }
 
-      const confronto = { id: confrontoDoc.id, ...confrontoDoc.data() } as any;
-
-      const teamsService = (await import("../services/TeamsService")).default;
       const partidas = await teamsService.definirPartidasManualmente(
         confronto,
         etapa,
@@ -2022,20 +1949,14 @@ class EtapaController extends BaseController {
         return;
       }
 
-      const { db } = await import("../config/firebase");
-      const confrontoDoc = await db
-        .collection("confrontos_equipe")
-        .doc(confrontoId)
-        .get();
+      const teamsService = (await import("../services/TeamsService")).default;
+      const confronto = await teamsService.buscarConfronto(confrontoId, id);
 
-      if (!confrontoDoc.exists) {
+      if (!confronto) {
         ResponseHelper.notFound(res, "Confronto não encontrado");
         return;
       }
 
-      const confronto = { id: confrontoDoc.id, ...confrontoDoc.data() } as any;
-
-      const teamsService = (await import("../services/TeamsService")).default;
       const decider = await teamsService.gerarDecider(confronto, etapa);
 
       logger.info("Decider TEAMS gerado", {
