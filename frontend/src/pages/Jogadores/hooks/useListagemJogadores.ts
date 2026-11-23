@@ -15,6 +15,7 @@ import {
 } from "@/types/jogador";
 import { Arena } from "@/types/arena";
 import { getMensagemErro, paraError } from "@/utils/erro";
+import { useRequisicaoAtual } from "@/hooks/useRequisicaoAtual";
 
 export interface UseListagemJogadoresReturn {
   // Estados principais
@@ -75,6 +76,8 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
   // Import/Export
   const [exportando, setExportando] = useState(false);
 
+  const requisicao = useRequisicaoAtual();
+
   // Filtros
   const [busca, setBusca] = useState("");
   const [nivelFiltro, setNivelFiltro] = useState<NivelJogador | "">("");
@@ -101,6 +104,7 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
    * Carregar jogadores
    */
   const carregarJogadores = useCallback(async () => {
+    const minha = requisicao.iniciar();
     try {
       setLoading(true);
       setErrorMessage("");
@@ -128,6 +132,9 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
       const jogadorService = getJogadorService();
       const resultado = await jogadorService.listar(filtros);
 
+      // Busca ou filtro mudou enquanto esperava: vale a resposta nova
+      if (!requisicao.ehAtual(minha)) return;
+
       setJogadores(resultado.jogadores);
       setTotal(resultado.total);
       setTemMais(resultado.temMais);
@@ -137,13 +144,14 @@ export const useListagemJogadores = (): UseListagemJogadoresReturn => {
         quantidade: resultado.jogadores.length,
       });
     } catch (error) {
+      if (!requisicao.ehAtual(minha)) return;
       const mensagemErro = getMensagemErro(error, "Erro ao carregar jogadores");
       setErrorMessage(mensagemErro);
       logger.error("Erro ao carregar jogadores", {}, paraError(error));
     } finally {
-      setLoading(false);
+      if (requisicao.ehAtual(minha)) setLoading(false);
     }
-  }, [busca, nivelFiltro, statusFiltro, generoFiltro, offset, limite]);
+  }, [requisicao, busca, nivelFiltro, statusFiltro, generoFiltro, offset, limite]);
 
   /**
    * Carregar ao montar e quando filtros mudarem

@@ -74,7 +74,8 @@ export const OpcoesPontuacao: React.FC<OpcoesPontuacaoProps> = ({
         )}
       />
 
-      {melhorDe3 && (
+      {/* Super X não tem fase eliminatória */}
+      {melhorDe3 && formato !== FormatoEtapa.SUPER_X && (
         <Checkbox
           id="melhorDe3Eliminatoria"
           label="Aplicar também na fase eliminatória (mata-mata)"

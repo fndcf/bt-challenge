@@ -8,6 +8,7 @@ import { GeneroJogador, NivelJogador } from "@/types/jogador";
 import { getEtapaService } from "@/services";
 import logger from "@/utils/logger";
 import { getMensagemErro, paraError } from "@/utils/erro";
+import { useRequisicaoAtual } from "@/hooks/useRequisicaoAtual";
 
 export interface EstatisticasEtapas {
   totalEtapas: number;
@@ -56,6 +57,7 @@ export interface UseListagemEtapasReturn {
 
 export const useListagemEtapas = (): UseListagemEtapasReturn => {
   // Estado das etapas
+  const requisicao = useRequisicaoAtual();
   const [etapas, setEtapas] = useState<Etapa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +99,7 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
 
   // Carregar dados
   const carregarDados = useCallback(async () => {
+    const minha = requisicao.iniciar();
     try {
       setLoading(true);
       setError(null);
@@ -151,6 +154,9 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
         }), // Buscar todas para contagem de formatos
       ]);
 
+      // Filtro mudou enquanto esperava: vale a resposta da requisição nova
+      if (!requisicao.ehAtual(minha)) return;
+
       setEtapas(resultado.etapas);
       setTotalEtapas(resultado.total);
 
@@ -173,6 +179,7 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
         stats: estatisticas,
       });
     } catch (err) {
+      if (!requisicao.ehAtual(minha)) return;
       const mensagemErro =
         getMensagemErro(err, "Erro ao carregar etapas");
       setError(mensagemErro);
@@ -194,9 +201,10 @@ export const useListagemEtapas = (): UseListagemEtapasReturn => {
         paraError(err)
       );
     } finally {
-      setLoading(false);
+      if (requisicao.ehAtual(minha)) setLoading(false);
     }
   }, [
+    requisicao,
     filtroStatus,
     filtroNivel,
     filtroGenero,

@@ -119,15 +119,17 @@ test.describe("Regras de cada formato", () => {
     await expect(page.getByRole("checkbox", { name: "Dar pontos de participação" })).toHaveCount(0);
   });
 
-  // Super X não tem eliminatória, mas a opção aparece: decisão pendente
-  test("melhor de 3 revela a opção da eliminatória", async ({ page }) => {
-    await page.getByRole("radio", { name: /^Super X/ }).check();
+  test("melhor de 3 oferece a eliminatória, menos no Super X", { tag: "@p1" }, async ({ page }) => {
     const melhorDe3 = page.getByRole("checkbox", { name: "Partidas melhor de 3 sets" });
     const eliminatoria = page.getByRole("checkbox", { name: /fase eliminatória/ });
 
+    // Dupla Fixa (padrão): aparece com melhor de 3
     await melhorDe3.check();
     await expect(eliminatoria).toBeVisible();
-    await melhorDe3.uncheck();
+
+    // Super X não tem eliminatória
+    await page.getByRole("radio", { name: /^Super X/ }).check();
+    await expect(melhorDe3).toBeChecked();
     await expect(eliminatoria).toHaveCount(0);
   });
 

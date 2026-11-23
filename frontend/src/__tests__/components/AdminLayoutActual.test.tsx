@@ -174,21 +174,26 @@ describe("AdminLayout", () => {
   });
 
   describe("menu mobile", () => {
-    it("deve renderizar botão de menu mobile", () => {
+    it("deve renderizar botão de menu mobile com nome acessível", () => {
       renderWithRouter();
-      expect(screen.getByText("☰")).toBeInTheDocument();
+      // Aberto por padrão em desktop
+      const menuButton = screen.getByLabelText("Fechar menu");
+      expect(menuButton).toHaveAttribute("aria-expanded", "true");
     });
 
     it("deve alternar sidebar ao clicar no botão mobile", () => {
       renderWithRouter();
-      const menuButton = screen.getByText("☰");
 
       // Primeiro clique - fecha (estava aberto por padrão em desktop)
-      fireEvent.click(menuButton);
+      fireEvent.click(screen.getByLabelText("Fechar menu"));
       expect(screen.getByText("→")).toBeInTheDocument();
+      expect(screen.getByLabelText("Abrir menu")).toHaveAttribute(
+        "aria-expanded",
+        "false"
+      );
 
       // Segundo clique - abre
-      fireEvent.click(menuButton);
+      fireEvent.click(screen.getByLabelText("Abrir menu"));
       expect(screen.getByText("←")).toBeInTheDocument();
     });
   });

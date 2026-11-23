@@ -672,6 +672,10 @@ export const useCriarEtapa = (): UseCriarEtapaReturn => {
             ? new Date(formData.dataRealizacao + "T00:00:00").toISOString()
             : "",
           jogadoresPorGrupo: jogadoresPorGrupoCalculado,
+          // Marcado em outro formato antes de trocar para Super X: não vale
+          melhorDe3Eliminatoria:
+            formData.formato !== FormatoEtapa.SUPER_X &&
+            formData.melhorDe3Eliminatoria,
         };
 
         // Incluir campos específicos por formato

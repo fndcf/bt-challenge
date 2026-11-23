@@ -38,8 +38,7 @@ test.describe("Admin no celular", () => {
 
   test("navega pelo menu do admin", { tag: "@p1" }, async ({ page }) => {
     await page.goto("/admin");
-    // Hoje o botão só tem o símbolo "☰" como nome (achado de acessibilidade)
-    await page.getByRole("button", { name: /menu|☰/i }).click();
+    await page.getByRole("button", { name: "Abrir menu" }).click();
     await page.getByRole("navigation").getByRole("link", { name: "Jogadores", exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "Jogadores" })).toBeVisible();

@@ -64,10 +64,12 @@ e2e/
 - **Um teste, um motivo para falhar.** Nome do teste diz o comportamento ("lança os resultados de um grupo e atualiza a classificação").
 - **Teste falhou?** Veja `e2e/relatorio` (print, vídeo do passo a passo e a árvore da tela). Se for o app que mudou de comportamento, é bug: não ajuste o teste para passar.
 
-## Achados abertos
+## Achados
 
-| Achado | Teste que mostra |
-|--------|------------------|
-| Lista de jogadores mostra resultado errado na busca: respostas antigas chegam depois e sobrescrevem a nova (`useListagemJogadores` não descarta resposta velha). Falha às vezes | `jogadores` › "filtra a lista pelo nome" e "cadastra jogador..." |
-| Botão do menu no celular tem só "☰" como nome (leitor de tela não diz o que é) | `resultados.celular` › "navega pelo menu do admin" |
-| Super X mostra a opção "aplicar melhor de 3 na eliminatória", mas não tem eliminatória (decisão pendente) | `criar-etapa` › "melhor de 3 revela a opção da eliminatória" |
+Bugs que os testes encontraram e que já foram corrigidos (os testes seguem cobrindo):
+
+| Achado | Correção | Teste |
+|--------|----------|-------|
+| Busca de jogadores às vezes mostrava a lista sem filtro (resposta velha chegava por último) | `useRequisicaoAtual` nas listagens de jogadores e etapas | `jogadores` › busca e cadastro |
+| Botão do menu no celular só com "☰" como nome | `aria-label` "Abrir menu" / "Fechar menu" | `resultados.celular` › menu do admin |
+| Super X oferecia "melhor de 3 na eliminatória" sem ter eliminatória | Opção escondida no Super X | `criar-etapa` › "melhor de 3 oferece a eliminatória, menos no Super X" |

@@ -468,7 +468,13 @@ const AdminLayout: React.FC = () => {
         </SidebarFooter>
       </Sidebar>
 
-      <MenuButton onClick={() => setSidebarOpen(!sidebarOpen)}>☰</MenuButton>
+      <MenuButton
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label={sidebarOpen ? "Fechar menu" : "Abrir menu"}
+        aria-expanded={sidebarOpen}
+      >
+        <span aria-hidden="true">☰</span>
+      </MenuButton>
 
       <Main>
         <Outlet />
