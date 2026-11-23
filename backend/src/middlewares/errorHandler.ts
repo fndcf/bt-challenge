@@ -31,7 +31,10 @@ export const errorHandler = (
   if (err instanceof AppError) {
     // Se for erro de validação, incluir detalhes
     if (err instanceof ValidationError) {
-      return ResponseHelper.validationError(res, err.errors);
+      return ResponseHelper.validationError(
+        res,
+        Array.isArray(err.errors) ? err.errors : err.message
+      );
     }
 
     // Outros erros operacionais

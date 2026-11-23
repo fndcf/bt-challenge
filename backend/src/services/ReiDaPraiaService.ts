@@ -1913,7 +1913,7 @@ export class ReiDaPraiaService {
               let gamesVencidosDupla2 = 0;
               let gamesPerdidosDupla2 = 0;
 
-              partida.placar.forEach((set: any) => {
+              partida.placar.forEach((set) => {
                 if (set.gamesDupla1 > set.gamesDupla2) {
                   setsDupla1++;
                 } else {

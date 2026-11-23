@@ -129,7 +129,7 @@ export class EquipeRepository implements IEquipeRepository {
 
     for (const { id, incrementos } of atualizacoes) {
       const docRef = this.collection.doc(id);
-      const updates: Record<string, any> = {
+      const updates: Record<string, unknown> = {
         atualizadoEm: agora,
       };
 

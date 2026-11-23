@@ -174,7 +174,7 @@ export class JogadorRepository implements IJogadorRepository {
       throw new NotFoundError("Jogador não encontrado");
     }
 
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...data,
       atualizadoEm: Timestamp.now(),
     };
@@ -187,18 +187,10 @@ export class JogadorRepository implements IJogadorRepository {
     });
 
     // Formatar campos
-    if (updateData.nome) {
-      updateData.nome = updateData.nome.trim();
-    }
-    if (updateData.email) {
-      updateData.email = updateData.email.trim().toLowerCase();
-    }
-    if (updateData.telefone) {
-      updateData.telefone = updateData.telefone.trim();
-    }
-    if (updateData.observacoes) {
-      updateData.observacoes = updateData.observacoes.trim();
-    }
+    if (data.nome) updateData.nome = data.nome.trim();
+    if (data.email) updateData.email = data.email.trim().toLowerCase();
+    if (data.telefone) updateData.telefone = data.telefone.trim();
+    if (data.observacoes) updateData.observacoes = data.observacoes.trim();
 
     // Vazio apaga o campo, como no cadastro
     CAMPOS_OPCIONAIS.forEach((campo) => {
@@ -291,8 +283,8 @@ export class JogadorRepository implements IJogadorRepository {
     const ordem = filtros.ordem || "asc";
 
     jogadores.sort((a, b) => {
-      let valorA: any;
-      let valorB: any;
+      let valorA: string | number;
+      let valorB: string | number;
 
       switch (ordenarPor) {
         case "nome":
@@ -316,10 +308,10 @@ export class JogadorRepository implements IJogadorRepository {
           valorB = b.nome.toLowerCase();
       }
 
-      if (typeof valorA === "string") {
+      if (typeof valorA === "string" || typeof valorB === "string") {
         return ordem === "desc"
-          ? valorB.localeCompare(valorA)
-          : valorA.localeCompare(valorB);
+          ? String(valorB).localeCompare(String(valorA))
+          : String(valorA).localeCompare(String(valorB));
       }
 
       return ordem === "desc" ? valorB - valorA : valorA - valorB;
@@ -453,7 +445,7 @@ export class JogadorRepository implements IJogadorRepository {
       pontos?: number;
     }
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...estatisticas,
       atualizadoEm: Timestamp.now(),
     };

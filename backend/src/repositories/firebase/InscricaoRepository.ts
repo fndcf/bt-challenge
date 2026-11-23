@@ -249,7 +249,7 @@ export class InscricaoRepository implements IInscricaoRepository {
    * Atualizar status da inscrição
    */
   async atualizarStatus(id: string, status: StatusInscricao): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status,
       atualizadoEm: Timestamp.now(),
     };

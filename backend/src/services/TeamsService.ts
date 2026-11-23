@@ -14,6 +14,7 @@
  * - TeamsClassificacaoService: Classificação e preenchimento de eliminatórias
  */
 
+import { EstatisticasJogador } from "../models/EstatisticasJogador";
 import {
   Equipe,
   ConfrontoEquipe,
@@ -185,7 +186,7 @@ export class TeamsService {
     inscricoes: Inscricao[]
   ): Promise<{
     equipes: Equipe[];
-    estatisticas: any[];
+    estatisticas: EstatisticasJogador[];
     temFaseGrupos: boolean;
   }> {
     return this.equipeService.gerarEquipes(etapa, inscricoes);
@@ -200,7 +201,7 @@ export class TeamsService {
     formacoes: FormacaoManualEquipeDTO[]
   ): Promise<{
     equipes: Equipe[];
-    estatisticas: any[];
+    estatisticas: EstatisticasJogador[];
     temFaseGrupos: boolean;
   }> {
     return this.equipeService.formarEquipesManualmente(

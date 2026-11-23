@@ -363,7 +363,7 @@ export class PartidaRepository implements IPartidaRepository {
     dataHora: Date | string,
     quadra?: string
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       dataHora:
         typeof dataHora === "string" ? dataHora : Timestamp.fromDate(dataHora),
       atualizadoEm: Timestamp.now(),

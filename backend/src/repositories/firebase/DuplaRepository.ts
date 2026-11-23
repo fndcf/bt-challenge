@@ -274,7 +274,7 @@ export class DuplaRepository implements IDuplaRepository {
     id: string,
     stats: AtualizarEstatisticasDuplaDTO
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...stats,
       atualizadoEm: Timestamp.now(),
     };
@@ -296,7 +296,7 @@ export class DuplaRepository implements IDuplaRepository {
     id: string,
     stats: AtualizarEstatisticasDuplaDTO
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       atualizadoEm: Timestamp.now(),
     };
 

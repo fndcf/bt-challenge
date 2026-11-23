@@ -450,11 +450,33 @@ export interface FiltrosEtapa {
   formato?: FormatoEtapa;
   dataInicio?: string;
   dataFim?: string;
-  ordenarPor?: "dataRealizacao" | "criadoEm";
+  ordenarPor?: OrdenacaoEtapa;
   ordem?: "asc" | "desc";
   limite?: number;
   offset?: number;
 }
+
+export const ORDENACOES_ETAPA = [
+  "dataRealizacao",
+  "criadoEm",
+  "nome",
+  "totalInscritos",
+] as const;
+export type OrdenacaoEtapa = (typeof ORDENACOES_ETAPA)[number];
+
+/**
+ * O que é gravado ao editar a etapa: as datas já viram Timestamp e o tamanho
+ * do grupo é recalculado
+ */
+export type DadosAtualizacaoEtapa = Omit<
+  AtualizarEtapaDTO,
+  "dataInicio" | "dataFim" | "dataRealizacao"
+> & {
+  dataInicio?: string | Date | Timestamp;
+  dataFim?: string | Date | Timestamp;
+  dataRealizacao?: string | Date | Timestamp;
+  jogadoresPorGrupo?: number;
+};
 
 // Listagem
 export interface ListagemEtapas {

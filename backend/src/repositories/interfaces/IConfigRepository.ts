@@ -23,7 +23,7 @@ export interface ConfigGlobal {
   maxEtapasPorArena?: number;
   tempoLimitePartida?: number; // em minutos
   // Outras configurações globais
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

@@ -155,6 +155,45 @@ describe("rotas de etapa", () => {
     });
   });
 
+  describe("filtros da listagem", () => {
+    it("valores válidos chegam ao service", async () => {
+      const listar = jest
+        .spyOn(etapaService, "listar")
+        .mockResolvedValue({ etapas: [], total: 0, limite: 5, offset: 0, temMais: false });
+
+      const { status } = await chamar(
+        "GET",
+        "/?status=finalizada&formato=teams&ordenarPor=nome&ordem=asc&limite=5"
+      );
+
+      expect(status).toBe(200);
+      expect(listar).toHaveBeenCalledWith({
+        arenaId: "a1",
+        status: "finalizada",
+        nivel: undefined,
+        genero: undefined,
+        formato: "teams",
+        ordenarPor: "nome",
+        ordem: "asc",
+        limite: 5,
+        offset: 0,
+      });
+    });
+
+    it.each(["status=outro", "formato=x", "ordenarPor=senha", "ordem=lado"])(
+      "?%s responde 400",
+      async (filtro) => {
+        const listar = jest.spyOn(etapaService, "listar");
+
+        const { status, corpo } = await chamar("GET", "/?" + filtro);
+
+        expect(status).toBe(400);
+        expect(corpo.error).toBe("Filtro inválido: " + filtro.split("=")[0]);
+        expect(listar).not.toHaveBeenCalled();
+      }
+    );
+  });
+
   describe("erros", () => {
     const encerrar = (erro: Error) => {
       jest

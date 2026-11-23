@@ -7,6 +7,10 @@
  */
 
 import { Dupla } from "../models/Dupla";
+import {
+  AtualizarEstatisticasPartidaDTO,
+  EstatisticasJogador,
+} from "../models/EstatisticasJogador";
 import { Grupo } from "../models/Grupo";
 import {
   Partida,
@@ -89,7 +93,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
       );
 
       // Gerar todos os DTOs de partidas
-      const todosPartidaDTOs: any[] = [];
+      const todosPartidaDTOs: Partial<Partida>[] = [];
       const partidasPorGrupo: Map<string, number> = new Map(); // grupoId -> quantidade de partidas
 
       for (let g = 0; g < grupos.length; g++) {
@@ -419,7 +423,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     let gamesAntigo2 = 0;
     let gamesPerdidosAntigo2 = 0;
 
-    partida.placar.forEach((set: any) => {
+    partida.placar.forEach((set) => {
       if (set.gamesDupla1 > set.gamesDupla2) setsAntigo1++;
       else setsAntigo2++;
       gamesAntigo1 += set.gamesDupla1;
@@ -780,7 +784,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     partida: Partida,
     dupla1: Dupla,
     dupla2: Dupla,
-    estatisticasMap: Map<string, any>
+    estatisticasMap: Map<string, EstatisticasJogador>
   ): Promise<void> {
     if (!partida.placar || partida.placar.length === 0) return;
 
@@ -792,7 +796,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     let gamesAntigo2 = 0;
     let gamesPerdidosAntigo2 = 0;
 
-    partida.placar.forEach((set: any) => {
+    partida.placar.forEach((set) => {
       if (set.gamesDupla1 > set.gamesDupla2) setsAntigo1++;
       else setsAntigo2++;
       gamesAntigo1 += set.gamesDupla1;
@@ -851,7 +855,10 @@ export class PartidaGrupoService implements IPartidaGrupoService {
           gamesPerdidos: gamesPerdidosAntigo2,
         },
       },
-    ].filter(Boolean) as Array<{ estatisticaId: string; dto: any }>;
+    ].filter(Boolean) as Array<{
+      estatisticaId: string;
+      dto: AtualizarEstatisticasPartidaDTO;
+    }>;
 
     // Reverter em paralelo usando increment
     await Promise.all([
@@ -925,7 +932,7 @@ export class PartidaGrupoService implements IPartidaGrupoService {
     dupla1: Dupla,
     dupla2: Dupla,
     stats: ReturnType<typeof this.calcularEstatisticasPlacar>,
-    estatisticasMap: Map<string, any>
+    estatisticasMap: Map<string, EstatisticasJogador>
   ): Promise<void> {
     // Obter estatisticaIds do map
     const est1A = estatisticasMap.get(dupla1.jogador1Id);
@@ -975,7 +982,10 @@ export class PartidaGrupoService implements IPartidaGrupoService {
           gamesPerdidos: stats.gamesPerdidosDupla2,
         },
       },
-    ].filter(Boolean) as Array<{ estatisticaId: string; dto: any }>;
+    ].filter(Boolean) as Array<{
+      estatisticaId: string;
+      dto: AtualizarEstatisticasPartidaDTO;
+    }>;
 
     await estatisticasJogadorService.atualizarAposPartidaGrupoComIncrement(
       atualizacoes

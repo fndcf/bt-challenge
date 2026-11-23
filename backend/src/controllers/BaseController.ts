@@ -91,7 +91,7 @@ export abstract class BaseController {
     res: Response,
     error: Error,
     operation: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): void {
     logger.error(
       `${this.controllerName}: Erro em ${operation}`,

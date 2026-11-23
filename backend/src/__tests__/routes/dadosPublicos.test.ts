@@ -122,6 +122,30 @@ describe("dados públicos", () => {
     ]);
   });
 
+  it.each([
+    ["/public/arena-um/etapas?status=outro", "Filtro inválido: status"],
+    ["/public/arena-um/jogadores?nivel=outro", "Filtro inválido: nivel"],
+    ["/public/arena-um/jogadores?genero=x", "Filtro inválido: genero"],
+  ])("%s responde 400", async (caminho, erro) => {
+    const { status, texto } = await buscar(caminho);
+
+    expect(status).toBe(400);
+    expect(JSON.parse(texto)).toEqual({ success: false, error: erro });
+  });
+
+  it("filtro válido chega ao service", async () => {
+    await buscar("/public/arena-um/jogadores?nivel=avancado&genero=feminino&limite=5");
+
+    expect(jogadorService.listar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nivel: "avancado",
+        genero: "feminino",
+        limite: 5,
+        offset: 0,
+      })
+    );
+  });
+
   it("a busca pública não procura por email nem telefone", async () => {
     await buscar("/public/arena-um/jogadores?busca=ana");
 

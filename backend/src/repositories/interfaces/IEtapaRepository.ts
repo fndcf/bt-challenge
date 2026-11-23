@@ -5,7 +5,7 @@
 import {
   Etapa,
   CriarEtapaDTO,
-  AtualizarEtapaDTO,
+  DadosAtualizacaoEtapa,
   FiltrosEtapa,
   ListagemEtapas,
   StatusEtapa,
@@ -22,7 +22,7 @@ export interface IEtapaRepository
   extends IBaseRepository<
     Etapa,
     CriarEtapaDTO & { arenaId: string; criadoPor: string },
-    AtualizarEtapaDTO
+    DadosAtualizacaoEtapa
   > {
   /**
    * Buscar etapa por ID com validação de arena

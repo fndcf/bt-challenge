@@ -12,6 +12,12 @@ import { ResponseHelper } from "../utils/responseHelper";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+/** No Cloud Functions o corpo já chega lido, em rawBody */
+type RequisicaoComArquivo = Omit<Request, "file"> & {
+  rawBody?: Buffer;
+  file?: Pick<Express.Multer.File, "buffer" | "originalname" | "mimetype" | "size">;
+};
+
 /**
  * Middleware para upload de arquivo Excel único
  */
@@ -70,7 +76,7 @@ export const uploadExcel = (req: Request, res: Response, next: NextFunction) => 
       return;
     }
 
-    (req as any).file = {
+    (req as RequisicaoComArquivo).file = {
       buffer: fileBuffer,
       originalname: fileName,
       mimetype: fileMimeType,
@@ -85,7 +91,7 @@ export const uploadExcel = (req: Request, res: Response, next: NextFunction) => 
   });
 
   // Cloud Functions Gen 2: body já foi consumido e está em req.rawBody
-  const rawBody = (req as any).rawBody;
+  const rawBody = (req as RequisicaoComArquivo).rawBody;
   if (rawBody) {
     busboy.end(rawBody);
   } else {

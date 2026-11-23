@@ -9,6 +9,16 @@ export interface ArenaType {
   updatedAt: Date;
 }
 
+/** Como a arena vem do Firestore: datas são Timestamp */
+export type DadosArenaGravados = Omit<
+  Partial<ArenaType>,
+  "createdAt" | "updatedAt"
+> & {
+  id: string;
+  createdAt?: { toDate(): Date };
+  updatedAt?: { toDate(): Date };
+};
+
 export class Arena implements ArenaType {
   id: string;
   nome: string;
@@ -68,13 +78,13 @@ export class Arena implements ArenaType {
   /**
    * Criar Arena a partir de dados do Firestore
    */
-  static fromFirestore(data: any): Arena {
+  static fromFirestore(data: DadosArenaGravados): Arena {
     return new Arena({
       id: data.id,
-      nome: data.nome,
-      slug: data.slug,
-      adminEmail: data.adminEmail,
-      adminUid: data.adminUid,
+      nome: data.nome ?? "",
+      slug: data.slug ?? "",
+      adminEmail: data.adminEmail ?? "",
+      adminUid: data.adminUid ?? "",
       ativa: data.ativa ?? true,
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),

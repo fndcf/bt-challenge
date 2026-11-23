@@ -7,7 +7,7 @@ import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import {
   Etapa,
   CriarEtapaDTO,
-  AtualizarEtapaDTO,
+  DadosAtualizacaoEtapa,
   FiltrosEtapa,
   ListagemEtapas,
   StatusEtapa,
@@ -37,7 +37,7 @@ export class EtapaRepository implements IEtapaRepository {
   ): Promise<Etapa> {
     const agora = Timestamp.now();
 
-    const etapaData: any = {
+    const etapaData: Record<string, unknown> = {
       arenaId: data.arenaId,
       nome: data.nome,
       descricao: data.descricao || "",
@@ -120,7 +120,7 @@ export class EtapaRepository implements IEtapaRepository {
   /**
    * Atualizar etapa
    */
-  async atualizar(id: string, data: AtualizarEtapaDTO): Promise<Etapa> {
+  async atualizar(id: string, data: DadosAtualizacaoEtapa): Promise<Etapa> {
     const docRef = this.collection.doc(id);
     const doc = await docRef.get();
 
@@ -128,7 +128,7 @@ export class EtapaRepository implements IEtapaRepository {
       throw new NotFoundError("Etapa não encontrada");
     }
 
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...data,
       atualizadoEm: Timestamp.now(),
     };
@@ -213,8 +213,8 @@ export class EtapaRepository implements IEtapaRepository {
     const ordem = filtros.ordem || "desc";
 
     etapas.sort((a, b) => {
-      let valorA: any;
-      let valorB: any;
+      let valorA: string | number;
+      let valorB: string | number;
 
       switch (ordenarPor) {
         case "dataRealizacao":
@@ -238,10 +238,10 @@ export class EtapaRepository implements IEtapaRepository {
           valorB = (b.dataRealizacao as Timestamp)?.seconds || 0;
       }
 
-      if (typeof valorA === "string") {
+      if (typeof valorA === "string" || typeof valorB === "string") {
         return ordem === "desc"
-          ? valorB.localeCompare(valorA)
-          : valorA.localeCompare(valorB);
+          ? String(valorB).localeCompare(String(valorA))
+          : String(valorA).localeCompare(String(valorB));
       }
 
       return ordem === "desc" ? valorB - valorA : valorA - valorB;
@@ -330,7 +330,7 @@ export class EtapaRepository implements IEtapaRepository {
    * Atualizar status da etapa
    */
   async atualizarStatus(id: string, status: StatusEtapa): Promise<Etapa> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status,
       atualizadoEm: Timestamp.now(),
     };

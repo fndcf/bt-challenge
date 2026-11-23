@@ -262,7 +262,8 @@ describe("ExcelSumulaService", () => {
           id: "c1",
           fase: "grupos",
           rodada: 1,
-          grupoNome: "Grupo A",
+          // O confronto grava só a letra do grupo
+          grupoId: "A",
           equipe1Nome: "Time Alpha",
           equipe2Nome: "Time Beta",
         },

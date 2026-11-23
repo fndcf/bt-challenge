@@ -315,7 +315,7 @@ export class GrupoRepository implements IGrupoRepository {
       partidasFinalizadas?: number;
     }
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...dados,
       atualizadoEm: Timestamp.now(),
     };

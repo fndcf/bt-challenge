@@ -6,10 +6,15 @@ import {
   AtualizarEtapaSchema,
   CriarEtapaSchema,
   FiltrosEtapa,
+  FormatoEtapa,
+  ORDENACOES_ETAPA,
+  StatusEtapa,
 } from "../../models/Etapa";
+import { GeneroJogador, NivelJogador } from "../../models/Jogador";
 import encerramentoService from "../../services/EncerramentoService";
 import etapaService from "../../services/EtapaService";
 import excelSumulaService from "../../services/ExcelSumulaService";
+import { lerNumero, lerOpcao, ORDENS } from "../../utils/consulta";
 import { NotFoundError } from "../../utils/errors";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { BaseController } from "../BaseController";
@@ -31,21 +36,21 @@ class EtapaController extends BaseController {
 
   /** GET /api/etapas */
   listar = this.consulta("listar etapas", async ({ req, res, arenaId }) => {
-    const { limite, offset, ...filtros } = req.query;
+    const { query } = req;
 
-    const resultado = await etapaService.listar({
-      status: filtros.status,
-      nivel: filtros.nivel,
-      genero: filtros.genero,
-      formato: filtros.formato,
-      ordenarPor: filtros.ordenarPor,
-      ordem: filtros.ordem,
+    const filtros: FiltrosEtapa = {
       arenaId,
-      limite: limite ? parseInt(limite as string) : 20,
-      offset: offset ? parseInt(offset as string) : 0,
-    } as FiltrosEtapa);
+      status: lerOpcao(query.status, StatusEtapa, "status"),
+      nivel: lerOpcao(query.nivel, NivelJogador, "nivel"),
+      genero: lerOpcao(query.genero, GeneroJogador, "genero"),
+      formato: lerOpcao(query.formato, FormatoEtapa, "formato"),
+      ordenarPor: lerOpcao(query.ordenarPor, ORDENACOES_ETAPA, "ordenarPor"),
+      ordem: lerOpcao(query.ordem, ORDENS, "ordem"),
+      limite: lerNumero(query.limite, 20),
+      offset: lerNumero(query.offset, 0),
+    };
 
-    ResponseHelper.success(res, resultado);
+    ResponseHelper.success(res, await etapaService.listar(filtros));
   });
 
   /** GET /api/etapas/stats */

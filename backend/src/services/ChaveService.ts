@@ -9,7 +9,7 @@
  * - ClassificacaoService: cálculos de classificação
  */
 
-import { FaseEtapa, FormatoEtapa, StatusEtapa } from "../models/Etapa";
+import { Etapa, FaseEtapa, FormatoEtapa, StatusEtapa } from "../models/Etapa";
 import { Dupla } from "../models/Dupla";
 import { Grupo } from "../models/Grupo";
 import { Partida, StatusPartida } from "../models/Partida";
@@ -310,7 +310,7 @@ export class ChaveService implements IChaveService {
   /**
    * Validar etapa para geração de chaves
    */
-  private validarEtapaParaGeracaoChaves(etapa: any): void {
+  private validarEtapaParaGeracaoChaves(etapa: Etapa): void {
     if (etapa.status !== StatusEtapa.INSCRICOES_ENCERRADAS) {
       throw new Error("Inscrições devem estar encerradas para gerar chaves");
     }

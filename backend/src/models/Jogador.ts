@@ -146,11 +146,19 @@ export interface FiltrosJogador {
   genero?: GeneroJogador;
   busca?: string; // Busca por nome, email ou telefone
   buscaSoNome?: boolean; // Sem login: buscar por email revelaria de quem ele é
-  ordenarPor?: "nome" | "criadoEm" | "pontos" | "vitorias";
+  ordenarPor?: OrdenacaoJogador;
   ordem?: "asc" | "desc";
   limite?: number;
   offset?: number;
 }
+
+export const ORDENACOES_JOGADOR = [
+  "nome",
+  "criadoEm",
+  "pontos",
+  "vitorias",
+] as const;
+export type OrdenacaoJogador = (typeof ORDENACOES_JOGADOR)[number];
 
 /**
  * Resposta da listagem de jogadores

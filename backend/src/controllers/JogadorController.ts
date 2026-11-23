@@ -12,7 +12,12 @@ import {
   CriarJogadorSchema,
   AtualizarJogadorSchema,
   FiltrosJogador,
+  GeneroJogador,
+  NivelJogador,
+  ORDENACOES_JOGADOR,
+  StatusJogador,
 } from "../models/Jogador";
+import { lerNumero, lerOpcao, lerTexto, ORDENS } from "../utils/consulta";
 import { z } from "zod";
 import logger from "../utils/logger";
 
@@ -89,35 +94,23 @@ class JogadorController extends BaseController {
    * Listar jogadores com filtros
    * GET /api/jogadores
    */
-  async listar(req: AuthRequest, res: Response): Promise<void> {
-    try {
-      if (!this.checkAuth(req, res)) return;
+  listar = this.consulta("listar jogadores", async ({ req, res, arenaId }) => {
+    const { query } = req;
 
-      const { arenaId } = req.user;
+    const filtros: FiltrosJogador = {
+      arenaId,
+      nivel: lerOpcao(query.nivel, NivelJogador, "nivel"),
+      status: lerOpcao(query.status, StatusJogador, "status"),
+      genero: lerOpcao(query.genero, GeneroJogador, "genero"),
+      busca: lerTexto(query.busca),
+      ordenarPor: lerOpcao(query.ordenarPor, ORDENACOES_JOGADOR, "ordenarPor"),
+      ordem: lerOpcao(query.ordem, ORDENS, "ordem"),
+      limite: lerNumero(query.limite, undefined),
+      offset: lerNumero(query.offset, 0),
+    };
 
-      const filtros: FiltrosJogador = {
-        arenaId,
-        nivel: req.query.nivel as any,
-        status: req.query.status as any,
-        genero: req.query.genero as any,
-        busca: req.query.busca as string,
-        ordenarPor: req.query.ordenarPor as any,
-        ordem: req.query.ordem as any,
-        limite: req.query.limite
-          ? parseInt(req.query.limite as string)
-          : undefined,
-        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
-      };
-
-      const resultado = await jogadorService.listar(filtros);
-
-      ResponseHelper.success(res, resultado);
-    } catch (error: any) {
-      this.handleGenericError(res, error, "listar jogadores", {
-        arenaId: req.user?.arenaId,
-      });
-    }
-  }
+    ResponseHelper.success(res, await jogadorService.listar(filtros));
+  });
 
   /**
    * Atualizar jogador

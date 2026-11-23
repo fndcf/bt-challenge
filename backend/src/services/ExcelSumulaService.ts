@@ -79,8 +79,7 @@ class ExcelSumulaService {
     let rowNum = 2;
     for (const grupo of grupos.sort((a, b) => a.ordem - b.ordem)) {
       const partidasDoGrupo = partidas
-        .filter((p) => p.grupoId === grupo.id && p.fase === "grupos")
-        .sort((a, b) => ((a as any).numero || 0) - ((b as any).numero || 0));
+        .filter((p) => p.grupoId === grupo.id && p.fase === "grupos");
 
       for (let i = 0; i < partidasDoGrupo.length; i++) {
         const p = partidasDoGrupo[i];
@@ -120,7 +119,7 @@ class ExcelSumulaService {
 
     let rowNum = 2;
     for (const grupo of grupos.sort((a, b) => a.ordem - b.ordem)) {
-      const partidasDoGrupo = (partidas as any[])
+      const partidasDoGrupo = partidas
         .filter((p) => p.grupoId === grupo.id)
         .sort((a, b) => (a.rodada || 0) - (b.rodada || 0));
 
@@ -159,7 +158,7 @@ class ExcelSumulaService {
       "Rodada", "Dupla 1", "vs", "Dupla 2", "Placar"
     ]);
 
-    const partidasOrdenadas = (partidas as any[])
+    const partidasOrdenadas = [...partidas]
       .sort((a, b) => (a.rodada || 0) - (b.rodada || 0));
 
     let rowNum = 2;
@@ -170,7 +169,7 @@ class ExcelSumulaService {
         worksheet.addRow([]);
         rowNum++;
       }
-      rodadaAtual = p.rodada;
+      rodadaAtual = p.rodada ?? 0;
 
       const dupla1 = [p.jogador1ANome, p.jogador1BNome].filter(Boolean).join(" / ");
       const dupla2 = [p.jogador2ANome, p.jogador2BNome].filter(Boolean).join(" / ");
@@ -196,7 +195,7 @@ class ExcelSumulaService {
     const confrontoEquipeRepo = new ConfrontoEquipeRepository();
     const confrontos = await confrontoEquipeRepo.buscarPorEtapa(etapaId, arenaId);
 
-    const confrontosGrupos = (confrontos as any[])
+    const confrontosGrupos = confrontos
       .filter((c) => c.fase === "grupos")
       .sort((a, b) => (a.rodada || 0) - (b.rodada || 0));
 
@@ -208,7 +207,7 @@ class ExcelSumulaService {
     let rowNum = 2;
     for (const c of confrontosGrupos) {
       const row = worksheet.addRow([
-        c.grupoNome || "—",
+        c.grupoId ? `Grupo ${c.grupoId}` : "—",
         `Rodada ${c.rodada || ""}`,
         c.equipe1Nome || "—",
         "vs",

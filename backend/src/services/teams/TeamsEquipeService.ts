@@ -8,6 +8,7 @@
  * - Atribuição de grupos
  */
 
+import { EstatisticasJogador } from "../../models/EstatisticasJogador";
 import {
   Equipe,
   JogadorEquipe,
@@ -46,7 +47,7 @@ export interface ITeamsEquipeService {
     inscricoes: Inscricao[]
   ): Promise<{
     equipes: Equipe[];
-    estatisticas: any[];
+    estatisticas: EstatisticasJogador[];
     temFaseGrupos: boolean;
   }>;
 
@@ -56,7 +57,7 @@ export interface ITeamsEquipeService {
     formacoes: FormacaoManualEquipeDTO[]
   ): Promise<{
     equipes: Equipe[];
-    estatisticas: any[];
+    estatisticas: EstatisticasJogador[];
     temFaseGrupos: boolean;
   }>;
 
@@ -86,7 +87,7 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     inscricoes: Inscricao[]
   ): Promise<{
     equipes: Equipe[];
-    estatisticas: any[];
+    estatisticas: EstatisticasJogador[];
     temFaseGrupos: boolean;
   }> {
     this.validarEtapaParaGeracaoEquipes(etapa);
@@ -176,7 +177,7 @@ export class TeamsEquipeService implements ITeamsEquipeService {
     formacoes: FormacaoManualEquipeDTO[]
   ): Promise<{
     equipes: Equipe[];
-    estatisticas: any[];
+    estatisticas: EstatisticasJogador[];
     temFaseGrupos: boolean;
   }> {
     this.validarEtapaParaGeracaoEquipes(etapa);

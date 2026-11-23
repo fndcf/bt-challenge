@@ -7,6 +7,7 @@ import {
   Etapa,
   CriarEtapaDTO,
   AtualizarEtapaDTO,
+  DadosAtualizacaoEtapa,
   InscreverJogadorDTO,
   FiltrosEtapa,
   ListagemEtapas,
@@ -625,7 +626,7 @@ export class EtapaService {
         }
       }
 
-      const dadosAtualizacao: AtualizarEtapaDTO = { ...dadosValidados };
+      const dadosAtualizacao: DadosAtualizacaoEtapa = { ...dadosValidados };
 
       // Recalcular o tamanho do grupo se maxJogadores mudou. A quantidade não é
       // gravada: depende do formato e sai da distribuição ao gerar as chaves.
@@ -644,24 +645,24 @@ export class EtapaService {
           qtdGrupos = Math.max(1, Math.floor(totalDuplas / 3));
         }
 
-        (dadosAtualizacao as any).jogadoresPorGrupo = Math.ceil(
+        dadosAtualizacao.jogadoresPorGrupo = Math.ceil(
           totalDuplas / qtdGrupos
         );
       }
 
       // Converter datas
       if (dadosValidados.dataInicio) {
-        (dadosAtualizacao as any).dataInicio = Timestamp.fromDate(
+        dadosAtualizacao.dataInicio = Timestamp.fromDate(
           new Date(dadosValidados.dataInicio)
         );
       }
       if (dadosValidados.dataFim) {
-        (dadosAtualizacao as any).dataFim = Timestamp.fromDate(
+        dadosAtualizacao.dataFim = Timestamp.fromDate(
           new Date(dadosValidados.dataFim)
         );
       }
       if (dadosValidados.dataRealizacao) {
-        (dadosAtualizacao as any).dataRealizacao = Timestamp.fromDate(
+        dadosAtualizacao.dataRealizacao = Timestamp.fromDate(
           new Date(dadosValidados.dataRealizacao)
         );
       }

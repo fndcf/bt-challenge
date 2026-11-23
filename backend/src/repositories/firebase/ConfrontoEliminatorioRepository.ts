@@ -351,7 +351,7 @@ export class ConfrontoEliminatorioRepository
       dupla2Origem?: string;
     }
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...dados,
       atualizadoEm: Timestamp.now(),
     };

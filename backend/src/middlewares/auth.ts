@@ -52,7 +52,7 @@ export const requireAuth = async (
 
     if (!adminDoc.exists) {
       const error = new UnauthorizedError("Usuário não cadastrado no sistema");
-      (error as any).code = "auth/user-not-registered";
+      Object.assign(error, { code: "auth/user-not-registered" });
       throw error;
     }
 

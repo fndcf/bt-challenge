@@ -1,15 +1,30 @@
 import { Router, Request, Response } from "express";
-import { paraEtapaPublica } from "../models/Etapa";
-import { paraJogadorPublico } from "../models/Jogador";
+import { paraEtapaPublica, StatusEtapa } from "../models/Etapa";
+import {
+  GeneroJogador,
+  NivelJogador,
+  paraJogadorPublico,
+  StatusJogador,
+} from "../models/Jogador";
 import { arenaService } from "../services/ArenaService";
 import etapaService from "../services/EtapaService";
 import jogadorService from "../services/JogadorService";
 import estatisticasJogadorService from "../services/EstatisticasJogadorService";
 import etapaPublicaService from "../services/publico/EtapaPublicaService";
 import { JogadorRanking } from "../utils/estatisticas";
+import { lerNumero, lerOpcao, lerTexto } from "../utils/consulta";
+import { BadRequestError } from "../utils/errors";
 import logger from "../utils/logger";
 
 const router = Router();
+
+/** Filtro da URL fora da lista: 400 com o nome dele */
+const respondeuFiltroInvalido = (res: Response, error: unknown): boolean => {
+  if (!(error instanceof BadRequestError)) return false;
+
+  res.status(400).json({ success: false, error: error.message });
+  return true;
+};
 
 /**
  * ROTAS PÚBLICAS - SEM AUTENTICAÇÃO
@@ -63,9 +78,9 @@ router.get("/:arenaSlug/etapas", async (req: Request, res: Response) => {
 
     const resultado = await etapaService.listar({
       arenaId: arena.id,
-      status: status as any,
-      limite: parseInt(limite as string),
-      offset: parseInt(offset as string),
+      status: lerOpcao(status, StatusEtapa, "status"),
+      limite: lerNumero(limite, 20),
+      offset: lerNumero(offset, 0),
     });
 
     res.json({
@@ -76,6 +91,7 @@ router.get("/:arenaSlug/etapas", async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    if (respondeuFiltroInvalido(res, error)) return;
     logger.error(
       "Erro ao listar etapas públicas",
       { arenaSlug: req.params.arenaSlug },
@@ -260,13 +276,13 @@ router.get("/:arenaSlug/jogadores", async (req: Request, res: Response) => {
 
     const resultado = await jogadorService.listar({
       arenaId: arena.id,
-      nivel: nivel as any,
-      status: status as any,
-      genero: genero as any,
-      busca: busca as string,
+      nivel: lerOpcao(nivel, NivelJogador, "nivel"),
+      status: lerOpcao(status, StatusJogador, "status"),
+      genero: lerOpcao(genero, GeneroJogador, "genero"),
+      busca: lerTexto(busca),
       buscaSoNome: true,
-      limite: parseInt(limite as string),
-      offset: parseInt(offset as string),
+      limite: lerNumero(limite, 50),
+      offset: lerNumero(offset, 0),
     });
 
     res.json({
@@ -277,6 +293,7 @@ router.get("/:arenaSlug/jogadores", async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    if (respondeuFiltroInvalido(res, error)) return;
     logger.error(
       "Erro ao listar jogadores públicos",
       { arenaSlug: req.params.arenaSlug },
@@ -459,6 +476,7 @@ router.get("/:arenaSlug/ranking", async (req: Request, res: Response) => {
       data: rankingFormatado,
     });
   } catch (error: any) {
+    if (respondeuFiltroInvalido(res, error)) return;
     logger.error(
       "Erro ao buscar ranking público",
       { arenaSlug: req.params.arenaSlug },

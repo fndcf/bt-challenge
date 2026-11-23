@@ -173,7 +173,7 @@ class ServiceContainer implements IServiceContainer {
     if (!this._repositories) {
       void this.repositories; // Inicializa
     }
-    (this._repositories as any)[key] = repository;
+    this._repositories![key] = repository;
   }
 
   /**
@@ -186,7 +186,7 @@ class ServiceContainer implements IServiceContainer {
     if (!this._services) {
       void this.services; // Inicializa
     }
-    (this._services as any)[key] = service;
+    this._services![key] = service;
   }
 }
 
@@ -216,29 +216,15 @@ export function createTestContainer(
   ServiceContainer.reset();
   const testContainer = ServiceContainer.getInstance();
 
-  // Aplicar overrides de repositories
-  if (overrides?.repositories) {
-    Object.entries(overrides.repositories).forEach(([key, value]) => {
-      if (value) {
-        testContainer.setRepository(
-          key as keyof IServiceContainer["repositories"],
-          value as any
-        );
-      }
-    });
-  }
+  // Só os que vieram preenchidos
+  const preenchidos = <T extends object>(valores?: T) =>
+    Object.fromEntries(Object.entries(valores ?? {}).filter(([, v]) => v));
 
-  // Aplicar overrides de services
-  if (overrides?.services) {
-    Object.entries(overrides.services).forEach(([key, value]) => {
-      if (value) {
-        testContainer.setService(
-          key as keyof IServiceContainer["services"],
-          value as any
-        );
-      }
-    });
-  }
+  Object.assign(
+    testContainer.repositories,
+    preenchidos(overrides?.repositories)
+  );
+  Object.assign(testContainer.services, preenchidos(overrides?.services));
 
   return testContainer;
 }

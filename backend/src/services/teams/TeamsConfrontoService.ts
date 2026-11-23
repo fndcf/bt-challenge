@@ -120,11 +120,11 @@ export class TeamsConfrontoService implements ITeamsConfrontoService {
 
     // Algoritmo circle method para round-robin
     const numRodadas = n % 2 === 0 ? n - 1 : n;
-    const equipesArray = [...equipes];
+    const equipesArray: (Equipe | null)[] = [...equipes];
 
     // Se ímpar, adicionar "bye" (null)
     if (n % 2 !== 0) {
-      equipesArray.push(null as any);
+      equipesArray.push(null);
     }
 
     const numEquipesComBye = equipesArray.length;
