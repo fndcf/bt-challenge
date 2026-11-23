@@ -9,7 +9,7 @@
  * - ClassificacaoService: cálculos de classificação
  */
 
-import { StatusEtapa, FaseEtapa } from "../models/Etapa";
+import { FaseEtapa, FormatoEtapa, StatusEtapa } from "../models/Etapa";
 import { Dupla } from "../models/Dupla";
 import { Grupo } from "../models/Grupo";
 import { Partida, StatusPartida } from "../models/Partida";
@@ -130,6 +130,11 @@ export class ChaveService implements IChaveService {
       const etapa = await etapaService.buscarPorId(etapaId, arenaId);
       if (!etapa) {
         throw new Error("Etapa não encontrada");
+      }
+      if (etapa.formato === FormatoEtapa.REI_DA_PRAIA) {
+        throw new BadRequestError(
+          "Esta etapa é do formato Rei da Praia. Use a rota /rei-da-praia/gerar-chaves"
+        );
       }
       this.validarEtapaParaGeracaoChaves(etapa);
 

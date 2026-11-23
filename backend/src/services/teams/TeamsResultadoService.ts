@@ -319,7 +319,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
 
     for (const resultado of resultados) {
       const partida = partidasMap.get(resultado.partidaId);
-      if (!partida) {
+      if (partida?.etapaId !== etapaId || partida.arenaId !== arenaId) {
         erros.push({
           partidaId: resultado.partidaId,
           erro: "Partida não encontrada",

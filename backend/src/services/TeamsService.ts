@@ -442,15 +442,19 @@ export class TeamsService {
   }
 
   /**
-   * Busca um confronto da etapa (null se não existe ou é de outra etapa)
+   * Busca um confronto da etapa (null se não existe ou é de outra etapa ou
+   * arena)
    */
   async buscarConfronto(
     confrontoId: string,
-    etapaId: string
+    etapaId: string,
+    arenaId: string
   ): Promise<ConfrontoEquipe | null> {
     const confronto = await this.confrontoRepository.buscarPorId(confrontoId);
 
-    return confronto?.etapaId === etapaId ? confronto : null;
+    return confronto?.etapaId === etapaId && confronto.arenaId === arenaId
+      ? confronto
+      : null;
   }
 
   /**

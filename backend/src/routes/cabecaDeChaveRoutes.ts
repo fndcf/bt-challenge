@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AuthRequest, requireAuth } from "../middlewares/auth";
 import cabecaDeChaveService from "../services/CabecaDeChaveService";
+import etapaService from "../services/EtapaService";
 import logger from "../utils/logger";
 
 const router = Router();
@@ -31,6 +32,10 @@ router.post("/cabecas-de-chave", async (req: AuthRequest, res) => {
         error:
           "Dados incompletos: etapaId, jogadorId, jogadorNome e ordem são obrigatórios",
       });
+    }
+
+    if (!(await etapaService.buscarPorId(etapaId, arenaId))) {
+      return res.status(404).json({ error: "Etapa não encontrada" });
     }
 
     const cabeca = await cabecaDeChaveService.criar({

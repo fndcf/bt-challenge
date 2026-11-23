@@ -115,6 +115,32 @@ describe("CabecaDeChaveService", () => {
     });
   });
 
+  describe("removerSeExistirem", () => {
+    it("deleta só as dos jogadores que são cabeças, sem registrar erro", async () => {
+      repo.buscarPorJogador.mockImplementation(
+        async (_arena: string, _etapa: string, jogadorId: string) =>
+          jogadorId === "j1" ? { id: "cabeca-1" } : null
+      );
+
+      await service.removerSeExistirem(ARENA, ETAPA, ["j1", "j2"]);
+
+      expect(repo.deletar.mock.calls).toEqual([["cabeca-1"]]);
+    });
+
+    it("uma falha não interrompe as outras", async () => {
+      repo.buscarPorJogador.mockImplementation(
+        async (_arena: string, _etapa: string, jogadorId: string) => {
+          if (jogadorId === "j1") throw new Error("banco");
+          return { id: "cabeca-2" };
+        }
+      );
+
+      await service.removerSeExistirem(ARENA, ETAPA, ["j1", "j2"]);
+
+      expect(repo.deletar.mock.calls).toEqual([["cabeca-2"]]);
+    });
+  });
+
   describe("obterIdsCabecas", () => {
     it("deve retornar os IDs das ativas, na ordem", async () => {
       repo.listarAtivas.mockResolvedValue([

@@ -278,13 +278,26 @@ describe("TeamsService", () => {
 
   describe("buscarConfronto", () => {
     it.each([
-      ["da etapa", { id: "c1", etapaId: TEST_ETAPA_ID }, true],
-      ["de outra etapa", { id: "c1", etapaId: "outra" }, false],
+      [
+        "da etapa",
+        { id: "c1", etapaId: TEST_ETAPA_ID, arenaId: TEST_ARENA_ID },
+        true,
+      ],
+      [
+        "de outra arena",
+        { id: "c1", etapaId: TEST_ETAPA_ID, arenaId: "outra" },
+        false,
+      ],
+      [
+        "de outra etapa",
+        { id: "c1", etapaId: "outra", arenaId: TEST_ARENA_ID },
+        false,
+      ],
       ["inexistente", null, false],
     ])("confronto %s", async (_, confronto, encontra) => {
       mockConfrontoRepository.buscarPorId.mockResolvedValue(confronto);
 
-      expect(await service.buscarConfronto("c1", TEST_ETAPA_ID)).toEqual(
+      expect(await service.buscarConfronto("c1", TEST_ETAPA_ID, TEST_ARENA_ID)).toEqual(
         encontra ? confronto : null
       );
     });
@@ -1660,11 +1673,35 @@ describe("TeamsService", () => {
       expect(result.erros).toHaveLength(0);
     });
 
+    it.each([
+      ["outra etapa", { etapaId: "outra", arenaId: TEST_ARENA_ID }],
+      ["outra arena", { etapaId: TEST_ETAPA_ID, arenaId: "outra" }],
+    ])("nao grava resultado em partida de %s", async (_, dados) => {
+      mockPartidaRepository.buscarPorId.mockResolvedValue({
+        id: "partida-1",
+        confrontoId: "c1",
+        ...dados,
+      });
+
+      const result = await service.registrarResultadosEmLote(
+        TEST_ETAPA_ID,
+        TEST_ARENA_ID,
+        [{ partidaId: "partida-1", placar: [{ numero: 1, gamesDupla1: 6, gamesDupla2: 4 }] }]
+      );
+
+      expect(result.processados).toBe(0);
+      expect(result.erros).toEqual([
+        { partidaId: "partida-1", erro: "Partida não encontrada" },
+      ]);
+      expect(mockPartidaRepository.registrarResultado).not.toHaveBeenCalled();
+    });
+
     it("deve registrar erro quando confronto nao encontrado", async () => {
       const partida = {
         id: "partida-1",
         confrontoId: "confronto-inexistente",
         etapaId: TEST_ETAPA_ID,
+        arenaId: TEST_ARENA_ID,
       };
 
       mockPartidaRepository.buscarPorId.mockResolvedValue(partida);

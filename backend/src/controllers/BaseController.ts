@@ -2,32 +2,26 @@
  * Classe base para controllers com métodos utilitários
  */
 
-import { Response, NextFunction } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
+import { AppError } from "../utils/errors";
 import { ResponseHelper } from "../utils/responseHelper";
 import { z } from "zod";
 import logger from "../utils/logger";
 
-/**
- * Tipo para handler de controller
- */
-type ControllerHandler = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => Promise<void>;
+type Autenticada = AuthRequest & { user: NonNullable<AuthRequest["user"]> };
 
-/**
- * Opções para o wrapper de handler
- */
-interface HandlerOptions {
-  /** Se true, requer autenticação (default: true) */
-  requireAuth?: boolean;
-  /** Nome da operação para logging */
-  operation?: string;
-  /** Contexto adicional para logs */
-  logContext?: (req: AuthRequest) => Record<string, any>;
+/** O que a rota recebe: requisição já autenticada */
+export interface Contexto {
+  req: Autenticada;
+  res: Response;
+  arenaId: string;
+  uid: string;
 }
+
+export type Rota = (req: AuthRequest, res: Response) => Promise<void>;
+
+export type PadraoErro = { pattern: string | RegExp; status: number };
 
 /**
  * Classe base para controllers
@@ -52,20 +46,6 @@ export abstract class BaseController {
       return false;
     }
     return true;
-  }
-
-  /**
-   * Extrai arenaId do request autenticado
-   */
-  protected getArenaId(req: AuthRequest): string | null {
-    return req.user?.arenaId || null;
-  }
-
-  /**
-   * Extrai uid do request autenticado
-   */
-  protected getUserId(req: AuthRequest): string | null {
-    return req.user?.uid || null;
   }
 
   /**
@@ -122,40 +102,53 @@ export abstract class BaseController {
   }
 
   /**
-   * Wrapper para handlers que automatiza verificação de auth e tratamento de erros
+   * Monta uma rota: confere o login e transforma os erros em resposta.
+   *
+   * @param operacao Para o log e a mensagem genérica ("Erro ao <operacao>")
+   * @param erros Mensagens de regra de negócio repassadas a quem chamou
    */
-  protected wrapHandler(
-    handler: (req: AuthRequest, res: Response) => Promise<void>,
-    options: HandlerOptions = {}
-  ): ControllerHandler {
-    const {
-      requireAuth = true,
-      operation = "executar operação",
-      logContext,
-    } = options;
-
-    return async (req: AuthRequest, res: Response, next: NextFunction) => {
+  protected rota(
+    operacao: string,
+    executar: (contexto: Contexto) => Promise<unknown>,
+    erros: PadraoErro[] = this.getAllErrorPatterns()
+  ): Rota {
+    return async (req, res) => {
       try {
-        // Verificar autenticação se necessário
-        if (requireAuth && !this.checkAuth(req, res)) {
+        if (!this.checkAuth(req, res)) return;
+
+        const { arenaId, uid } = req.user;
+        await executar({ req, res, arenaId, uid });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return this.handleZodError(res, error);
+        }
+
+        if (this.handleBusinessError(res, error as Error, erros)) {
           return;
         }
 
-        // Executar handler
-        await handler(req, res);
-      } catch (error: any) {
-        // Log com contexto
-        const context = logContext ? logContext(req) : {};
-        logger.error(
-          `${this.controllerName}: Erro em ${operation}`,
-          context,
-          error
-        );
+        if (error instanceof AppError && error.statusCode < 500) {
+          logger.warn(`${this.controllerName}: ${error.message}`);
+          ResponseHelper.error(res, error.message, error.statusCode);
+          return;
+        }
 
-        // Passar para error handler global
-        next(error);
+        this.handleGenericError(res, error as Error, operacao, {
+          ...req.params,
+          arenaId: req.user?.arenaId,
+        });
       }
     };
+  }
+
+  /**
+   * Rota de consulta: não tem regra de negócio a explicar
+   */
+  protected consulta(
+    operacao: string,
+    executar: (contexto: Contexto) => Promise<unknown>
+  ): Rota {
+    return this.rota(operacao, executar, []);
   }
 
   /**

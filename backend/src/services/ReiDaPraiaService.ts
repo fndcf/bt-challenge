@@ -973,12 +973,19 @@ export class ReiDaPraiaService {
     etapaId: string,
     arenaId: string,
     classificadosPorGrupo: number = 2,
-    tipoChaveamento: TipoChaveamentoReiDaPraia = TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES
+    tipoEscolhido?: TipoChaveamentoReiDaPraia
   ): Promise<{
     duplas: Dupla[];
     confrontos: ConfrontoEliminatorio[];
   }> {
     try {
+      // Sem escolha, vale o chaveamento configurado na etapa
+      const tipoChaveamento =
+        tipoEscolhido ??
+        (await this.etapaRepository.buscarPorIdEArena(etapaId, arenaId))
+          ?.tipoChaveamento ??
+        TipoChaveamentoReiDaPraia.MELHORES_COM_MELHORES;
+
       // Buscar grupos completos via repository
       const grupos = await this.grupoRepository.buscarCompletos(
         etapaId,
@@ -1101,7 +1108,7 @@ export class ReiDaPraiaService {
         {
           etapaId,
           arenaId,
-          tipoChaveamento,
+          tipoChaveamento: tipoEscolhido,
         },
         error
       );

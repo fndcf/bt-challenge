@@ -38,6 +38,7 @@ jest.mock("../../repositories/firebase/ConfigRepository", () => ({
 // Mock do CabecaDeChaveService
 const mockCabecaDeChaveService = {
   deletarPorEtapa: jest.fn().mockResolvedValue(0),
+  removerSeExistirem: jest.fn(),
 };
 jest.mock("../../services/CabecaDeChaveService", () => ({
   __esModule: true,
@@ -670,7 +671,7 @@ describe("EtapaService", () => {
         etapaService.atualizar(TEST_ETAPA_ID, TEST_ARENA_ID, {
           maxJogadores: 8,
         })
-      ).rejects.toThrow("Não é possível diminuir o máximo de jogadores para 8");
+      ).rejects.toThrow("Não é possível reduzir para 8 jogadores. A etapa já possui 12 jogador(es) inscrito(s).");
     });
 
     it("deve recalcular grupos ao alterar maxJogadores", async () => {
@@ -1069,7 +1070,12 @@ describe("EtapaService", () => {
       );
 
       expect(result.canceladas).toBe(2);
-      expect(result.jogadorIds).toEqual(["j1", "j2"]);
+      // Quem saiu deixa de ser cabeça de chave
+      expect(mockCabecaDeChaveService.removerSeExistirem).toHaveBeenCalledWith(
+        TEST_ARENA_ID,
+        TEST_ETAPA_ID,
+        ["j1", "j2"]
+      );
     });
 
     it("deve retornar erros para inscrições não encontradas", async () => {

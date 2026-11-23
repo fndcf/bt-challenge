@@ -156,6 +156,35 @@ export class CabecaDeChaveService {
   }
 
   /**
+   * Remover as cabeças de chave desses jogadores, se houver. Uma falha aqui
+   * não desfaz o cancelamento da inscrição.
+   */
+  async removerSeExistirem(
+    arenaId: string,
+    etapaId: string,
+    jogadorIds: string[]
+  ): Promise<void> {
+    await Promise.all(
+      jogadorIds.map(async (jogadorId) => {
+        try {
+          const cabeca = await this.buscarPorJogador(
+            arenaId,
+            etapaId,
+            jogadorId
+          );
+          if (cabeca) await this.cabecas.deletar(cabeca.id);
+        } catch (error) {
+          logger.error(
+            "Erro ao remover cabeça de chave",
+            { etapaId, jogadorId },
+            error as Error
+          );
+        }
+      })
+    );
+  }
+
+  /**
    * Obter IDs das cabeças de chave ativas
    * NÃO engolir erros - se falhar, a geração de chaves deve parar
    */

@@ -97,6 +97,7 @@ jest.mock("../../services/HistoricoDuplaService", () => ({
   },
 }));
 
+import { FormatoEtapa } from "../../models/Etapa";
 import { ChaveService } from "../../services/ChaveService";
 import etapaService from "../../services/EtapaService";
 import estatisticasJogadorService from "../../services/EstatisticasJogadorService";
@@ -272,6 +273,19 @@ describe("ChaveService", () => {
       await expect(
         chaveService.gerarChaves(TEST_ETAPA_ID, TEST_ARENA_ID)
       ).rejects.toThrow("Etapa não encontrada");
+    });
+
+    it("não gera chaves de duplas para etapa Rei da Praia", async () => {
+      (etapaService.buscarPorId as jest.Mock).mockResolvedValue(
+        createEtapaFixture({
+          formato: FormatoEtapa.REI_DA_PRAIA,
+          status: StatusEtapa.INSCRICOES_ENCERRADAS,
+        })
+      );
+
+      await expect(
+        chaveService.gerarChaves(TEST_ETAPA_ID, TEST_ARENA_ID)
+      ).rejects.toThrow("Use a rota /rei-da-praia/gerar-chaves");
     });
 
     it("deve lançar erro se inscrições não estão encerradas", async () => {

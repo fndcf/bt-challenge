@@ -499,7 +499,7 @@ export class EtapaService {
     inscricaoIds: string[],
     etapaId: string,
     arenaId: string
-  ): Promise<{ canceladas: number; erros: string[]; jogadorIds: string[] }> {
+  ): Promise<{ canceladas: number; erros: string[] }> {
     const erros: string[] = [];
 
     // Validar etapa primeiro
@@ -530,7 +530,7 @@ export class EtapaService {
     });
 
     if (inscricoesValidas.length === 0) {
-      return { canceladas: 0, erros, jogadorIds: [] };
+      return { canceladas: 0, erros };
     }
 
     // Cancelar todas as inscrições em batch
@@ -547,13 +547,16 @@ export class EtapaService {
       ),
     ]);
 
+    // Quem saiu da etapa deixa de ser cabeça de chave
+    await cabecaDeChaveService.removerSeExistirem(arenaId, etapaId, jogadorIds);
+
     logger.info("Inscrições canceladas em lote", {
       etapaId,
       canceladas: inscricoesValidas.length,
       erros: erros.length,
     });
 
-    return { canceladas: inscricoesValidas.length, erros, jogadorIds };
+    return { canceladas: inscricoesValidas.length, erros };
   }
 
   /**
@@ -593,6 +596,16 @@ export class EtapaService {
         throw new Error("Não é possível editar etapa após geração de chaves");
       }
 
+      if (
+        dadosValidados.maxJogadores !== undefined &&
+        dadosValidados.maxJogadores < etapa.totalInscritos
+      ) {
+        throw new Error(
+          `Não é possível reduzir para ${dadosValidados.maxJogadores} jogadores. ` +
+            `A etapa já possui ${etapa.totalInscritos} jogador(es) inscrito(s).`
+        );
+      }
+
       const limite = getLimiteJogadores(etapa.formato, etapa.varianteTeams);
       if ((dadosValidados.maxJogadores ?? 0) > limite) {
         throw new Error(`Máximo de ${limite} jogadores`);
@@ -608,16 +621,6 @@ export class EtapaService {
         if (dadosValidados.genero && dadosValidados.genero !== etapa.genero) {
           throw new Error(
             "Não é possível alterar o gênero da etapa após ter inscritos"
-          );
-        }
-
-        if (
-          dadosValidados.maxJogadores &&
-          dadosValidados.maxJogadores < etapa.totalInscritos
-        ) {
-          throw new Error(
-            `Não é possível diminuir o máximo de jogadores para ${dadosValidados.maxJogadores}. ` +
-              `Já existem ${etapa.totalInscritos} jogadores inscritos.`
           );
         }
       }
