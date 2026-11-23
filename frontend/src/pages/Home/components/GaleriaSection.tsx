@@ -3,7 +3,8 @@
  */
 
 import React, { useState } from "react";
-import * as S from "../../Home/Home.styles";
+import { IconButton, Modal, Tabs } from "@/components/ui";
+import * as S from "../Home.styles";
 
 interface Screenshot {
   id: string;
@@ -27,7 +28,7 @@ const categorias: Categoria[] = [
         id: "dashboard",
         title: "Dashboard",
         description:
-          "Visao geral com estatísticas de jogadores, etapas e rankings.",
+          "Visão geral com estatísticas de jogadores, etapas e rankings.",
         images: ["/screenshots/dashboard.png", "/screenshots/dashboard2.png"],
       },
       {
@@ -50,7 +51,7 @@ const categorias: Categoria[] = [
       {
         id: "etapas",
         title: "Etapas",
-        description: "Gerencie etapas.",
+        description: "Lista de etapas da arena com status, formato e inscritos.",
         images: ["/screenshots/etapas.png"],
       },
     ],
@@ -85,7 +86,7 @@ const categorias: Categoria[] = [
       {
         id: "cabecas-chave-etapa",
         title: "Cabeças de Chave da Etapa",
-        description: "Escolha seus cabeças de chave por etapa",
+        description: "Escolha os cabeças de chave de cada etapa.",
         images: [
           "/screenshots/cabecas-chave.png",
           "/screenshots/cabecas-chave2.png",
@@ -130,9 +131,9 @@ const categorias: Categoria[] = [
       },
       {
         id: "confrontro-jogadores",
-        title: "Confrontos Jogadores por Equipe",
+        title: "Escalação nos Confrontos",
         description:
-          "Definição de Jogadores manual/automática para confronto de equipes",
+          "Escalação manual ou automática dos jogadores em cada confronto.",
         images: [
           "/screenshots/definir-jogadores.png",
           "/screenshots/definir-jogadores2.png",
@@ -144,7 +145,7 @@ const categorias: Categoria[] = [
   },
   {
     id: "publico",
-    label: "Pagina Pública",
+    label: "Página Pública",
     screenshots: [
       {
         id: "arena-publica",
@@ -177,179 +178,113 @@ const categorias: Categoria[] = [
   },
 ];
 
+const Seta: React.FC<{ d: string }> = ({ d }) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    aria-hidden="true"
+  >
+    <path d={d} />
+  </svg>
+);
+
 export const GaleriaSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("administrativo");
-  const [_imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Screenshot | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [abaAtiva, setAbaAtiva] = useState(categorias[0].id);
+  const [aberto, setAberto] = useState<Screenshot | null>(null);
+  const [indice, setIndice] = useState(0);
 
-  const handleImageError = (imageKey: string) => {
-    setImageErrors((prev) => new Set(prev).add(imageKey));
+  const categoria = categorias.find((c) => c.id === abaAtiva);
+
+  const abrir = (item: Screenshot) => {
+    setAberto(item);
+    setIndice(0);
   };
 
-  const handleOpenModal = (item: Screenshot) => {
-    setSelectedItem(item);
-    setCurrentImageIndex(0);
-    setModalOpen(true);
-    document.body.style.overflow = "hidden";
+  const mover = (passo: number) => {
+    if (!aberto) return;
+    const total = aberto.images.length;
+    setIndice((atual) => (atual + passo + total) % total);
   };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedItem(null);
-    setCurrentImageIndex(0);
-    document.body.style.overflow = "auto";
-  };
-
-  const handlePrevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (selectedItem) {
-      setCurrentImageIndex((prev) =>
-        prev === 0 ? selectedItem.images.length - 1 : prev - 1
-      );
-    }
-  };
-
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (selectedItem) {
-      setCurrentImageIndex((prev) =>
-        prev === selectedItem.images.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const categoriaAtiva = categorias.find((c) => c.id === activeTab);
-
-  const getImageKey = (itemId: string, imageIndex: number) =>
-    `${itemId}-${imageIndex}`;
 
   return (
-    <S.GaleriaSection>
-      <S.GaleriaSectionTitle>Veja o Sistema em Ação</S.GaleriaSectionTitle>
-      <S.GaleriaSectionSubtitle>
-        Conheça as principais telas e funcionalidades do Dupley
-      </S.GaleriaSectionSubtitle>
+    <S.Secao>
+      <S.Conteudo>
+        <S.TituloSecao>Veja o Sistema em Ação</S.TituloSecao>
+        <S.SubtituloSecao>
+          Conheça as principais telas e funcionalidades do Dupley
+        </S.SubtituloSecao>
 
-      <S.GaleriaTabs>
-        {categorias.map((categoria) => (
-          <S.GaleriaTab
-            key={categoria.id}
-            $active={activeTab === categoria.id}
-            onClick={() => setActiveTab(categoria.id)}
-          >
-            {categoria.label}
-          </S.GaleriaTab>
-        ))}
-      </S.GaleriaTabs>
+        <S.AbasGaleria>
+          <Tabs
+            abas={categorias.map(({ id, label }) => ({ id, label }))}
+            ativa={abaAtiva}
+            onChange={setAbaAtiva}
+            rotulo="Categorias de telas"
+          />
+        </S.AbasGaleria>
 
-      <S.GaleriaGrid>
-        {categoriaAtiva?.screenshots.map((item) => (
-          <S.GaleriaItem key={item.id} onClick={() => handleOpenModal(item)}>
-            <S.GaleriaImageWrapper>
-              <S.GaleriaImage
-                src={item.images[0]}
-                alt={item.title}
-                onError={() => handleImageError(getImageKey(item.id, 0))}
-              />
-              {item.images.length > 1 && (
-                <S.GaleriaImageCount>{item.images.length}</S.GaleriaImageCount>
-              )}
-            </S.GaleriaImageWrapper>
-            <S.GaleriaContent>
-              <S.GaleriaTitle>{item.title}</S.GaleriaTitle>
-              <S.GaleriaDescription>{item.description}</S.GaleriaDescription>
-            </S.GaleriaContent>
-          </S.GaleriaItem>
-        ))}
-      </S.GaleriaGrid>
+        <S.Grade $colunas={3}>
+          {categoria?.screenshots.map((item) => (
+            <S.ItemGaleria
+              key={item.id}
+              type="button"
+              onClick={() => abrir(item)}
+            >
+              <S.MolduraImagem>
+                <S.Imagem src={item.images[0]} alt="" loading="lazy" />
+                {item.images.length > 1 && (
+                  <S.ContagemImagens>
+                    {item.images.length} telas
+                  </S.ContagemImagens>
+                )}
+              </S.MolduraImagem>
+              <S.InfoGaleria>
+                <S.TituloCartao>{item.title}</S.TituloCartao>
+                <S.TextoCartao>{item.description}</S.TextoCartao>
+              </S.InfoGaleria>
+            </S.ItemGaleria>
+          ))}
+        </S.Grade>
+      </S.Conteudo>
 
-      {modalOpen && selectedItem && (
-        <S.GaleriaModal onClick={handleCloseModal}>
-          <S.GaleriaModalContent onClick={(e) => e.stopPropagation()}>
-            <S.GaleriaModalClose onClick={handleCloseModal}>
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </S.GaleriaModalClose>
-
-            <S.GaleriaModalImageWrapper>
-              <S.GaleriaModalImage
-                src={selectedItem.images[currentImageIndex]}
-                alt={`${selectedItem.title} - ${currentImageIndex + 1}`}
-                onError={() =>
-                  handleImageError(
-                    getImageKey(selectedItem.id, currentImageIndex)
-                  )
-                }
-              />
-
-              {selectedItem.images.length > 1 && (
-                <>
-                  <S.GaleriaModalNavButton
-                    $position="left"
-                    onClick={handlePrevImage}
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                  </S.GaleriaModalNavButton>
-                  <S.GaleriaModalNavButton
-                    $position="right"
-                    onClick={handleNextImage}
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </S.GaleriaModalNavButton>
-                </>
-              )}
-            </S.GaleriaModalImageWrapper>
-
-            <S.GaleriaModalInfo>
-              <S.GaleriaModalTitle>{selectedItem.title}</S.GaleriaModalTitle>
-              <S.GaleriaModalDescription>
-                {selectedItem.description}
-              </S.GaleriaModalDescription>
-
-              {selectedItem.images.length > 1 && (
-                <S.GaleriaModalDots>
-                  {selectedItem.images.map((_, index) => (
-                    <S.GaleriaModalDot
-                      key={index}
-                      $active={index === currentImageIndex}
-                      onClick={() => setCurrentImageIndex(index)}
-                    />
-                  ))}
-                </S.GaleriaModalDots>
-              )}
-            </S.GaleriaModalInfo>
-          </S.GaleriaModalContent>
-        </S.GaleriaModal>
-      )}
-    </S.GaleriaSection>
+      <Modal
+        isOpen={aberto !== null}
+        onClose={() => setAberto(null)}
+        title={aberto?.title}
+        subtitle={aberto?.description}
+        size="xl"
+      >
+        {aberto && (
+          <S.Visualizador>
+            <S.ImagemAmpliada
+              src={aberto.images[indice]}
+              alt={`${aberto.title} - tela ${indice + 1} de ${aberto.images.length}`}
+            />
+            {aberto.images.length > 1 && (
+              <S.Navegacao>
+                <IconButton
+                  rotulo="Tela anterior"
+                  icone={<Seta d="M15 18l-6-6 6-6" />}
+                  onClick={() => mover(-1)}
+                />
+                <S.Posicao>
+                  {indice + 1} de {aberto.images.length}
+                </S.Posicao>
+                <IconButton
+                  rotulo="Próxima tela"
+                  icone={<Seta d="M9 18l6-6-6-6" />}
+                  onClick={() => mover(1)}
+                />
+              </S.Navegacao>
+            )}
+          </S.Visualizador>
+        )}
+      </Modal>
+    </S.Secao>
   );
 };
 

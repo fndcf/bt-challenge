@@ -104,7 +104,7 @@ describe("RecuperarSenha - Renderização", () => {
     it("deve renderizar o título de recuperação quando email não enviado", () => {
       renderWithRouter(<RecuperarSenha />);
 
-      expect(screen.getByText("Recuperação de senha")).toBeInTheDocument();
+      expect(screen.getByText("Enviaremos um link para o seu email")).toBeInTheDocument();
     });
 
     it("deve renderizar o título de verificação quando email enviado", () => {

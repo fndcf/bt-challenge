@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import * as S from "../../Home/Home.styles";
+import * as S from "../Home.styles";
 
 interface Feature {
   title: string;
@@ -45,18 +45,23 @@ const features: Feature[] = [
 
 export const FeaturesSection: React.FC = () => {
   return (
-    <S.FeaturesSection>
-      <S.FeaturesSectionTitle>Funcionalidades</S.FeaturesSectionTitle>
+    <S.Secao $alternativa>
+      <S.Conteudo>
+        <S.TituloSecao>Funcionalidades</S.TituloSecao>
+        <S.SubtituloSecao>
+          Tudo o que a arena precisa para organizar o circuito.
+        </S.SubtituloSecao>
 
-      <S.FeaturesGrid>
-        {features.map((feature, index) => (
-          <S.FeatureCard key={index}>
-            <S.FeatureTitle>{feature.title}</S.FeatureTitle>
-            <S.FeatureText>{feature.description}</S.FeatureText>
-          </S.FeatureCard>
-        ))}
-      </S.FeaturesGrid>
-    </S.FeaturesSection>
+        <S.Grade $colunas={3}>
+          {features.map((feature) => (
+            <S.Cartao key={feature.title}>
+              <S.TituloCartao>{feature.title}</S.TituloCartao>
+              <S.TextoCartao>{feature.description}</S.TextoCartao>
+            </S.Cartao>
+          ))}
+        </S.Grade>
+      </S.Conteudo>
+    </S.Secao>
   );
 };
 

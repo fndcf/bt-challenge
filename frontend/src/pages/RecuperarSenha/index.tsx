@@ -29,8 +29,8 @@ export const RecuperarSenha: React.FC = () => {
 
   return (
     <PaginaAcesso
-      titulo="Dupley"
-      subtitulo={emailEnviado ? "Verifique seu email" : "Recuperação de senha"}
+      titulo="Recuperar senha"
+      subtitulo={emailEnviado ? "Verifique seu email" : "Enviaremos um link para o seu email"}
       voltar={
         emailEnviado
           ? undefined

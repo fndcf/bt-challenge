@@ -1,5 +1,6 @@
 /**
  * Moldura das telas de acesso (login, cadastro, recuperar senha)
+ * e das páginas de erro (404, 403). Mesmo fundo claro da Home.
  */
 
 import React from "react";
@@ -10,7 +11,7 @@ import { theme } from "@/styles/theme";
 const { texto, superficie, acao } = theme.semantic;
 const { fontSize, fontWeight } = theme.typography;
 
-const Fundo = styled.div`
+export const FundoAcesso = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,7 +19,24 @@ const Fundo = styled.div`
   min-height: 100vh;
   min-height: 100dvh;
   padding: ${theme.spacing[6]} ${theme.spacing[4]};
-  background: ${theme.gradients.primary};
+  flex-direction: column;
+  gap: ${theme.spacing[6]};
+  background: ${superficie.pagina};
+`;
+
+/** Nome do produto acima do cartão; leva para a Home */
+export const MarcaAcesso = styled(Link)`
+  font-size: ${fontSize["3xl"]};
+  font-weight: ${fontWeight.bold};
+  letter-spacing: -0.02em;
+  color: ${acao.primaria};
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid ${acao.primaria};
+    outline-offset: 4px;
+    border-radius: ${theme.borderRadius.md};
+  }
 `;
 
 const Cartao = styled.main`
@@ -31,7 +49,8 @@ const Cartao = styled.main`
   padding: ${theme.spacing[8]};
   border-radius: ${theme.borderRadius.xl};
   background: ${superficie.fundo};
-  box-shadow: ${theme.shadows.xl};
+  border: 1px solid ${superficie.borda};
+  box-shadow: ${theme.shadows.md};
 
   @media (max-width: ${theme.breakpoints.sm}) {
     padding: ${theme.spacing[6]} ${theme.spacing[4]};
@@ -43,7 +62,7 @@ const Cabecalho = styled.header`
 
   h1 {
     margin: 0 0 ${theme.spacing[2]} 0;
-    font-size: ${fontSize["3xl"]};
+    font-size: ${fontSize["2xl"]};
     font-weight: ${fontWeight.bold};
     color: ${texto.principal};
   }
@@ -86,7 +105,8 @@ export const PaginaAcesso: React.FC<PaginaAcessoProps> = ({
   voltar,
   children,
 }) => (
-  <Fundo>
+  <FundoAcesso>
+    <MarcaAcesso to="/">Dupley</MarcaAcesso>
     <Cartao>
       <Cabecalho>
         <h1>{titulo}</h1>
@@ -99,5 +119,5 @@ export const PaginaAcesso: React.FC<PaginaAcessoProps> = ({
         </RodapeAcesso>
       )}
     </Cartao>
-  </Fundo>
+  </FundoAcesso>
 );

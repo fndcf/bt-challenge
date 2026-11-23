@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import * as S from "../../Home/Home.styles";
+import * as S from "../Home.styles";
 
 interface StepData {
   number: number;
@@ -15,18 +15,18 @@ const steps: StepData[] = [
   {
     number: 1,
     title: "Cadastro de Jogadores",
-    description: "Jogadores se cadastram individualmente por nível e gênero",
+    description: "Cadastre os jogadores da arena por nível e gênero",
   },
   {
     number: 2,
     title: "Criação de Etapas",
     description:
-      "Configure o formato (Rei da Praia ou Dupla Fixa) e organize os grupos",
+      "Escolha o formato (Dupla Fixa, Rei da Praia, Super X ou Teams) e inscreva os jogadores",
   },
   {
     number: 3,
     title: "Fase de Grupos",
-    description: "Todos jogam contra todos no grupo",
+    description: "Grupos gerados automaticamente; todos jogam contra todos",
   },
   {
     number: 4,
@@ -42,19 +42,24 @@ const steps: StepData[] = [
 
 export const HowItWorks: React.FC = () => {
   return (
-    <S.InfoSection>
-      <S.InfoTitle>Como Funciona?</S.InfoTitle>
+    <S.Secao>
+      <S.Conteudo>
+        <S.TituloSecao>Como Funciona?</S.TituloSecao>
+        <S.SubtituloSecao>Do cadastro ao ranking em cinco passos.</S.SubtituloSecao>
 
-      <S.StepsContainer>
-        {steps.map((step) => (
-          <S.Step key={step.number}>
-            <S.StepNumber>{step.number}</S.StepNumber>
-            <S.StepTitle>{step.title}</S.StepTitle>
-            <S.StepText>{step.description}</S.StepText>
-          </S.Step>
-        ))}
-      </S.StepsContainer>
-    </S.InfoSection>
+        <S.Passos>
+          {steps.map((step) => (
+            <S.Passo key={step.number}>
+              <S.NumeroPasso>{step.number}</S.NumeroPasso>
+              <div>
+                <S.TituloCartao>{step.title}</S.TituloCartao>
+                <S.TextoCartao>{step.description}</S.TextoCartao>
+              </div>
+            </S.Passo>
+          ))}
+        </S.Passos>
+      </S.Conteudo>
+    </S.Secao>
   );
 };
 

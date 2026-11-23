@@ -27,7 +27,7 @@
     "styledButton": 1
   },
   "src/pages/Home/Home.styles.ts": {
-    "styledButton": 4
+    "styledButton": 1
   },
   "src/utils/logger.ts": {
     "hex": 4

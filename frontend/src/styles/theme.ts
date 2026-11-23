@@ -36,14 +36,6 @@ export const theme = {
       },
     },
   },
-
-  // Gradientes
-  gradients: {
-    primary: "linear-gradient(135deg, #134e5e 0%, #71b280 100%)",
-    primaryHover: "linear-gradient(135deg, #5568D3 0%, #6D3D99 100%)",
-    glass:
-      "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
-  },
 } as const;
 
 // Funções utilitárias para media queries

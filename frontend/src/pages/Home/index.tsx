@@ -4,13 +4,13 @@
 
 import React from "react";
 import { useDocumentTitle } from "@/hooks";
-import { HeroSection } from "../Home/components/HeroSection";
-import { FormatosSection } from "../Home/components/FormatosSection";
-import { GaleriaSection } from "../Home/components/GaleriaSection";
-import { FeaturesSection } from "../Home/components/FeaturesSection";
+import { HeroSection } from "./components/HeroSection";
+import { FormatosSection } from "./components/FormatosSection";
+import { GaleriaSection } from "./components/GaleriaSection";
+import { FeaturesSection } from "./components/FeaturesSection";
 import { Footer } from "@/components/layout/Footer";
 import * as S from "./Home.styles";
-import HowItWorks from "../Home/components/HowItWorks";
+import HowItWorks from "./components/HowItWorks";
 
 export const Home: React.FC = () => {
   useDocumentTitle("Dupley - Gerencie seus torneios");
@@ -18,10 +18,10 @@ export const Home: React.FC = () => {
   return (
     <S.Container>
       <HeroSection />
+      <HowItWorks />
       <FormatosSection />
       <GaleriaSection />
       <FeaturesSection />
-      <HowItWorks />
       <Footer />
     </S.Container>
   );

@@ -88,7 +88,7 @@ export const Login: React.FC = () => {
 
   if (shouldShowLoading) {
     return (
-      <PaginaAcesso titulo="Dupley" subtitulo={SUBTITULO}>
+      <PaginaAcesso titulo="Acesse sua arena" subtitulo={SUBTITULO}>
         <LoadingSpinner message="Verificando sessão..." />
       </PaginaAcesso>
     );
@@ -96,7 +96,7 @@ export const Login: React.FC = () => {
 
   return (
     <PaginaAcesso
-      titulo="Dupley"
+      titulo="Acesse sua arena"
       subtitulo={SUBTITULO}
       voltar={{ para: "/", rotulo: "← Voltar para o site" }}
     >

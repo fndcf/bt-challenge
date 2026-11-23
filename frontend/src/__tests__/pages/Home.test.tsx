@@ -174,16 +174,16 @@ describe("HowItWorks", () => {
 
     expect(
       screen.getByText(
-        "Jogadores se cadastram individualmente por nível e gênero"
+        "Cadastre os jogadores da arena por nível e gênero"
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Configure o formato (Rei da Praia ou Dupla Fixa) e organize os grupos"
+        "Escolha o formato (Dupla Fixa, Rei da Praia, Super X ou Teams) e inscreva os jogadores"
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Todos jogam contra todos no grupo")
+      screen.getByText("Grupos gerados automaticamente; todos jogam contra todos")
     ).toBeInTheDocument();
     expect(
       screen.getByText("Os melhores avançam para a fase final")

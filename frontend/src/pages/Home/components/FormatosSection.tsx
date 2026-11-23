@@ -3,80 +3,91 @@
  */
 
 import React from "react";
-import * as S from "../../Home/Home.styles";
+import { FormatoEtapa } from "@/types/etapa";
+import { getCoresFormato } from "@/styles/semantic";
+import * as S from "../Home.styles";
 
 interface Formato {
-  title: string;
+  formato: FormatoEtapa;
   description: string;
   features: string[];
 }
 
 const formatos: Formato[] = [
   {
-    title: "Dupla Fixa",
+    formato: FormatoEtapa.DUPLA_FIXA,
     description:
-      "Formato tradicional onde duplas são formadas via sorteio e permanecem juntas durante toda a etapa.",
+      "Formato tradicional: as duplas são sorteadas e jogam juntas a etapa inteira.",
     features: [
-      "Fase de grupos + Eliminatória",
-      "Formação Balanceada ou Mesmo Nível",
-      "Suporte a etapas Mistas",
+      "Fase de grupos + eliminatória",
+      "Formação balanceada ou por nível",
+      "Etapas mistas",
     ],
   },
   {
-    title: "Rei da Praia",
+    formato: FormatoEtapa.REI_DA_PRAIA,
     description:
-      "Jogadores individuais formam duplas rotativas a cada partida dentro de grupos de 4.",
+      "Cada jogador se inscreve sozinho e troca de parceiro a cada partida, em grupos de 4.",
     features: [
       "3 parceiros diferentes por grupo",
       "Classificação individual",
-      "Todos os níveis permitidos",
+      "Todos os níveis juntos",
     ],
   },
   {
-    title: "Super X",
+    formato: FormatoEtapa.SUPER_X,
     description:
-      "Similar ao Rei da Praia, mas com grupo único e sem fase eliminatória. Ideal para eventos rápidos.",
+      "Parecido com o Rei da Praia, mas em grupo único e sem eliminatória. Ideal para eventos rápidos.",
     features: [
       "Super 8: 8 jogadores, 7 rodadas",
       "Super 12: 12 jogadores, 11 rodadas",
-      "Formato compacto e dinâmico",
+      "Compacto e dinâmico",
     ],
   },
   {
-    title: "TEAMS",
+    formato: FormatoEtapa.TEAMS,
     description:
-      "Formato por equipes com 4 ou 6 jogadores por time. Disputas entre equipes completas.",
+      "Equipes de 4 ou 6 jogadores se enfrentam em confrontos com várias partidas.",
     features: [
       "Confrontos entre equipes",
-      "Formação: Mesmo Nível, Balanceado ou Manual",
-      "Suporte a equipes mistas",
+      "Formação por nível, balanceada ou manual",
+      "Equipes mistas",
     ],
   },
 ];
 
 export const FormatosSection: React.FC = () => {
   return (
-    <S.FormatosSection>
-      <S.SectionTitle>Formatos de Torneio</S.SectionTitle>
-      <S.SectionSubtitle>
-        Escolha o formato ideal para sua competição. Cada um com suas
-        características únicas.
-      </S.SectionSubtitle>
+    <S.Secao $alternativa>
+      <S.Conteudo>
+        <S.TituloSecao>Formatos de Torneio</S.TituloSecao>
+        <S.SubtituloSecao>
+          Escolha o formato ideal para sua competição. Cada um com suas regras
+          de grupos, pontuação e classificação.
+        </S.SubtituloSecao>
 
-      <S.FormatosGrid>
-        {formatos.map((formato, index) => (
-          <S.FormatoCard key={index}>
-            <S.FormatoTitle>{formato.title}</S.FormatoTitle>
-            <S.FormatoDescription>{formato.description}</S.FormatoDescription>
-            <S.FormatoFeatures>
-              {formato.features.map((feature, idx) => (
-                <S.FormatoFeature key={idx}>{feature}</S.FormatoFeature>
-              ))}
-            </S.FormatoFeatures>
-          </S.FormatoCard>
-        ))}
-      </S.FormatosGrid>
-    </S.FormatosSection>
+        <S.Grade $colunas={4}>
+          {formatos.map(({ formato, description, features }) => {
+            const cores = getCoresFormato(formato);
+            return (
+              <S.Cartao key={formato} $cor={cores.solido}>
+                <S.TituloCartao $cor={cores.texto}>
+                  {cores.nome}
+                </S.TituloCartao>
+                <S.TextoCartao>{description}</S.TextoCartao>
+                <S.ListaFormato>
+                  {features.map((feature) => (
+                    <S.ItemFormato key={feature} $cor={cores.solido}>
+                      {feature}
+                    </S.ItemFormato>
+                  ))}
+                </S.ListaFormato>
+              </S.Cartao>
+            );
+          })}
+        </S.Grade>
+      </S.Conteudo>
+    </S.Secao>
   );
 };
 
