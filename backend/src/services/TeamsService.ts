@@ -55,6 +55,8 @@ import { TeamsResultadoService } from "./teams/TeamsResultadoService";
 import { TeamsClassificacaoService } from "./teams/TeamsClassificacaoService";
 import { IEtapaRepository } from "../repositories/interfaces/IEtapaRepository";
 import { EtapaRepository } from "../repositories/firebase/EtapaRepository";
+import { estatisticasJogadorRepository } from "../repositories/firebase/EstatisticasJogadorRepository";
+import { IEstatisticasJogadorRepository } from "../repositories/interfaces/IEstatisticasJogadorRepository";
 
 interface Inscricao {
   jogadorId: string;
@@ -82,7 +84,8 @@ export class TeamsService {
     private confrontoRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository,
     private partidaRepository: IPartidaTeamsRepository = PartidaTeamsRepository,
     private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService(),
-    private etapaRepository: IEtapaRepository = new EtapaRepository()
+    private etapaRepository: IEtapaRepository = new EtapaRepository(),
+    private estatisticasRepository: IEstatisticasJogadorRepository = estatisticasJogadorRepository
   ) {
     // Criar services especializados com os repositórios injetados
     // Isso garante que os testes que mockam repositórios funcionem corretamente
@@ -114,12 +117,10 @@ export class TeamsService {
       confrontoRepository,
       equipeRepository,
       estatisticasService,
-      etapaRepository
+      etapaRepository,
+      this.partidaService,
+      this.classificacaoService
     );
-
-    // Configurar dependências circulares
-    this.resultadoService.setPartidaService(this.partidaService);
-    this.resultadoService.setClassificacaoService(this.classificacaoService);
   }
 
   // ==================== GERAÇÃO DAS CHAVES ====================
@@ -583,16 +584,13 @@ export class TeamsService {
     });
 
     // 8. Deletar estatísticas do jogador antigo
-    const { estatisticasJogadorRepository } = await import(
-      "../repositories/firebase/EstatisticasJogadorRepository"
-    );
-    const estatisticaAntiga = await estatisticasJogadorRepository.buscarPorJogadorEEtapa(
+    const estatisticaAntiga = await this.estatisticasRepository.buscarPorJogadorEEtapa(
       jogadorAntigoId,
       etapaId
     );
 
     if (estatisticaAntiga) {
-      await estatisticasJogadorRepository.deletar(estatisticaAntiga.id);
+      await this.estatisticasRepository.deletar(estatisticaAntiga.id);
     }
 
     logger.info("Substituição de jogador no formato TEAMS concluída", {
@@ -620,10 +618,7 @@ export class TeamsService {
     ]);
 
     // Deletar estatísticas de jogadores desta etapa
-    const { estatisticasJogadorRepository } = await import(
-      "../repositories/firebase/EstatisticasJogadorRepository"
-    );
-    await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
+    await this.estatisticasRepository.deletarPorEtapa(etapaId, arenaId);
 
     // Resetar contadores dos confrontos (usando método específico que remove vencedoraId/vencedoraNome)
     const confrontos = await this.confrontoRepository.buscarPorEtapa(
@@ -683,10 +678,6 @@ export class TeamsService {
    * Cancela chaves, deletando equipes, confrontos, partidas e estatísticas
    */
   async cancelarChaves(etapaId: string, arenaId: string): Promise<void> {
-    // Import necessário para estatísticas
-    const { estatisticasJogadorRepository } = await import(
-      "../repositories/firebase/EstatisticasJogadorRepository"
-    );
 
     // Executar todas as deleções em paralelo (são independentes)
     await Promise.all([
@@ -700,7 +691,7 @@ export class TeamsService {
         await this.equipeRepository.deletarPorEtapa(etapaId, arenaId);
       })(),
       (async () => {
-        await estatisticasJogadorRepository.deletarPorEtapa(etapaId, arenaId);
+        await this.estatisticasRepository.deletarPorEtapa(etapaId, arenaId);
       })(),
       (async () => {
         await desempateService.limpar(etapaId);

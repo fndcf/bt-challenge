@@ -10,7 +10,6 @@
  */
 
 import {
-  Equipe,
   ConfrontoEquipe,
   PartidaTeams,
   SetPlacarTeams,
@@ -18,7 +17,7 @@ import {
   TipoJogoTeams,
   StatusConfronto,
 } from "../../models/Teams";
-import { Etapa, FaseEtapa } from "../../models/Etapa";
+import { FaseEtapa } from "../../models/Etapa";
 import { StatusPartida } from "../../models/Partida";
 import { IPartidaTeamsRepository } from "../../repositories/interfaces/IPartidaTeamsRepository";
 import { IConfrontoEquipeRepository } from "../../repositories/interfaces/IConfrontoEquipeRepository";
@@ -32,26 +31,12 @@ import { EstatisticasJogadorService } from "../EstatisticasJogadorService";
 import { validarEDeterminarVencedorPlacar } from "../../utils/placarSets";
 import { NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
-import { isEliminatoriaPreenchida } from "./TeamsClassificacaoService";
-
-// Forward declaration - will be injected
-interface ITeamsPartidaService {
-  gerarDecider(confronto: ConfrontoEquipe, etapa: Etapa): Promise<PartidaTeams>;
-}
-
-// Forward declaration - will be injected
-interface ITeamsClassificacaoService {
-  recalcularClassificacao(etapaId: string, arenaId: string): Promise<Equipe[]>;
-  verificarEPreencherFaseEliminatoria(
-    etapaId: string,
-    arenaId: string
-  ): Promise<void>;
-  preencherProximoConfronto(
-    confronto: ConfrontoEquipe,
-    vencedoraId: string,
-    vencedoraNome: string
-  ): Promise<void>;
-}
+import {
+  isEliminatoriaPreenchida,
+  ITeamsClassificacaoService,
+  TeamsClassificacaoService,
+} from "./TeamsClassificacaoService";
+import { ITeamsPartidaService, TeamsPartidaService } from "./TeamsPartidaService";
 
 export interface ITeamsResultadoService {
   registrarResultadoPartida(
@@ -77,27 +62,24 @@ export interface ITeamsResultadoService {
 }
 
 export class TeamsResultadoService implements ITeamsResultadoService {
-  private partidaService: ITeamsPartidaService | null = null;
-  private classificacaoService: ITeamsClassificacaoService | null = null;
-
   constructor(
     private partidaRepository: IPartidaTeamsRepository = PartidaTeamsRepository,
     private confrontoRepository: IConfrontoEquipeRepository = ConfrontoEquipeRepository,
     private equipeRepository: IEquipeRepository = EquipeRepository,
     private estatisticasService: EstatisticasJogadorService = new EstatisticasJogadorService(),
-    private etapaRepository: IEtapaRepository = new EtapaRepository()
+    private etapaRepository: IEtapaRepository = new EtapaRepository(),
+    // Para gerar o decider no empate 1 a 1
+    private partidaService: ITeamsPartidaService = new TeamsPartidaService(
+      partidaRepository,
+      equipeRepository,
+      confrontoRepository
+    ),
+    // Para atualizar a tabela e levar o vencedor à fase seguinte
+    private classificacaoService: ITeamsClassificacaoService = new TeamsClassificacaoService(
+      confrontoRepository,
+      equipeRepository
+    )
   ) {}
-
-  /**
-   * Injeta dependências circulares após construção
-   */
-  setPartidaService(service: ITeamsPartidaService): void {
-    this.partidaService = service;
-  }
-
-  setClassificacaoService(service: ITeamsClassificacaoService): void {
-    this.classificacaoService = service;
-  }
 
   /**
    * Registra resultado de uma partida
@@ -234,8 +216,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     // Se precisa decider e ainda não existe, gerar automaticamente
     if (
       precisaDecider &&
-      !confrontoAtualizado.temDecider &&
-      this.partidaService
+      !confrontoAtualizado.temDecider
     ) {
       try {
         const etapa = await this.etapaRepository.buscarPorId(partida.etapaId);
@@ -391,7 +372,7 @@ export class TeamsResultadoService implements ITeamsResultadoService {
     }
 
     // Recalcular classificação uma única vez
-    if (processados > 0 && this.classificacaoService) {
+    if (processados > 0) {
       await this.classificacaoService.recalcularClassificacao(etapaId, arenaId);
     }
 
@@ -820,12 +801,10 @@ export class TeamsResultadoService implements ITeamsResultadoService {
       ]);
 
       // A eliminatória é gerada pelo admin (TeamsClassificacaoService.gerarFaseEliminatoria)
-      if (this.classificacaoService) {
-        await this.classificacaoService.recalcularClassificacao(
-          confronto.etapaId,
-          confronto.arenaId
-        );
-      }
+      await this.classificacaoService.recalcularClassificacao(
+        confronto.etapaId,
+        confronto.arenaId
+      );
     } else {
       await this.confrontoRepository.registrarResultado(
         confronto.id,
@@ -837,13 +816,11 @@ export class TeamsResultadoService implements ITeamsResultadoService {
 
       // Oitavas, quartas e semifinal levam o vencedor à fase seguinte
       // (a final não tem próximo confronto)
-      if (this.classificacaoService) {
-        await this.classificacaoService.preencherProximoConfronto(
-          confronto,
-          vencedoraId,
-          vencedoraNome
-        );
-      }
+      await this.classificacaoService.preencherProximoConfronto(
+        confronto,
+        vencedoraId,
+        vencedoraNome
+      );
     }
   }
 

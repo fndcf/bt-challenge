@@ -68,6 +68,14 @@ jest.mock("../../../services/EstatisticasJogadorService", () => ({
 }));
 
 import { TeamsResultadoService } from "../../../services/teams/TeamsResultadoService";
+import {
+  ITeamsClassificacaoService,
+  TeamsClassificacaoService,
+} from "../../../services/teams/TeamsClassificacaoService";
+import {
+  ITeamsPartidaService,
+  TeamsPartidaService,
+} from "../../../services/teams/TeamsPartidaService";
 import { StatusPartida } from "../../../models/Partida";
 import { FaseEtapa } from "../../../models/Etapa";
 import { TipoJogoTeams, StatusConfronto } from "../../../models/Teams";
@@ -134,8 +142,30 @@ describe("TeamsResultadoService", () => {
     jest.clearAllMocks();
     // Eliminatória ainda não gerada: fase de grupos editável
     mockConfrontoRepository.buscarPorEtapa.mockResolvedValue([]);
-    service = new TeamsResultadoService();
+    service = criarServico();
   });
+
+  // Serviços de partida e classificação que o de resultados usa
+  const criarServico = ({
+    partida = { gerarDecider: jest.fn() },
+    classificacao = {
+      recalcularClassificacao: jest.fn(),
+      verificarEPreencherFaseEliminatoria: jest.fn(),
+      preencherProximoConfronto: jest.fn(),
+    },
+  }: {
+    partida?: object;
+    classificacao?: object;
+  } = {}) =>
+    new TeamsResultadoService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      partida as unknown as ITeamsPartidaService,
+      classificacao as unknown as ITeamsClassificacaoService
+    );
 
   describe("bloqueio da fase de grupos após gerar a eliminatória", () => {
     const eliminatoriaPreenchida = [
@@ -417,7 +447,7 @@ describe("TeamsResultadoService", () => {
           verificarEPreencherFaseEliminatoria: jest.fn(),
           preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
         };
-        service.setClassificacaoService(classificacao);
+        service = criarServico({ classificacao: classificacao });
         const partida = criarPartidaMock({ id: "p2" });
         const quartas = criarConfrontoMock({
           id: "q1", fase: FaseEtapa.QUARTAS, proximoConfrontoId: "s1",
@@ -574,7 +604,7 @@ describe("TeamsResultadoService", () => {
       const mockPartidaService = {
         gerarDecider: jest.fn().mockResolvedValue({ id: "decider-1" }),
       };
-      service.setPartidaService(mockPartidaService);
+      service = criarServico({ partida: mockPartidaService });
 
       // Mock do etapaRepository
       const mockEtapaRepo = {
@@ -641,7 +671,7 @@ describe("TeamsResultadoService", () => {
           .fn()
           .mockRejectedValue(new Error("Erro ao gerar decider")),
       };
-      service.setPartidaService(mockPartidaService);
+      service = criarServico({ partida: mockPartidaService });
 
       // Mock do etapaRepository
       const mockEtapaRepo = {
@@ -715,7 +745,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -825,7 +855,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -900,7 +930,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -979,7 +1009,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       const resultado = await service.registrarResultadoPartida(
         "decider-1",
@@ -1055,7 +1085,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       const resultado = await service.registrarResultadosEmLote(
         "etapa-1",
@@ -1132,7 +1162,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       await service.registrarResultadosEmLote("etapa-1", "arena-1", [
         {
@@ -1191,7 +1221,7 @@ describe("TeamsResultadoService", () => {
       const mockPartidaService = {
         gerarDecider: jest.fn(),
       };
-      service.setPartidaService(mockPartidaService);
+      service = criarServico({ partida: mockPartidaService });
 
       const resultado = await service.registrarResultadoPartida(
         "partida-1",
@@ -1266,7 +1296,7 @@ describe("TeamsResultadoService", () => {
           .mockResolvedValue(undefined),
         preencherProximoConfronto: jest.fn().mockResolvedValue(undefined),
       };
-      service.setClassificacaoService(mockClassificacaoService);
+      service = criarServico({ classificacao: mockClassificacaoService });
 
       const resultado = await service.registrarResultadoPartida(
         "p3",
@@ -1276,5 +1306,19 @@ describe("TeamsResultadoService", () => {
 
       expect(resultado.confrontoFinalizado).toBe(true);
     });
+  });
+});
+
+describe("TeamsResultadoService sem os serviços informados", () => {
+  it("cria os de partida e de classificação, para não pular o decider nem a tabela", () => {
+    const service = new TeamsResultadoService() as unknown as {
+      partidaService: unknown;
+      classificacaoService: unknown;
+    };
+
+    expect(service.partidaService).toBeInstanceOf(TeamsPartidaService);
+    expect(service.classificacaoService).toBeInstanceOf(
+      TeamsClassificacaoService
+    );
   });
 });
