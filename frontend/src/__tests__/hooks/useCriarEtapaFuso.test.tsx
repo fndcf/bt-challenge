@@ -22,16 +22,17 @@ jest.mock("@/services", () => ({
   getEtapaService: () => ({ criar: jest.fn() }),
 }));
 
-const fusoOriginal = process.env.TZ;
-
+// O fuso de São Paulo vem do jest.fuso.js (globalSetup), para todos os testes
 beforeEach(() => {
-  process.env.TZ = "America/Sao_Paulo";
   jest.useFakeTimers({ now: new Date("2026-11-24T01:00:00Z") }); // 22h do dia 23 em SP
 });
 
 afterEach(() => {
   jest.useRealTimers();
-  process.env.TZ = fusoOriginal;
+});
+
+it("roda no fuso de São Paulo (senão este arquivo não testa nada)", () => {
+  expect(new Date("2026-11-24T01:00:00Z").getDate()).toBe(23);
 });
 
 const preencherDatas = (fim: string, realizacao: string) => {

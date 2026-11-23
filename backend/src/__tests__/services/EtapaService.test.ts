@@ -73,7 +73,12 @@ import {
   GeneroJogador,
   StatusEtapa,
 } from "../fixtures";
-import { FormatoEtapa } from "../../models/Etapa";
+import {
+  FormatoEtapa,
+  TipoFormacaoEquipe,
+  VarianteSuperX,
+  VarianteTeams,
+} from "../../models/Etapa";
 
 describe("EtapaService", () => {
   let mockEtapaRepository: ReturnType<typeof createMockEtapaRepository>;
@@ -350,6 +355,65 @@ describe("EtapaService", () => {
 
       expect(mockEtapaRepository.atualizar).toHaveBeenCalled();
       expect(result.nome).toBe("Etapa Atualizada");
+    });
+
+    it("Super X: trocar a variante leva junto o número de jogadores", async () => {
+      const etapa = createEtapaFixture({
+        formato: FormatoEtapa.SUPER_X,
+        varianteSuperX: VarianteSuperX.SUPER_8,
+        maxJogadores: 8,
+        chavesGeradas: false,
+        totalInscritos: 6,
+      });
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(etapa);
+      mockEtapaRepository.atualizar.mockResolvedValue(etapa);
+
+      await etapaService.atualizar(TEST_ETAPA_ID, TEST_ARENA_ID, {
+        varianteSuperX: VarianteSuperX.SUPER_12,
+      });
+
+      expect(mockEtapaRepository.atualizar).toHaveBeenCalledWith(
+        TEST_ETAPA_ID,
+        expect.objectContaining({ varianteSuperX: 12, maxJogadores: 12 })
+      );
+    });
+
+    it("Super X: não volta para Super 8 com mais de 8 inscritos", async () => {
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(
+        createEtapaFixture({
+          formato: FormatoEtapa.SUPER_X,
+          varianteSuperX: VarianteSuperX.SUPER_12,
+          maxJogadores: 12,
+          chavesGeradas: false,
+          totalInscritos: 10,
+        })
+      );
+
+      await expect(
+        etapaService.atualizar(TEST_ETAPA_ID, TEST_ARENA_ID, {
+          varianteSuperX: VarianteSuperX.SUPER_8,
+        })
+      ).rejects.toThrow("Não é possível reduzir para 8 jogadores");
+      expect(mockEtapaRepository.atualizar).not.toHaveBeenCalled();
+    });
+
+    it("Teams: recusa número de jogadores fora do múltiplo da nova variante", async () => {
+      mockEtapaRepository.buscarPorIdEArena.mockResolvedValue(
+        createEtapaFixture({
+          formato: FormatoEtapa.TEAMS,
+          varianteTeams: VarianteTeams.TEAMS_4,
+          tipoFormacaoEquipe: TipoFormacaoEquipe.BALANCEADO,
+          maxJogadores: 16,
+          chavesGeradas: false,
+          totalInscritos: 0,
+        })
+      );
+
+      await expect(
+        etapaService.atualizar(TEST_ETAPA_ID, TEST_ARENA_ID, {
+          varianteTeams: VarianteTeams.TEAMS_6,
+        })
+      ).rejects.toThrow("Teams 6: número de jogadores deve ser múltiplo de 6");
     });
 
     it("deve lançar erro ao atualizar etapa inexistente", async () => {

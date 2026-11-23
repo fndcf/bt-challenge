@@ -176,6 +176,7 @@ export interface AtualizarEtapaDTO {
   dataRealizacao?: string;
   local?: string;
   maxJogadores?: number;
+  grupoUnico?: boolean; // Dupla Fixa
   status?: StatusEtapa;
   contaPontosRanking?: boolean;
   darPontosParticipacao?: boolean;

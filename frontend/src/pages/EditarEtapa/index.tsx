@@ -41,6 +41,8 @@ export const EditarEtapa: React.FC = () => {
     handleSubmit,
     calcularMinimoJogadores,
     ajustarValorJogadores,
+    alterarVarianteSuperX,
+    alterarVarianteTeams,
   } = useEditarEtapa(id);
 
   // Scroll para o erro quando ele aparecer
@@ -104,13 +106,6 @@ export const EditarEtapa: React.FC = () => {
           onTipoChaveamentoChange={(tipo) =>
             handleChange("tipoChaveamento", tipo)
           }
-          varianteSuperX={etapa.varianteSuperX}
-          varianteTeams={etapa.varianteTeams}
-          tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
-          tipoFormacaoJogos={formData.tipoFormacaoJogos}
-          onTipoFormacaoJogosChange={(tipo) =>
-            handleChange("tipoFormacaoJogos", tipo)
-          }
         />
 
         <InformacoesBasicas
@@ -120,8 +115,8 @@ export const EditarEtapa: React.FC = () => {
           nivel={formData.nivel}
           local={formData.local || ""}
           formato={etapa.formato}
-          tipoFormacaoEquipe={etapa.tipoFormacaoEquipe}
-          tipoFormacaoDupla={etapa.tipoFormacaoDupla}
+          tipoFormacaoEquipe={formData.tipoFormacaoEquipe}
+          tipoFormacaoDupla={formData.tipoFormacaoDupla}
           disabled={chavesGeradas}
           disabledGenero={chavesGeradas || temInscritos}
           disabledNivel={chavesGeradas || temInscritos}
@@ -152,7 +147,18 @@ export const EditarEtapa: React.FC = () => {
         <ConfiguracoesJogadoresEdit
           maxJogadores={formData.maxJogadores}
           formato={etapa.formato}
-          varianteTeams={etapa.varianteTeams}
+          tipoFormacaoDupla={formData.tipoFormacaoDupla}
+          grupoUnico={formData.grupoUnico}
+          varianteSuperX={formData.varianteSuperX}
+          varianteTeams={formData.varianteTeams}
+          tipoFormacaoEquipe={formData.tipoFormacaoEquipe}
+          tipoFormacaoJogos={formData.tipoFormacaoJogos}
+          onTipoFormacaoDuplaChange={(tipo) => handleChange("tipoFormacaoDupla", tipo)}
+          onGrupoUnicoChange={(valor) => handleChange("grupoUnico", valor)}
+          onVarianteSuperXChange={alterarVarianteSuperX}
+          onVarianteTeamsChange={alterarVarianteTeams}
+          onTipoFormacaoEquipeChange={(tipo) => handleChange("tipoFormacaoEquipe", tipo)}
+          onTipoFormacaoJogosChange={(tipo) => handleChange("tipoFormacaoJogos", tipo)}
           chavesGeradas={chavesGeradas}
           temInscritos={temInscritos}
           totalInscritos={etapa.totalInscritos || 0}

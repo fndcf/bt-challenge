@@ -254,16 +254,68 @@ describe("Editar etapa", () => {
     caixas.forEach((caixa) => expect(caixa).toBeDisabled());
   });
 
-  it("mostra o formato com a variante", () => {
+  it("mostra o formato (só leitura)", () => {
     render(
       <FormatoDisplay
         formato={FormatoEtapa.TEAMS}
-        varianteTeams={VarianteTeams.TEAMS_6}
         chavesGeradas={false}
         onTipoChaveamentoChange={nada}
       />
     );
-    expect(screen.getByText("Teams 6")).toBeInTheDocument();
+    expect(screen.getByText("Teams")).toBeInTheDocument();
+  });
+
+  const configuracoes = (
+    formato: FormatoEtapa,
+    extra: Partial<React.ComponentProps<typeof ConfiguracoesJogadoresEdit>> = {}
+  ) =>
+    render(
+      <ConfiguracoesJogadoresEdit
+        formato={formato}
+        maxJogadores={12}
+        chavesGeradas={false}
+        temInscritos={false}
+        totalInscritos={0}
+        minimoJogadores={8}
+        contaPontosRanking
+        darPontosParticipacao
+        melhorDe3={false}
+        melhorDe3Eliminatoria={false}
+        onMaxJogadoresChange={nada}
+        onBlur={nada}
+        onContaPontosRankingChange={nada}
+        onDarPontosParticipacaoChange={nada}
+        onMelhorDe3Change={nada}
+        onMelhorDe3EliminatoriaChange={nada}
+        onGrupoUnicoChange={nada}
+        {...extra}
+      />
+    );
+
+  it("Dupla Fixa: edita a formação das duplas e o grupo único", () => {
+    configuracoes(FormatoEtapa.DUPLA_FIXA);
+    expect(screen.getByRole("combobox", { name: /Tipo de Formação de Duplas/ })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: /Grupo único/ })).toBeEnabled();
+  });
+
+  it("Super X: edita a variante; o número de jogadores segue a variante", () => {
+    configuracoes(FormatoEtapa.SUPER_X, { varianteSuperX: 12, temInscritos: true, totalInscritos: 10 });
+    expect(screen.getByRole("combobox", { name: /Variante do Super X/ })).toHaveValue("12");
+    expect(screen.getByText(/10 jogador\(es\) inscrito\(s\)/)).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton")).toBeDisabled();
+  });
+
+  it("Teams: edita variante, formação das equipes e das partidas", () => {
+    configuracoes(FormatoEtapa.TEAMS, { varianteTeams: VarianteTeams.TEAMS_6 });
+    expect(screen.getByRole("combobox", { name: /Variante Teams/ })).toHaveValue("6");
+    expect(screen.getByRole("combobox", { name: /Tipo de Formação de Equipes/ })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: /Formação das Partidas/ })).toBeEnabled();
+  });
+
+  it("com chaves geradas os campos do formato ficam bloqueados", () => {
+    configuracoes(FormatoEtapa.TEAMS, { chavesGeradas: true });
+    expect(screen.getByRole("combobox", { name: /Variante Teams/ })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: /Tipo de Formação de Equipes/ })).toBeDisabled();
   });
 });
 

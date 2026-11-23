@@ -15,8 +15,9 @@ import {
   EstatisticasEtapa,
   CriarEtapaSchema,
   AtualizarEtapaSchema,
-  getLimiteJogadores,
   InscreverJogadorSchema,
+  validarConfiguracaoFormato,
+  FormatoEtapa,
 } from "../models/Etapa";
 import { getRegras } from "../models/RegrasFormato";
 import { Inscricao, StatusInscricao } from "../models/Inscricao";
@@ -597,6 +598,15 @@ export class EtapaService {
         throw new Error("Não é possível editar etapa após geração de chaves");
       }
 
+      // Super X: o número de jogadores acompanha a variante
+      if (
+        etapa.formato === FormatoEtapa.SUPER_X &&
+        dadosValidados.varianteSuperX !== undefined &&
+        dadosValidados.maxJogadores === undefined
+      ) {
+        dadosValidados.maxJogadores = dadosValidados.varianteSuperX;
+      }
+
       if (
         dadosValidados.maxJogadores !== undefined &&
         dadosValidados.maxJogadores < etapa.totalInscritos
@@ -607,9 +617,23 @@ export class EtapaService {
         );
       }
 
-      const limite = getLimiteJogadores(etapa.formato, etapa.varianteTeams);
-      if ((dadosValidados.maxJogadores ?? 0) > limite) {
-        throw new Error(`Máximo de ${limite} jogadores`);
+      // Regras do formato sobre a etapa como vai ficar (salvo + alterado)
+      const problema = validarConfiguracaoFormato({
+        formato: dadosValidados.formato ?? etapa.formato,
+        genero: dadosValidados.genero ?? etapa.genero,
+        // null = "todos os níveis"
+        nivel:
+          dadosValidados.nivel !== undefined
+            ? dadosValidados.nivel ?? undefined
+            : etapa.nivel,
+        maxJogadores: dadosValidados.maxJogadores ?? etapa.maxJogadores,
+        varianteSuperX: dadosValidados.varianteSuperX ?? etapa.varianteSuperX,
+        varianteTeams: dadosValidados.varianteTeams ?? etapa.varianteTeams,
+        tipoFormacaoDupla: dadosValidados.tipoFormacaoDupla ?? etapa.tipoFormacaoDupla,
+        tipoFormacaoEquipe: dadosValidados.tipoFormacaoEquipe ?? etapa.tipoFormacaoEquipe,
+      });
+      if (problema) {
+        throw new Error(problema);
       }
 
       if (etapa.totalInscritos > 0) {

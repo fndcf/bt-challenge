@@ -9,6 +9,7 @@ export default {
     "/__tests__/mocks/",
     "/__tests__/setup.ts",
   ],
+  globalSetup: "<rootDir>/jest.fuso.js",
   setupFilesAfterEnv: ["<rootDir>/src/__tests__/setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",

@@ -193,6 +193,63 @@ export const getLimiteJogadores = (
     ? MAX_EQUIPES_TEAMS * (varianteTeams ?? 4)
     : MAX_JOGADORES;
 
+/** Configuração da etapa que depende do formato (usada ao editar) */
+export type ConfiguracaoFormato = Pick<
+  Etapa,
+  | "formato"
+  | "genero"
+  | "nivel"
+  | "maxJogadores"
+  | "varianteSuperX"
+  | "varianteTeams"
+  | "tipoFormacaoDupla"
+  | "tipoFormacaoEquipe"
+>;
+
+/**
+ * Regras do formato sobre a etapa já com as alterações aplicadas.
+ * Devolve a mensagem do primeiro problema, ou null se está tudo certo.
+ */
+export const validarConfiguracaoFormato = (
+  etapa: ConfiguracaoFormato
+): string | null => {
+  const { formato, maxJogadores, nivel, genero } = etapa;
+
+  const limite = getLimiteJogadores(formato, etapa.varianteTeams);
+  if (maxJogadores > limite) return `Máximo de ${limite} jogadores`;
+
+  if (formato === FormatoEtapa.SUPER_X) {
+    const variante = etapa.varianteSuperX ?? VarianteSuperX.SUPER_8;
+    if (maxJogadores !== variante) {
+      return `Super ${variante} requer exatamente ${variante} jogadores`;
+    }
+  }
+
+  if (formato === FormatoEtapa.TEAMS) {
+    const variante = etapa.varianteTeams ?? VarianteTeams.TEAMS_4;
+    if (maxJogadores < variante * 2) {
+      return `Teams ${variante}: mínimo de ${variante * 2} jogadores (2 equipes)`;
+    }
+    if (maxJogadores % variante !== 0) {
+      return `Teams ${variante}: número de jogadores deve ser múltiplo de ${variante}`;
+    }
+    if (etapa.tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL && !nivel) {
+      return "Equipes por mesmo nível precisam de um nível na etapa";
+    }
+  }
+
+  if (
+    formato === FormatoEtapa.DUPLA_FIXA &&
+    etapa.tipoFormacaoDupla === TipoFormacaoDupla.MESMO_NIVEL &&
+    genero !== GeneroJogador.MISTO &&
+    !nivel
+  ) {
+    return "Formação por mesmo nível precisa de um nível na etapa";
+  }
+
+  return null;
+};
+
 // Criar Etapa - Schema base
 const CriarEtapaSchemaBase = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -425,6 +482,7 @@ export const AtualizarEtapaSchema = z.object({
     .number()
     .min(6, "Mínimo de 6 jogadores") // Máximo depende do formato (service)
     .optional(),
+  grupoUnico: z.boolean().optional(), // Dupla Fixa
   status: z.nativeEnum(StatusEtapa).optional(),
   contaPontosRanking: z.boolean().optional(),
   darPontosParticipacao: z.boolean().optional(),

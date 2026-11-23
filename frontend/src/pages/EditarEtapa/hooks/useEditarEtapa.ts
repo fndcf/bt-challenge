@@ -4,7 +4,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Etapa, AtualizarEtapaDTO, FormatoEtapa } from "@/types/etapa";
+import {
+  Etapa,
+  AtualizarEtapaDTO,
+  FormatoEtapa,
+  TipoFormacaoDupla,
+  TipoFormacaoEquipe,
+  VarianteSuperX,
+  VarianteTeams,
+} from "@/types/etapa";
+import { GeneroJogador } from "@/types/jogador";
 import { MAX_EQUIPES_TEAMS } from "@/utils/etapa";
 import { getEtapaService } from "@/services";
 import { format } from "date-fns";
@@ -37,7 +46,28 @@ export interface UseEditarEtapaReturn {
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   calcularMinimoJogadores: () => number;
   ajustarValorJogadores: (valor: number) => number;
+  /** Super X: o número de jogadores acompanha a variante */
+  alterarVarianteSuperX: (variante: VarianteSuperX) => void;
+  /** Teams: ajusta o número de jogadores ao múltiplo da nova variante */
+  alterarVarianteTeams: (variante: VarianteTeams) => void;
 }
+
+/** Mínimo de jogadores do formato, sem contar os inscritos */
+const minimoDoFormato = (formato: FormatoEtapa | undefined, varianteTeams: number) => {
+  if (formato === FormatoEtapa.TEAMS) return varianteTeams * 2;
+  if (formato === FormatoEtapa.REI_DA_PRAIA) return 8;
+  return 6;
+};
+
+/** Passo do número de jogadores (múltiplo exigido) */
+const passoDoFormato = (formato: FormatoEtapa | undefined, varianteTeams: number) => {
+  if (formato === FormatoEtapa.TEAMS) return varianteTeams;
+  if (formato === FormatoEtapa.REI_DA_PRAIA) return 4;
+  return 2;
+};
+
+const arredondarPara = (valor: number, passo: number) =>
+  Math.ceil(valor / passo) * passo;
 
 export const useEditarEtapa = (
   id: string | undefined
@@ -77,6 +107,10 @@ export const useEditarEtapa = (
   const temInscritos = (etapa?.totalInscritos || 0) > 0;
   const chavesGeradas = etapa?.chavesGeradas || false;
 
+  // Variantes escolhidas no formulário (podem mudar antes das chaves)
+  const varianteTeams = formData.varianteTeams || etapa?.varianteTeams || 4;
+  const varianteSuperX = formData.varianteSuperX || etapa?.varianteSuperX || 8;
+
   // ============== CARREGAR ETAPA ==============
 
   // A API pode devolver texto ou o Timestamp do Firestore
@@ -114,12 +148,17 @@ export const useEditarEtapa = (
         local: data.local || "",
         maxJogadores: data.maxJogadores || 16,
         tipoChaveamento: data.tipoChaveamento,
-        varianteSuperX: data.varianteSuperX,
         contaPontosRanking: data.contaPontosRanking ?? true,
         darPontosParticipacao: data.darPontosParticipacao ?? true,
         melhorDe3: data.melhorDe3 ?? false,
         melhorDe3Eliminatoria: data.melhorDe3Eliminatoria ?? false,
-        tipoFormacaoJogos: data.tipoFormacaoJogos, // TEAMS
+        // Campos de cada formato
+        tipoFormacaoDupla: data.tipoFormacaoDupla,
+        grupoUnico: data.grupoUnico ?? false,
+        varianteSuperX: data.varianteSuperX,
+        varianteTeams: data.varianteTeams,
+        tipoFormacaoEquipe: data.tipoFormacaoEquipe,
+        tipoFormacaoJogos: data.tipoFormacaoJogos,
       });
     } catch (err) {
       setError(getMensagemErro(err, "Erro ao carregar etapa"));
@@ -138,61 +177,26 @@ export const useEditarEtapa = (
     if (!etapa) return 6;
 
     // Super X: jogadores são fixos pela variante
-    if (isSuperX) {
-      return etapa.varianteSuperX || 8;
-    }
+    if (isSuperX) return varianteSuperX;
 
-    // TEAMS: mínimo baseado na variante (4 ou 6) * 2 equipes
-    if (isTeams) {
-      const variante = etapa.varianteTeams || 4;
-      const minimoFormato = variante * 2;
-      const minimoInscritos = etapa.totalInscritos || 0;
-      const minimo = Math.max(minimoFormato, minimoInscritos);
-      // Arredondar para múltiplo da variante
-      return Math.ceil(minimo / variante) * variante;
-    }
-
-    const minimoFormato = isReiDaPraia ? 8 : 6;
-    const minimoInscritos = etapa.totalInscritos || 0;
-    const minimo = Math.max(minimoFormato, minimoInscritos);
-
-    if (isReiDaPraia) {
-      // Arredondar para cima para múltiplo de 4
-      return Math.ceil(minimo / 4) * 4;
-    } else {
-      // Arredondar para cima para número par
-      return minimo % 2 === 0 ? minimo : minimo + 1;
-    }
-  }, [etapa, isReiDaPraia, isSuperX, isTeams]);
+    const minimo = Math.max(
+      minimoDoFormato(etapa.formato, varianteTeams),
+      etapa.totalInscritos || 0
+    );
+    return arredondarPara(minimo, passoDoFormato(etapa.formato, varianteTeams));
+  }, [etapa, isSuperX, varianteSuperX, varianteTeams]);
 
   const ajustarValorJogadores = useCallback(
     (valor: number): number => {
       const minimo = calcularMinimoJogadores();
 
       // Super X: não permite ajuste, é fixo pela variante
-      if (isSuperX) {
-        return minimo;
-      }
+      if (isSuperX) return minimo;
+      if (valor < minimo) return minimo;
 
-      if (valor < minimo) {
-        return minimo;
-      }
-
-      // TEAMS: arredondar para múltiplo da variante
-      if (isTeams && etapa) {
-        const variante = etapa.varianteTeams || 4;
-        return Math.ceil(valor / variante) * variante;
-      }
-
-      if (isReiDaPraia) {
-        // Arredondar para múltiplo de 4
-        return Math.ceil(valor / 4) * 4;
-      } else {
-        // Arredondar para par
-        return valor % 2 === 0 ? valor : valor + 1;
-      }
+      return arredondarPara(valor, passoDoFormato(etapa?.formato, varianteTeams));
     },
-    [calcularMinimoJogadores, etapa, isReiDaPraia, isSuperX, isTeams]
+    [calcularMinimoJogadores, etapa, isSuperX, varianteTeams]
   );
 
   // ============== HANDLERS ==============
@@ -207,115 +211,116 @@ export const useEditarEtapa = (
     []
   );
 
+  const alterarVarianteSuperX = useCallback((variante: VarianteSuperX) => {
+    setFormData((prev) => ({
+      ...prev,
+      varianteSuperX: variante,
+      maxJogadores: variante,
+    }));
+  }, []);
+
+  const alterarVarianteTeams = useCallback(
+    (variante: VarianteTeams) => {
+      const inscritos = etapa?.totalInscritos || 0;
+      setFormData((prev) => {
+        const minimo = Math.max(variante * 2, inscritos, prev.maxJogadores || 0);
+        return {
+          ...prev,
+          varianteTeams: variante,
+          maxJogadores: Math.min(
+            arredondarPara(minimo, variante),
+            variante * MAX_EQUIPES_TEAMS
+          ),
+        };
+      });
+    },
+    [etapa]
+  );
+
+  /** Mensagem de erro do formulário, ou null se pode salvar */
+  const validar = useCallback((): string | null => {
+    if (!etapa) return null;
+    const max = formData.maxJogadores;
+    const inscritos = etapa.totalInscritos || 0;
+
+    if (!max) return "Número máximo de jogadores é obrigatório";
+
+    if (isSuperX) {
+      if (inscritos > varianteSuperX) {
+        return `Super ${varianteSuperX} aceita ${varianteSuperX} jogadores e a etapa já tem ${inscritos} inscritos`;
+      }
+      if (max !== varianteSuperX) {
+        return `Super ${varianteSuperX}: número de jogadores deve ser exatamente ${varianteSuperX}`;
+      }
+    } else if (isReiDaPraia) {
+      if (max < 8) return "Rei da Praia requer mínimo de 8 jogadores";
+      if (max > 64) return "Rei da Praia: máximo de 64 jogadores";
+      if (max % 4 !== 0) return "Rei da Praia: número de jogadores deve ser múltiplo de 4";
+    } else if (isTeams) {
+      const minimo = varianteTeams * 2; // Mínimo de 2 equipes
+      const maximo = varianteTeams * MAX_EQUIPES_TEAMS;
+      if (max < minimo) {
+        return `Teams ${varianteTeams}: mínimo de ${minimo} jogadores (2 equipes)`;
+      }
+      if (max > maximo) {
+        return `Teams ${varianteTeams}: máximo de ${maximo} jogadores (${MAX_EQUIPES_TEAMS} equipes)`;
+      }
+      if (max % varianteTeams !== 0) {
+        return `Teams ${varianteTeams}: número de jogadores deve ser múltiplo de ${varianteTeams}`;
+      }
+    } else {
+      if (max < 6) return "Dupla Fixa: mínimo de 6 jogadores";
+      if (max > 52) return "Dupla Fixa: máximo de 52 jogadores";
+      if (max % 2 !== 0) return "Dupla Fixa: número de jogadores deve ser par";
+    }
+
+    if (max < inscritos) {
+      return `Não é possível reduzir para ${max}. Já existem ${inscritos} jogador(es) inscrito(s).`;
+    }
+
+    // "Mesmo nível" precisa saber qual nível
+    const semNivel = !formData.nivel;
+    const mista = formData.genero === GeneroJogador.MISTO;
+    if (
+      semNivel &&
+      !mista &&
+      etapa.formato === FormatoEtapa.DUPLA_FIXA &&
+      formData.tipoFormacaoDupla === TipoFormacaoDupla.MESMO_NIVEL
+    ) {
+      return "Formação por mesmo nível precisa de um nível na etapa";
+    }
+    if (
+      semNivel &&
+      isTeams &&
+      formData.tipoFormacaoEquipe === TipoFormacaoEquipe.MESMO_NIVEL
+    ) {
+      return "Equipes por mesmo nível precisam de um nível na etapa";
+    }
+
+    if (!formData.nome || formData.nome.length < 3) {
+      return "Nome deve ter no mínimo 3 caracteres";
+    }
+
+    return null;
+  }, [etapa, formData, isReiDaPraia, isSuperX, isTeams, varianteSuperX, varianteTeams]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (!id || !etapa) return;
 
+      const erro = validar();
+      if (erro) {
+        setError(erro);
+        return;
+      }
+
       try {
         setSalvando(true);
         setError(null);
         setGlobalLoading(true);
         setGlobalLoadingMessage("Salvando alterações...");
-
-        if (!formData.maxJogadores) {
-          setError("Número máximo de jogadores é obrigatório");
-          setSalvando(false);
-          return;
-        }
-
-        // Validações específicas por formato
-        if (isSuperX) {
-          // Super X: maxJogadores deve ser igual à variante selecionada
-          const variante = etapa.varianteSuperX;
-          if (formData.maxJogadores !== variante) {
-            setError(
-              `Super ${variante}: número de jogadores deve ser exatamente ${variante}`
-            );
-            setSalvando(false);
-            return;
-          }
-        } else if (isReiDaPraia) {
-          if (formData.maxJogadores < 8) {
-            setError("Rei da Praia requer mínimo de 8 jogadores");
-            setSalvando(false);
-            return;
-          }
-
-          if (formData.maxJogadores > 64) {
-            setError("Rei da Praia: máximo de 64 jogadores");
-            setSalvando(false);
-            return;
-          }
-
-          if (formData.maxJogadores % 4 !== 0) {
-            setError(
-              "Rei da Praia: número de jogadores deve ser múltiplo de 4"
-            );
-            setSalvando(false);
-            return;
-          }
-        } else if (isTeams) {
-          // TEAMS: validação baseada na variante (4 ou 6 jogadores por equipe)
-          const variante = etapa.varianteTeams || 4;
-          const minimo = variante * 2; // Mínimo de 2 equipes
-          const maximo = variante * MAX_EQUIPES_TEAMS;
-
-          if (formData.maxJogadores < minimo) {
-            setError(`Teams ${variante}: mínimo de ${minimo} jogadores (2 equipes)`);
-            setSalvando(false);
-            return;
-          }
-
-          if (formData.maxJogadores > maximo) {
-            setError(`Teams ${variante}: máximo de ${maximo} jogadores (${MAX_EQUIPES_TEAMS} equipes)`);
-            setSalvando(false);
-            return;
-          }
-
-          if (formData.maxJogadores % variante !== 0) {
-            setError(
-              `Teams ${variante}: número de jogadores deve ser múltiplo de ${variante}`
-            );
-            setSalvando(false);
-            return;
-          }
-        } else {
-          // Dupla Fixa
-          if (formData.maxJogadores < 6) {
-            setError("Dupla Fixa: mínimo de 6 jogadores");
-            setSalvando(false);
-            return;
-          }
-
-          if (formData.maxJogadores > 52) {
-            setError("Dupla Fixa: máximo de 52 jogadores");
-            setSalvando(false);
-            return;
-          }
-
-          if (formData.maxJogadores % 2 !== 0) {
-            setError("Dupla Fixa: número de jogadores deve ser par");
-            setSalvando(false);
-            return;
-          }
-        }
-
-        if (formData.maxJogadores < (etapa.totalInscritos || 0)) {
-          setError(
-            `Não é possível reduzir para ${formData.maxJogadores}. Já existem ${etapa.totalInscritos} jogador(es) inscrito(s).`
-          );
-          setSalvando(false);
-          return;
-        }
-
-        // Validar nome
-        if (!formData.nome || formData.nome.length < 3) {
-          setError("Nome deve ter no mínimo 3 caracteres");
-          setSalvando(false);
-          return;
-        }
 
         const toISO = (dateStr: string) => {
           if (!dateStr) return undefined;
@@ -347,7 +352,7 @@ export const useEditarEtapa = (
         setGlobalLoadingMessage("");
       }
     },
-    [id, etapa, formData, isReiDaPraia, isSuperX, isTeams, navigate]
+    [id, etapa, formData, validar, navigate]
   );
 
   return {
@@ -374,5 +379,7 @@ export const useEditarEtapa = (
     handleSubmit,
     calcularMinimoJogadores,
     ajustarValorJogadores,
+    alterarVarianteSuperX,
+    alterarVarianteTeams,
   };
 };

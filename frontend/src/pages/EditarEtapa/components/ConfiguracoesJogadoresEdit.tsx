@@ -1,5 +1,6 @@
 /**
- * Responsabilidade única: Configuração de número de jogadores no modo edição
+ * Responsabilidade única: Configurações da etapa no modo edição
+ * (campos do formato, número de jogadores e opções de pontuação)
  */
 
 import React from "react";
@@ -7,15 +8,19 @@ import {
   OpcoesPontuacao,
   OpcoesPontuacaoProps,
 } from "../../CriarEtapa/components/OpcoesPontuacao";
+import {
+  CamposFormato,
+  CamposFormatoProps,
+} from "../../CriarEtapa/components/CamposFormato";
 import { Campos, Cartao, CartaoTitulo } from "@/components/layout/Pagina";
 import { Input } from "@/components/ui";
 import { FormatoEtapa, VarianteTeams } from "@/types/etapa";
 import { MAX_EQUIPES_TEAMS } from "@/utils/etapa";
 
 export interface ConfiguracoesJogadoresEditProps
-  extends Omit<OpcoesPontuacaoProps, "bloqueado"> {
+  extends Omit<OpcoesPontuacaoProps, "bloqueado">,
+    Omit<CamposFormatoProps, "formato" | "disabled" | "ajudaVariante"> {
   maxJogadores: number | undefined;
-  varianteTeams?: VarianteTeams;
   chavesGeradas: boolean;
   temInscritos: boolean;
   totalInscritos: number;
@@ -60,13 +65,24 @@ export const ConfiguracoesJogadoresEdit: React.FC<
 > = ({
   maxJogadores,
   formato,
-  varianteTeams = VarianteTeams.TEAMS_4,
   chavesGeradas,
   temInscritos,
   totalInscritos,
   minimoJogadores,
   onMaxJogadoresChange,
   onBlur,
+  tipoFormacaoDupla,
+  grupoUnico,
+  varianteSuperX,
+  varianteTeams = VarianteTeams.TEAMS_4,
+  tipoFormacaoEquipe,
+  tipoFormacaoJogos,
+  onTipoFormacaoDuplaChange,
+  onGrupoUnicoChange,
+  onVarianteSuperXChange,
+  onVarianteTeamsChange,
+  onTipoFormacaoEquipeChange,
+  onTipoFormacaoJogosChange,
   ...opcoesPontuacao
 }) => {
   const isSuperX = formato === FormatoEtapa.SUPER_X;
@@ -83,16 +99,40 @@ export const ConfiguracoesJogadoresEdit: React.FC<
 
   const getAjuda = () => {
     if (isSuperX) {
-      return `Super X tem número fixo de jogadores (${maxJogadores}) - não pode ser alterado`;
+      return `Definido pela variante (Super ${maxJogadores})`;
     }
     return temInscritos
       ? `Mínimo de ${minimoJogadores} (${totalInscritos} inscritos) - ${limites.regra}`
       : limites.ajuda;
   };
 
+  // Variante não pode ficar menor que os inscritos
+  const ajudaVariante =
+    temInscritos && (isSuperX || formato === FormatoEtapa.TEAMS)
+      ? `${totalInscritos} jogador(es) inscrito(s): a variante precisa comportar todos`
+      : undefined;
+
   return (
     <Cartao>
       <CartaoTitulo>Configurações</CartaoTitulo>
+
+      <CamposFormato
+        formato={formato}
+        disabled={chavesGeradas}
+        ajudaVariante={ajudaVariante}
+        tipoFormacaoDupla={tipoFormacaoDupla}
+        grupoUnico={grupoUnico}
+        varianteSuperX={varianteSuperX}
+        varianteTeams={varianteTeams}
+        tipoFormacaoEquipe={tipoFormacaoEquipe}
+        tipoFormacaoJogos={tipoFormacaoJogos}
+        onTipoFormacaoDuplaChange={onTipoFormacaoDuplaChange}
+        onGrupoUnicoChange={onGrupoUnicoChange}
+        onVarianteSuperXChange={onVarianteSuperXChange}
+        onVarianteTeamsChange={onVarianteTeamsChange}
+        onTipoFormacaoEquipeChange={onTipoFormacaoEquipeChange}
+        onTipoFormacaoJogosChange={onTipoFormacaoJogosChange}
+      />
 
       <Input
         label="Número Máximo de Jogadores"
